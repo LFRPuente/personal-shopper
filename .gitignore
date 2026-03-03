@@ -1,0 +1,38 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+backend.out.log
+vite.out.log
+cloudflared.log
+cloudflared.out.log
+cf_login.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+backend/venv/
+
+# Django / local runtime
+backend/db.sqlite3
+backend/media/
+backend/runserver.log
+backend/daphne.log
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build artifacts
+frontend/dist/
+

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Client Mission Detailed Products View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#007AFF",
+                        "primary-content": "#ffffff",
+                        "primary-dark": "#0062CC",
+                        "primary-light": "#E5F1FF",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#1C1C1E",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#2C2C2E",
+                        "text-main": "#000000",
+                        "text-sub": "#8E8E93",
+                        "border-light": "#E5E5EA",
+                        "border-dark": "#3A3A3C",
+                        "success": "#34C759",
+                        "warning": "#FF9500",
+                        "danger": "#FF3B30",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                        'card': '0 2px 6px rgba(0, 0, 0, 0.02)',
+                        'floating': '0 8px 24px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .ios-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .ios-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-black min-h-screen flex justify-center text-text-main dark:text-white font-display transition-colors duration-200">
+<div class="w-full max-w-[480px] min-h-screen bg-background-light dark:bg-black shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden">
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-b border-border-light dark:border-border-dark transition-colors duration-200">
+<div class="px-4 py-3 flex items-center justify-between">
+<button class="flex items-center gap-1 text-primary hover:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+<span class="text-base font-medium">Missions</span>
+</button>
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mb-1 shadow-sm">
+<img alt="Client Sarah" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6MHf1e0Rmxn5kThbVR0WMzU8VcvmoChMbcVIDT2VaK8ZKC5jMZUVqXq3bCknqi4G_2StDmfyntOHJzcK_qqxsayl2i725QDdjT5JLd1BF-wGi2ZvF0MHSyOFuDg4VbRwvH9frGnj6K0Bvk0ejRCRZGgOeyg6Wgav-y7J0qzPqol_zAsglHr03VSGAdvX17-6A6_Q3wSsgzEcsitFUfs0isvxu5zh6kd1mTTGIdbma6aLxPm7y0uFTSfIlxfpGJ_c_kZfRgRnY0y4"/>
+</div>
+<h2 class="text-sm font-semibold text-text-main dark:text-white leading-tight">Sarah Jenkins</h2>
+</div>
+<button class="text-primary hover:opacity-70 transition-opacity font-medium text-base">
+                    Edit
+                </button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto ios-scroll p-4 space-y-6 pb-28">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-card overflow-hidden">
+<div class="p-5">
+<div class="flex justify-between items-end mb-2">
+<div>
+<p class="text-[13px] font-medium text-text-sub dark:text-gray-400 uppercase tracking-wide mb-1">Total Cost</p>
+<h1 class="text-3xl font-bold text-text-main dark:text-white tracking-tight">$3,450.00</h1>
+</div>
+<div class="text-right pb-1">
+<p class="text-[11px] font-medium text-text-sub dark:text-gray-400 uppercase tracking-wide">Paid</p>
+<p class="text-lg font-bold text-success">$2,000.00</p>
+</div>
+</div>
+<div class="relative pt-2">
+<div class="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 58%"></div>
+</div>
+<div class="flex justify-between mt-1.5">
+<span class="text-xs text-text-sub dark:text-gray-500">58% Collected</span>
+<span class="text-xs text-text-sub dark:text-gray-500">Balance: $1,450.00</span>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-2">
+<div class="flex items-center justify-center w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined text-[16px]">folder</span>
+</div>
+<h3 class="text-lg font-bold text-text-main dark:text-white">Winter Essentials</h3>
+<span class="text-xs font-medium text-text-sub dark:text-gray-500 bg-gray-200 dark:bg-gray-800 px-2 py-0.5 rounded-full">3</span>
+</div>
+<button class="text-primary text-sm font-medium hover:bg-primary/10 px-2 py-1 rounded-md transition-colors">
+                        Select
+                    </button>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-card hover:shadow-soft transition-all duration-300 relative group overflow-hidden">
+<div class="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+<div class="flex gap-4">
+<div class="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden relative border border-border-light dark:border-border-dark">
+<div class="absolute inset-0 flex items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-3xl">checkroom</span>
+</div>
+<div class="absolute top-1 left-1 hidden">
+<input class="rounded-full border-gray-300 text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start pr-6">
+<div>
+<h4 class="text-base font-semibold text-text-main dark:text-white truncate">Cashmere Scarf</h4>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800">
+                                            Store: Gucci
+                                        </span>
+</div>
+</div>
+<span class="text-base font-bold text-text-main dark:text-white">$450.00</span>
+</div>
+<div class="mt-3 grid grid-cols-3 gap-2 py-2 border-t border-dashed border-border-light dark:border-border-dark">
+<div>
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Retail</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$400</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Comm.</span>
+<span class="text-sm font-medium text-success">+$40</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Ship</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$10</span>
+</div>
+</div>
+<button class="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-primary hover:text-primary-dark transition-colors w-full justify-start py-1">
+<span class="material-symbols-outlined text-[14px]">add</span> Add Custom Metadata
+                            </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-card hover:shadow-soft transition-all duration-300 relative group">
+<div class="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+<div class="flex gap-4">
+<div class="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden relative border border-border-light dark:border-border-dark">
+<div class="absolute inset-0 flex items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-3xl">shopping_bag</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start pr-6">
+<div>
+<h4 class="text-base font-semibold text-text-main dark:text-white truncate">Leather Gloves</h4>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                                            Store: Unknown
+                                        </span>
+</div>
+</div>
+<span class="text-base font-bold text-text-main dark:text-white">$280.00</span>
+</div>
+<div class="mt-3 grid grid-cols-3 gap-2 py-2 border-t border-dashed border-border-light dark:border-border-dark">
+<div>
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Retail</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$250</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Comm.</span>
+<span class="text-sm font-medium text-success">+$25</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Ship</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$5</span>
+</div>
+</div>
+<button class="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-primary hover:text-primary-dark transition-colors w-full justify-start py-1">
+<span class="material-symbols-outlined text-[14px]">add</span> Add Custom Metadata
+                            </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-card hover:shadow-soft transition-all duration-300 relative group">
+<div class="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+<div class="flex gap-4">
+<div class="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden relative border border-border-light dark:border-border-dark">
+<div class="absolute inset-0 flex items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-3xl">local_mall</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start pr-6">
+<div>
+<h4 class="text-base font-semibold text-text-main dark:text-white truncate">Wool Coat</h4>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800">
+                                            Store: Burberry
+                                        </span>
+</div>
+</div>
+<span class="text-base font-bold text-text-main dark:text-white">$2,500.00</span>
+</div>
+<div class="mt-3 grid grid-cols-3 gap-2 py-2 border-t border-dashed border-border-light dark:border-border-dark">
+<div>
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Retail</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$2,250</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Comm.</span>
+<span class="text-sm font-medium text-success">+$225</span>
+</div>
+<div class="border-l border-border-light dark:border-border-dark pl-2">
+<span class="block text-[10px] uppercase text-text-sub dark:text-gray-500 font-semibold">Ship</span>
+<span class="text-sm font-medium text-text-main dark:text-white">$25</span>
+</div>
+</div>
+<button class="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-primary hover:text-primary-dark transition-colors w-full justify-start py-1">
+<span class="material-symbols-outlined text-[14px]">add</span> Add Custom Metadata
+                            </button>
+</div>
+</div>
+</div>
+<div class="pt-2 flex gap-2">
+<button class="flex-1 py-2 text-xs font-medium bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg text-text-sub hover:text-primary hover:border-primary/50 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">edit</span> Rename Group
+                    </button>
+<button class="flex-1 py-2 text-xs font-medium bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg text-text-sub hover:text-primary hover:border-primary/50 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">drive_file_move</span> Move to Group
+                    </button>
+</div>
+</div>
+<div class="space-y-3 pt-4">
+<div class="flex items-center justify-between px-1">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Recent Additions</h3>
+</div>
+<button class="w-full py-3 border-2 border-dashed border-border-light dark:border-border-dark rounded-xl flex items-center justify-center gap-2 text-text-sub hover:text-primary hover:border-primary/30 hover:bg-surface-light dark:hover:bg-surface-dark transition-all group">
+<div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</div>
+<span class="font-medium text-sm">Add Item to List</span>
+</button>
+</div>
+<div class="h-10"></div>
+</main>
+<div class="sticky bottom-0 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-xl border-t border-border-light dark:border-border-dark p-4 pb-8 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<button class="w-full py-3.5 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary/25 flex items-center justify-center gap-2 active:scale-[0.98]">
+<span class="material-symbols-outlined">add_circle</span>
+                Add New Item
+            </button>
+</div>
+</div>
+
+</body></html>

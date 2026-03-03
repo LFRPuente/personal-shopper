@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Personal Shopper Mission Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "primary-content": "#ffffff",
+                        "primary-dark": "#0b5ec2",
+                        "primary-light": "#e0f0ff",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2632",
+                        "text-main": "#0d141b",
+                        "text-sub": "#4c739a",
+                        "border-light": "#e7edf3",
+                        "border-dark": "#2a3b4d",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "2xl": "2.5rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 2px 10px rgba(0, 0, 0, 0.03)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .ios-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .ios-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex justify-center text-slate-900 dark:text-slate-100 font-display transition-colors duration-200">
+<!-- Mobile-first Container Centered on Desktop -->
+<div class="w-full max-w-[480px] min-h-screen bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200">
+<div class="px-5 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary/20" data-alt="Portrait of Alex Rivera" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAYpykWEJUCxDQPNKJ_Wc3AXHPSG31DDHOMMnSICnv2LGHRMF2sgpUsbS88OWBEVcviw_BVaiZUqQwS_OQFWQHSA3DmJ4201B0JPssARjtb--gy9DqqSMxp1kX4Hz1vCvUpiVsvyEVhVsZ0_-tjdKfShAQ27qxSmUqHke-9mmfxb-eYDynvObsUjpMzXvRno5k64a5oWH1TLGfo405AOM9R8t_iw35v7vj_-1IRZV6NeW4Au_o6xUqM-N5ZBVqIou96E61bZkOnD1I");'>
+</div>
+<div>
+<h2 class="text-sm font-semibold text-text-main dark:text-white leading-tight">Alex Rivera</h2>
+<p class="text-xs text-text-sub dark:text-slate-400 font-medium">Personal Shopper</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-background-light dark:bg-background-dark text-text-main dark:text-white hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-background-light dark:bg-background-dark text-text-main dark:text-white hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</div>
+<!-- Dashboard Summary -->
+<div class="px-5 pb-6 pt-2 text-center">
+<p class="text-xs uppercase tracking-wider font-semibold text-text-sub dark:text-slate-400 mb-1">Wednesday, October 25</p>
+<div class="flex flex-col items-center">
+<span class="text-text-sub dark:text-slate-400 text-sm font-medium mb-1">Total Spent Today</span>
+<h1 class="text-4xl font-bold text-text-main dark:text-white tracking-tight">$0.00</h1>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto ios-scroll p-5 space-y-6 bg-background-light dark:bg-background-dark">
+<!-- Quick Actions Grid -->
+<div class="grid grid-cols-2 gap-3">
+<button class="group flex flex-col items-center justify-center p-4 bg-surface-light dark:bg-surface-dark rounded-xl shadow-card hover:shadow-soft transition-all duration-300 border border-transparent hover:border-primary/20">
+<div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</div>
+<span class="text-sm font-semibold text-text-main dark:text-white">New Mission</span>
+</button>
+<button class="group flex flex-col items-center justify-center p-4 bg-surface-light dark:bg-surface-dark rounded-xl shadow-card hover:shadow-soft transition-all duration-300 border border-transparent hover:border-primary/20">
+<div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<span class="text-sm font-semibold text-text-main dark:text-white">Scan Receipt</span>
+</button>
+</div>
+<!-- Missions Header -->
+<div class="flex items-center justify-between mt-2">
+<h2 class="text-lg font-bold text-text-main dark:text-white">Active Missions</h2>
+<a class="text-primary text-sm font-medium hover:opacity-80" href="#">View All</a>
+</div>
+<!-- Mission Cards -->
+<div class="space-y-4">
+<!-- Card 1 -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-card hover:shadow-soft transition-all duration-300 border border-border-light dark:border-border-dark group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" data-alt="Client profile picture">
+<img alt="Client Sarah" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6MHf1e0Rmxn5kThbVR0WMzU8VcvmoChMbcVIDT2VaK8ZKC5jMZUVqXq3bCknqi4G_2StDmfyntOHJzcK_qqxsayl2i725QDdjT5JLd1BF-wGi2ZvF0MHSyOFuDg4VbRwvH9frGnj6K0Bvk0ejRCRZGgOeyg6Wgav-y7J0qzPqol_zAsglHr03VSGAdvX17-6A6_Q3wSsgzEcsitFUfs0isvxu5zh6kd1mTTGIdbma6aLxPm7y0uFTSfIlxfpGJ_c_kZfRgRnY0y4"/>
+</div>
+<div>
+<h3 class="font-bold text-text-main dark:text-white text-base">Sarah Jenkins</h3>
+<p class="text-xs text-text-sub dark:text-slate-400">Downtown Shopping</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold uppercase tracking-wide">
+                            Active
+                        </span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between text-sm mb-2">
+<span class="text-text-sub dark:text-slate-400">Budget Used</span>
+<span class="font-semibold text-text-main dark:text-white">$1,200 / $2,500</span>
+</div>
+<div class="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 48%"></div>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-5">
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">Gucci</span>
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">Prada</span>
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">+2 more</span>
+</div>
+<button class="w-full py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm shadow-primary/30">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                        Add Purchased Item
+                    </button>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-card hover:shadow-soft transition-all duration-300 border border-border-light dark:border-border-dark group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" data-alt="Client profile picture">
+<img alt="Client Michael" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1NJtmwRFnPYsxdmtxUgqNToUopPIkJBazIewQFBxMRHM0NbcN5cDxD8mRzEmWMwe5qJfUlS-5e7xR9bAn3xyp1bFv4su39YosX_5hk3fRVPNfNox0oaw2nWRooZEs56q1akoZ0uVC-HIRxc_uDT0oanr9ZoL-E75y1zOn4N9BHX8TctZlcWjhH41qj3CiXgc-zeIVE02XK0P_vG4IBlM09vfFfOQTXkanvJPeivCCg7gp8S-0muhGNZ3vcgL6ocApbjSrfWDRJ3c"/>
+</div>
+<div>
+<h3 class="font-bold text-text-main dark:text-white text-base">Michael Chen</h3>
+<p class="text-xs text-text-sub dark:text-slate-400">Tech &amp; Gadgets</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold uppercase tracking-wide">
+                            Pending
+                        </span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between text-sm mb-2">
+<span class="text-text-sub dark:text-slate-400">Budget Used</span>
+<span class="font-semibold text-text-main dark:text-white">$0 / $5,000</span>
+</div>
+<div class="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 0%"></div>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-5">
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">Apple</span>
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">Sony</span>
+</div>
+<button class="w-full py-3 bg-white dark:bg-surface-dark border-2 border-primary text-primary hover:bg-primary/5 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+                        Start Mission
+                    </button>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-card hover:shadow-soft transition-all duration-300 border border-border-light dark:border-border-dark group opacity-75">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" data-alt="Client profile picture">
+<img alt="Client Emma" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTF1br2Vf2_JCeiyVCyKYkU0FHIW3b7evqYaEihA0GEipkQZ5VlXpjcFL_0U92q5S0blcLyErNaRcW4JVc-pK0M985wnORH0XVUlnMjKd3bSkiKPA8SLfhS56A4VBK_efrd0o_ndWh1RKGZxQgDdaObbs9Ia7aprGhJUQH89EJEdtoT_74WqbmZghSlfOranmpf2LiSmvx9MNs_gvwBFVXAYFhmwFmBF0zT2lfwKHUwHzV8YmWGNV-QBdmfYY5M9y5LGC31teymjU"/>
+</div>
+<div>
+<h3 class="font-bold text-text-main dark:text-white text-base">Emma Wilson</h3>
+<p class="text-xs text-text-sub dark:text-slate-400">Fall Wardrobe</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wide">
+                            Completed
+                        </span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between text-sm mb-2">
+<span class="text-text-sub dark:text-slate-400">Total Spent</span>
+<span class="font-semibold text-text-main dark:text-white">$890 / $1,000</span>
+</div>
+<div class="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-green-500 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-5">
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">Zara</span>
+<span class="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-medium text-text-sub dark:text-slate-300">H&amp;M</span>
+</div>
+<button class="w-full py-3 bg-transparent text-text-sub dark:text-slate-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        View Summary
+                    </button>
+</div>
+</div>
+<div class="h-20"></div> <!-- Spacer for scrolling -->
+</main>
+<!-- Bottom Navigation Bar (iOS Style) -->
+<nav class="sticky bottom-0 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-border-light dark:border-border-dark pb-5 pt-2 px-6">
+<div class="flex justify-between items-center">
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined font-variation-settings-fill">dashboard</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-text-sub dark:text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="text-[10px] font-medium">Missions</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-text-sub dark:text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-medium">Clients</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-text-sub dark:text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>
