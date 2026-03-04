@@ -5,6 +5,9 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from django.core.files.base import ContentFile
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import (
@@ -97,11 +100,22 @@ class MissionViewSet(viewsets.ModelViewSet):
         broadcast_update('missions', action='created', object_id=mission.id)
 
     def perform_update(self, serializer):
+        previous_status = serializer.instance.status
         mission = serializer.save()
         if mission.status == 'COMPLETED':
+            if not mission.end_time:
+                mission.end_time = timezone.now()
+                mission.save(update_fields=['end_time'])
             # Ensure every active client returns to idle when mission ends.
             Client.objects.filter(status__iexact='active').update(status='Pending')
             mission.clients.all().update(status='Pending')
+            # <-------- seccion 9: limpiar productos rechazados al cerrar mision
+            if previous_status != 'COMPLETED':
+                ProductItem.objects.filter(
+                    mission=mission,
+                    status='REJECTED',
+                ).delete()
+                broadcast_update('products', action='updated')
             # <-------- seccion 8: cambios masivos en clientes
             broadcast_update('clients', action='updated')
         # Whenever active mission is saved, sync active clients into it
@@ -114,9 +128,81 @@ class MissionViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         mission_id = instance.id
+        # Evita basura cuando se elimina una mision historica.
+        ProductItem.objects.filter(mission=instance, status='REJECTED').delete()
         super().perform_destroy(instance)
         # <-------- seccion 8: notificar borrado de misiones
         broadcast_update('missions', action='deleted', object_id=mission_id)
+
+    # <-------- seccion 9: subir ticket de tienda para toda la mision
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='upload-ticket',
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_ticket(self, request, pk=None):
+        mission = self.get_object()
+        image_file = request.FILES.get('image') or request.FILES.get('ticket')
+        if not image_file:
+            return Response(
+                {'error': 'No ticket image provided.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        products = ProductItem.objects.filter(mission=mission).select_related('client')
+        if not products.exists():
+            return Response(
+                {'error': 'Mission has no products to link.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        image_bytes = image_file.read()
+        if not image_bytes:
+            return Response(
+                {'error': 'Ticket image is empty.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Keep a mission-level ticket preview.
+        mission.ticket_image.save(image_file.name, ContentFile(image_bytes), save=False)
+        mission.save(update_fields=['ticket_image'])
+
+        client_ids = sorted(set(products.values_list('client_id', flat=True)))
+        linked_products = 0
+        created_receipts = 0
+
+        for client_id in client_ids:
+            client = Client.objects.filter(id=client_id).first()
+            if not client:
+                continue
+            receipt = Receipt(
+                client=client,
+                uploaded_by=request.user,
+                tax_percentage=mission.tax_percentage,
+            )
+            receipt.image.save(image_file.name, ContentFile(image_bytes), save=False)
+            receipt.save()
+            linked_products += ProductItem.objects.filter(
+                mission=mission,
+                client_id=client_id,
+            ).update(receipt=receipt)
+            created_receipts += 1
+
+        broadcast_update('missions', action='updated', object_id=mission.id)
+        broadcast_update('receipts', action='updated')
+        broadcast_update('products', action='updated')
+        broadcast_update('clients', action='updated')
+
+        return Response(
+            {
+                'message': 'Mission ticket uploaded and linked.',
+                'mission_id': mission.id,
+                'receipts_created': created_receipts,
+                'products_linked': linked_products,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 class StoreViewSet(viewsets.ModelViewSet):
     queryset = Store.objects.all().order_by('name')
@@ -150,24 +236,33 @@ class RequestViewSet(viewsets.ModelViewSet):
             return queryset
         mission_id = self.request.query_params.get('mission')
         if mission_id:
-            return queryset.filter(mission_id=mission_id)
+            # <-------- seccion 9: incluir pendientes fuera de mision
+            return queryset.filter(Q(mission_id=mission_id) | Q(mission__isnull=True))
         active_mission = Mission.objects.filter(
             status__in=['ACTIVE', 'PAUSED']
         ).order_by('-start_time').first()
         if active_mission:
-            return queryset.filter(mission=active_mission)
-        return queryset.none()
+            return queryset.filter(Q(mission=active_mission) | Q(mission__isnull=True))
+        return queryset.filter(mission__isnull=True)
 
     def perform_create(self, serializer):
         mission_id = self.request.data.get('mission')
-        if mission_id:
-            request_obj = serializer.save(created_by=self.request.user)
-            broadcast_update('requests', action='created', object_id=request_obj.id)
-            return
-        active_mission = Mission.objects.filter(
-            status__in=['ACTIVE', 'PAUSED']
-        ).order_by('-start_time').first()
-        request_obj = serializer.save(created_by=self.request.user, mission=active_mission)
+        mission_obj = None
+        if mission_id not in [None, '', 'null']:
+            mission_obj = Mission.objects.filter(id=mission_id).first()
+            # Evita ligar nuevas peticiones a misiones cerradas.
+            if mission_obj and mission_obj.status not in ['ACTIVE', 'PAUSED']:
+                mission_obj = None
+
+        if mission_obj is None:
+            mission_obj = Mission.objects.filter(
+                status__in=['ACTIVE', 'PAUSED']
+            ).order_by('-start_time').first()
+
+        request_obj = serializer.save(
+            created_by=self.request.user,
+            mission=mission_obj if mission_obj else None,
+        )
         broadcast_update('requests', action='created', object_id=request_obj.id)
 
     def perform_update(self, serializer):
@@ -206,6 +301,10 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = serializer.save(requested_by=self.request.user)
+        if review.product:
+            review.product.status = 'IN_REVIEW'
+            review.product.save(update_fields=['status'])
+            broadcast_update('products', action='updated')
         # <-------- seccion 8: notificar cambios de revisiones
         broadcast_update('reviews', action='created', object_id=review.id)
 
@@ -227,6 +326,10 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         if response_note is not None:
             review.ps_response = response_note
         review.save()
+        if review.product:
+            review.product.status = 'ANNOTATED'
+            review.product.save(update_fields=['status'])
+            broadcast_update('products', action='updated')
         broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 
@@ -239,6 +342,10 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         if response_note is not None:
             review.ps_response = response_note
         review.save()
+        if review.product:
+            review.product.status = 'REJECTED'
+            review.product.save(update_fields=['status'])
+            broadcast_update('products', action='updated')
         broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 
@@ -326,7 +433,7 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
                 image=alternative.image,
                 charged_price=original.charged_price,
                 real_price=original.real_price,
-                status=original.status,
+                status='ANNOTATED',
                 purchase_date=original.purchase_date,
             )
             review.product = replacement
@@ -347,14 +454,14 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         review = self.get_object()
         target_product = review.product
         review.status = 'DISCARDED'
-        review.product = None
         response_note = request.data.get('ps_response')
         if response_note is not None:
             review.ps_response = response_note
         review.save()
         if target_product:
-            target_product.delete()
-            broadcast_update('products', action='deleted')
+            target_product.status = 'REJECTED'
+            target_product.save(update_fields=['status'])
+            broadcast_update('products', action='updated')
         broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 
@@ -367,6 +474,10 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         if response_note is not None:
             review.ps_response = response_note
         review.save()
+        if review.product:
+            review.product.status = 'ANNOTATED'
+            review.product.save(update_fields=['status'])
+            broadcast_update('products', action='updated')
         broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 

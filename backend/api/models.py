@@ -78,7 +78,9 @@ class ProductItem(models.Model):
     status = models.CharField(max_length=50, choices=[
         ('ANNOTATED', 'Anotado'),
         ('IN_REVIEW', 'En Revision'),
+        ('BOUGHT', 'Comprado'),
         ('SHIPPED', 'Enviado'),
+        ('REJECTED', 'Rechazado'),
     ], default='ANNOTATED')
     created_at = models.DateTimeField(auto_now_add=True)
     purchase_date = models.DateField(null=True, blank=True)
@@ -90,6 +92,18 @@ class Mission(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     shopper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='missions')
     status = models.CharField(max_length=50, choices=[('ACTIVE', 'Misión Activa'), ('PAUSED', 'Misión Pausada'), ('COMPLETED', 'Misión Finalizada')], default='ACTIVE')
+    # <-------- seccion 9: configuracion comercial por mision
+    calc_mode = models.CharField(
+        max_length=20,
+        choices=[('FACTOR', 'Factor'), ('PERCENTAGE', 'Porcentaje')],
+        default='FACTOR',
+    )
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=8.00)
+    factor_value = models.DecimalField(max_digits=8, decimal_places=4, default=1.5000)
+    commission_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)
+    exchange_rate = models.DecimalField(max_digits=10, decimal_places=4, default=17.5000)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    ticket_image = models.ImageField(upload_to='mission_tickets/', null=True, blank=True)
     clients = models.ManyToManyField(Client, related_name='missions_history', blank=True)
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)

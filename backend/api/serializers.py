@@ -61,6 +61,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
 class ProductItemSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
+    client_name = serializers.CharField(source='client.name', read_only=True, default='')
     mission_name = serializers.CharField(
         source='mission.name', read_only=True, default=None
     )
@@ -89,6 +90,7 @@ class StoreSerializer(serializers.ModelSerializer):
 
 
 class MissionSerializer(serializers.ModelSerializer):
+    ticket_image = RelativeImageField(required=False, allow_null=True)
     shopper_name = serializers.CharField(source='shopper.username', read_only=True)
     clients_detail = ClientSerializer(source='clients', many=True, read_only=True)
     products = ProductItemSerializer(many=True, read_only=True)

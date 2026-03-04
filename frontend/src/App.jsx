@@ -113,7 +113,7 @@ function nh() {
     [pa, dn] = V.useState(null),
     [Sa, uu] = V.useState(""),
     [Ei, ge] = V.useState(null),
-    [wl, jt] = V.useState("IN_REVIEW"),
+    [wl, jt] = V.useState("PS_REVIEW"),
     [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
       null,
     ),
@@ -126,6 +126,9 @@ function nh() {
     [calcPrice, setCalcPrice] = V.useState(""),
     [calcTaxes, setCalcTaxes] = V.useState(() =>
       getStoredPercent("calc_taxes", 8),
+    ),
+    [calcDiscount, setCalcDiscount] = V.useState(() =>
+      getStoredPercent("calc_discount", 0),
     ),
     [calcCommission, setCalcCommission] = V.useState(() =>
       getStoredPercent("calc_commission", 10),
@@ -147,10 +150,22 @@ function nh() {
     [newRequestText, setNewRequestText] = V.useState(""),
     [editingRequestId, setEditingRequestId] = V.useState(null),
     [editingRequestText, setEditingRequestText] = V.useState(""),
-    [openRequestMenuId, setOpenRequestMenuId] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
     [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
+    [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
+    [missionStartForm, setMissionStartForm] = V.useState({
+      name: "",
+      tax_percentage: "8",
+      calc_mode: "FACTOR",
+      factor_value: "1.5",
+      commission_percentage: "10",
+      exchange_rate: "17.5",
+      discount_percentage: "0",
+    }),
+    [missionSummaryOpen, setMissionSummaryOpen] = V.useState(!1),
+    [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
+    [galleryDeliveryFilter, setGalleryDeliveryFilter] = V.useState("ALL"),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
@@ -161,6 +176,7 @@ function nh() {
     wsRef = V.useRef(null),
     wsReconnectTimerRef = V.useRef(null),
     wsStoppedRef = V.useRef(!1),
+    currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
     I = async (o, N = {}) => {
@@ -228,11 +244,7 @@ function nh() {
     getMissionRequestDetailPath = (o) =>
       w && w.id ? `/requests/${o}/?mission=${w.id}` : `/requests/${o}/`,
     reloadMissionRequests = async (o = w && w.id) => {
-      if (!o) {
-        setRequests([]);
-        return [];
-      }
-      const N = await I(`/requests/?mission=${o}`);
+      const N = o ? await I(`/requests/?mission=${o}`) : await I("/requests/");
       return (setRequests(N || []), N || []);
     };
   V.useEffect(() => {
@@ -243,6 +255,10 @@ function nh() {
     selectedClientIdRef.current = W ? W.id : null;
     activeMissionIdRef.current = w ? w.id : null;
   }, [W, w]);
+  V.useEffect(() => {
+    currentTabRef.current = nl;
+    if (nl === "HOME") setHomeNeedsAttention(!1);
+  }, [nl]);
   // <-------- seccion 8: conexion websocket + reconexion automatica
   V.useEffect(() => {
     if (!C) {
@@ -259,9 +275,8 @@ function nh() {
     let reconnectAttempt = 0;
     const refreshRequestsForMission = async () => {
       const o = activeMissionIdRef.current;
-      if (!o) return;
       try {
-        const N = await I(`/requests/?mission=${o}`);
+        const N = o ? await I(`/requests/?mission=${o}`) : await I("/requests/");
         setRequests(N || []);
       } catch (N) {
         console.error("Failed loading mission requests", N);
@@ -316,7 +331,17 @@ function nh() {
       o.onmessage = async (N) => {
         try {
           const A = JSON.parse(N.data || "{}");
-          const vl = A.model;
+          const vl = A.model,
+            El = String(A.action || "changed").toLowerCase(),
+            Se = () => {
+              if (currentTabRef.current !== "HOME") setHomeNeedsAttention(!0);
+            };
+          if (
+            (vl === "clients" || vl === "requests" || vl === "reviews") &&
+            El === "created"
+          ) {
+            Se();
+          }
           if (vl === "clients" || vl === "missions") {
             await refreshCoreData();
             return;
@@ -334,8 +359,8 @@ function nh() {
             return;
           }
           if (vl === "stores") {
-            const El = await I("/stores/");
-            setStores(El || []);
+            const ea = await I("/stores/");
+            setStores(ea || []);
             return;
           }
         } catch (A) {
@@ -375,48 +400,44 @@ function nh() {
     localStorage.setItem("calc_taxes", String(calcTaxes));
   }, [calcTaxes]);
   V.useEffect(() => {
+    localStorage.setItem("calc_discount", String(calcDiscount));
+  }, [calcDiscount]);
+  V.useEffect(() => {
     localStorage.setItem("calc_commission", String(calcCommission));
   }, [calcCommission]);
   V.useEffect(() => {
     localStorage.setItem("calc_exchange_rate", String(calcExchangeRate));
   }, [calcExchangeRate]);
   V.useEffect(() => {
-    if (
-      openRequestMenuId === null &&
-      openProductMenuId === null &&
-      openProductInfoId === null
-    )
+    if (openProductMenuId === null && openProductInfoId === null)
       return;
     const closeMenuOnOutsideClick = (o) => {
       const N = o.target;
       if (
         N &&
         N.closest &&
-        (
-          N.closest("[data-request-menu]") ||
-          N.closest("[data-product-menu]") ||
-          N.closest("[data-product-info]")
-        )
+        (N.closest("[data-product-menu]") || N.closest("[data-product-info]"))
       )
         return;
-      (setOpenRequestMenuId(null),
-        setOpenProductMenuId(null),
-        setOpenProductInfoId(null));
+      (setOpenProductMenuId(null), setOpenProductInfoId(null));
     };
     document.addEventListener("click", closeMenuOnOutsideClick);
     return () => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
     };
-  }, [openRequestMenuId, openProductMenuId, openProductInfoId]);
+  }, [openProductMenuId, openProductInfoId]);
   V.useEffect(() => {
-    if (!C || !w || w.status !== "ACTIVE") {
+    if (!C) {
       setRequests([]);
       return;
     }
     let isMounted = !0;
     const loadRequests = async () => {
       try {
-        const o = await I(`/requests/?mission=${w.id}`);
+        const o =
+          w && (w.status === "ACTIVE" || w.status === "PAUSED")
+            ? await I(`/requests/?mission=${w.id}`)
+            : await I("/requests/");
         isMounted && setRequests(o || []);
       } catch (o) {
         console.error("Failed loading requests", o);
@@ -426,7 +447,7 @@ function nh() {
     return () => {
       isMounted = !1;
     };
-  }, [C, w]);
+  }, [C, w && w.id, w && w.status]);
   // <-------- seccion 8: carga inicial de revisiones por cliente (sin polling)
   V.useEffect(() => {
     if (!C || !W) {
@@ -472,6 +493,22 @@ function nh() {
       isMounted = !1;
     };
   }, [C, w]);
+  // <-------- seccion 9: sincroniza calculadora con configuracion de mision activa
+  V.useEffect(() => {
+    if (!w) return;
+    const o = String(w.calc_mode || "FACTOR").toUpperCase();
+    (o === "FACTOR" || o === "PERCENTAGE") && setCalcMode(o);
+    const N = parseFloat(w.factor_value);
+    Number.isFinite(N) && setCalcFactor(N);
+    const A = parseFloat(w.tax_percentage);
+    Number.isFinite(A) && setCalcTaxes(A);
+    const vl = parseFloat(w.commission_percentage);
+    Number.isFinite(vl) && setCalcCommission(vl);
+    const El = parseFloat(w.exchange_rate);
+    Number.isFinite(El) && setCalcExchangeRate(El);
+    const Se = parseFloat(w.discount_percentage);
+    Number.isFinite(Se) && setCalcDiscount(Se);
+  }, [w && w.id]);
   const Ai = async (o) => {
     (o.preventDefault(), T(""));
     try {
@@ -580,16 +617,78 @@ function nh() {
         console.error(A);
       }
     },
-    ye = async () => {
+    openMissionStart = () => {
+      const parseSafe = (N, A = 0) => {
+        const vl = parseFloat(N);
+        return Number.isFinite(vl) ? vl : A;
+      };
+      setMissionStartForm({
+        name: (w && w.name) || `Mission ${new Date().toLocaleDateString()}`,
+        tax_percentage: String(parseSafe(w && w.tax_percentage, calcTaxes)),
+        calc_mode: String((w && w.calc_mode) || calcMode || "FACTOR").toUpperCase(),
+        factor_value: String(parseSafe(w && w.factor_value, calcFactor)),
+        commission_percentage: String(
+          parseSafe(w && w.commission_percentage, calcCommission),
+        ),
+        exchange_rate: String(parseSafe(w && w.exchange_rate, calcExchangeRate)),
+        discount_percentage: String(
+          parseSafe(w && w.discount_percentage, calcDiscount),
+        ),
+      });
+      setShowMissionStartModal(!0);
+    },
+    ye = async (o = missionStartForm) => {
+      const N = String(o.name || "").trim() || `Mission ${new Date().toLocaleDateString()}`;
+      const A = String(o.calc_mode || "FACTOR").toUpperCase() === "PERCENTAGE"
+        ? "PERCENTAGE"
+        : "FACTOR";
       try {
-        const o = await I("/missions/", {
-          method: "POST",
-          body: JSON.stringify({
-            name: `Mission ${new Date().toLocaleDateString()}`,
-          }),
-        });
-        (zl([...Al, o]), Dl(o));
-      } catch { }
+        let vl = null;
+        try {
+          vl = await I("/missions/", {
+            method: "POST",
+            body: JSON.stringify({
+              name: N,
+              calc_mode: A,
+              tax_percentage: toNumber(o.tax_percentage, 8).toFixed(2),
+              factor_value: toNumber(o.factor_value, 1.5).toFixed(4),
+              commission_percentage: toNumber(o.commission_percentage, 10).toFixed(2),
+              exchange_rate: toNumber(o.exchange_rate, 17.5).toFixed(4),
+              discount_percentage: toNumber(o.discount_percentage, 0).toFixed(2),
+            }),
+          });
+        } catch {
+          // Fallback para backend antiguo sin nuevos campos.
+          vl = await I("/missions/", {
+            method: "POST",
+            body: JSON.stringify({ name: N }),
+          });
+        }
+        const El = N.trim().toLowerCase();
+        if (El && !stores.some((Se) => Se.name.toLowerCase().trim() === El)) {
+          try {
+            const Se = await I("/stores/", {
+              method: "POST",
+              body: JSON.stringify({ name: N.trim() }),
+            });
+            setStores((ea) =>
+              [...ea, Se].sort((gl, ae) => gl.name.localeCompare(ae.name)),
+            );
+          } catch {}
+        }
+        (setShowMissionStartModal(!1),
+          zl([...Al, vl]),
+          Dl(vl),
+          setCalcMode(A),
+          setCalcTaxes(toNumber(o.tax_percentage, 8)),
+          setCalcFactor(toNumber(o.factor_value, 1.5)),
+          setCalcCommission(toNumber(o.commission_percentage, 10)),
+          setCalcExchangeRate(toNumber(o.exchange_rate, 17.5)),
+          setCalcDiscount(toNumber(o.discount_percentage, 0)));
+      } catch (vl) {
+        console.error("Failed creating mission", vl);
+        alert(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
+      }
     },
     be = async () => {
       if (w)
@@ -655,10 +754,16 @@ function nh() {
         } catch { }
     },
     Ta = (o, N = null) => {
-      (setClientGalleryMissionScopeId(N), et(o), jt("IN_REVIEW"));
+      (setClientGalleryMissionScopeId(N),
+        et(o),
+        jt("PS_REVIEW"),
+        setGalleryDeliveryFilter("ALL"));
     },
     Aa = () => {
-      (et(null), setFullscreenImage(null), setClientGalleryMissionScopeId(null));
+      (et(null),
+        setFullscreenImage(null),
+        setClientGalleryMissionScopeId(null),
+        setGalleryDeliveryFilter("ALL"));
     },
     // <-------- seccion 8: selector de imagen robusto (evita fallas de input hidden en algunos entornos Windows)
     openSingleImagePicker = (o) => {
@@ -687,8 +792,32 @@ function nh() {
     su = () => {
       openSingleImagePicker(ru);
     },
+    openMissionTicketPicker = () => {
+      if (!w) return;
+      openSingleImagePicker(uploadMissionTicket);
+    },
     fu = () => {
       openSingleImagePicker(lt);
+    },
+    uploadMissionTicket = async (o) => {
+      if (!w) return;
+      const N = o.target.files;
+      if (!N || N.length === 0) return;
+      const A = new FormData();
+      A.append("image", N[0]);
+      try {
+        await I(`/missions/${w.id}/upload-ticket/`, {
+          method: "POST",
+          body: A,
+        });
+        await refreshCoreData();
+        W && (await Qt());
+        alert("Ticket de misión cargado y vinculado.");
+      } catch (vl) {
+        console.error("Mission ticket upload failed", vl);
+        alert("No se pudo subir el ticket de misión.");
+      }
+      o.target.value = "";
     },
     Xt = (o) => {
       (Ke(o), openSingleImagePicker(Xl));
@@ -709,14 +838,30 @@ function nh() {
     lt = async (o) => {
       const N = o.target.files;
       if (!N || N.length === 0) return;
-      const A = new FormData();
-      (A.append("image", N[0]),
-        A.append("client", W.id),
-        A.append("name", `Item added by ${X}`),
-        A.append("status", X === "AV" ? "ANNOTATED" : "IN_REVIEW"),
-        w && A.append("mission", w.id));
+      const A = (prompt("Nombre del producto:") || "").trim();
+      if (!A) {
+        alert("Debes capturar el nombre del producto antes de subir la imagen.");
+        (o.target.value = "");
+        return;
+      }
+      const vl =
+        w && w.name
+          ? stores.find(
+            (El) => El.name.toLowerCase().trim() === String(w.name).toLowerCase().trim(),
+          )
+          : null;
+      const El = X === "AV" ? "IN_REVIEW" : "ANNOTATED";
+      const Se = new Date().toISOString().slice(0, 10);
+      const ea = new FormData();
+      (ea.append("image", N[0]),
+        ea.append("client", W.id),
+        ea.append("name", A),
+        ea.append("status", El),
+        ea.append("purchase_date", Se),
+        w && ea.append("mission", w.id),
+        vl && ea.append("store", vl.id));
       try {
-        (await I("/products/", { method: "POST", body: A }), Qt());
+        (await I("/products/", { method: "POST", body: ea }), Qt());
       } catch {
         alert("Error adding product");
       }
@@ -730,18 +875,39 @@ function nh() {
           console.log(N);
         }
     },
+    setProductStatusQuick = async (o, N) => {
+      try {
+        (await I(`/products/${o}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: N }),
+        }),
+          Qt());
+      } catch (A) {
+        console.error("Failed updating product status", A);
+      }
+    },
     hn = (o) => {
       const N = (o.tags || "")
         .split(",")
         .map((A) => A.trim())
         .filter((A) => A.length > 0);
+      const A =
+        o.store ||
+        (w && w.name
+          ? (
+            stores.find(
+              (vl) =>
+                vl.name.toLowerCase().trim() === String(w.name).toLowerCase().trim(),
+            ) || {}
+          ).id || ""
+          : "");
       (Ke(o),
         Gt({
           name: o.name || "",
           real_price: o.real_price || "",
           charged_price: o.charged_price || "",
           tags: o.tags || "",
-          store: o.store || "",
+          store: A,
           status: o.status || "ANNOTATED",
         }),
         setModalTags(N),
@@ -754,10 +920,12 @@ function nh() {
     zi = async (o) => {
       o.preventDefault();
       const N = parseFloat(st.real_price);
+      const discountMult = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
       const A = Number.isFinite(N)
           ? calcMode === "FACTOR"
-            ? N * calcFactor
+            ? N * calcFactor * discountMult
             : N *
+              discountMult *
               (1 + calcCommission / 100) *
               (1 + calcTaxes / 100) *
               calcExchangeRate
@@ -829,7 +997,7 @@ function nh() {
             if (ct.includes(A))
               return I(`/products/${A}/`, {
                 method: "PATCH",
-                body: JSON.stringify({ receipt: kt, status: "IN_REVIEW" }),
+                body: JSON.stringify({ receipt: kt, status: "BOUGHT" }),
               });
             {
               const vl = W.products.find((El) => El.id === A);
@@ -1035,20 +1203,29 @@ function nh() {
     },
     createMissionRequest = async () => {
       const o = newRequestText.trim();
-      if (!o || !w) return;
+      if (!o) return;
+      const Nl =
+        w && (w.status === "ACTIVE" || w.status === "PAUSED") ? w.id : null;
       try {
-        await I("/requests/", {
+        const N = await I("/requests/", {
           method: "POST",
           body: JSON.stringify({
             description: o,
-            mission: w.id,
+            mission: Nl,
             status: "PENDING",
           }),
         });
-        await reloadMissionRequests(w.id);
+        if (w && w.id) {
+          await reloadMissionRequests(w.id);
+        } else if (N && N.id) {
+          setRequests((A) => [N, ...A.filter((vl) => vl.id !== N.id)]);
+        } else {
+          await reloadMissionRequests(null);
+        }
         setNewRequestText("");
       } catch (N) {
-        (console.error("Failed creating request", N), alert("No se pudo crear la petición."));
+        (console.error("Failed creating request", N),
+          alert(`No se pudo crear la petición. ${N.message || ""}`.trim()));
       }
     },
     updateMissionRequest = async (o, N, A = {}) => {
@@ -1074,9 +1251,7 @@ function nh() {
       }
     },
     startRequestModify = (o) => {
-      (setOpenRequestMenuId(null),
-        setEditingRequestId(o.id),
-        setEditingRequestText(o.description || ""));
+      (setEditingRequestId(o.id), setEditingRequestText(o.description || ""));
     },
     saveRequestModify = async (o) => {
       const N = editingRequestText.trim();
@@ -1107,7 +1282,6 @@ function nh() {
       setRequests((A) => A.filter((vl) => vl.id !== o));
       try {
         await I(getMissionRequestDetailPath(o), { method: "DELETE" });
-        setOpenRequestMenuId((A) => (A === o ? null : A));
         w && w.id && (await reloadMissionRequests(w.id));
       } catch (A) {
         (setRequests(N),
@@ -1231,42 +1405,68 @@ function nh() {
     discardReviewedProduct = async (o) => {
       await updateProductReviewAction(o, "discard");
     },
-    Rt = Kl.filter((o) => o.status === "Active");
-  const modalStorePrice = parseFloat(st.real_price),
+    resendReviewToPs = async (o) => {
+      if (!o) return;
+      const N = prompt(
+        "Nota para reenviar a PS (opcional):",
+        o.review_note || "",
+      );
+      try {
+        await I(`/reviews/${o.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: "PENDING",
+            review_note: (N || o.review_note || "").trim(),
+          }),
+        });
+        o.product &&
+          (await I(`/products/${o.product}/`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: "IN_REVIEW" }),
+          }));
+        await refreshProductReviews(W && W.id);
+        await Qt();
+      } catch (A) {
+        console.error("Failed resending review", A);
+      }
+    },
+    Rt = Kl.filter((o) => String(o.status || "").toLowerCase() === "active");
+  const toNumber = (o, N = 0) => {
+      const A = parseFloat(o);
+      return Number.isFinite(A) ? A : N;
+    },
+    hasValue = (o) => o !== null && typeof o !== "undefined" && o !== "",
+    parseVisualTag = (o) => {
+      const N = String(o || "").trim();
+      if (!N) return null;
+      if (/^PS\s*[:\-]/i.test(N))
+        return { label: N.replace(/^PS\s*[:\-]\s*/i, "").trim() || "PS", type: "PS" };
+      if (/^AV\s*[:\-]/i.test(N))
+        return { label: N.replace(/^AV\s*[:\-]\s*/i, "").trim() || "AV", type: "AV" };
+      return { label: N, type: "GEN" };
+    },
+    getTagClassName = (o) =>
+      o === "PS"
+        ? "bg-blue-100/95 text-blue-800 border border-blue-200"
+        : o === "AV"
+          ? "bg-emerald-100/95 text-emerald-800 border border-emerald-200"
+          : "bg-white/90 text-gray-700 border border-white",
+    discountMultiplier = Math.max(0, 1 - toNumber(calcDiscount, 0) / 100),
+    modalStorePrice = parseFloat(st.real_price),
     modalFinalPrice = Number.isFinite(modalStorePrice)
       ? calcMode === "FACTOR"
-        ? modalStorePrice * calcFactor
+        ? modalStorePrice * toNumber(calcFactor, 1) * discountMultiplier
         : modalStorePrice *
-        (1 + calcCommission / 100) *
-        (1 + calcTaxes / 100) *
-        calcExchangeRate
+        discountMultiplier *
+        (1 + toNumber(calcCommission, 0) / 100) *
+        (1 + toNumber(calcTaxes, 0) / 100) *
+        toNumber(calcExchangeRate, 1)
       : Number.NaN,
     filteredStores = stores
       .filter((o) =>
         o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
       )
-      .sort((o, N) => o.name.localeCompare(N.name));
-  const galleryProducts = (((W && W.products) || []).filter((o) =>
-      clientGalleryMissionScopeId
-        ? Number(o.mission) === Number(clientGalleryMissionScopeId)
-        : !0,
-    )),
-    galleryAnnotatedCount = galleryProducts.filter(
-      (o) => o.status === "ANNOTATED",
-    ).length,
-    galleryInReviewCount = galleryProducts.filter(
-      (o) => o.status === "IN_REVIEW",
-    ).length,
-    galleryBoughtCount = galleryProducts.filter(
-      (o) => o.status === "BOUGHT",
-    ).length,
-    visibleGalleryProducts =
-      wl === "IN_REVIEW"
-        ? galleryProducts.filter((o) => o.status === "IN_REVIEW")
-        : wl === "BOUGHT"
-          ? galleryProducts.filter((o) => o.status === "BOUGHT")
-        : galleryProducts.filter((o) => o.status === "ANNOTATED"),
-    // <-------- seccion 7: indexacion y prioridad visual de revisiones
+      .sort((o, N) => o.name.localeCompare(N.name)),
     latestReviewsByProduct = (productReviews || []).reduce((o, N) => {
       if (!N.product) return o;
       const A = o[N.product];
@@ -1279,6 +1479,58 @@ function nh() {
       vl >= El && (o[N.product] = N);
       return o;
     }, {}),
+    activeMissionProducts = w
+      ? (Kl || []).flatMap((o) =>
+        (o.products || []).filter((N) => Number(N.mission) === Number(w.id)),
+      )
+      : [],
+    missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
+    missionProductsCount = activeMissionProducts.length,
+    missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
+      const A = toNumber(N.charged_price, Number.NaN);
+      if (Number.isFinite(A)) return o + A;
+      const vl = toNumber(N.real_price, Number.NaN);
+      if (!Number.isFinite(vl)) return o;
+      return o + vl * (1 + missionTaxPercentage / 100);
+    }, 0),
+    galleryProducts = (((W && W.products) || []).filter((o) =>
+      clientGalleryMissionScopeId
+        ? Number(o.mission) === Number(clientGalleryMissionScopeId)
+        : !0,
+    )),
+    galleryPsReviewCount = galleryProducts.filter((o) => {
+      const N = latestReviewsByProduct[o.id];
+      return o.status === "IN_REVIEW" && (!N || N.status === "PENDING");
+    }).length,
+    galleryAvReviewCount = galleryProducts.filter((o) => {
+      const N = latestReviewsByProduct[o.id];
+      return !!N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK");
+    }).length,
+    galleryAnnotatedCount = galleryProducts.filter((o) =>
+      o.status === "ANNOTATED" || o.status === "BOUGHT" || o.status === "SHIPPED",
+    ).length,
+    galleryRejectedCount = galleryProducts.filter((o) => o.status === "REJECTED").length,
+    visibleGalleryProducts =
+      wl === "PS_REVIEW"
+        ? galleryProducts.filter((o) => {
+          const N = latestReviewsByProduct[o.id];
+          return o.status === "IN_REVIEW" && (!N || N.status === "PENDING");
+        })
+        : wl === "AV_REVIEW"
+          ? galleryProducts.filter((o) => {
+            const N = latestReviewsByProduct[o.id];
+            return !!N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK");
+          })
+          : wl === "REJECTED"
+            ? galleryProducts.filter((o) => o.status === "REJECTED")
+            : galleryProducts.filter((o) => {
+              const N =
+                o.status === "ANNOTATED" || o.status === "BOUGHT" || o.status === "SHIPPED";
+              if (!N) return !1;
+              if (galleryDeliveryFilter === "SHIPPED") return o.status === "SHIPPED";
+              if (galleryDeliveryFilter === "PENDING") return o.status !== "SHIPPED";
+              return !0;
+            }),
     sortedVisibleGalleryProducts = [...visibleGalleryProducts].sort((o, N) => {
       const A = latestReviewsByProduct[o.id],
         vl = latestReviewsByProduct[N.id],
@@ -1398,7 +1650,7 @@ function nh() {
     c.jsxs("div", {
       className: "space-y-6",
       children: [
-        c.jsxs("div", {
+        false && c.jsxs("div", {
           className:
             "bg-surface-light dark:bg-surface-dark p-6 rounded-2xl shadow-card text-center border border-border-light dark:border-border-dark",
           children: [
@@ -1466,7 +1718,7 @@ function nh() {
                 ],
               })
               : c.jsxs("button", {
-                onClick: ye,
+                onClick: openMissionStart,
                 className:
                   "w-full py-4 text-white font-bold rounded-xl shadow-lg transition flex justify-center items-center gap-2 bg-primary hover:bg-primary-dark",
                 children: [
@@ -1483,7 +1735,6 @@ function nh() {
           className:
             "bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark shadow-sm",
           children: [
-            w &&
             c.jsxs("div", {
               className: "mb-4",
               children: [
@@ -1492,7 +1743,7 @@ function nh() {
                   children: ["Peticiones (", requests.length, ")"],
                 }),
                 c.jsx("div", {
-                  className: "max-h-[220px] overflow-y-auto ios-scroll space-y-2 pr-1",
+                  className: "space-y-2 pr-1",
                   children:
                     requests.length === 0
                       ? c.jsx("p", {
@@ -1503,13 +1754,8 @@ function nh() {
                           c.jsxs(
                             "div",
                             {
-                              className: `relative rounded-2xl border px-3 py-2.5 shadow-sm transition ${o.status === "ACKNOWLEDGED" ? "bg-emerald-50 border-emerald-300" : o.status === "NO_STOCK" ? "bg-red-50 border-red-200" : o.status === "DISCARDED" ? "bg-gray-100 border-gray-300" : o.status === "MODIFIED" ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"}`,
+                              className: `relative rounded-2xl border-l-4 px-3 py-2.5 shadow-sm transition ${o.status === "ACKNOWLEDGED" ? "bg-emerald-100/95 border-emerald-500 border-l-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:border-l-emerald-500" : o.status === "NO_STOCK" ? "bg-rose-100/95 border-rose-500 border-l-rose-700 dark:bg-rose-950/60 dark:border-rose-700 dark:border-l-rose-500" : o.status === "MODIFIED" ? "bg-amber-100/95 border-amber-500 border-l-amber-700 dark:bg-amber-950/60 dark:border-amber-700 dark:border-l-amber-500" : o.status === "DISCARDED" ? "bg-slate-100/95 border-slate-400 border-l-slate-600 dark:bg-slate-900 dark:border-slate-600 dark:border-l-slate-400" : "bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400"}`,
                               children: [
-                                o.status === "DISCARDED" &&
-                                c.jsx("div", {
-                                  className:
-                                    "pointer-events-none absolute left-3 right-3 top-1/2 border-t border-gray-500/70",
-                                }),
                                 editingRequestId === o.id
                                   ? c.jsxs("div", {
                                       className: "flex items-center gap-2",
@@ -1529,8 +1775,7 @@ function nh() {
                                         }),
                                         c.jsx("button", {
                                           onClick: () => {
-                                            (setEditingRequestId(null),
-                                              setOpenRequestMenuId(null));
+                                            setEditingRequestId(null);
                                           },
                                           className:
                                             "text-[10px] px-3 py-1.5 rounded-full bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition",
@@ -1545,116 +1790,92 @@ function nh() {
                                           className: "min-w-0 flex-1",
                                           children: [
                                             c.jsx("p", {
-                                              className: `text-xs font-medium truncate ${o.status === "DISCARDED" ? "text-gray-500 line-through decoration-2" : "text-gray-700 dark:text-gray-200"}`,
+                                              className: "text-xs font-semibold truncate text-gray-900 dark:text-gray-100",
                                               children: o.description,
                                             }),
-                                            c.jsxs("p", {
-                                              className: "text-[10px] text-gray-500 truncate",
+                                            c.jsxs("div", {
+                                              className: "mt-1 flex items-center gap-1.5",
                                               children: [
-                                                o.created_by_username || o.created_by_name || "Usuario",
-                                                " (",
-                                                o.created_by_role || "AV",
-                                                ") • ",
-                                                getRelativeTime(o.updated_at || o.created_at),
+                                                c.jsx("span", {
+                                                  className: `text-[9px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded ${o.status === "ACKNOWLEDGED" ? "bg-emerald-700 text-white dark:bg-emerald-500 dark:text-slate-900" : o.status === "NO_STOCK" ? "bg-rose-700 text-white dark:bg-rose-500 dark:text-slate-900" : o.status === "MODIFIED" ? "bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-900" : o.status === "DISCARDED" ? "bg-slate-600 text-white dark:bg-slate-400 dark:text-slate-900" : "bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-900"}`,
+                                                  children: o.status === "ACKNOWLEDGED"
+                                                    ? "ENTERADO"
+                                                    : o.status === "NO_STOCK"
+                                                      ? "NO HAY"
+                                                      : o.status === "MODIFIED"
+                                                        ? "MODIFICADA"
+                                                        : o.status === "DISCARDED"
+                                                          ? "DESCARTADA"
+                                                          : "PENDIENTE",
+                                                }),
+                                                c.jsxs("p", {
+                                                  className: "text-[10px] text-gray-700 dark:text-gray-300 truncate",
+                                                  children: [
+                                                    o.created_by_username || o.created_by_name || "Usuario",
+                                                    " (",
+                                                    o.created_by_role || "AV",
+                                                    ") • ",
+                                                    getRelativeTime(o.updated_at || o.created_at),
+                                                  ],
+                                                }),
                                               ],
                                             }),
                                           ],
                                         }),
                                         c.jsxs("div", {
-                                          className: "relative shrink-0 z-10",
-                                          "data-request-menu": "1",
+                                          className: "shrink-0 flex items-center gap-1",
                                           children: [
                                             c.jsx("button", {
-                                              onClick: (N) => {
-                                                (N.stopPropagation(),
-                                                  setOpenRequestMenuId((A) =>
-                                                    A === o.id ? null : o.id,
-                                                  ));
-                                              },
+                                              onClick: () =>
+                                                updateMissionRequest(
+                                                  o.id,
+                                                  o.status === "ACKNOWLEDGED"
+                                                    ? "PENDING"
+                                                    : "ACKNOWLEDGED",
+                                                ),
                                               className:
-                                                "w-8 h-8 rounded-full bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm flex items-center justify-center",
-                                              title: "Opciones",
+                                                "w-8 h-8 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center",
+                                              title: "Enterado",
                                               children: c.jsx("span", {
-                                                className: "material-symbols-outlined text-[16px]",
-                                                children: "more_vert",
+                                                className: "material-symbols-outlined text-[14px]",
+                                                children: "check",
                                               }),
                                             }),
-                                            openRequestMenuId === o.id &&
-                                            c.jsxs("div", {
+                                            c.jsx("button", {
+                                              onClick: () =>
+                                                updateMissionRequest(
+                                                  o.id,
+                                                  o.status === "NO_STOCK"
+                                                    ? "PENDING"
+                                                    : "NO_STOCK",
+                                                ),
                                               className:
-                                                "absolute right-0 top-9 z-20 rounded-xl border border-gray-200 bg-white shadow-lg p-1 flex items-center gap-1",
-                                              children: [
-                                                c.jsx("button", {
-                                                  onClick: (N) => {
-                                                    (N.stopPropagation(),
-                                                      setOpenRequestMenuId(null),
-                                                      updateMissionRequest(o.id, "ACKNOWLEDGED"));
-                                                  },
-                                                  className:
-                                                    "w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center",
-                                                  title: "Enterado",
-                                                  children: c.jsx("span", {
-                                                    className: "material-symbols-outlined text-[14px]",
-                                                    children: "check",
-                                                  }),
-                                                }),
-                                                c.jsx("button", {
-                                                  onClick: (N) => {
-                                                    (N.stopPropagation(),
-                                                      setOpenRequestMenuId(null),
-                                                      updateMissionRequest(o.id, "NO_STOCK"));
-                                                  },
-                                                  className:
-                                                    "w-8 h-8 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 flex items-center justify-center",
-                                                  title: "No existencia",
-                                                  children: c.jsx("span", {
-                                                    className: "material-symbols-outlined text-[14px]",
-                                                    children: "block",
-                                                  }),
-                                                }),
-                                                c.jsx("button", {
-                                                  onClick: (N) => {
-                                                    (N.stopPropagation(),
-                                                      setOpenRequestMenuId(null),
-                                                      updateMissionRequest(o.id, "DISCARDED"));
-                                                  },
-                                                  className:
-                                                    "w-8 h-8 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center",
-                                                  title: "Descartar",
-                                                  children: c.jsx("span", {
-                                                    className: "material-symbols-outlined text-[14px]",
-                                                    children: "delete",
-                                                  }),
-                                                }),
-                                                c.jsx("button", {
-                                                  onClick: (N) => {
-                                                    (N.stopPropagation(),
-                                                      setOpenRequestMenuId(null),
-                                                      startRequestModify(o));
-                                                  },
-                                                  className:
-                                                    "w-8 h-8 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center justify-center",
-                                                  title: "Modificar",
-                                                  children: c.jsx("span", {
-                                                    className: "material-symbols-outlined text-[14px]",
-                                                    children: "edit",
-                                                  }),
-                                                }),
-                                                c.jsx("button", {
-                                                  onClick: (N) => {
-                                                    (N.stopPropagation(),
-                                                      setOpenRequestMenuId(null),
-                                                      deleteMissionRequest(o.id));
-                                                  },
-                                                  className:
-                                                    "w-8 h-8 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center justify-center",
-                                                  title: "Eliminar",
-                                                  children: c.jsx("span", {
-                                                    className: "material-symbols-outlined text-[14px]",
-                                                    children: "delete_forever",
-                                                  }),
-                                                }),
-                                              ],
+                                                "w-8 h-8 rounded-lg border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center",
+                                              title: "No existencia",
+                                              children: c.jsx("span", {
+                                                className: "material-symbols-outlined text-[14px]",
+                                                children: "block",
+                                              }),
+                                            }),
+                                            c.jsx("button", {
+                                              onClick: () => startRequestModify(o),
+                                              className:
+                                                "w-8 h-8 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center",
+                                              title: "Modificar",
+                                              children: c.jsx("span", {
+                                                className: "material-symbols-outlined text-[14px]",
+                                                children: "edit",
+                                              }),
+                                            }),
+                                            c.jsx("button", {
+                                              onClick: () => deleteMissionRequest(o.id),
+                                              className:
+                                                "w-8 h-8 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center",
+                                              title: "Eliminar",
+                                              children: c.jsx("span", {
+                                                className: "material-symbols-outlined text-[14px]",
+                                                children: "delete_forever",
+                                              }),
                                             }),
                                           ],
                                         }),
@@ -1679,8 +1900,8 @@ function nh() {
                     }),
                     c.jsx("button", {
                       onClick: createMissionRequest,
-                      className:
-                        "px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
+                      disabled: !newRequestText.trim(),
+                      className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
                       children: "Enviar",
                     }),
                   ],
@@ -1828,7 +2049,9 @@ function nh() {
                                 onClick: () =>
                                   updateMissionRequest(
                                     o.id,
-                                    "ACKNOWLEDGED",
+                                    o.status === "ACKNOWLEDGED"
+                                      ? "PENDING"
+                                      : "ACKNOWLEDGED",
                                   ),
                                 className:
                                   "text-[10px] px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200",
@@ -1836,7 +2059,12 @@ function nh() {
                               }),
                               c.jsx("button", {
                                 onClick: () =>
-                                  updateMissionRequest(o.id, "NO_STOCK"),
+                                  updateMissionRequest(
+                                    o.id,
+                                    o.status === "NO_STOCK"
+                                      ? "PENDING"
+                                      : "NO_STOCK",
+                                  ),
                                 className:
                                   "text-[10px] px-2 py-1 rounded bg-red-100 text-red-700 font-semibold hover:bg-red-200",
                                 children: "No Existencia",
@@ -1878,11 +2106,155 @@ function nh() {
                 }),
                 c.jsx("button", {
                   onClick: createMissionRequest,
-                  className:
-                    "px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
+                  disabled: !newRequestText.trim(),
+                  className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
                   children: "Enviar",
                 }),
               ],
+            }),
+          ],
+        }),
+        c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark rounded-xl px-4 py-3 border border-border-light dark:border-border-dark shadow-sm",
+          children: [
+            c.jsxs("div", {
+              className: "flex items-center justify-between gap-2",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("h3", {
+                      className: "font-bold text-sm text-text-main dark:text-white truncate",
+                      children: "Shopping Mission",
+                    }),
+                    c.jsx("p", {
+                      className: "text-[10px] text-gray-500 truncate",
+                      children: w
+                        ? `${w.name || `Mission #${w.id}`} • ${w.status}`
+                        : "No active mission",
+                    }),
+                  ],
+                }),
+                c.jsx("span", {
+                  className: `text-[10px] font-bold px-2 py-1 rounded-full ${w ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
+                  children: w ? "ON" : "OFF",
+                }),
+              ],
+            }),
+            w &&
+            c.jsxs("div", {
+              className: "mt-2 flex items-center justify-between text-[11px] font-semibold",
+              children: [
+                c.jsxs("span", {
+                  className: "text-gray-600 dark:text-gray-300",
+                  children: ["Items: ", missionProductsCount],
+                }),
+                c.jsxs("span", {
+                  className: "text-primary",
+                  children: [
+                    "Total+Tax: $",
+                    missionTotalWithTaxes.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mt-2 grid grid-cols-4 gap-2",
+              children: w
+                ? [
+                  w.status === "ACTIVE"
+                    ? c.jsx(
+                      "button",
+                      {
+                        onClick: be,
+                        className:
+                          "py-2 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600",
+                        children: "Pause",
+                      },
+                      "pause",
+                    )
+                    : c.jsx(
+                      "button",
+                      {
+                        onClick: cu,
+                        className:
+                          "py-2 rounded-lg bg-green-600 text-white text-[11px] font-bold hover:bg-green-700",
+                        children: "Resume",
+                      },
+                      "resume",
+                    ),
+                  c.jsx(
+                    "button",
+                    {
+                      onClick: on,
+                      className:
+                        "py-2 rounded-lg bg-red-500 text-white text-[11px] font-bold hover:bg-red-600",
+                      children: "End",
+                    },
+                    "end",
+                  ),
+                  c.jsx(
+                    "button",
+                    {
+                      onClick: () => setMissionSummaryOpen(!0),
+                      className:
+                        "py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
+                      children: "View",
+                    },
+                    "view",
+                  ),
+                  c.jsx(
+                    "button",
+                    {
+                      onClick: openMissionTicketPicker,
+                      className:
+                        "py-2 rounded-lg bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700",
+                      children: "Ticket",
+                    },
+                    "ticket",
+                  ),
+                ]
+                : [
+                  c.jsx(
+                    "button",
+                    {
+                      onClick: openMissionStart,
+                      className:
+                        "col-span-4 py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
+                      children: "Start Mission",
+                    },
+                    "start",
+                  ),
+                ],
+            }),
+            w &&
+            c.jsx("div", {
+              className:
+                "mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2",
+              children: w.ticket_image
+                ? c.jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [
+                    c.jsx("img", {
+                      src: resolveMediaUrl(w.ticket_image),
+                      className: "w-10 h-10 rounded object-cover border",
+                    }),
+                    c.jsx("button", {
+                      onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
+                      className:
+                        "text-[11px] font-bold text-primary hover:text-primary-dark",
+                      children: "Ver ticket de misión",
+                    }),
+                  ],
+                })
+                : c.jsx("p", {
+                  className: "text-[11px] text-gray-500",
+                  children: "Ticket de misión pendiente.",
+                }),
             }),
           ],
         }),
@@ -1898,8 +2270,12 @@ function nh() {
         N = (A) =>
           A === "SHIPPED"
             ? "bg-blue-100 text-blue-700"
+            : A === "REJECTED"
+              ? "bg-red-100 text-red-700"
             : A === "IN_REVIEW"
               ? "bg-orange-100 text-orange-700"
+              : A === "BOUGHT"
+                ? "bg-purple-100 text-purple-700"
               : "bg-amber-100 text-amber-700";
       return c.jsxs("div", {
         className: "space-y-4",
@@ -1913,7 +2289,7 @@ function nh() {
               }),
               !w &&
               c.jsxs("button", {
-                onClick: ye,
+                onClick: openMissionStart,
                 className:
                   "text-xs font-bold bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition flex items-center gap-1",
                 children: [
@@ -1945,7 +2321,7 @@ function nh() {
                   children: "Start your first mission from here.",
                 }),
                 c.jsx("button", {
-                  onClick: ye,
+                  onClick: openMissionStart,
                   className:
                     "px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark transition",
                   children: "Start Mission",
@@ -2101,6 +2477,29 @@ function nh() {
                               }),
                             ],
                           }),
+                          c.jsx("div", {
+                            className: "px-4 py-3 border-b border-border-light dark:border-border-dark",
+                            children: A.ticket_image
+                              ? c.jsxs("div", {
+                                className: "flex items-center gap-2",
+                                children: [
+                                  c.jsx("img", {
+                                    src: resolveMediaUrl(A.ticket_image),
+                                    className: "w-10 h-10 rounded object-cover border",
+                                  }),
+                                  c.jsx("button", {
+                                    onClick: () => setFullscreenImage(resolveMediaUrl(A.ticket_image)),
+                                    className:
+                                      "text-[11px] font-bold text-primary hover:text-primary-dark",
+                                    children: "Ver ticket de esta misión",
+                                  }),
+                                ],
+                              })
+                              : c.jsx("p", {
+                                className: "text-[11px] text-gray-500",
+                                children: "Sin ticket cargado para esta misión.",
+                              }),
+                          }),
                           qa.length > 0 &&
                           c.jsxs("div", {
                             className: "px-4 py-3",
@@ -2157,7 +2556,6 @@ function nh() {
                                                 "text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-lg hover:bg-primary/20 transition",
                                               children: "View",
                                             }),
-                                            A.status === "COMPLETED" &&
                                             c.jsxs("button", {
                                               onClick: () =>
                                                 copyMissionBreakdown(
@@ -2224,7 +2622,7 @@ function nh() {
                                           className:
                                             "flex items-center gap-2 ml-2",
                                           children: [
-                                            gl.charged_price &&
+                                            hasValue(gl.charged_price) &&
                                             c.jsxs("span", {
                                               className:
                                                 "text-[10px] font-bold text-blue-600",
@@ -2393,7 +2791,11 @@ function nh() {
             : o.map((N) => {
               const A = Ei === N.id,
                 vl = (N.products || []).filter(
-                  (ea) => ea.mission !== null && typeof ea.mission !== "undefined",
+                  (ea) =>
+                    ea.mission !== null &&
+                    typeof ea.mission !== "undefined" &&
+                    ea.status !== "IN_REVIEW" &&
+                    ea.status !== "REJECTED",
                 ),
                 El = vl.reduce((Se, ea) => {
                   const gl = String(ea.mission);
@@ -2468,7 +2870,7 @@ function nh() {
                             }),
                           ],
                         }),
-                        w && X !== "PS"
+                        w
                           ? c.jsxs("div", {
                             onClick: () => Jt(N),
                             className: `px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition flex items-center gap-1 cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
@@ -2484,12 +2886,7 @@ function nh() {
                               N.status === "Active" ? "In Mission" : "Idle",
                             ],
                           })
-                          : w
-                            ? c.jsx("span", {
-                              className: `px-2 py-1 rounded text-[10px] font-bold uppercase ${N.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
-                              children: N.status,
-                            })
-                            : null,
+                          : null,
                         X !== "PS" &&
                         c.jsx("div", {
                           className:
@@ -2678,7 +3075,7 @@ function nh() {
                                                     className:
                                                       "flex items-center gap-2 ml-2",
                                                     children: [
-                                                      gl.charged_price &&
+                                                      hasValue(gl.charged_price) &&
                                                       c.jsxs("span", {
                                                         className:
                                                           "text-[10px] font-bold text-blue-600",
@@ -2688,7 +3085,7 @@ function nh() {
                                                         ],
                                                       }),
                                                       c.jsx("span", {
-                                                        className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${gl.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : gl.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
+                                                        className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${gl.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : gl.status === "REJECTED" ? "bg-red-100 text-red-700" : gl.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : gl.status === "BOUGHT" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`,
                                                         children: gl.status,
                                                       }),
                                                     ],
@@ -2771,9 +3168,10 @@ function nh() {
   const hu = () => {
     const o = parseFloat(calcPrice),
       N = Number.isFinite(o),
-      A = N ? o * calcFactor : Number.NaN,
+      A = N ? o * calcFactor * Math.max(0, 1 - calcDiscount / 100) : Number.NaN,
       vl = N
         ? o *
+          Math.max(0, 1 - calcDiscount / 100) *
           (1 + calcCommission / 100) *
           (1 + calcTaxes / 100) *
           calcExchangeRate
@@ -2785,21 +3183,21 @@ function nh() {
       });
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl p-4 border border-border-light bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm">
-          <h2 className="text-lg font-bold text-text-main">Calculadora</h2>
-          <p className="text-xs text-text-sub mt-1">
+        <div className="rounded-2xl p-4 border border-border-light dark:border-border-dark bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 shadow-sm">
+          <h2 className="text-lg font-bold text-text-main dark:text-white">Calculadora</h2>
+          <p className="text-xs text-text-sub dark:text-slate-300 mt-1">
             Cambia entre Factor y Porcentaje. Toca el resultado para copiar.
           </p>
-          <div className="mt-4 grid grid-cols-2 rounded-xl p-1 bg-white border border-gray-200">
+          <div className="mt-4 grid grid-cols-2 rounded-xl p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setCalcMode("FACTOR")}
-              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 hover:text-gray-700"}`}
+              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
             >
               Factor
             </button>
             <button
               onClick={() => setCalcMode("PERCENTAGE")}
-              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 hover:text-gray-700"}`}
+              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
             >
               Porcentaje
             </button>
@@ -2807,20 +3205,20 @@ function nh() {
         </div>
 
         {calcMode === "FACTOR" ? (
-          <div className="rounded-2xl p-4 border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 shadow-sm space-y-3">
+          <div className="rounded-2xl p-4 border border-amber-100 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-amber-950/30 shadow-sm space-y-3">
             <div>
-              <label className="text-xs font-semibold text-gray-600">Precio</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Precio</label>
               <input
                 type="number"
                 step="0.01"
                 value={calcPrice}
                 onChange={(e) => setCalcPrice(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 bg-white outline-none focus:ring-2 focus:ring-amber-300"
+                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-600">Factor</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Factor</label>
               <input
                 type="number"
                 step="0.01"
@@ -2829,26 +3227,52 @@ function nh() {
                   const t = parseFloat(e.target.value);
                   setCalcFactor(Number.isFinite(t) ? t : 0);
                 }}
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 bg-white outline-none focus:ring-2 focus:ring-amber-300"
+                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Descuento (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={calcDiscount}
+                onChange={(e) => {
+                  const t = parseFloat(e.target.value);
+                  setCalcDiscount(Number.isFinite(t) ? t : 0);
+                }}
+                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
               />
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl p-4 border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm space-y-3">
+          <div className="rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-emerald-950/30 shadow-sm space-y-3">
             <div>
-              <label className="text-xs font-semibold text-gray-600">Monto</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Monto</label>
               <input
                 type="number"
                 step="0.01"
                 value={calcPrice}
                 onChange={(e) => setCalcPrice(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white outline-none focus:ring-2 focus:ring-emerald-300"
+                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 placeholder="0.00"
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] font-semibold text-gray-600">Taxes (%)</label>
+                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Descuento (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={calcDiscount}
+                  onChange={(e) => {
+                    const t = parseFloat(e.target.value);
+                    setCalcDiscount(Number.isFinite(t) ? t : 0);
+                  }}
+                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Taxes (%)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -2857,11 +3281,13 @@ function nh() {
                     const t = parseFloat(e.target.value);
                     setCalcTaxes(Number.isFinite(t) ? t : 0);
                   }}
-                  className="mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 bg-white outline-none focus:ring-2 focus:ring-emerald-300"
+                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] font-semibold text-gray-600">Comision (%)</label>
+                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Comision (%)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -2870,11 +3296,11 @@ function nh() {
                     const t = parseFloat(e.target.value);
                     setCalcCommission(Number.isFinite(t) ? t : 0);
                   }}
-                  className="mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 bg-white outline-none focus:ring-2 focus:ring-emerald-300"
+                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-semibold text-gray-600">Tipo de Cambio</label>
+                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Tipo de Cambio</label>
                 <input
                   type="number"
                   step="0.01"
@@ -2883,7 +3309,7 @@ function nh() {
                     const t = parseFloat(e.target.value);
                     setCalcExchangeRate(Number.isFinite(t) ? t : 0);
                   }}
-                  className="mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 bg-white outline-none focus:ring-2 focus:ring-emerald-300"
+                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
             </div>
@@ -2892,13 +3318,13 @@ function nh() {
 
         <button
           onClick={() => copyCalculatorValue(El)}
-          className="w-full rounded-2xl border border-border-light bg-white p-5 shadow-sm hover:shadow-md transition text-left"
+          className="w-full rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition text-left"
         >
-          <p className="text-[10px] uppercase font-bold tracking-wide text-gray-500">Resultado</p>
-          <p className="text-3xl font-black mt-1 text-text-main">
+          <p className="text-[10px] uppercase font-bold tracking-wide text-gray-500 dark:text-gray-400">Resultado</p>
+          <p className="text-3xl font-black mt-1 text-gray-900 dark:text-white">
             {Number.isFinite(El) ? `$${Se.format(El)}` : "--"}
           </p>
-          <p className={`text-xs mt-2 font-semibold transition ${calcCopied ? "text-green-600" : "text-gray-400"}`}>
+          <p className={`text-xs mt-2 font-semibold transition ${calcCopied ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>
             {calcCopied ? "Copiado ✓" : "Toca para copiar"}
           </p>
         </button>
@@ -2997,13 +3423,300 @@ function nh() {
           c.jsx("div", { className: "h-20" }),
         ],
       }),
+      showMissionStartModal &&
+      c.jsx("div", {
+        className:
+          "absolute inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
+          children: [
+            c.jsx("h3", {
+              className: "text-base font-bold mb-3",
+              children: "Start Mission",
+            }),
+            c.jsxs("div", {
+              className: "space-y-2",
+              children: [
+                c.jsx("input", {
+                  type: "text",
+                  value: missionStartForm.name,
+                  onChange: (o) =>
+                    setMissionStartForm({ ...missionStartForm, name: o.target.value }),
+                  placeholder: "Tienda / nombre de misión",
+                  className:
+                    "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                }),
+                c.jsxs("div", {
+                  className: "grid grid-cols-2 gap-2",
+                  children: [
+                    c.jsxs("div", {
+                      children: [
+                        c.jsx("label", {
+                          className: "text-[10px] font-semibold text-gray-500",
+                          children: "Taxes (%)",
+                        }),
+                        c.jsx("input", {
+                          type: "number",
+                          step: "0.01",
+                          value: missionStartForm.tax_percentage,
+                          onChange: (o) =>
+                            setMissionStartForm({
+                              ...missionStartForm,
+                              tax_percentage: o.target.value,
+                            }),
+                          className:
+                            "mt-1 w-full px-2 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      children: [
+                        c.jsx("label", {
+                          className: "text-[10px] font-semibold text-gray-500",
+                          children: "Descuento (%)",
+                        }),
+                        c.jsx("input", {
+                          type: "number",
+                          step: "0.01",
+                          value: missionStartForm.discount_percentage,
+                          onChange: (o) =>
+                            setMissionStartForm({
+                              ...missionStartForm,
+                              discount_percentage: o.target.value,
+                            }),
+                          className:
+                            "mt-1 w-full px-2 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: "grid grid-cols-2 rounded-xl p-1 bg-gray-50 border border-gray-200",
+                  children: [
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () =>
+                        setMissionStartForm({
+                          ...missionStartForm,
+                          calc_mode: "FACTOR",
+                        }),
+                      className: `py-2 text-xs font-bold rounded-lg ${String(missionStartForm.calc_mode).toUpperCase() === "FACTOR" ? "bg-primary text-white" : "text-gray-500"}`,
+                      children: "Factor",
+                    }),
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () =>
+                        setMissionStartForm({
+                          ...missionStartForm,
+                          calc_mode: "PERCENTAGE",
+                        }),
+                      className: `py-2 text-xs font-bold rounded-lg ${String(missionStartForm.calc_mode).toUpperCase() === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500"}`,
+                      children: "Porcentaje",
+                    }),
+                  ],
+                }),
+                String(missionStartForm.calc_mode).toUpperCase() === "FACTOR"
+                  ? c.jsxs("div", {
+                    children: [
+                      c.jsx("label", {
+                        className: "text-[10px] font-semibold text-gray-500",
+                        children: "Factor",
+                      }),
+                      c.jsx("input", {
+                        type: "number",
+                        step: "0.01",
+                        value: missionStartForm.factor_value,
+                        onChange: (o) =>
+                          setMissionStartForm({
+                            ...missionStartForm,
+                            factor_value: o.target.value,
+                          }),
+                        className:
+                          "mt-1 w-full px-2 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                      }),
+                    ],
+                  })
+                  : c.jsxs("div", {
+                    className: "grid grid-cols-2 gap-2",
+                    children: [
+                      c.jsxs("div", {
+                        children: [
+                          c.jsx("label", {
+                            className: "text-[10px] font-semibold text-gray-500",
+                            children: "Comision (%)",
+                          }),
+                          c.jsx("input", {
+                            type: "number",
+                            step: "0.01",
+                            value: missionStartForm.commission_percentage,
+                            onChange: (o) =>
+                              setMissionStartForm({
+                                ...missionStartForm,
+                                commission_percentage: o.target.value,
+                              }),
+                            className:
+                              "mt-1 w-full px-2 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                          }),
+                        ],
+                      }),
+                      c.jsxs("div", {
+                        children: [
+                          c.jsx("label", {
+                            className: "text-[10px] font-semibold text-gray-500",
+                            children: "Tipo cambio",
+                          }),
+                          c.jsx("input", {
+                            type: "number",
+                            step: "0.01",
+                            value: missionStartForm.exchange_rate,
+                            onChange: (o) =>
+                              setMissionStartForm({
+                                ...missionStartForm,
+                                exchange_rate: o.target.value,
+                              }),
+                            className:
+                              "mt-1 w-full px-2 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mt-4 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => setShowMissionStartModal(!1),
+                  className:
+                    "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold",
+                  children: "Cancelar",
+                }),
+                c.jsx("button", {
+                  onClick: () => ye(missionStartForm),
+                  className:
+                    "py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-xs font-semibold",
+                  children: "Iniciar",
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      missionSummaryOpen &&
+      c.jsx("div", {
+        className:
+          "absolute inset-0 z-[66] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-lg p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl max-h-[85vh] overflow-y-auto ui-sheet",
+          children: [
+            c.jsxs("div", {
+              className: "flex items-center justify-between mb-3",
+              children: [
+                c.jsx("h3", {
+                  className: "text-base font-bold",
+                  children: "Mission Products",
+                }),
+                c.jsx("button", {
+                  onClick: () => setMissionSummaryOpen(!1),
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[16px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            w &&
+            c.jsx("div", {
+              className:
+                "mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-2",
+              children: w.ticket_image
+                ? c.jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [
+                    c.jsx("img", {
+                      src: resolveMediaUrl(w.ticket_image),
+                      className: "w-12 h-12 rounded object-cover border",
+                    }),
+                    c.jsx("button", {
+                      onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
+                      className:
+                        "text-xs font-bold text-primary hover:text-primary-dark",
+                      children: "Abrir ticket de misión",
+                    }),
+                  ],
+                })
+                : c.jsx("p", {
+                  className: "text-[11px] text-gray-500",
+                  children: "Esta misión todavía no tiene ticket cargado.",
+                }),
+            }),
+            activeMissionProducts.length === 0
+              ? c.jsx("p", {
+                className: "text-xs text-gray-500 text-center py-6",
+                children: "No products linked to the active mission yet.",
+              })
+              : c.jsx("div", {
+                className: "space-y-2",
+                children: activeMissionProducts.map((o) =>
+                  c.jsxs(
+                    "div",
+                    {
+                      className:
+                        "flex items-center gap-3 p-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800/30",
+                      children: [
+                        o.image
+                          ? c.jsx("img", {
+                            src: resolveMediaUrl(o.image),
+                            className: "w-14 h-14 rounded-lg object-cover border",
+                          })
+                          : c.jsx("div", {
+                            className:
+                              "w-14 h-14 rounded-lg bg-gray-100 border flex items-center justify-center text-gray-400",
+                            children: c.jsx("span", {
+                              className: "material-symbols-outlined",
+                              children: "image",
+                            }),
+                          }),
+                        c.jsxs("div", {
+                          className: "flex-1 min-w-0",
+                          children: [
+                            c.jsx("p", {
+                              className: "text-xs font-bold truncate",
+                              children: o.name,
+                            }),
+                            c.jsxs("p", {
+                              className: "text-[10px] text-gray-500 truncate",
+                              children: ["Cliente: ", o.client_name || `#${o.client}`],
+                            }),
+                          ],
+                        }),
+                        c.jsx("span", {
+                          className:
+                            "text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600",
+                          children: o.status,
+                        }),
+                      ],
+                    },
+                    o.id,
+                  ),
+                ),
+              }),
+          ],
+        }),
+      }),
       Il &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200",
+          "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom duration-300",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -3130,10 +3843,10 @@ function nh() {
       K &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200",
+          "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom duration-300",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -3276,10 +3989,10 @@ function nh() {
       he &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 animate-in fade-in duration-200",
+          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-300",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto ui-sheet",
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -3357,18 +4070,18 @@ function nh() {
                     }),
                     c.jsxs("div", {
                       className:
-                        "grid grid-cols-2 rounded-xl p-1 bg-gray-50 border border-gray-200",
+                        "grid grid-cols-2 rounded-xl p-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
                       children: [
                         c.jsx("button", {
                           type: "button",
                           onClick: () => setCalcMode("FACTOR"),
-                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 hover:text-gray-700"}`,
+                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                           children: "Factor",
                         }),
                         c.jsx("button", {
                           type: "button",
                           onClick: () => setCalcMode("PERCENTAGE"),
-                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 hover:text-gray-700"}`,
+                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                           children: "Porcentaje",
                         }),
                       ],
@@ -3392,13 +4105,54 @@ function nh() {
                           setCalcFactor(Number.isFinite(N) ? N : 0);
                         },
                         className:
-                          "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                          "calc-input w-full px-4 py-2 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                      }),
+                      c.jsxs("div", {
+                        className: "mt-2",
+                        children: [
+                          c.jsx("label", {
+                            className:
+                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                            children: "Descuento (%)",
+                          }),
+                          c.jsx("input", {
+                            type: "number",
+                            step: "0.01",
+                            value: calcDiscount,
+                            onChange: (o) => {
+                              const N = parseFloat(o.target.value);
+                              setCalcDiscount(Number.isFinite(N) ? N : 0);
+                            },
+                            className:
+                              "calc-input w-full px-4 py-2 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                          }),
+                        ],
                       }),
                     ],
                   })
                   : c.jsxs("div", {
-                    className: "grid grid-cols-3 gap-2",
+                    className: "grid grid-cols-2 gap-2",
                     children: [
+                      c.jsxs("div", {
+                        children: [
+                          c.jsx("label", {
+                            className:
+                              "block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1",
+                            children: "Descuento (%)",
+                          }),
+                          c.jsx("input", {
+                            type: "number",
+                            step: "0.01",
+                            value: calcDiscount,
+                            onChange: (o) => {
+                              const N = parseFloat(o.target.value);
+                              setCalcDiscount(Number.isFinite(N) ? N : 0);
+                            },
+                            className:
+                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                          }),
+                        ],
+                      }),
                       c.jsxs("div", {
                         children: [
                           c.jsx("label", {
@@ -3415,7 +4169,7 @@ function nh() {
                               setCalcTaxes(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "w-full px-2 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
                           }),
                         ],
                       }),
@@ -3435,7 +4189,7 @@ function nh() {
                               setCalcCommission(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "w-full px-2 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
                           }),
                         ],
                       }),
@@ -3455,7 +4209,7 @@ function nh() {
                               setCalcExchangeRate(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "w-full px-2 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
                           }),
                         ],
                       }),
@@ -3598,25 +4352,25 @@ function nh() {
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                       children: "Status",
                     }),
-                    c.jsxs("select", {
-                      value: st.status,
-                      onChange: (o) => Gt({ ...st, status: o.target.value }),
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                    c.jsxs("div", {
+                      className: "grid grid-cols-2 gap-2",
                       children: [
-                        c.jsx("option", {
-                          value: "ANNOTATED",
-                          children: "Anotado",
-                        }),
-                        c.jsx("option", {
-                          value: "IN_REVIEW",
-                          children: "En Revision",
-                        }),
-                        c.jsx("option", {
-                          value: "SHIPPED",
-                          children: "Enviado",
-                        }),
-                      ],
+                        ["ANNOTATED", "Anotado"],
+                        ["IN_REVIEW", "PS Revision"],
+                        ["SHIPPED", "Enviado"],
+                        ["REJECTED", "Rechazado"],
+                      ].map(([o, N]) =>
+                        c.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => Gt({ ...st, status: o }),
+                            className: `px-3 py-2 rounded-xl text-xs font-bold border transition ${st.status === o ? "bg-primary text-white border-primary" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
+                            children: N,
+                          },
+                          o,
+                        ),
+                      ),
                     }),
                   ],
                 }),
@@ -3649,10 +4403,10 @@ function nh() {
       Je &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200",
+          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom duration-300",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
           children: [
             c.jsxs("h3", {
               className: "text-xl font-bold mb-4",
@@ -3816,9 +4570,14 @@ function nh() {
                   "flex px-4 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-2",
                 children: [
                   c.jsxs("button", {
-                    onClick: () => jt("IN_REVIEW"),
-                    className: `pb-3 border-b-2 transition-colors ${wl === "IN_REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
-                    children: ["Revision (", galleryInReviewCount, ")"],
+                    onClick: () => jt("PS_REVIEW"),
+                    className: `pb-3 border-b-2 transition-colors ${wl === "PS_REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
+                    children: ["PS Revision (", galleryPsReviewCount, ")"],
+                  }),
+                  c.jsxs("button", {
+                    onClick: () => jt("AV_REVIEW"),
+                    className: `pb-3 border-b-2 transition-colors ${wl === "AV_REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
+                    children: ["AV Revision (", galleryAvReviewCount, ")"],
                   }),
                   c.jsxs("button", {
                     onClick: () => jt("ANNOTATED"),
@@ -3826,9 +4585,9 @@ function nh() {
                     children: ["Anotado (", galleryAnnotatedCount, ")"],
                   }),
                   c.jsxs("button", {
-                    onClick: () => jt("BOUGHT"),
-                    className: `pb-3 border-b-2 transition-colors ${wl === "BOUGHT" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
-                    children: ["Bought (", galleryBoughtCount, ")"],
+                    onClick: () => jt("REJECTED"),
+                    className: `pb-3 border-b-2 transition-colors ${wl === "REJECTED" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
+                    children: ["Rechazado (", galleryRejectedCount, ")"],
                   }),
                 ],
               }),
@@ -3862,7 +4621,10 @@ function nh() {
                   }),
                 ],
               }),
-              (wl === "IN_REVIEW" || wl === "ANNOTATED" || wl === "BOUGHT") &&
+              (wl === "PS_REVIEW" ||
+                wl === "AV_REVIEW" ||
+                wl === "ANNOTATED" ||
+                wl === "REJECTED") &&
               c.jsxs("div", {
                 className: "animate-in fade-in duration-200",
                 children: [
@@ -3872,22 +4634,47 @@ function nh() {
                       c.jsx("h4", {
                         className: "font-bold text-lg",
                         children:
-                          wl === "IN_REVIEW"
-                            ? "Productos en Revision"
-                            : wl === "BOUGHT"
-                              ? "Productos Comprados"
-                            : "Productos Anotados",
+                          wl === "PS_REVIEW"
+                            ? "Productos por revisar (PS)"
+                            : wl === "AV_REVIEW"
+                              ? "Productos por revisar (AV)"
+                              : wl === "REJECTED"
+                                ? "Productos rechazados"
+                                : "Productos Anotados",
                       }),
                       c.jsxs("p", {
                         className: "text-xs text-gray-500 mt-1",
                         children: [
                           "Anotado: ",
                           galleryAnnotatedCount,
-                          " • En Revision: ",
-                          galleryInReviewCount,
-                          " • Bought: ",
-                          galleryBoughtCount,
+                          " • PS Rev: ",
+                          galleryPsReviewCount,
+                          " • AV Rev: ",
+                          galleryAvReviewCount,
+                          " • Rechazado: ",
+                          galleryRejectedCount,
                         ],
+                      }),
+                    ],
+                  }),
+                  wl === "ANNOTATED" &&
+                  c.jsxs("div", {
+                    className: "mb-3 flex gap-2",
+                    children: [
+                      c.jsx("button", {
+                        onClick: () => setGalleryDeliveryFilter("ALL"),
+                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "ALL" ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                        children: "Todos",
+                      }),
+                      c.jsx("button", {
+                        onClick: () => setGalleryDeliveryFilter("PENDING"),
+                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "PENDING" ? "bg-amber-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                        children: "Pendiente de enviar",
+                      }),
+                      c.jsx("button", {
+                        onClick: () => setGalleryDeliveryFilter("SHIPPED"),
+                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "SHIPPED" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                        children: "Enviados",
                       }),
                     ],
                   }),
@@ -3934,7 +4721,7 @@ function nh() {
                                   openProductMenuId === o.id &&
                                   c.jsxs("div", {
                                     className:
-                                      "absolute right-0 top-9 w-36 rounded-xl border border-gray-200 bg-white shadow-lg p-1",
+                                      "absolute right-0 top-9 w-36 rounded-xl border border-gray-200 bg-white shadow-lg p-1 ui-pop",
                                     children: [
                                       c.jsxs("button", {
                                         onClick: (N) => {
@@ -3968,6 +4755,57 @@ function nh() {
                                             children: "add_a_photo",
                                           }),
                                           "Cambiar foto",
+                                        ],
+                                      }),
+                                      c.jsxs("button", {
+                                        onClick: (N) => {
+                                          (N.stopPropagation(),
+                                            setOpenProductMenuId(null),
+                                            setProductStatusQuick(o.id, "ANNOTATED"));
+                                        },
+                                        className:
+                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-emerald-700 hover:bg-emerald-50",
+                                        children: [
+                                          c.jsx("span", {
+                                            className:
+                                              "material-symbols-outlined text-[14px]",
+                                            children: "check_circle",
+                                          }),
+                                          "Anotado",
+                                        ],
+                                      }),
+                                      c.jsxs("button", {
+                                        onClick: (N) => {
+                                          (N.stopPropagation(),
+                                            setOpenProductMenuId(null),
+                                            setProductStatusQuick(o.id, "SHIPPED"));
+                                        },
+                                        className:
+                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-blue-700 hover:bg-blue-50",
+                                        children: [
+                                          c.jsx("span", {
+                                            className:
+                                              "material-symbols-outlined text-[14px]",
+                                            children: "local_shipping",
+                                          }),
+                                          "Enviado",
+                                        ],
+                                      }),
+                                      c.jsxs("button", {
+                                        onClick: (N) => {
+                                          (N.stopPropagation(),
+                                            setOpenProductMenuId(null),
+                                            setProductStatusQuick(o.id, "REJECTED"));
+                                        },
+                                        className:
+                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-amber-700 hover:bg-amber-50",
+                                        children: [
+                                          c.jsx("span", {
+                                            className:
+                                              "material-symbols-outlined text-[14px]",
+                                            children: "block",
+                                          }),
+                                          "Rechazar",
                                         ],
                                       }),
                                       c.jsxs("button", {
@@ -4043,6 +4881,32 @@ function nh() {
                                         }),
                                       ],
                                     }),
+                                  o.purchase_date &&
+                                  c.jsx("span", {
+                                    className:
+                                      "absolute top-1 left-10 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded",
+                                    children: new Date(o.purchase_date).toLocaleDateString(),
+                                  }),
+                                  o.tags &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute bottom-1 left-1 right-8 flex flex-wrap gap-1",
+                                    children: o.tags
+                                      .split(",")
+                                      .map((N) => parseVisualTag(N))
+                                      .filter((N) => N)
+                                      .slice(0, 4)
+                                      .map((N, A) =>
+                                        c.jsx(
+                                          "span",
+                                          {
+                                            className: `${getTagClassName(N.type)} text-[9px] px-1.5 py-0.5 rounded`,
+                                            children: N.label,
+                                          },
+                                          `${o.id}-tag-${A}`,
+                                        ),
+                                      ),
+                                  }),
                                   o.image &&
                                   c.jsx("button", {
                                     onClick: () => setFullscreenImage(resolveMediaUrl(o.image)),
@@ -4109,11 +4973,11 @@ function nh() {
                                       c.jsxs("div", {
                                         className: "text-[10px] mt-1",
                                         children: [
-                                          o.charged_price &&
+                                          hasValue(o.charged_price) &&
                                           c.jsxs("p", {
                                             children: ["Final: $", o.charged_price],
                                           }),
-                                          o.real_price &&
+                                          hasValue(o.real_price) &&
                                           c.jsxs("p", {
                                             children: ["Tienda: $", o.real_price],
                                           }),
@@ -4175,13 +5039,14 @@ function nh() {
                                           "flex flex-wrap gap-1 mt-1",
                                         children: o.tags
                                           .split(",")
+                                          .map((N) => parseVisualTag(N))
+                                          .filter((N) => N)
                                           .map((N, A) =>
                                             c.jsx(
                                               "span",
                                               {
-                                                className:
-                                                  "text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 font-medium",
-                                                children: N.trim(),
+                                                className: `${getTagClassName(N.type)} text-[9px] px-1.5 py-0.5 rounded font-medium`,
+                                                children: N.label,
                                               },
                                               A,
                                             ),
@@ -4191,7 +5056,7 @@ function nh() {
                                         className:
                                           "flex flex-wrap gap-1 mt-1.5",
                                         children: [
-                                          o.charged_price &&
+                                          hasValue(o.charged_price) &&
                                           c.jsxs("span", {
                                             className:
                                               "text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold",
@@ -4200,7 +5065,7 @@ function nh() {
                                               o.charged_price,
                                             ],
                                           }),
-                                          o.real_price &&
+                                          hasValue(o.real_price) &&
                                           c.jsxs("span", {
                                             className:
                                               "text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold",
@@ -4336,7 +5201,7 @@ function nh() {
                                             ),
                                           }),
                                           c.jsxs("div", {
-                                            className: "mt-2 grid grid-cols-2 gap-1",
+                                            className: "mt-2 grid grid-cols-1 gap-1",
                                             children: [
                                               c.jsx("button", {
                                                 onClick: () =>
@@ -4347,6 +5212,15 @@ function nh() {
                                                   "text-[10px] py-1 rounded bg-emerald-100 text-emerald-700 font-semibold hover:bg-emerald-200",
                                                 children:
                                                   "Quedarse original",
+                                              }),
+                                              c.jsx("button", {
+                                                onClick: () =>
+                                                  resendReviewToPs(
+                                                    reviewEntry,
+                                                  ),
+                                                className:
+                                                  "text-[10px] py-1 rounded bg-orange-100 text-orange-700 font-semibold hover:bg-orange-200",
+                                                children: "Reenviar a PS",
                                               }),
                                               c.jsx("button", {
                                                 onClick: () =>
@@ -4368,7 +5242,7 @@ function nh() {
                                       "mt-2 flex justify-between items-center",
                                     children: [
                                       c.jsx("span", {
-                                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${o.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : o.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
+                                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${o.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : o.status === "REJECTED" ? "bg-red-100 text-red-700" : o.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : o.status === "BOUGHT" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`,
                                         children: o.status,
                                       }),
                                       o.receipt &&
@@ -4472,7 +5346,7 @@ function nh() {
                                         className:
                                           "flex flex-wrap gap-1 mb-1",
                                         children: [
-                                          o.total_real_price &&
+                                          hasValue(o.total_real_price) &&
                                           c.jsxs("span", {
                                             className:
                                               "text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-bold",
@@ -4481,7 +5355,7 @@ function nh() {
                                               o.total_real_price,
                                             ],
                                           }),
-                                          o.total_charged_price &&
+                                          hasValue(o.total_charged_price) &&
                                           c.jsxs("span", {
                                             className:
                                               "text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold",
@@ -4490,7 +5364,7 @@ function nh() {
                                               o.total_charged_price,
                                             ],
                                           }),
-                                          o.tax_percentage &&
+                                          hasValue(o.tax_percentage) &&
                                           c.jsxs("span", {
                                             className:
                                               "text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100",
@@ -4606,6 +5480,7 @@ function nh() {
                   }),
                 ],
               }),
+              false &&
               fullscreenImage &&
               c.jsx("div", {
                 className:
@@ -4636,10 +5511,10 @@ function nh() {
               altUploadReviewId &&
               c.jsx("div", {
                 className:
-                  "fixed inset-0 z-[72] bg-black/60 flex items-end sm:items-center justify-center",
+                  "fixed inset-0 z-[72] bg-black/60 flex items-end sm:items-center justify-center ui-backdrop",
                 children: c.jsxs("div", {
                   className:
-                    "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl",
+                    "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
                   children: [
                     c.jsx("h3", {
                       className: "text-base font-bold mb-3",
@@ -4688,6 +5563,33 @@ function nh() {
                 }),
               }),
             ],
+          }),
+          false &&
+          fullscreenImage &&
+          c.jsx("div", {
+            className:
+              "fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4",
+            onClick: () => setFullscreenImage(null),
+            children: c.jsxs("div", {
+              className: "relative max-w-[95vw] max-h-[90vh]",
+              onClick: (o) => o.stopPropagation(),
+              children: [
+                c.jsx("button", {
+                  onClick: () => setFullscreenImage(null),
+                  className:
+                    "absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white text-gray-700 border border-gray-200 flex items-center justify-center shadow",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined",
+                    children: "close",
+                  }),
+                }),
+                c.jsx("img", {
+                  src: fullscreenImage,
+                  className:
+                    "max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black",
+                }),
+              ],
+            }),
           }),
           Pl &&
           c.jsxs("div", {
@@ -4839,6 +5741,48 @@ function nh() {
           }),
         ],
       }),
+      fullscreenImage &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
+        onClick: () => setFullscreenImage(null),
+        children: c.jsxs("div", {
+          className: "relative max-w-[95vw] max-h-[90vh] ui-sheet",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className: "absolute -top-11 right-0 flex items-center gap-2",
+              children: [
+                c.jsx("a", {
+                  href: fullscreenImage,
+                  target: "_blank",
+                  rel: "noreferrer",
+                  className:
+                    "px-3 py-1.5 rounded-full bg-white text-gray-700 text-xs font-bold border border-gray-200 shadow hover:bg-gray-100",
+                  children: "Abrir enlace",
+                }),
+                c.jsx("button", {
+                  onClick: () => setFullscreenImage(null),
+                  className:
+                    "w-9 h-9 rounded-full bg-white text-gray-700 border border-gray-200 flex items-center justify-center shadow",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsx("img", {
+              src: fullscreenImage,
+              className:
+                "max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black",
+              onError: (o) => {
+                o.currentTarget.style.display = "none";
+              },
+            }),
+          ],
+        }),
+      }),
       c.jsx("nav", {
         className:
           "sticky bottom-0 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-t border-border-light dark:border-border-dark pb-5 pt-2 px-6 z-30",
@@ -4849,10 +5793,29 @@ function nh() {
               onClick: () => Ll("HOME"),
               className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "HOME" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: [
-                c.jsx("span", {
-                  className:
-                    "material-symbols-outlined font-variation-settings-fill",
-                  children: "dashboard",
+                c.jsxs("div", {
+                  className: "relative",
+                  children: [
+                    c.jsx("span", {
+                      className:
+                        "material-symbols-outlined font-variation-settings-fill",
+                      children: "dashboard",
+                    }),
+                    homeNeedsAttention &&
+                    c.jsxs("span", {
+                      className: "absolute -top-1 -right-1 flex h-3 w-3",
+                      children: [
+                        c.jsx("span", {
+                          className:
+                            "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75",
+                        }),
+                        c.jsx("span", {
+                          className:
+                            "relative inline-flex rounded-full h-3 w-3 bg-rose-600 border border-white dark:border-gray-900",
+                        }),
+                      ],
+                    }),
+                  ],
                 }),
                 c.jsx("span", {
                   className: "text-[10px] font-medium",
