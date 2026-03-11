@@ -423,6 +423,125 @@ Al inicio de cada sesión, pide al asistente: **"Implementa la Sesión X del roa
 
 ---
 
+## Sesión 9: Pendientes Globales + Foto
+**Objetivo:** Separar los pendientes de las misiones para que existan siempre, con soporte de imagen para que el PS vea rápidamente de qué se trata.
+
+### Backend
+1. Modificar modelo `Request` en `api/models.py`:
+   - Agregar `image` como `ImageField(upload_to='requests/', null=True, blank=True)`
+   - Agregar `client` como FK -> `Client` nullable para poder ligar el pendiente a un cliente cuando aplique
+2. Ajustar `RequestSerializer` para exponer la imagen y datos básicos del cliente
+3. Cambiar `RequestViewSet.perform_create()`:
+   - NO autoasignar la petición a la misión activa por default
+   - Solo guardar `mission` si el frontend la manda explícitamente
+4. Cambiar `RequestViewSet.get_queryset()`:
+   - Por default devolver pendientes globales, aunque no haya misión
+   - Permitir filtrar opcionalmente por `mission`, `client` o `status`
+5. Correr `makemigrations` y `migrate`
+
+### Frontend
+1. En Home, mostrar siempre la sección de pendientes aunque no exista misión activa
+2. Permitir crear pendientes vacíos: NO
+   - Validar `trim()` antes de enviar
+3. Agregar botón para subir foto al crear un pendiente
+4. Mostrar mini preview de la imagen dentro de la tarjeta del pendiente
+5. Mantener las acciones rápidas sobre el pendiente:
+   - `Enterado`
+   - `No hay`
+   - `Descartar`
+   - `Modificar`
+   - `Borrar`
+6. Si existe misión activa, mostrar los pendientes globales también dentro del contexto de misión, pero sin depender de ella
+
+### Validación
+- [ ] Se pueden ver pendientes aunque no haya misión activa
+- [ ] Se puede crear un pendiente con foto
+- [ ] No se pueden crear pendientes vacíos
+- [ ] Los pendientes no desaparecen al cerrar o cambiar de misión
+- [ ] Se pueden filtrar por cliente o misión cuando sea necesario
+
+---
+
+## Sesión 10: Shopping en Tienda + Store Real en Mission
+**Objetivo:** Dejar de usar `Mission.name` como tienda libre y convertir la misión en una compra real ligada a una tienda guardada.
+
+### Backend
+1. Agregar `store` como FK -> `Store` en `Mission`
+2. Mantener `name` solo como campo auxiliar/histórico si hace falta, pero la tienda principal debe vivir en `mission.store`
+3. En `ProductItemViewSet.perform_create()` y `perform_update()`:
+   - Si el producto pertenece a una misión activa, heredar automáticamente la tienda de `mission.store`
+   - No depender de que el frontend mande `store` manualmente
+4. En el cierre de misión:
+   - Borrar productos `REJECTED`
+   - Asegurar que en el historial de misión queden visibles solo productos `ANNOTATED`
+5. Correr `makemigrations` y `migrate`
+
+### Frontend
+1. Cambiar el inicio de misión:
+   - Reemplazar el campo libre de nombre por selector/autocompletado de tiendas existentes
+   - Permitir crear tienda nueva inline si no existe
+   - Encabezado de la tarjeta: `Shopping en Tienda: <nombre_tienda>`
+2. Eliminar el texto genérico de "Mission" donde el contexto real sea tienda
+3. En el resumen de productos de la misión:
+   - Permitir abrir la foto en grande
+   - Mostrar claramente a qué cliente pertenece cada producto
+4. En Edit Product Info dentro de misión:
+   - El `store` ya no se escoge manualmente
+   - Solo se muestra como dato heredado de la misión
+5. Mantener carga de ticket a nivel misión y vista previa funcional
+
+### Validación
+- [ ] Al iniciar una misión se selecciona una tienda guardada
+- [ ] Los productos nuevos heredan la tienda de la misión automáticamente
+- [ ] El resumen de misión deja ver la foto grande del producto
+- [ ] Al terminar la misión solo quedan visibles los productos anotados
+- [ ] El ticket de misión sigue pudiéndose subir y consultar
+
+---
+
+## Sesión 11: Flujo AV <-> PS Limpio + Envíos Fuera de Mission
+**Objetivo:** Limpiar el flujo de revisión de productos para que la misión solo maneje revisión/anotado/rechazado y los envíos queden como un módulo aparte.
+
+### Backend
+1. Revisar el uso de `ProductItem.status` para el flujo de shopping:
+   - En misión, usar solo `IN_REVIEW`, `ANNOTATED`, `REJECTED`
+   - `SHIPPED` no debe formar parte del flujo de revisión en tienda
+2. Mantener `ProductReview` como la capa de ida y vuelta AV <-> PS:
+   - AV manda a revisar
+   - PS responde/confirma/manda alternativa
+   - AV decide si se anota, se vuelve a mandar a revisión, o se rechaza
+3. Corregir `perform_update()` de producto para aceptar payloads parciales sin romper cuando algún campo numérico venga vacío o nulo
+4. Preparar el terreno para un módulo futuro de envíos independiente por:
+   - cliente
+   - mes
+   - vista global
+
+### Frontend
+1. En la galería de cliente dentro de misión:
+   - Quitar botones/acciones de `Enviado`
+   - Quitar filtros de envío del contexto de misión
+2. Sobre la imagen del producto, agregar acciones visibles:
+   - `Mandar a PS`
+   - `Mandar a AV`
+   - `Anotado`
+   - `Rechazado`
+3. Los tags deben mostrarse sobre la imagen y por color de rol:
+   - Tags del PS en un color
+   - Tags del AV en otro color claramente distinto
+4. Corregir el botón de `Anotado` sobre imagen para que funcione
+5. Corregir guardado de cambios del producto para que no dispare `Error updating item`
+6. Si el producto queda anotado, debe poder regresar después a revisión sin pasar por `SHIPPED`
+
+### Validación
+- [ ] Dentro de misión ya no aparece el control de `Enviado`
+- [ ] El flujo AV -> PS -> AV funciona sin mezclar envío
+- [ ] Los tags de AV y PS se distinguen claramente por color
+- [ ] El botón de Anotado sobre la imagen funciona
+- [ ] Editar producto ya no lanza `Error updating item`
+- [ ] Un producto anotado puede volver a revisión si hace falta
+
+---
+
 ## Notas Generales
 
 > Al inicio de cada sesión, decir:
@@ -432,4 +551,5 @@ Al inicio de cada sesión, pide al asistente: **"Implementa la Sesión X del roa
 > Después de cada sesión, probar con Cloudflare Tunnel:
 > **"Sube la app con Cloudflare Tunnel"**
 
-> Las sesiones 9 (Envíos) y 10 (Reportes) quedan pendientes de definición.
+> Pendiente futuro aparte de estas sesiones:
+> definir el módulo completo de envíos/conglomerados por cliente, por mes y vista global.

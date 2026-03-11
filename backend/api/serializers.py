@@ -62,6 +62,7 @@ class ClientSerializer(serializers.ModelSerializer):
 class ProductItemSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.name', read_only=True, default='')
+    store_name = serializers.CharField(source='store.name', read_only=True, default=None)
     mission_name = serializers.CharField(
         source='mission.name', read_only=True, default=None
     )
@@ -92,6 +93,7 @@ class StoreSerializer(serializers.ModelSerializer):
 class MissionSerializer(serializers.ModelSerializer):
     ticket_image = RelativeImageField(required=False, allow_null=True)
     shopper_name = serializers.CharField(source='shopper.username', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True, default=None)
     clients_detail = ClientSerializer(source='clients', many=True, read_only=True)
     products = ProductItemSerializer(many=True, read_only=True)
 
@@ -101,8 +103,10 @@ class MissionSerializer(serializers.ModelSerializer):
 
 
 class RequestSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
     created_by_username = serializers.SerializerMethodField()
     created_by_role = serializers.SerializerMethodField()
+    client_name = serializers.CharField(source='client.name', read_only=True, default=None)
 
     def get_created_by_username(self, obj):
         return obj.created_by.username if obj.created_by else None
@@ -118,8 +122,10 @@ class RequestSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs = {
             'created_by': {'read_only': True},
+            'client': {'required': False, 'allow_null': True},
             'mission': {'required': False, 'allow_null': True},
             'product': {'required': False, 'allow_null': True},
+            'image': {'required': False, 'allow_null': True},
             'note': {'required': False, 'allow_null': True},
         }
 

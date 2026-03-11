@@ -148,6 +148,8 @@ function nh() {
     [copiedMissionClients, setCopiedMissionClients] = V.useState([]),
     [requests, setRequests] = V.useState([]),
     [newRequestText, setNewRequestText] = V.useState(""),
+    [newRequestImageFile, setNewRequestImageFile] = V.useState(null),
+    [newRequestImagePreview, setNewRequestImagePreview] = V.useState(""),
     [editingRequestId, setEditingRequestId] = V.useState(null),
     [editingRequestText, setEditingRequestText] = V.useState(""),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
@@ -156,6 +158,7 @@ function nh() {
     [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
     [missionStartForm, setMissionStartForm] = V.useState({
       name: "",
+      store_name: "",
       tax_percentage: "8",
       calc_mode: "FACTOR",
       factor_value: "1.5",
@@ -165,7 +168,6 @@ function nh() {
     }),
     [missionSummaryOpen, setMissionSummaryOpen] = V.useState(!1),
     [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
-    [galleryDeliveryFilter, setGalleryDeliveryFilter] = V.useState("ALL"),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
@@ -241,10 +243,9 @@ function nh() {
       } catch {}
     },
     // <-------- seccion 8: helper de recarga y update robusto para peticiones
-    getMissionRequestDetailPath = (o) =>
-      w && w.id ? `/requests/${o}/?mission=${w.id}` : `/requests/${o}/`,
-    reloadMissionRequests = async (o = w && w.id) => {
-      const N = o ? await I(`/requests/?mission=${o}`) : await I("/requests/");
+    getMissionRequestDetailPath = (o) => `/requests/${o}/`,
+    reloadMissionRequests = async () => {
+      const N = await I("/requests/");
       return (setRequests(N || []), N || []);
     };
   V.useEffect(() => {
@@ -274,9 +275,8 @@ function nh() {
     wsStoppedRef.current = !1;
     let reconnectAttempt = 0;
     const refreshRequestsForMission = async () => {
-      const o = activeMissionIdRef.current;
       try {
-        const N = o ? await I(`/requests/?mission=${o}`) : await I("/requests/");
+        const N = await I("/requests/");
         setRequests(N || []);
       } catch (N) {
         console.error("Failed loading mission requests", N);
@@ -434,10 +434,7 @@ function nh() {
     let isMounted = !0;
     const loadRequests = async () => {
       try {
-        const o =
-          w && (w.status === "ACTIVE" || w.status === "PAUSED")
-            ? await I(`/requests/?mission=${w.id}`)
-            : await I("/requests/");
+        const o = await I("/requests/");
         isMounted && setRequests(o || []);
       } catch (o) {
         console.error("Failed loading requests", o);
@@ -447,7 +444,7 @@ function nh() {
     return () => {
       isMounted = !1;
     };
-  }, [C, w && w.id, w && w.status]);
+  }, [C]);
   // <-------- seccion 8: carga inicial de revisiones por cliente (sin polling)
   V.useEffect(() => {
     if (!C || !W) {
@@ -622,8 +619,10 @@ function nh() {
         const vl = parseFloat(N);
         return Number.isFinite(vl) ? vl : A;
       };
+      const N = (w && getMissionStoreLabel(w)) || "";
       setMissionStartForm({
-        name: (w && w.name) || `Mission ${new Date().toLocaleDateString()}`,
+        name: N,
+        store_name: N,
         tax_percentage: String(parseSafe(w && w.tax_percentage, calcTaxes)),
         calc_mode: String((w && w.calc_mode) || calcMode || "FACTOR").toUpperCase(),
         factor_value: String(parseSafe(w && w.factor_value, calcFactor)),
@@ -638,17 +637,32 @@ function nh() {
       setShowMissionStartModal(!0);
     },
     ye = async (o = missionStartForm) => {
-      const N = String(o.name || "").trim() || `Mission ${new Date().toLocaleDateString()}`;
+      const N = String(o.store_name || o.name || "").trim();
+      if (!N) {
+        alert("Selecciona o escribe la tienda para iniciar el shopping.");
+        return;
+      }
       const A = String(o.calc_mode || "FACTOR").toUpperCase() === "PERCENTAGE"
         ? "PERCENTAGE"
         : "FACTOR";
       try {
-        let vl = null;
+        let vl = findStoreByName(N);
+        if (!vl) {
+          vl = await I("/stores/", {
+            method: "POST",
+            body: JSON.stringify({ name: N }),
+          });
+          setStores((Se) =>
+            [...Se, vl].sort((ea, gl) => ea.name.localeCompare(gl.name)),
+          );
+        }
+        let El = null;
         try {
-          vl = await I("/missions/", {
+          El = await I("/missions/", {
             method: "POST",
             body: JSON.stringify({
               name: N,
+              store: vl && vl.id ? vl.id : null,
               calc_mode: A,
               tax_percentage: toNumber(o.tax_percentage, 8).toFixed(2),
               factor_value: toNumber(o.factor_value, 1.5).toFixed(4),
@@ -658,27 +672,17 @@ function nh() {
             }),
           });
         } catch {
-          // Fallback para backend antiguo sin nuevos campos.
-          vl = await I("/missions/", {
+          El = await I("/missions/", {
             method: "POST",
-            body: JSON.stringify({ name: N }),
+            body: JSON.stringify({
+              name: N,
+              store: vl && vl.id ? vl.id : null,
+            }),
           });
         }
-        const El = N.trim().toLowerCase();
-        if (El && !stores.some((Se) => Se.name.toLowerCase().trim() === El)) {
-          try {
-            const Se = await I("/stores/", {
-              method: "POST",
-              body: JSON.stringify({ name: N.trim() }),
-            });
-            setStores((ea) =>
-              [...ea, Se].sort((gl, ae) => gl.name.localeCompare(ae.name)),
-            );
-          } catch {}
-        }
         (setShowMissionStartModal(!1),
-          zl([...Al, vl]),
-          Dl(vl),
+          zl([...Al, El]),
+          Dl(El),
           setCalcMode(A),
           setCalcTaxes(toNumber(o.tax_percentage, 8)),
           setCalcFactor(toNumber(o.factor_value, 1.5)),
@@ -756,14 +760,12 @@ function nh() {
     Ta = (o, N = null) => {
       (setClientGalleryMissionScopeId(N),
         et(o),
-        jt("PS_REVIEW"),
-        setGalleryDeliveryFilter("ALL"));
+        jt("PS_REVIEW"));
     },
     Aa = () => {
       (et(null),
         setFullscreenImage(null),
-        setClientGalleryMissionScopeId(null),
-        setGalleryDeliveryFilter("ALL"));
+        setClientGalleryMissionScopeId(null));
     },
     // <-------- seccion 8: selector de imagen robusto (evita fallas de input hidden en algunos entornos Windows)
     openSingleImagePicker = (o) => {
@@ -844,12 +846,6 @@ function nh() {
         (o.target.value = "");
         return;
       }
-      const vl =
-        w && w.name
-          ? stores.find(
-            (El) => El.name.toLowerCase().trim() === String(w.name).toLowerCase().trim(),
-          )
-          : null;
       const El = X === "AV" ? "IN_REVIEW" : "ANNOTATED";
       const Se = new Date().toISOString().slice(0, 10);
       const ea = new FormData();
@@ -858,8 +854,7 @@ function nh() {
         ea.append("name", A),
         ea.append("status", El),
         ea.append("purchase_date", Se),
-        w && ea.append("mission", w.id),
-        vl && ea.append("store", vl.id));
+        w && ea.append("mission", w.id));
       try {
         (await I("/products/", { method: "POST", body: ea }), Qt());
       } catch {
@@ -893,14 +888,7 @@ function nh() {
         .filter((A) => A.length > 0);
       const A =
         o.store ||
-        (w && w.name
-          ? (
-            stores.find(
-              (vl) =>
-                vl.name.toLowerCase().trim() === String(w.name).toLowerCase().trim(),
-            ) || {}
-          ).id || ""
-          : "");
+        ((w && w.store) || "");
       (Ke(o),
         Gt({
           name: o.name || "",
@@ -930,13 +918,20 @@ function nh() {
               (1 + calcTaxes / 100) *
               calcExchangeRate
           : Number.NaN,
+        normalizeNullableNumber = (gl) => {
+          if (gl === null || typeof gl === "undefined" || String(gl).trim() === "")
+            return null;
+          const ae = parseFloat(gl);
+          return Number.isFinite(ae) ? ae.toFixed(2) : null;
+        },
         vl = {
           ...st,
           tags: modalTags.join(", "),
-          store: st.store ? Number(st.store) : null,
+          store: w ? null : st.store ? Number(st.store) : null,
+          real_price: normalizeNullableNumber(st.real_price),
           charged_price: Number.isFinite(A)
             ? A.toFixed(2)
-            : st.charged_price || null,
+            : normalizeNullableNumber(st.charged_price),
         };
       try {
         (await I(`/products/${he.id}/`, {
@@ -997,7 +992,7 @@ function nh() {
             if (ct.includes(A))
               return I(`/products/${A}/`, {
                 method: "PATCH",
-                body: JSON.stringify({ receipt: kt, status: "BOUGHT" }),
+                body: JSON.stringify({ receipt: kt, status: "ANNOTATED" }),
               });
             {
               const vl = W.products.find((El) => El.id === A);
@@ -1201,28 +1196,44 @@ function nh() {
       const Se = Math.floor(El / 24);
       return `hace ${Se} d`;
     },
+    getMissionStoreLabel = (o) =>
+      o ? o.store_name || o.name || `Tienda #${o.id}` : "",
+    findStoreByName = (o) =>
+      stores.find(
+        (N) =>
+          N.name.toLowerCase().trim() === String(o || "").toLowerCase().trim(),
+      ) || null,
+    clearNewRequestImage = () => {
+      (setNewRequestImageFile(null), setNewRequestImagePreview(""));
+    },
+    pickRequestImage = () => {
+      openSingleImagePicker(handleRequestImageSelection);
+    },
+    handleRequestImageSelection = (o) => {
+      const N = o.target.files;
+      if (!N || N.length === 0) return;
+      const A = URL.createObjectURL(N[0]);
+      (setNewRequestImageFile(N[0]), setNewRequestImagePreview(A), (o.target.value = ""));
+    },
     createMissionRequest = async () => {
       const o = newRequestText.trim();
-      if (!o) return;
-      const Nl =
-        w && (w.status === "ACTIVE" || w.status === "PAUSED") ? w.id : null;
+      if (!o && !newRequestImageFile) return;
+      const Nl = new FormData();
+      Nl.append("description", o || "Pendiente con foto");
+      Nl.append("status", "PENDING");
+      W && W.id && Nl.append("client", W.id);
+      newRequestImageFile && Nl.append("image", newRequestImageFile);
       try {
         const N = await I("/requests/", {
           method: "POST",
-          body: JSON.stringify({
-            description: o,
-            mission: Nl,
-            status: "PENDING",
-          }),
+          body: Nl,
         });
-        if (w && w.id) {
-          await reloadMissionRequests(w.id);
-        } else if (N && N.id) {
+        if (N && N.id) {
           setRequests((A) => [N, ...A.filter((vl) => vl.id !== N.id)]);
         } else {
-          await reloadMissionRequests(null);
+          await reloadMissionRequests();
         }
-        setNewRequestText("");
+        (setNewRequestText(""), clearNewRequestImage());
       } catch (N) {
         (console.error("Failed creating request", N),
           alert(`No se pudo crear la petición. ${N.message || ""}`.trim()));
@@ -1243,7 +1254,6 @@ function nh() {
         if (!El || typeof El !== "object" || typeof El.id === "undefined")
           throw new Error("Respuesta invalida al actualizar la peticion.");
         setRequests((Se) => Se.map((ea) => (ea.id === o ? El : ea)));
-        w && w.id && (await reloadMissionRequests(w.id));
       } catch (El) {
         (setRequests(vl),
           console.error("Failed updating request", El),
@@ -1270,7 +1280,6 @@ function nh() {
         (setRequests((vl) => vl.map((El) => (El.id === o.id ? A : El))),
           setEditingRequestId(null),
           setEditingRequestText(""));
-        w && w.id && (await reloadMissionRequests(w.id));
       } catch (A) {
         (console.error("Failed modifying request", A),
           alert(`No se pudo modificar la petición. ${A.message || ""}`.trim()));
@@ -1282,7 +1291,6 @@ function nh() {
       setRequests((A) => A.filter((vl) => vl.id !== o));
       try {
         await I(getMissionRequestDetailPath(o), { method: "DELETE" });
-        w && w.id && (await reloadMissionRequests(w.id));
       } catch (A) {
         (setRequests(N),
           console.error("Failed deleting request", A),
@@ -1405,6 +1413,42 @@ function nh() {
     discardReviewedProduct = async (o) => {
       await updateProductReviewAction(o, "discard");
     },
+    sendProductToPs = async (o, N = null) => {
+      if (!o || X === "PS") return;
+      if (N) {
+        await resendReviewToPs(N);
+        return;
+      }
+      await createProductReview(o);
+    },
+    sendProductToAv = (o) => {
+      if (!o || X !== "PS") return;
+      openAlternativeUploadModal(o);
+    },
+    markProductAnnotated = async (o, N = null) => {
+      if (!o) return;
+      if (X === "PS" && N && N.status === "PENDING") {
+        await updateProductReviewAction(N, "confirm");
+        return;
+      }
+      if (X !== "PS" && N) {
+        await keepOriginalProduct(N);
+        return;
+      }
+      await setProductStatusQuick(o.id, "ANNOTATED");
+    },
+    markProductRejected = async (o, N = null) => {
+      if (!o) return;
+      if (X === "PS" && N && N.status === "PENDING") {
+        await updateProductReviewAction(N, "no-stock");
+        return;
+      }
+      if (X !== "PS" && N) {
+        await discardReviewedProduct(N);
+        return;
+      }
+      await setProductStatusQuick(o.id, "REJECTED");
+    },
     resendReviewToPs = async (o) => {
       if (!o) return;
       const N = prompt(
@@ -1447,10 +1491,10 @@ function nh() {
     },
     getTagClassName = (o) =>
       o === "PS"
-        ? "bg-blue-100/95 text-blue-800 border border-blue-200"
+        ? "bg-blue-600/92 text-white border border-blue-300/80 shadow-sm"
         : o === "AV"
-          ? "bg-emerald-100/95 text-emerald-800 border border-emerald-200"
-          : "bg-white/90 text-gray-700 border border-white",
+          ? "bg-emerald-600/92 text-white border border-emerald-300/80 shadow-sm"
+          : "bg-white/92 text-gray-800 border border-white shadow-sm",
     discountMultiplier = Math.max(0, 1 - toNumber(calcDiscount, 0) / 100),
     modalStorePrice = parseFloat(st.real_price),
     modalFinalPrice = Number.isFinite(modalStorePrice)
@@ -1484,6 +1528,9 @@ function nh() {
         (o.products || []).filter((N) => Number(N.mission) === Number(w.id)),
       )
       : [],
+    clientGalleryScopeMission = clientGalleryMissionScopeId
+      ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId))
+      : null,
     missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
     missionProductsCount = activeMissionProducts.length,
     missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
@@ -1495,7 +1542,11 @@ function nh() {
     }, 0),
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryMissionScopeId
-        ? Number(o.mission) === Number(clientGalleryMissionScopeId)
+        ? Number(o.mission) === Number(clientGalleryMissionScopeId) &&
+          (clientGalleryScopeMission &&
+          clientGalleryScopeMission.status === "COMPLETED"
+            ? o.status === "ANNOTATED"
+            : !0)
         : !0,
     )),
     galleryPsReviewCount = galleryProducts.filter((o) => {
@@ -1507,7 +1558,7 @@ function nh() {
       return !!N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK");
     }).length,
     galleryAnnotatedCount = galleryProducts.filter((o) =>
-      o.status === "ANNOTATED" || o.status === "BOUGHT" || o.status === "SHIPPED",
+      o.status === "ANNOTATED" || o.status === "BOUGHT",
     ).length,
     galleryRejectedCount = galleryProducts.filter((o) => o.status === "REJECTED").length,
     visibleGalleryProducts =
@@ -1523,14 +1574,9 @@ function nh() {
           })
           : wl === "REJECTED"
             ? galleryProducts.filter((o) => o.status === "REJECTED")
-            : galleryProducts.filter((o) => {
-              const N =
-                o.status === "ANNOTATED" || o.status === "BOUGHT" || o.status === "SHIPPED";
-              if (!N) return !1;
-              if (galleryDeliveryFilter === "SHIPPED") return o.status === "SHIPPED";
-              if (galleryDeliveryFilter === "PENDING") return o.status !== "SHIPPED";
-              return !0;
-            }),
+            : galleryProducts.filter((o) =>
+              o.status === "ANNOTATED" || o.status === "BOUGHT",
+            ),
     sortedVisibleGalleryProducts = [...visibleGalleryProducts].sort((o, N) => {
       const A = latestReviewsByProduct[o.id],
         vl = latestReviewsByProduct[N.id],
@@ -1664,15 +1710,15 @@ function nh() {
             }),
             c.jsx("h2", {
               className: "text-2xl font-bold mb-2",
-              children: "Shopping Mission",
+              children: "Shopping en Tienda",
             }),
             c.jsx("p", {
               className: "text-text-sub text-sm mb-6",
               children: w
                 ? w.status === "PAUSED"
-                  ? "Mission is paused. Resume when you're ready to continue."
-                  : "You are currently shopping. The mission is active!"
-                : "Start a mission when you are at the store to begin tracking purchases.",
+                  ? `Shopping pausado en ${getMissionStoreLabel(w)}.`
+                  : `Comprando en ${getMissionStoreLabel(w)}.`
+                : "Inicia un shopping al entrar a la tienda para comenzar a registrar compras.",
             }),
             w
               ? c.jsxs("div", {
@@ -1726,7 +1772,7 @@ function nh() {
                     className: "material-symbols-outlined",
                     children: "play_circle",
                   }),
-                  " Start Mission",
+                  " Iniciar Shopping",
                 ],
             }),
           ],
@@ -1793,6 +1839,17 @@ function nh() {
                                               className: "text-xs font-semibold truncate text-gray-900 dark:text-gray-100",
                                               children: o.description,
                                             }),
+                                            o.image &&
+                                            c.jsx("button", {
+                                              onClick: () =>
+                                                setFullscreenImage(resolveMediaUrl(o.image)),
+                                              className:
+                                                "mt-2 overflow-hidden rounded-xl border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800",
+                                              children: c.jsx("img", {
+                                                src: resolveMediaUrl(o.image),
+                                                className: "w-16 h-16 object-cover",
+                                              }),
+                                            }),
                                             c.jsxs("div", {
                                               className: "mt-1 flex items-center gap-1.5",
                                               children: [
@@ -1815,6 +1872,7 @@ function nh() {
                                                     " (",
                                                     o.created_by_role || "AV",
                                                     ") • ",
+                                                    o.client_name ? `${o.client_name} • ` : "",
                                                     getRelativeTime(o.updated_at || o.created_at),
                                                   ],
                                                 }),
@@ -1888,21 +1946,63 @@ function nh() {
                         ),
                 }),
                 c.jsxs("div", {
-                  className: "mt-2 flex gap-2",
+                  className: "mt-2 space-y-2",
                   children: [
-                    c.jsx("input", {
-                      type: "text",
-                      value: newRequestText,
-                      onChange: (o) => setNewRequestText(o.target.value),
-                      placeholder: "Nueva petición...",
+                    newRequestImagePreview &&
+                    c.jsxs("div", {
                       className:
-                        "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                        "flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40",
+                      children: [
+                        c.jsx("img", {
+                          src: newRequestImagePreview,
+                          className: "w-12 h-12 rounded-lg object-cover border border-sky-200 dark:border-sky-800",
+                        }),
+                        c.jsx("p", {
+                          className: "flex-1 text-[11px] text-sky-900 dark:text-sky-100",
+                          children: newRequestImageFile && newRequestImageFile.name
+                            ? newRequestImageFile.name
+                            : "Imagen seleccionada",
+                        }),
+                        c.jsx("button", {
+                          onClick: clearNewRequestImage,
+                          className:
+                            "w-8 h-8 rounded-full border border-sky-300 bg-white text-sky-700 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200 flex items-center justify-center",
+                          title: "Quitar imagen",
+                          children: c.jsx("span", {
+                            className: "material-symbols-outlined text-[16px]",
+                            children: "close",
+                          }),
+                        }),
+                      ],
                     }),
-                    c.jsx("button", {
-                      onClick: createMissionRequest,
-                      disabled: !newRequestText.trim(),
-                      className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
-                      children: "Enviar",
+                    c.jsxs("div", {
+                      className: "flex gap-2",
+                      children: [
+                        c.jsx("input", {
+                          type: "text",
+                          value: newRequestText,
+                          onChange: (o) => setNewRequestText(o.target.value),
+                          placeholder: "Nueva petición...",
+                          className:
+                            "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                        }),
+                        c.jsx("button", {
+                          onClick: pickRequestImage,
+                          className:
+                            "px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200",
+                          title: "Adjuntar foto",
+                          children: c.jsx("span", {
+                            className: "material-symbols-outlined text-[18px]",
+                            children: "add_photo_alternate",
+                          }),
+                        }),
+                        c.jsx("button", {
+                          onClick: createMissionRequest,
+                          disabled: !newRequestText.trim() && !newRequestImageFile,
+                          className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
+                          children: "Enviar",
+                        }),
+                      ],
                     }),
                   ],
                 }),
@@ -2027,10 +2127,25 @@ function nh() {
                                 }),
                               ],
                             })
-                            : c.jsx("p", {
-                              className:
-                                "text-xs font-medium text-gray-700 dark:text-gray-200 mb-2",
-                              children: o.description,
+                            : c.jsxs(c.Fragment, {
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-xs font-medium text-gray-700 dark:text-gray-200 mb-2",
+                                  children: o.description,
+                                }),
+                                o.image &&
+                                c.jsx("button", {
+                                  onClick: () =>
+                                    setFullscreenImage(resolveMediaUrl(o.image)),
+                                  className:
+                                    "mb-2 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900",
+                                  children: c.jsx("img", {
+                                    src: resolveMediaUrl(o.image),
+                                    className: "w-20 h-20 object-cover",
+                                  }),
+                                }),
+                              ],
                             }),
                           c.jsxs("p", {
                             className: "text-[10px] text-gray-500 mb-2",
@@ -2039,11 +2154,12 @@ function nh() {
                               " (",
                               o.created_by_role || "AV",
                               ") • ",
+                              o.client_name ? `${o.client_name} • ` : "",
                               getRelativeTime(o.updated_at || o.created_at),
                             ],
                           }),
                           c.jsxs("div", {
-                            className: "grid grid-cols-2 gap-1",
+                            className: "flex flex-wrap gap-1",
                             children: [
                               c.jsx("button", {
                                 onClick: () =>
@@ -2085,6 +2201,12 @@ function nh() {
                                   "text-[10px] px-2 py-1 rounded bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200",
                                 children: "Modificar",
                               }),
+                              c.jsx("button", {
+                                onClick: () => deleteMissionRequest(o.id),
+                                className:
+                                  "text-[10px] px-2 py-1 rounded bg-rose-100 text-rose-700 font-semibold hover:bg-rose-200",
+                                children: "Borrar",
+                              }),
                             ],
                           }),
                         ],
@@ -2094,21 +2216,63 @@ function nh() {
                   ),
             }),
             c.jsxs("div", {
-              className: "mt-3 flex gap-2",
+              className: "mt-3 space-y-2",
               children: [
-                c.jsx("input", {
-                  type: "text",
-                  value: newRequestText,
-                  onChange: (o) => setNewRequestText(o.target.value),
-                  placeholder: "Nueva peticion...",
+                newRequestImagePreview &&
+                c.jsxs("div", {
                   className:
-                    "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                    "flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40",
+                  children: [
+                    c.jsx("img", {
+                      src: newRequestImagePreview,
+                      className: "w-12 h-12 rounded-lg object-cover border border-sky-200 dark:border-sky-800",
+                    }),
+                    c.jsx("p", {
+                      className: "flex-1 text-[11px] text-sky-900 dark:text-sky-100",
+                      children: newRequestImageFile && newRequestImageFile.name
+                        ? newRequestImageFile.name
+                        : "Imagen seleccionada",
+                    }),
+                    c.jsx("button", {
+                      onClick: clearNewRequestImage,
+                      className:
+                        "w-8 h-8 rounded-full border border-sky-300 bg-white text-sky-700 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200 flex items-center justify-center",
+                      title: "Quitar imagen",
+                      children: c.jsx("span", {
+                        className: "material-symbols-outlined text-[16px]",
+                        children: "close",
+                      }),
+                    }),
+                  ],
                 }),
-                c.jsx("button", {
-                  onClick: createMissionRequest,
-                  disabled: !newRequestText.trim(),
-                  className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
-                  children: "Enviar",
+                c.jsxs("div", {
+                  className: "flex gap-2",
+                  children: [
+                    c.jsx("input", {
+                      type: "text",
+                      value: newRequestText,
+                      onChange: (o) => setNewRequestText(o.target.value),
+                      placeholder: "Nueva peticion...",
+                      className:
+                        "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                    }),
+                    c.jsx("button", {
+                      onClick: pickRequestImage,
+                      className:
+                        "px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200",
+                      title: "Adjuntar foto",
+                      children: c.jsx("span", {
+                        className: "material-symbols-outlined text-[18px]",
+                        children: "add_photo_alternate",
+                      }),
+                    }),
+                    c.jsx("button", {
+                      onClick: createMissionRequest,
+                      disabled: !newRequestText.trim() && !newRequestImageFile,
+                      className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
+                      children: "Enviar",
+                    }),
+                  ],
                 }),
               ],
             }),
@@ -2126,13 +2290,13 @@ function nh() {
                   children: [
                     c.jsx("h3", {
                       className: "font-bold text-sm text-text-main dark:text-white truncate",
-                      children: "Shopping Mission",
+                      children: "Shopping en Tienda",
                     }),
                     c.jsx("p", {
                       className: "text-[10px] text-gray-500 truncate",
                       children: w
-                        ? `${w.name || `Mission #${w.id}`} • ${w.status}`
-                        : "No active mission",
+                        ? `${getMissionStoreLabel(w)} • ${w.status}`
+                        : "Sin shopping activo",
                     }),
                   ],
                 }),
@@ -2225,7 +2389,7 @@ function nh() {
                       onClick: openMissionStart,
                       className:
                         "col-span-4 py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
-                      children: "Start Mission",
+                      children: "Iniciar Shopping",
                     },
                     "start",
                   ),
@@ -2274,8 +2438,6 @@ function nh() {
               ? "bg-red-100 text-red-700"
             : A === "IN_REVIEW"
               ? "bg-orange-100 text-orange-700"
-              : A === "BOUGHT"
-                ? "bg-purple-100 text-purple-700"
               : "bg-amber-100 text-amber-700";
       return c.jsxs("div", {
         className: "space-y-4",
@@ -2318,13 +2480,13 @@ function nh() {
                 }),
                 c.jsx("p", {
                   className: "text-gray-500 text-sm mb-4",
-                  children: "Start your first mission from here.",
+                  children: "Inicia tu primer shopping en tienda desde aqui.",
                 }),
                 c.jsx("button", {
                   onClick: openMissionStart,
                   className:
                     "px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark transition",
-                  children: "Start Mission",
+                  children: "Iniciar Shopping",
                 }),
               ],
             })
@@ -2337,7 +2499,9 @@ function nh() {
                   qa = Se.filter((gl) =>
                     (gl.products || []).some((ae) => ae.mission === A.id),
                   ),
-                  ea = A.products || [];
+                  ea = (A.products || []).filter((gl) =>
+                    A.status === "COMPLETED" ? gl.status === "ANNOTATED" : !0,
+                  );
                 return c.jsxs(
                   "div",
                   {
@@ -2385,8 +2549,7 @@ function nh() {
                                       c.jsx("p", {
                                         className:
                                           "font-bold text-sm truncate",
-                                        children:
-                                          A.name || `Mission #${A.id}`,
+                                        children: getMissionStoreLabel(A),
                                       }),
                                       c.jsxs("p", {
                                         className:
@@ -2514,7 +2677,11 @@ function nh() {
                                 children: qa.map((gl) => {
                                   const ae = `${A.id}-${gl.id}`,
                                     oi = (gl.products || []).filter(
-                                      (mi) => mi.mission === A.id,
+                                      (mi) =>
+                                        mi.mission === A.id &&
+                                        (A.status === "COMPLETED"
+                                          ? mi.status === "ANNOTATED"
+                                          : !0),
                                     );
                                   return c.jsxs(
                                     "div",
@@ -2813,7 +2980,7 @@ function nh() {
                           ? ae.name
                           : oiName
                             ? oiName
-                            : `Mission #${ea}`,
+                            : `Tienda #${ea}`,
                       mi =
                         (ae && ae.start_time) ||
                         (gl[0] && (gl[0].mission_date || gl[0].created_at)) ||
@@ -3085,8 +3252,8 @@ function nh() {
                                                         ],
                                                       }),
                                                       c.jsx("span", {
-                                                        className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${gl.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : gl.status === "REJECTED" ? "bg-red-100 text-red-700" : gl.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : gl.status === "BOUGHT" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`,
-                                                        children: gl.status,
+                                                        className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${gl.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : gl.status === "REJECTED" ? "bg-red-100 text-red-700" : gl.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
+                                                        children: gl.status === "BOUGHT" ? "ANNOTATED" : gl.status,
                                                       }),
                                                     ],
                                                   }),
@@ -3433,19 +3600,42 @@ function nh() {
           children: [
             c.jsx("h3", {
               className: "text-base font-bold mb-3",
-              children: "Start Mission",
+              children: "Shopping en Tienda",
             }),
             c.jsxs("div", {
               className: "space-y-2",
               children: [
-                c.jsx("input", {
-                  type: "text",
-                  value: missionStartForm.name,
-                  onChange: (o) =>
-                    setMissionStartForm({ ...missionStartForm, name: o.target.value }),
-                  placeholder: "Tienda / nombre de misión",
-                  className:
-                    "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                c.jsxs("div", {
+                  children: [
+                    c.jsx("label", {
+                      className: "text-[10px] font-semibold text-gray-500",
+                      children: "Tienda",
+                    }),
+                    c.jsx("input", {
+                      type: "text",
+                      list: "mission-store-options",
+                      value: missionStartForm.store_name,
+                      onChange: (o) =>
+                        setMissionStartForm({
+                          ...missionStartForm,
+                          store_name: o.target.value,
+                          name: o.target.value,
+                        }),
+                      placeholder: "Selecciona o escribe la tienda",
+                      className:
+                        "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                    }),
+                    c.jsx("datalist", {
+                      id: "mission-store-options",
+                      children: stores.map((o) =>
+                        c.jsx("option", { value: o.name }, o.id),
+                      ),
+                    }),
+                    c.jsx("p", {
+                      className: "mt-1 text-[10px] text-gray-500",
+                      children: "Si escribes una tienda nueva, se guarda automaticamente al iniciar el shopping.",
+                    }),
+                  ],
                 }),
                 c.jsxs("div", {
                   className: "grid grid-cols-2 gap-2",
@@ -3618,7 +3808,7 @@ function nh() {
               children: [
                 c.jsx("h3", {
                   className: "text-base font-bold",
-                  children: "Mission Products",
+                  children: "Productos de la Tienda",
                 }),
                 c.jsx("button", {
                   onClick: () => setMissionSummaryOpen(!1),
@@ -3671,13 +3861,17 @@ function nh() {
                         "flex items-center gap-3 p-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800/30",
                       children: [
                         o.image
-                          ? c.jsx("img", {
-                            src: resolveMediaUrl(o.image),
-                            className: "w-14 h-14 rounded-lg object-cover border",
+                          ? c.jsx("button", {
+                            onClick: () => setFullscreenImage(resolveMediaUrl(o.image)),
+                            className: "shrink-0",
+                            children: c.jsx("img", {
+                              src: resolveMediaUrl(o.image),
+                              className: "w-20 h-20 rounded-lg object-cover border",
+                            }),
                           })
                           : c.jsx("div", {
                             className:
-                              "w-14 h-14 rounded-lg bg-gray-100 border flex items-center justify-center text-gray-400",
+                              "w-20 h-20 rounded-lg bg-gray-100 border flex items-center justify-center text-gray-400 shrink-0",
                             children: c.jsx("span", {
                               className: "material-symbols-outlined",
                               children: "image",
@@ -4280,69 +4474,88 @@ function nh() {
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                       children: "Store",
                     }),
-                    c.jsx("input", {
-                      type: "text",
-                      value: storeSearch,
-                      onChange: (o) => setStoreSearch(o.target.value),
-                      placeholder: "Buscar tienda...",
-                      className:
-                        "w-full px-3 py-2 border rounded-xl mb-2 dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                    }),
-                    c.jsxs("select", {
-                      value: st.store || "",
-                      onChange: (o) => Gt({ ...st, store: o.target.value }),
-                      className:
-                        "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                      children: [
-                        c.jsx("option", {
-                          value: "",
-                          children: "Selecciona tienda",
-                        }),
-                        filteredStores.map((o) =>
-                          c.jsx(
-                            "option",
-                            { value: o.id, children: o.name },
-                            o.id,
-                          ),
-                        ),
-                      ],
-                    }),
-                    X === "AV" &&
-                    c.jsxs("div", {
-                      className: "mt-2",
-                      children: [
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: () =>
-                            setShowAddStoreInput((o) => !o),
-                          className:
-                            "text-xs font-semibold text-primary hover:text-primary-dark",
-                          children: "+ Add Store",
-                        }),
-                        showAddStoreInput &&
-                        c.jsxs("div", {
-                          className: "flex gap-2 mt-2",
-                          children: [
-                            c.jsx("input", {
-                              type: "text",
-                              value: newStoreName,
-                              onChange: (o) =>
-                                setNewStoreName(o.target.value),
-                              placeholder: "Nombre de tienda",
-                              className:
-                                "flex-1 px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                            }),
-                            c.jsx("button", {
-                              type: "button",
-                              onClick: createStoreFromModal,
-                              className:
-                                "px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
-                              children: "Guardar",
-                            }),
-                          ],
-                        }),
-                      ],
-                    }),
+                    w
+                      ? c.jsxs("div", {
+                        className:
+                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
+                        children: [
+                          c.jsx("p", {
+                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
+                            children: getMissionStoreLabel(w) || "Sin tienda asignada",
+                          }),
+                          c.jsx("p", {
+                            className: "text-[11px] text-sky-700 dark:text-sky-300 mt-0.5",
+                            children: "Se hereda automaticamente de la tienda seleccionada al iniciar el shopping.",
+                          }),
+                        ],
+                      })
+                      : c.jsxs(c.Fragment, {
+                        children: [
+                          c.jsx("input", {
+                            type: "text",
+                            value: storeSearch,
+                            onChange: (o) => setStoreSearch(o.target.value),
+                            placeholder: "Buscar tienda...",
+                            className:
+                              "w-full px-3 py-2 border rounded-xl mb-2 dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                          }),
+                          c.jsxs("select", {
+                            value: st.store || "",
+                            onChange: (o) => Gt({ ...st, store: o.target.value }),
+                            className:
+                              "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                            children: [
+                              c.jsx("option", {
+                                value: "",
+                                children: "Selecciona tienda",
+                              }),
+                              filteredStores.map((o) =>
+                                c.jsx(
+                                  "option",
+                                  { value: o.id, children: o.name },
+                                  o.id,
+                                ),
+                              ),
+                            ],
+                          }),
+                          X === "AV" &&
+                          c.jsxs("div", {
+                            className: "mt-2",
+                            children: [
+                              c.jsx("button", {
+                                type: "button",
+                                onClick: () =>
+                                  setShowAddStoreInput((o) => !o),
+                                className:
+                                  "text-xs font-semibold text-primary hover:text-primary-dark",
+                                children: "+ Add Store",
+                              }),
+                              showAddStoreInput &&
+                              c.jsxs("div", {
+                                className: "flex gap-2 mt-2",
+                                children: [
+                                  c.jsx("input", {
+                                    type: "text",
+                                    value: newStoreName,
+                                    onChange: (o) =>
+                                      setNewStoreName(o.target.value),
+                                    placeholder: "Nombre de tienda",
+                                    className:
+                                      "flex-1 px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                                  }),
+                                  c.jsx("button", {
+                                    type: "button",
+                                    onClick: createStoreFromModal,
+                                    className:
+                                      "px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
+                                    children: "Guardar",
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
                   ],
                 }),
                 c.jsxs("div", {
@@ -4356,8 +4569,7 @@ function nh() {
                       className: "grid grid-cols-2 gap-2",
                       children: [
                         ["ANNOTATED", "Anotado"],
-                        ["IN_REVIEW", "PS Revision"],
-                        ["SHIPPED", "Enviado"],
+                        ["IN_REVIEW", "Revision"],
                         ["REJECTED", "Rechazado"],
                       ].map(([o, N]) =>
                         c.jsx(
@@ -4657,27 +4869,6 @@ function nh() {
                       }),
                     ],
                   }),
-                  wl === "ANNOTATED" &&
-                  c.jsxs("div", {
-                    className: "mb-3 flex gap-2",
-                    children: [
-                      c.jsx("button", {
-                        onClick: () => setGalleryDeliveryFilter("ALL"),
-                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "ALL" ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
-                        children: "Todos",
-                      }),
-                      c.jsx("button", {
-                        onClick: () => setGalleryDeliveryFilter("PENDING"),
-                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "PENDING" ? "bg-amber-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
-                        children: "Pendiente de enviar",
-                      }),
-                      c.jsx("button", {
-                        onClick: () => setGalleryDeliveryFilter("SHIPPED"),
-                        className: `px-2.5 py-1 rounded-lg text-[10px] font-bold ${galleryDeliveryFilter === "SHIPPED" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
-                        children: "Enviados",
-                      }),
-                    ],
-                  }),
                   c.jsxs("div", {
                     className: "grid grid-cols-2 gap-1",
                     children: [
@@ -4761,7 +4952,10 @@ function nh() {
                                         onClick: (N) => {
                                           (N.stopPropagation(),
                                             setOpenProductMenuId(null),
-                                            setProductStatusQuick(o.id, "ANNOTATED"));
+                                            markProductAnnotated(
+                                              o,
+                                              reviewEntry || null,
+                                            ));
                                         },
                                         className:
                                           "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-emerald-700 hover:bg-emerald-50",
@@ -4778,24 +4972,10 @@ function nh() {
                                         onClick: (N) => {
                                           (N.stopPropagation(),
                                             setOpenProductMenuId(null),
-                                            setProductStatusQuick(o.id, "SHIPPED"));
-                                        },
-                                        className:
-                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-blue-700 hover:bg-blue-50",
-                                        children: [
-                                          c.jsx("span", {
-                                            className:
-                                              "material-symbols-outlined text-[14px]",
-                                            children: "local_shipping",
-                                          }),
-                                          "Enviado",
-                                        ],
-                                      }),
-                                      c.jsxs("button", {
-                                        onClick: (N) => {
-                                          (N.stopPropagation(),
-                                            setOpenProductMenuId(null),
-                                            setProductStatusQuick(o.id, "REJECTED"));
+                                            markProductRejected(
+                                              o,
+                                              reviewEntry || null,
+                                            ));
                                         },
                                         className:
                                           "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-amber-700 hover:bg-amber-50",
@@ -4890,7 +5070,7 @@ function nh() {
                                   o.tags &&
                                   c.jsx("div", {
                                     className:
-                                      "absolute bottom-1 left-1 right-8 flex flex-wrap gap-1",
+                                      "absolute left-1 right-8 bottom-1 flex flex-wrap gap-1",
                                     children: o.tags
                                       .split(",")
                                       .map((N) => parseVisualTag(N))
@@ -4906,6 +5086,49 @@ function nh() {
                                           `${o.id}-tag-${A}`,
                                         ),
                                       ),
+                                  }),
+                                  reviewEntry &&
+                                  reviewEntry.review_note &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute left-1 right-10 top-9 rounded-md bg-black/58 text-white px-2 py-1 backdrop-blur-[1px]",
+                                    children: c.jsx("p", {
+                                      className: "text-[9px] leading-tight line-clamp-2",
+                                      children: reviewEntry.review_note,
+                                    }),
+                                  }),
+                                  c.jsxs("div", {
+                                    className:
+                                      "absolute left-1 right-8 bottom-8 flex flex-wrap gap-1",
+                                    children: [
+                                      X !== "PS" &&
+                                      c.jsx("button", {
+                                        onClick: () => sendProductToPs(o, reviewEntry || null),
+                                        className:
+                                          "px-1.5 py-1 rounded bg-amber-500/95 text-white text-[9px] font-bold",
+                                        children: "Mandar a PS",
+                                      }),
+                                      X === "PS" &&
+                                      isPendingReview &&
+                                      c.jsx("button", {
+                                        onClick: () => sendProductToAv(reviewEntry),
+                                        className:
+                                          "px-1.5 py-1 rounded bg-sky-600/95 text-white text-[9px] font-bold",
+                                        children: "Mandar a AV",
+                                      }),
+                                      c.jsx("button", {
+                                        onClick: () => markProductAnnotated(o, reviewEntry || null),
+                                        className:
+                                          "px-1.5 py-1 rounded bg-emerald-600/95 text-white text-[9px] font-bold",
+                                        children: "Anotado",
+                                      }),
+                                      c.jsx("button", {
+                                        onClick: () => markProductRejected(o, reviewEntry || null),
+                                        className:
+                                          "px-1.5 py-1 rounded bg-rose-600/95 text-white text-[9px] font-bold",
+                                        children: "Rechazado",
+                                      }),
+                                    ],
                                   }),
                                   o.image &&
                                   c.jsx("button", {
@@ -5242,8 +5465,8 @@ function nh() {
                                       "mt-2 flex justify-between items-center",
                                     children: [
                                       c.jsx("span", {
-                                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${o.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : o.status === "REJECTED" ? "bg-red-100 text-red-700" : o.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : o.status === "BOUGHT" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`,
-                                        children: o.status,
+                                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${o.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : o.status === "REJECTED" ? "bg-red-100 text-red-700" : o.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
+                                        children: o.status === "BOUGHT" ? "ANNOTATED" : o.status,
                                       }),
                                       o.receipt &&
                                       c.jsx("span", {

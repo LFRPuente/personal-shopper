@@ -91,6 +91,7 @@ class ProductItem(models.Model):
 class Mission(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     shopper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='missions')
+    store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='missions')
     status = models.CharField(max_length=50, choices=[('ACTIVE', 'Misión Activa'), ('PAUSED', 'Misión Pausada'), ('COMPLETED', 'Misión Finalizada')], default='ACTIVE')
     # <-------- seccion 9: configuracion comercial por mision
     calc_mode = models.CharField(
@@ -125,8 +126,10 @@ class Request(models.Model):
     )
     description = models.TextField()
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests_created')
+    client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name='requests')
     mission = models.ForeignKey(Mission, on_delete=models.SET_NULL, null=True, blank=True, related_name='requests')
     product = models.ForeignKey(ProductItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='requests')
+    image = models.ImageField(upload_to='requests/', null=True, blank=True)
     note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

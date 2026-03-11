@@ -5,7 +5,6 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from channels.layers import get_channel_layer
@@ -89,10 +88,12 @@ class MissionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Mission.objects.prefetch_related('clients', 'clients__products', 'clients__receipts').all().order_by('-start_time')
+        return Mission.objects.select_related('store').prefetch_related('clients', 'clients__products', 'clients__receipts').all().order_by('-start_time')
 
     def perform_create(self, serializer):
-        mission = serializer.save(shopper=self.request.user)
+        store = serializer.validated_data.get('store')
+        mission_name = serializer.validated_data.get('name') or (store.name if store else None)
+        mission = serializer.save(shopper=self.request.user, name=mission_name)
         # Auto-link currently active clients to this mission
         active_clients = Client.objects.filter(status__iexact='active')
         mission.clients.set(active_clients)
@@ -101,7 +102,13 @@ class MissionViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         previous_status = serializer.instance.status
-        mission = serializer.save()
+        store = serializer.validated_data.get('store', serializer.instance.store)
+        mission_name = serializer.validated_data.get('name')
+        if not mission_name and store:
+            mission_name = store.name
+        elif mission_name is None:
+            mission_name = serializer.instance.name
+        mission = serializer.save(name=mission_name)
         if mission.status == 'COMPLETED':
             if not mission.end_time:
                 mission.end_time = timezone.now()
@@ -226,42 +233,34 @@ class StoreViewSet(viewsets.ModelViewSet):
 class RequestViewSet(viewsets.ModelViewSet):
     serializer_class = RequestSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         queryset = Request.objects.select_related(
-            'created_by', 'mission', 'product'
+            'created_by', 'client', 'mission', 'product'
         ).all().order_by('-updated_at')
-        # <-------- seccion 8: para detalle/update/destroy no acotar solo a mision activa
-        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
-            return queryset
         mission_id = self.request.query_params.get('mission')
+        client_id = self.request.query_params.get('client')
+        status_value = self.request.query_params.get('status')
         if mission_id:
-            # <-------- seccion 9: incluir pendientes fuera de mision
-            return queryset.filter(Q(mission_id=mission_id) | Q(mission__isnull=True))
-        active_mission = Mission.objects.filter(
-            status__in=['ACTIVE', 'PAUSED']
-        ).order_by('-start_time').first()
-        if active_mission:
-            return queryset.filter(Q(mission=active_mission) | Q(mission__isnull=True))
-        return queryset.filter(mission__isnull=True)
+            queryset = queryset.filter(mission_id=mission_id)
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+        if status_value:
+            queryset = queryset.filter(status=status_value)
+        return queryset
 
     def perform_create(self, serializer):
         mission_id = self.request.data.get('mission')
         mission_obj = None
         if mission_id not in [None, '', 'null']:
             mission_obj = Mission.objects.filter(id=mission_id).first()
-            # Evita ligar nuevas peticiones a misiones cerradas.
             if mission_obj and mission_obj.status not in ['ACTIVE', 'PAUSED']:
                 mission_obj = None
 
-        if mission_obj is None:
-            mission_obj = Mission.objects.filter(
-                status__in=['ACTIVE', 'PAUSED']
-            ).order_by('-start_time').first()
-
         request_obj = serializer.save(
             created_by=self.request.user,
-            mission=mission_obj if mission_obj else None,
+            mission=mission_obj,
         )
         broadcast_update('requests', action='created', object_id=request_obj.id)
 
@@ -581,17 +580,26 @@ class ProductItemViewSet(viewsets.ModelViewSet):
             mission = Mission.objects.filter(
                 status__in=['ACTIVE', 'PAUSED']
             ).order_by('-start_time').first()
+        store = serializer.validated_data.get('store')
+        if mission is not None and mission.store_id:
+            store = mission.store
+        save_kwargs = {}
         if mission is not None:
-            product = serializer.save(mission=mission)
-        else:
-            product = serializer.save()
+            save_kwargs['mission'] = mission
+        if mission is not None or store is not None:
+            save_kwargs['store'] = store
+        product = serializer.save(**save_kwargs)
         if product.mission_id and product.client_id:
             product.mission.clients.add(product.client)
         # <-------- seccion 8: notificar cambios de productos
         broadcast_update('products', action='created', object_id=product.id)
 
     def perform_update(self, serializer):
-        product = serializer.save()
+        mission = serializer.validated_data.get('mission', serializer.instance.mission)
+        store = serializer.validated_data.get('store', serializer.instance.store)
+        if mission is not None and mission.store_id:
+            store = mission.store
+        product = serializer.save(mission=mission, store=store)
         if product.mission_id and product.client_id:
             product.mission.clients.add(product.client)
         broadcast_update('products', action='updated', object_id=product.id)
