@@ -1922,20 +1922,20 @@ function nh() {
       }),
     getShipmentFormState = (o = null, N = null) => {
       const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
+      const vl =
+        o && o.client_price !== null && typeof o.client_price != "undefined"
+          ? String(o.client_price)
+          : o && o.guide_price !== null && typeof o.guide_price != "undefined"
+            ? String(o.guide_price)
+            : "";
       return {
         id: (o && o.id) || null,
         client: A,
         carrier: String((o && o.carrier) || "").trim(),
         status: String((o && o.status) || "PENDING"),
         tracking_number: (o && o.tracking_number) || "",
-        guide_price:
-          o && o.guide_price !== null && typeof o.guide_price != "undefined"
-            ? String(o.guide_price)
-            : "",
-        client_price:
-          o && o.client_price !== null && typeof o.client_price != "undefined"
-            ? String(o.client_price)
-            : "",
+        guide_price: vl,
+        client_price: vl,
         shipping_address:
           (o && o.shipping_address) ||
           ((N && (N.shipping_address || "")) || ""),
@@ -1984,10 +1984,6 @@ function nh() {
       );
       const N = String(shipmentForm.carrier || "").trim();
       const A =
-        String(shipmentForm.guide_price || "").trim() === ""
-          ? null
-          : String(shipmentForm.guide_price || "").trim();
-      const vl =
         String(shipmentForm.client_price || "").trim() === ""
           ? null
           : String(shipmentForm.client_price || "").trim();
@@ -2016,7 +2012,7 @@ function nh() {
                 shipmentForm.tracking_number || "",
               ).trim(),
               guide_price: A,
-              client_price: vl,
+              client_price: A,
               shipping_address: String(
                 shipmentForm.shipping_address || "",
               ).trim(),
@@ -6308,7 +6304,11 @@ function nh() {
                                       className: "text-text-sub",
                                       children: [
                                         "$",
-                                        formatAmount(parseFloat(N.client_price || 0)),
+                                        formatAmount(
+                                          parseFloat(
+                                            N.client_price || N.guide_price || 0,
+                                          ),
+                                        ),
                                       ],
                                     }),
                                   ],
@@ -6399,38 +6399,23 @@ function nh() {
                                 }),
                                 c.jsxs("div", {
                                   className:
-                                    "rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5",
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
-                                      children: "Precio guia",
-                                    }),
-                                    c.jsxs("p", {
-                                      className:
-                                        "text-xs font-semibold mt-0.5 text-amber-800 dark:text-amber-200",
-                                      children: [
-                                        "$",
-                                        formatAmount(parseFloat(N.guide_price || 0)),
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                                c.jsxs("div", {
-                                  className:
-                                    "rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1.5",
+                                    "col-span-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1.5",
                                   children: [
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                      children: "Precio cliente",
+                                      children: "Precio",
                                     }),
                                     c.jsxs("p", {
                                       className:
                                         "text-xs font-semibold mt-0.5 text-emerald-800 dark:text-emerald-200",
                                       children: [
                                         "$",
-                                        formatAmount(parseFloat(N.client_price || 0)),
+                                        formatAmount(
+                                          parseFloat(
+                                            N.client_price || N.guide_price || 0,
+                                          ),
+                                        ),
                                       ],
                                     }),
                                   ],
@@ -9440,25 +9425,7 @@ function nh() {
                       children: [
                         c.jsx("span", {
                           className: "text-[11px] font-semibold text-text-sub",
-                          children: "Precio guia",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          inputMode: "decimal",
-                          value: shipmentForm.guide_price,
-                          onChange: (o) =>
-                            updateShipmentForm("guide_price", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Precio cliente",
+                          children: "Precio",
                         }),
                         c.jsx("input", {
                           type: "text",
