@@ -33,7 +33,7 @@ class RelativeImageField(serializers.ImageField):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['role']
+        fields = ['role', 'layout_mode']
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(source='userprofile', read_only=True)

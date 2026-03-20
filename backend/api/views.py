@@ -20,6 +20,7 @@ from .models import (
     Receipt,
     Mission,
     UserProfile,
+    LayoutMode,
     Store,
     StoreRecommendation,
     ShippingCarrierRecommendation,
@@ -186,12 +187,29 @@ def register_user(request):
     
     return Response({'message': 'User created successfully', 'username': username, 'role': role}, status=status.HTTP_201_CREATED)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def me(request):
     """
     Devuelve los datos del usuario actual.
     """
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={'role': 'AV'},
+    )
+    if request.method == 'PATCH':
+        layout_mode = request.data.get('layout_mode')
+        if layout_mode is not None:
+            normalized_layout_mode = str(layout_mode).strip().upper()
+            valid_layout_modes = {choice[0] for choice in LayoutMode.choices}
+            if normalized_layout_mode not in valid_layout_modes:
+                return Response(
+                    {'error': 'Invalid layout mode.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if profile.layout_mode != normalized_layout_mode:
+                profile.layout_mode = normalized_layout_mode
+                profile.save(update_fields=['layout_mode'])
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 

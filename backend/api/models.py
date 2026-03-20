@@ -7,9 +7,20 @@ class Role(models.TextChoices):
     PS = 'PS', 'Personal Shopper'
     BOTH = 'BOTH', 'Ambos (AV y PS)'
 
+
+class LayoutMode(models.TextChoices):
+    MOBILE = 'MOBILE', 'Mobile'
+    WEB = 'WEB', 'Web'
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=4, choices=Role.choices, default=Role.AV)
+    layout_mode = models.CharField(
+        max_length=6,
+        choices=LayoutMode.choices,
+        default=LayoutMode.MOBILE,
+    )
     last_active = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
