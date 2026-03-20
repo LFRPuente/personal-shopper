@@ -456,20 +456,16 @@ def public_client_mission_share_view(request, token):
     ).prefetch_related(
         'shipments'
     ).order_by('-created_at', '-id')
-    receipts = Receipt.objects.filter(
-        client=share_link.client,
-    ).order_by('-uploaded_at', '-id')
     shipments = Shipment.objects.filter(
         client=share_link.client,
     ).prefetch_related('products').order_by('-updated_at', '-id')
-    if not products.exists() and not receipts.exists() and not shipments.exists():
+    if not products.exists() and not shipments.exists():
         share_link.is_active = False
         share_link.save(update_fields=['is_active'])
         raise Http404('Shared link not found.')
     share_link.last_accessed_at = timezone.now()
     share_link.save(update_fields=['last_accessed_at'])
     serializer = ClientMissionShareProductSerializer(products, many=True)
-    receipt_serializer = PublicClientReceiptSerializer(receipts, many=True)
     shipment_serializer = ShipmentSerializer(shipments, many=True)
     total = sum(
         float(product.charged_price or product.real_price or 0)
@@ -480,7 +476,7 @@ def public_client_mission_share_view(request, token):
             'share_type': 'client_history',
             'client_name': share_link.client.name,
             'products': serializer.data,
-            'receipts': receipt_serializer.data,
+            'receipts': [],
             'shipments': shipment_serializer.data,
             'total': total,
         }

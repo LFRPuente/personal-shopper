@@ -3424,6 +3424,7 @@ function nh() {
                   "Cliente",
               }),
               publicClientShareData &&
+              publicShareType === "shipment" &&
               c.jsxs("p", {
                 className: "mt-1 text-xs text-text-sub dark:text-slate-400",
                 children: [
@@ -3432,6 +3433,14 @@ function nh() {
                     : `${(publicClientShareData.shipments || []).length || 0} envios • ${(
                         publicClientShareData.receipts || []
                       ).length || 0} tickets`,
+                ],
+              }),
+              publicClientShareData &&
+              publicShareType !== "shipment" &&
+              c.jsxs("p", {
+                className: "mt-1 text-xs text-text-sub dark:text-slate-400",
+                children: [
+                  `${(publicClientShareData.shipments || []).length || 0} envios`,
                 ],
               }),
             ],
@@ -3731,7 +3740,7 @@ function nh() {
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
-                        "rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-3",
+                        "rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2.5",
                       children: [
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
@@ -3751,13 +3760,13 @@ function nh() {
                           ],
                         }),
                         c.jsx("div", {
-                          className: "grid grid-cols-2 gap-2",
+                          className: "grid grid-cols-2 gap-1.5",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
                               "div",
                               {
                                 className:
-                                  "rounded-xl border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-2 flex gap-2 items-start",
+                                  "rounded-lg border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-1.5 flex gap-1.5 items-start",
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
@@ -3765,28 +3774,28 @@ function nh() {
                                         onClick: () =>
                                           setFullscreenImage(resolveMediaUrl(o.image)),
                                         className:
-                                          "w-16 h-16 rounded-lg object-cover cursor-zoom-in shrink-0",
+                                          "w-12 h-12 rounded-md object-cover cursor-zoom-in shrink-0",
                                       })
                                     : c.jsx("div", {
                                         className:
-                                          "w-16 h-16 rounded-lg bg-amber-100/80 dark:bg-amber-950/20 flex items-center justify-center text-amber-300 dark:text-amber-700 shrink-0",
+                                          "w-12 h-12 rounded-md bg-amber-100/80 dark:bg-amber-950/20 flex items-center justify-center text-amber-300 dark:text-amber-700 shrink-0",
                                         children: c.jsx("span", {
                                           className:
-                                            "material-symbols-outlined text-2xl",
+                                            "material-symbols-outlined text-[18px]",
                                           children: "image",
                                         }),
                                       }),
                                   c.jsxs("div", {
-                                    className: "min-w-0 flex-1 pt-0.5",
+                                    className: "min-w-0 flex-1",
                                     children: [
                                       c.jsx("p", {
                                         className:
-                                          "text-[11px] font-semibold text-text-main dark:text-white line-clamp-2",
+                                          "text-[10px] leading-4 font-semibold text-text-main dark:text-white line-clamp-2",
                                         children: o.name,
                                       }),
                                       c.jsxs("p", {
                                         className:
-                                          "mt-1 text-[13px] font-black text-amber-700 dark:text-amber-300",
+                                          "mt-0.5 text-xs font-black text-amber-700 dark:text-amber-300",
                                         children: [
                                           "$",
                                           formatAmount(
@@ -3806,6 +3815,7 @@ function nh() {
                         }),
                       ],
                     }),
+                    publicShareType === "shipment" &&
                     !publicSelectedShipment &&
                     (publicClientShareData.receipts || []).length > 0 &&
                     c.jsxs("div", {
