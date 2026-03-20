@@ -70,6 +70,22 @@ const getShipmentStatusLabel = (o) => {
           ? "Cancelado"
           : "Pendiente";
 };
+const getShipmentTrackingUrl = (carrier, trackingNumber) => {
+  const o = String(trackingNumber || "").trim();
+  const N = String(carrier || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!o || !N) return "";
+  if (N.includes("estafeta")) {
+    return `https://cs.estafeta.com/es/Tracking/searchByGet?wayBillType=0&wayBill=${encodeURIComponent(o)}`;
+  }
+  if (N.includes("dhl")) {
+    return `https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=${encodeURIComponent(o)}&submit=1`;
+  }
+  return "";
+};
 const getPublicShareInfoFromPath = () => {
   const o = window.location.pathname.match(/^\/share\/(client|shipment)\/([^/]+)\/?$/i);
   return o
@@ -2244,6 +2260,32 @@ function nh() {
         String(A.name || "").toLowerCase().includes(o),
       ).slice(0, 8);
     })(),
+    recommendedShippingCarriers = shippingCarrierRecommendations.map((o) => ({
+      id: o.id,
+      name: String(o.name || "").trim(),
+      recommendation_id: o.id,
+    })),
+    latestShippingCarrierRecommendation =
+      recommendedShippingCarriers.length > 0
+        ? recommendedShippingCarriers[0]
+        : null,
+    filteredShippingCarrierSuggestions = (() => {
+      const o = String(shipmentForm.carrier || "").trim().toLowerCase();
+      if (!o) {
+        const N = latestShippingCarrierRecommendation
+          ? [latestShippingCarrierRecommendation]
+          : [];
+        const A = recommendedShippingCarriers.filter(
+          (vl) =>
+            !latestShippingCarrierRecommendation ||
+            Number(vl.id) !== Number(latestShippingCarrierRecommendation.id),
+        );
+        return [...N, ...A].slice(0, 8);
+      }
+      return recommendedShippingCarriers.filter((A) =>
+        String(A.name || "").toLowerCase().includes(o),
+      ).slice(0, 8);
+    })(),
     findStoreByName = (o) =>
       stores.find(
         (N) =>
@@ -3187,6 +3229,12 @@ function nh() {
       (publicClientShareData.shipments || []).find(
         (o) => Number(o.id) === Number(publicExpandedShipmentId),
       ),
+    publicSelectedShipmentTrackingUrl = publicSelectedShipment
+      ? getShipmentTrackingUrl(
+          publicSelectedShipment.carrier,
+          publicSelectedShipment.tracking_number,
+        )
+      : "",
     publicShipmentProductIds = publicClientShareData
       ? new Set(
           (publicClientShareData.shipments || []).flatMap((o) =>
@@ -3495,14 +3543,35 @@ function nh() {
                             }),
                           ],
                         }),
-                        c.jsxs("p", {
-                          className: "text-xs text-text-main dark:text-white",
+                        c.jsxs("div", {
+                          className: "space-y-1",
                           children: [
-                            publicSelectedShipment.carrier ||
-                              "Paqueteria",
-                            publicSelectedShipment.tracking_number
-                              ? ` • ${publicSelectedShipment.tracking_number}`
-                              : "",
+                            c.jsxs("p", {
+                              className: "text-xs text-text-main dark:text-white",
+                              children: [
+                                publicSelectedShipment.carrier ||
+                                  "Paqueteria",
+                                publicSelectedShipment.tracking_number
+                                  ? ` • ${publicSelectedShipment.tracking_number}`
+                                  : "",
+                              ],
+                            }),
+                            publicSelectedShipmentTrackingUrl &&
+                            c.jsxs("a", {
+                              href: publicSelectedShipmentTrackingUrl,
+                              target: "_blank",
+                              rel: "noreferrer noopener",
+                              className:
+                                "inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline",
+                              children: [
+                                c.jsx("span", {
+                                  className:
+                                    "material-symbols-outlined text-[14px]",
+                                  children: "open_in_new",
+                                }),
+                                "Rastrear guia",
+                              ],
+                            }),
                           ],
                         }),
                         c.jsxs("div", {
@@ -9357,7 +9426,6 @@ function nh() {
                     }),
                     c.jsx("input", {
                       type: "text",
-                      list: "shipment-carrier-options",
                       value: shipmentForm.carrier,
                       onChange: (o) =>
                         updateShipmentForm("carrier", o.target.value),
@@ -9365,15 +9433,33 @@ function nh() {
                       className:
                         "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
                     }),
-                    c.jsx("datalist", {
-                      id: "shipment-carrier-options",
-                      children: shippingCarrierRecommendations.map((o) =>
-                        c.jsx(
-                          "option",
-                          { value: String(o.name || "") },
-                          `shipment-carrier-${o.id}`,
-                        ),
-                      ),
+                    c.jsx("div", {
+                      className:
+                        "mt-2 max-h-44 overflow-y-auto ios-scroll rounded-xl border border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm",
+                      children:
+                        filteredShippingCarrierSuggestions.length > 0
+                          ? filteredShippingCarrierSuggestions.map((o) =>
+                              c.jsx(
+                                "button",
+                                {
+                                  type: "button",
+                                  onClick: () =>
+                                    updateShipmentForm("carrier", o.name),
+                                  className:
+                                    "w-full text-left px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800 text-sm hover:text-primary",
+                                  children: c.jsx("span", {
+                                    className: "font-medium",
+                                    children: o.name,
+                                  }),
+                                },
+                                `shipment-carrier-${o.recommendation_id || o.id}`,
+                              ),
+                            )
+                          : c.jsx("div", {
+                              className:
+                                "px-3 py-2 text-sm text-gray-400 dark:text-gray-500",
+                              children: "Sin sugerencias",
+                            }),
                     }),
                   ],
                 }),
