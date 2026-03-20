@@ -4065,7 +4065,7 @@ function nh() {
   const ta = () =>
     c.jsxs("div", {
       className: isDesktopLayout
-        ? "grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] items-start"
+        ? "grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)] items-start"
         : "flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark",
       children: [
         false && c.jsxs("div", {
@@ -4151,7 +4151,7 @@ function nh() {
         }),
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card self-start"
+            ? "xl:order-3 xl:col-start-2 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card self-start"
             : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
@@ -4163,7 +4163,7 @@ function nh() {
                 }),
                 c.jsx("div", {
                   className: isDesktopLayout
-                    ? "space-y-2 pr-1 max-h-[320px] overflow-y-auto ios-scroll"
+                    ? "space-y-2 pr-1 max-h-[440px] overflow-y-auto ios-scroll"
                     : "space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll",
                   children:
                     requests.length === 0
@@ -4624,8 +4624,9 @@ function nh() {
         w &&
         Rt.length > 0 &&
         c.jsxs("div", {
-          className:
-            "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
+          className: isDesktopLayout
+            ? "xl:order-2 xl:col-start-1 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-[640px]"
+            : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
               className: "mb-3 space-y-2",
@@ -4646,8 +4647,9 @@ function nh() {
               ],
             }),
             c.jsx("div", {
-              className:
-                "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
+              className: isDesktopLayout
+                ? "pr-1 max-h-[700px] overflow-y-auto overscroll-contain ios-scroll"
+                : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) =>
                 c.jsxs(
                   "div",
@@ -4766,8 +4768,9 @@ function nh() {
         w &&
         Rt.length === 0 &&
         c.jsxs("div", {
-          className:
-            "text-center py-8 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark",
+          className: isDesktopLayout
+            ? "xl:order-2 xl:col-start-1 text-center py-12 bg-surface-light dark:bg-surface-dark rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-[420px] flex flex-col items-center justify-center"
+            : "text-center py-8 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark",
           children: [
             c.jsx("p", {
               className: "text-gray-400 text-sm",
@@ -5029,21 +5032,28 @@ function nh() {
           ],
         }),
         c.jsxs("div", {
-          className:
-            "bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4",
+          className: isDesktopLayout
+            ? "xl:order-1 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-6 rounded-3xl border border-border-light dark:border-border-dark shadow-card"
+            : "bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4",
           children: [
             c.jsxs("div", {
-              className: "flex items-center justify-between gap-2",
+              className: isDesktopLayout
+                ? "flex items-start justify-between gap-6"
+                : "flex items-center justify-between gap-2",
               children: [
                 c.jsxs("div", {
                   className: "min-w-0",
                   children: [
                     c.jsx("h3", {
-                      className: "font-bold text-sm text-text-main dark:text-white truncate",
+                      className: isDesktopLayout
+                        ? "font-bold text-xl text-text-main dark:text-white truncate"
+                        : "font-bold text-sm text-text-main dark:text-white truncate",
                       children: "Shopping en Tienda",
                     }),
                     c.jsx("p", {
-                      className: "text-[10px] text-gray-500 truncate",
+                      className: isDesktopLayout
+                        ? "text-sm text-gray-500 truncate mt-1"
+                        : "text-[10px] text-gray-500 truncate",
                       children: w
                         ? `${getMissionStoreLabel(w)} • ${w.status}`
                         : "Sin shopping activo",
@@ -5051,17 +5061,21 @@ function nh() {
                   ],
                 }),
                 c.jsx("span", {
-                  className: `text-[10px] font-bold px-2 py-1 rounded-full ${w ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
+                  className: `font-bold rounded-full ${isDesktopLayout ? "text-xs px-3 py-1.5" : "text-[10px] px-2 py-1"} ${w ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
                   children: w ? "ON" : "OFF",
                 }),
               ],
             }),
             w &&
             c.jsxs("div", {
-              className: "mt-2 flex items-start justify-between gap-3",
+              className: isDesktopLayout
+                ? "mt-4 flex items-start justify-between gap-6"
+                : "mt-2 flex items-start justify-between gap-3",
               children: [
                 c.jsxs("span", {
-                  className: "pt-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300",
+                  className: isDesktopLayout
+                    ? "pt-0.5 text-sm font-semibold text-gray-600 dark:text-gray-300"
+                    : "pt-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300",
                   children: ["Items: ", missionProductsCount],
                 }),
                 c.jsxs("div", {
@@ -5092,7 +5106,9 @@ function nh() {
               ],
             }),
             c.jsxs("div", {
-              className: "mt-2 grid grid-cols-4 gap-2",
+              className: isDesktopLayout
+                ? "mt-4 grid grid-cols-2 xl:grid-cols-4 gap-3"
+                : "mt-2 grid grid-cols-4 gap-2",
               children: w
                 ? [
                   w.status === "ACTIVE"
@@ -5164,7 +5180,9 @@ function nh() {
             w &&
             c.jsx("div", {
               className:
-                "mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2",
+                isDesktopLayout
+                  ? "mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3"
+                  : "mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2",
               children: missionTicketUploading
                 ? c.jsxs("div", {
                   className: "flex items-center gap-2 text-purple-700",
@@ -6967,64 +6985,29 @@ function nh() {
           ? "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200 ml-80"
           : "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200",
         children: c.jsx("div", {
-          className: isDesktopLayout ? "px-5 py-4 space-y-4" : "px-5 py-4 flex items-center justify-between",
+          className: "px-5 py-4 flex items-center gap-3",
           children: [
+            c.jsx("div", {
+              className:
+                "h-10 w-10 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg uppercase shrink-0",
+              children: J.username.charAt(0),
+            }),
             c.jsxs("div", {
-              className: isDesktopLayout
-                ? "flex items-center justify-between gap-4"
-                : "flex items-center gap-3",
               children: [
-                c.jsx("div", {
+                c.jsxs("h2", {
                   className:
-                    "h-10 w-10 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg uppercase shrink-0",
-                  children: J.username.charAt(0),
+                    "text-sm font-semibold text-text-main dark:text-white leading-tight",
+                  children: ["Hi, ", J.username],
                 }),
-                c.jsxs("div", {
-                  children: [
-                    c.jsxs("h2", {
-                      className:
-                        "text-sm font-semibold text-text-main dark:text-white leading-tight",
-                      children: ["Hi, ", J.username],
-                    }),
-                    c.jsx("p", {
-                      className:
-                        "text-xs text-text-sub dark:text-slate-400 font-medium",
-                      children:
-                        X === "PS"
-                          ? "Personal Shopper (Tienda)"
-                          : "Agente de Ventas (Oficina)",
-                    }),
-                  ],
+                c.jsx("p", {
+                  className:
+                    "text-xs text-text-sub dark:text-slate-400 font-medium",
+                  children:
+                    X === "PS"
+                      ? "Personal Shopper (Tienda)"
+                      : "Agente de Ventas (Oficina)",
                 }),
               ],
-            }),
-            isDesktopLayout &&
-            c.jsx("div", {
-              className: "flex flex-wrap items-center gap-2",
-              children: [
-                ["HOME", "dashboard", "Home"],
-                ["MISSIONS", "shopping_bag", "Missions"],
-                ["CLIENTS", "group", "Clients"],
-                ["SHIPMENTS", "local_shipping", "Shipments"],
-                ["CALCULATOR", "calculate", "Calc"],
-                ["PROFILE", "person", "Profile"],
-              ].map(([o, N, A]) =>
-                c.jsxs(
-                  "button",
-                  {
-                    onClick: () => Ll(o),
-                    className: `inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition ${nl === o ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`,
-                    children: [
-                      c.jsx("span", {
-                        className: "material-symbols-outlined text-[18px]",
-                        children: N,
-                      }),
-                      A,
-                    ],
-                  },
-                  o,
-                ),
-              ),
             }),
           ],
         }),
