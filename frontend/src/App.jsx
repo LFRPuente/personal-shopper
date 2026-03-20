@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 
 const V = React;
@@ -58,8 +58,31 @@ const resolveMediaUrl = (o) => {
     return N;
   }
 };
+const getShipmentStatusLabel = (o) => {
+  const N = String(o || "").toUpperCase();
+  return N === "PREPARING"
+    ? "Preparando"
+    : N === "SHIPPED"
+      ? "Enviado"
+      : N === "DELIVERED"
+        ? "Entregado"
+        : N === "CANCELLED"
+          ? "Cancelado"
+          : "Pendiente";
+};
+const getPublicShareInfoFromPath = () => {
+  const o = window.location.pathname.match(/^\/share\/(client|shipment)\/([^/]+)\/?$/i);
+  return o
+    ? { type: String(o[1] || "").toLowerCase(), token: decodeURIComponent(o[2]) }
+    : { type: "", token: "" };
+};
 function nh() {
-  const [C, jl] = V.useState(localStorage.getItem("access_token") || null),
+  const publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
+    publicClientShareToken = publicShareInfo.token,
+    publicShareType = publicShareInfo.type,
+    DEFAULT_BREAKDOWN_TEMPLATE =
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
+    [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
     [cl, Ql] = V.useState({ username: "", password: "", role: "AV" }),
@@ -113,7 +136,7 @@ function nh() {
     [pa, dn] = V.useState(null),
     [Sa, uu] = V.useState(""),
     [Ei, ge] = V.useState(null),
-    [wl, jt] = V.useState("PS_REVIEW"),
+    [wl, jt] = V.useState("REVIEW"),
     [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
       null,
     ),
@@ -136,9 +159,15 @@ function nh() {
     [calcExchangeRate, setCalcExchangeRate] = V.useState(() =>
       getStoredNumber("calc_exchange_rate", 17.5),
     ),
+    [defaultBreakdownTemplate, setDefaultBreakdownTemplate] = V.useState(
+      localStorage.getItem("default_breakdown_template") ||
+        DEFAULT_BREAKDOWN_TEMPLATE,
+    ),
     [calcCopied, setCalcCopied] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
     [stores, setStores] = V.useState([]),
+    [storeRecommendations, setStoreRecommendations] = V.useState([]),
+    [shippingCarrierRecommendations, setShippingCarrierRecommendations] = V.useState([]),
     [storeSearch, setStoreSearch] = V.useState(""),
     [showAddStoreInput, setShowAddStoreInput] = V.useState(!1),
     [newStoreName, setNewStoreName] = V.useState(""),
@@ -146,14 +175,50 @@ function nh() {
     [newModalTag, setNewModalTag] = V.useState(""),
     [copiedImageItemId, setCopiedImageItemId] = V.useState(null),
     [copiedMissionClients, setCopiedMissionClients] = V.useState([]),
+    [copiedClientShareLinks, setCopiedClientShareLinks] = V.useState([]),
+    [publicClientShareData, setPublicClientShareData] = V.useState(null),
+    [publicClientShareLoading, setPublicClientShareLoading] = V.useState(
+      !!publicClientShareToken,
+    ),
+    [publicClientShareError, setPublicClientShareError] = V.useState(""),
+    [publicExpandedShipmentId, setPublicExpandedShipmentId] = V.useState(null),
     [requests, setRequests] = V.useState([]),
+    [shipments, setShipments] = V.useState([]),
+    [shipmentSearch, setShipmentSearch] = V.useState(""),
+    [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
+    [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
+    [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
+    [shipmentProductSearch, setShipmentProductSearch] = V.useState(""),
+    [shipmentForm, setShipmentForm] = V.useState({
+      id: null,
+      client: "",
+      carrier: "",
+      tracking_number: "",
+      guide_price: "",
+      client_price: "",
+      shipping_address: "",
+      product_ids: [],
+    }),
     [newRequestText, setNewRequestText] = V.useState(""),
+    [newRequestClientId, setNewRequestClientId] = V.useState(""),
+    [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
+    [newRequestClientSearch, setNewRequestClientSearch] = V.useState(""),
     [newRequestImageFile, setNewRequestImageFile] = V.useState(null),
     [newRequestImagePreview, setNewRequestImagePreview] = V.useState(""),
     [editingRequestId, setEditingRequestId] = V.useState(null),
     [editingRequestText, setEditingRequestText] = V.useState(""),
+    [editingRequestClientId, setEditingRequestClientId] = V.useState(""),
+    [editingRequestClientPickerOpen, setEditingRequestClientPickerOpen] = V.useState(!1),
+    [editingRequestClientSearch, setEditingRequestClientSearch] = V.useState(""),
+    [editingRequestImageFile, setEditingRequestImageFile] = V.useState(null),
+    [editingRequestImagePreview, setEditingRequestImagePreview] = V.useState(""),
+    [editingRequestSaving, setEditingRequestSaving] = V.useState(!1),
+    [toasts, setToasts] = V.useState([]),
+    [confirmDialog, setConfirmDialog] = V.useState(null),
+    [inputDialog, setInputDialog] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
+    [reviewConversationEntry, setReviewConversationEntry] = V.useState(null),
     [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
     [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
     [missionStartForm, setMissionStartForm] = V.useState({
@@ -167,20 +232,36 @@ function nh() {
       discount_percentage: "0",
     }),
     [missionSummaryOpen, setMissionSummaryOpen] = V.useState(!1),
+    [missionSummaryStatusFilter, setMissionSummaryStatusFilter] = V.useState("ALL"),
+    [homeClientSearch, setHomeClientSearch] = V.useState(""),
+    [missionSearch, setMissionSearch] = V.useState(""),
+    [homeUnreadSummary, setHomeUnreadSummary] = V.useState({}),
+    [seenReviewItemMap, setSeenReviewItemMap] = V.useState({}),
     [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
+    [missionTicketUploading, setMissionTicketUploading] = V.useState(!1),
+    [receiptUploading, setReceiptUploading] = V.useState(!1),
+    [newProductUploading, setNewProductUploading] = V.useState(!1),
+    [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
     [altUploadReviewId, setAltUploadReviewId] = V.useState(null),
+    [altUploadProductId, setAltUploadProductId] = V.useState(null),
+    [altUploadTargetStatus, setAltUploadTargetStatus] = V.useState(""),
     [altUploadDescription, setAltUploadDescription] = V.useState(""),
     [altUploadFiles, setAltUploadFiles] = V.useState([]),
     // <-------- seccion 8: refs para websocket y reconexion
     wsRef = V.useRef(null),
     wsReconnectTimerRef = V.useRef(null),
     wsStoppedRef = V.useRef(!1),
+    altUploadFileInputRef = V.useRef(null),
+    reviewConversationScrollRef = V.useRef(null),
+    reviewConversationStateRef = V.useRef(""),
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    toastTimeoutsRef = V.useRef(new Map()),
+    toastIdRef = V.useRef(0),
     I = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       (C && (A.Authorization = `Bearer ${C}`),
@@ -212,20 +293,60 @@ function nh() {
       }
       return El;
     },
+    publicApiFetch = async (o, N = {}) => {
+      const A = { "Content-Type": "application/json" };
+      N.body instanceof FormData && delete A["Content-Type"];
+      const vl = await fetch(`${Zs}${o}`, { ...N, headers: A });
+      if (vl.status === 204) return null;
+      let El = null;
+      const Se = vl.headers.get("content-type") || "";
+      if (Se.includes("application/json")) {
+        try {
+          El = await vl.json();
+        } catch {
+          El = null;
+        }
+      } else {
+        const ea = await vl.text();
+        El = ea ? { detail: ea } : null;
+      }
+      if (!vl.ok) {
+        const ea = new Error(
+          (El && (El.detail || El.message)) || `HTTP ${vl.status}`,
+        );
+        (ea.status = vl.status, ea.payload = El);
+        throw ea;
+      }
+      return El;
+    },
     Ti = async () => {
       try {
         const o = await I("/auth/me/");
         (b(o), o.profile.role === "BOTH" ? H("PS") : H(o.profile.role));
-        const N = await I("/clients/");
+        const [N, A, yl, qs] = await Promise.all([
+          I("/clients/"),
+          I("/missions/"),
+          I("/shipments/"),
+          I("/shipping-carrier-recommendations/"),
+        ]);
         _l(N || []);
-        const A = await I("/missions/");
         zl(A || []);
+        setShipments(yl || []);
+        setShippingCarrierRecommendations(qs || []);
         const vl = A.find(
           (El) => El.status === "ACTIVE" || El.status === "PAUSED",
         );
-        const El = await I("/stores/");
+        const [El, Se] = await Promise.all([
+          I("/stores/"),
+          I("/store-recommendations/"),
+        ]);
         setStores(El || []);
+        setStoreRecommendations(Se || []);
         Dl(vl || null);
+        if (vl && vl.id) {
+          const ea = await I(`/reviews/unread-summary/?mission=${vl.id}`);
+          setHomeUnreadSummary(ea || {});
+        } else setHomeUnreadSummary({});
       } catch (o) {
         console.error("Failed loading data", o);
       }
@@ -233,14 +354,37 @@ function nh() {
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
-        const [N, A] = await Promise.all([I("/clients/"), I("/missions/")]);
+        const [N, A, vl, yl, qs] = await Promise.all([
+          I("/clients/"),
+          I("/missions/"),
+          I("/store-recommendations/"),
+          I("/shipments/"),
+          I("/shipping-carrier-recommendations/"),
+        ]);
         _l(N || []);
         zl(A || []);
-        const vl = (A || []).find(
-          (El) => El.status === "ACTIVE" || El.status === "PAUSED",
+        setStoreRecommendations(vl || []);
+        setShipments(yl || []);
+        setShippingCarrierRecommendations(qs || []);
+        const El = (A || []).find(
+          (Se) => Se.status === "ACTIVE" || Se.status === "PAUSED",
         );
-        Dl(vl || null);
+        Dl(El || null);
+        if (El && El.id) {
+          const Se = await I(`/reviews/unread-summary/?mission=${El.id}`);
+          setHomeUnreadSummary(Se || {});
+        } else setHomeUnreadSummary({});
       } catch {}
+    },
+    refreshSelectedClient = async () => {
+      const o = selectedClientIdRef.current;
+      if (!o) return;
+      try {
+        const N = await I(`/clients/${o}/`);
+        (et(N), _l((A) => A.map((vl) => (vl.id === N.id ? N : vl))));
+      } catch (N) {
+        console.error("Failed refreshing selected client", N);
+      }
     },
     // <-------- seccion 8: helper de recarga y update robusto para peticiones
     getMissionRequestDetailPath = (o) => `/requests/${o}/`,
@@ -248,9 +392,247 @@ function nh() {
       const N = await I("/requests/");
       return (setRequests(N || []), N || []);
     };
+  const dismissToast = (o) => {
+      const N = toastTimeoutsRef.current.get(o);
+      N && clearTimeout(N);
+      toastTimeoutsRef.current.delete(o);
+      setToasts((A) => A.filter((vl) => vl.id !== o));
+    },
+    pushToast = (o, N = "info") => {
+      const A = String(o || "").trim();
+      if (!A) return;
+      const vl = `${Date.now()}-${toastIdRef.current++}`;
+      setToasts((El) => [...El, { id: vl, message: A, tone: N }].slice(-4));
+      const El = window.setTimeout(() => dismissToast(vl), 3200);
+      toastTimeoutsRef.current.set(vl, El);
+    },
+    notifySuccess = (o) => pushToast(o, "success"),
+    notifyError = (o) => pushToast(o, "error"),
+    notifyInfo = (o) => pushToast(o, "info"),
+    confirmAction = ({
+      title = "Confirmar accion",
+      message = "",
+      confirmLabel = "Continuar",
+      cancelLabel = "Cancelar",
+      tone = "danger",
+    }) =>
+      new Promise((o) => {
+        setConfirmDialog({
+          title,
+          message,
+          confirmLabel,
+          cancelLabel,
+          tone,
+          resolve: o,
+        });
+      }),
+    closeConfirmDialog = (o) => {
+      confirmDialog && confirmDialog.resolve && confirmDialog.resolve(!!o);
+      setConfirmDialog(null);
+    },
+    openInputDialog = ({
+      title = "Captura",
+      message = "",
+      confirmLabel = "Guardar",
+      cancelLabel = "Cancelar",
+      fields = [],
+    }) =>
+      new Promise((o) => {
+        setInputDialog({
+          title,
+          message,
+          confirmLabel,
+          cancelLabel,
+          fields: fields.map((N) => ({
+            ...N,
+            value:
+              typeof N.value !== "undefined"
+                ? N.value
+                : N.type === "select"
+                  ? (((N.options || [])[0] || {}).value ?? "")
+                  : "",
+          })),
+          resolve: o,
+        });
+      }),
+    updateInputDialogField = (o, N) => {
+      setInputDialog((A) =>
+        A
+          ? {
+            ...A,
+            fields: A.fields.map((vl) =>
+              vl.name === o ? { ...vl, value: N } : vl,
+            ),
+          }
+          : A,
+      );
+    },
+    closeInputDialog = (o = null) => {
+      inputDialog && inputDialog.resolve && inputDialog.resolve(o);
+      setInputDialog(null);
+    },
+    submitInputDialog = () => {
+      if (!inputDialog) return;
+      const o = inputDialog.fields.find((N) => {
+        if (!N.required) return !1;
+        return !String(N.value || "").trim();
+      });
+      if (o) {
+        notifyInfo(
+          o.requiredMessage ||
+          `Completa ${String(o.label || o.name || "este campo").toLowerCase()}.`,
+        );
+        return;
+      }
+      closeInputDialog(
+        inputDialog.fields.reduce(
+          (N, A) => ({ ...N, [A.name]: A.value }),
+          {},
+        ),
+      );
+    },
+    activeOverlayKey = confirmDialog
+      ? "confirm"
+      : inputDialog
+        ? "input"
+        : shipmentProductPickerOpen
+          ? "shipment-product-picker"
+          : shipmentModalOpen
+            ? "shipment-modal"
+        : fullscreenImage
+          ? "fullscreen-image"
+          : reviewConversationEntry
+            ? "review-conversation"
+            : Pl
+              ? "group-ticket"
+              : ji && Je
+                ? "edit-ticket"
+                : me && he
+                  ? "edit-product"
+                  : K
+                    ? "edit-client"
+                    : Il
+                      ? "add-client"
+                      : missionSummaryOpen
+                        ? "mission-summary"
+                        : showMissionStartModal
+                          ? "mission-start"
+                          : "",
+    overlayHistorySkipRef = V.useRef(!1),
+    activeOverlayKeyRef = V.useRef(""),
+    dismissActiveOverlayRef = V.useRef(() => {});
+  V.useEffect(() => {
+    activeOverlayKeyRef.current = activeOverlayKey;
+    dismissActiveOverlayRef.current = (o = !1) => {
+      !o &&
+        window.history.state &&
+        window.history.state.__ps_overlay &&
+        ((overlayHistorySkipRef.current = !0), window.history.back());
+      if (confirmDialog) {
+        closeConfirmDialog(!1);
+        return;
+      }
+      if (inputDialog) {
+        closeInputDialog(null);
+        return;
+      }
+      if (shipmentProductPickerOpen) {
+        setShipmentProductPickerOpen(!1);
+        return;
+      }
+      if (shipmentModalOpen) {
+        setShipmentModalOpen(!1);
+        setShipmentProductPickerOpen(!1);
+        return;
+      }
+      if (fullscreenImage) {
+        setFullscreenImage(null);
+        return;
+      }
+      if (reviewConversationEntry) {
+        setReviewConversationEntry(null);
+        closeAlternativeUploadModal();
+        return;
+      }
+      if (Pl) {
+        at(!1);
+        we(null);
+        Kt(null);
+        return;
+      }
+      if (ji && Je) {
+        sn(!1);
+        We(null);
+        return;
+      }
+      if (me && he) {
+        ut(!1);
+        Ke(null);
+        return;
+      }
+      if (K) {
+        tl(!1);
+        Y(null);
+        return;
+      }
+      if (Il) {
+        k(!1);
+        return;
+      }
+      if (missionSummaryOpen) {
+        setMissionSummaryOpen(!1);
+        return;
+      }
+      showMissionStartModal && setShowMissionStartModal(!1);
+    };
+  }, [
+    activeOverlayKey,
+    confirmDialog,
+    inputDialog,
+    shipmentProductPickerOpen,
+    shipmentModalOpen,
+    fullscreenImage,
+    reviewConversationEntry,
+    Pl,
+    ji,
+    Je,
+    me,
+    he,
+    K,
+    Il,
+    missionSummaryOpen,
+    showMissionStartModal,
+  ]);
+  V.useEffect(() => {
+    if (!activeOverlayKey) return;
+    const o = window.history.state || {};
+    o.__ps_overlay === activeOverlayKey ||
+      window.history.pushState({ ...o, __ps_overlay: activeOverlayKey }, "");
+  }, [activeOverlayKey]);
+  V.useEffect(() => {
+    const o = () => {
+      if (overlayHistorySkipRef.current) {
+        overlayHistorySkipRef.current = !1;
+        return;
+      }
+      activeOverlayKeyRef.current && dismissActiveOverlayRef.current(!0);
+    };
+    window.addEventListener("popstate", o);
+    return () => window.removeEventListener("popstate", o);
+  }, []);
   V.useEffect(() => {
     C && Ti();
   }, [C]);
+  V.useEffect(() => {
+    if (!C) setSeenReviewItemMap({});
+  }, [C]);
+  V.useEffect(
+    () => () => {
+      toastTimeoutsRef.current.forEach((o) => clearTimeout(o));
+      toastTimeoutsRef.current.clear();
+    },
+    [],
+  );
   // <-------- seccion 8: guardar ids actuales para manejar mensajes websocket
   V.useEffect(() => {
     selectedClientIdRef.current = W ? W.id : null;
@@ -309,14 +691,17 @@ function nh() {
         setMissionReviewAlerts([]);
       }
     };
-    const refreshSelectedClient = async () => {
-      const o = selectedClientIdRef.current;
-      if (!o) return;
+    const refreshUnreadSummaryForActiveMission = async () => {
+      const o = activeMissionIdRef.current;
+      if (!o) {
+        setHomeUnreadSummary({});
+        return;
+      }
       try {
-        const N = await I(`/clients/${o}/`);
-        (et(N), _l((A) => A.map((vl) => (vl.id === N.id ? N : vl))));
+        const N = await I(`/reviews/unread-summary/?mission=${o}`);
+        setHomeUnreadSummary(N || {});
       } catch (N) {
-        console.error("Failed refreshing selected client", N);
+        console.error("Failed loading unread review summary", N);
       }
     };
     const connect = () => {
@@ -346,8 +731,15 @@ function nh() {
             await refreshCoreData();
             return;
           }
-          if (vl === "products" || vl === "receipts") {
+          if (vl === "shipments") {
+            await refreshCoreData();
             await refreshSelectedClient();
+            return;
+          }
+          if (vl === "products" || vl === "receipts") {
+            await refreshCoreData();
+            await refreshSelectedClient();
+            await refreshUnreadSummaryForActiveMission();
             return;
           }
           if (vl === "requests") {
@@ -355,12 +747,19 @@ function nh() {
             return;
           }
           if (vl === "reviews") {
+            await refreshCoreData();
+            await refreshSelectedClient();
             await refreshReviewsForCurrentContext();
+            await refreshUnreadSummaryForActiveMission();
             return;
           }
           if (vl === "stores") {
-            const ea = await I("/stores/");
+            const [ea, gl] = await Promise.all([
+              I("/stores/"),
+              I("/store-recommendations/"),
+            ]);
             setStores(ea || []);
+            setStoreRecommendations(gl || []);
             return;
           }
         } catch (A) {
@@ -419,7 +818,7 @@ function nh() {
         (N.closest("[data-product-menu]") || N.closest("[data-product-info]"))
       )
         return;
-      (setOpenProductMenuId(null), setOpenProductInfoId(null));
+      setOpenProductMenuId(null), setOpenProductInfoId(null);
     };
     document.addEventListener("click", closeMenuOnOutsideClick);
     return () => {
@@ -465,6 +864,25 @@ function nh() {
       isMounted = !1;
     };
   }, [C, W]);
+  V.useEffect(() => {
+    if (!C || !w || !w.id) {
+      setHomeUnreadSummary({});
+      return;
+    }
+    let isMounted = !0;
+    const loadUnreadSummary = async () => {
+      try {
+        const o = await I(`/reviews/unread-summary/?mission=${w.id}`);
+        isMounted && setHomeUnreadSummary(o || {});
+      } catch (o) {
+        console.error("Failed loading unread review summary", o);
+      }
+    };
+    loadUnreadSummary();
+    return () => {
+      isMounted = !1;
+    };
+  }, [C, w]);
   // <-------- seccion 8: carga inicial de alertas de revision por mision
   V.useEffect(() => {
     if (!C || !w || (w.status !== "ACTIVE" && w.status !== "PAUSED")) {
@@ -573,7 +991,7 @@ function nh() {
           });
           (_l([...Kl, N]), Yt(""), it(""), z(""), sl(""), d(""), k(!1));
         } catch {
-          alert("Error creating client");
+          notifyError("Error creating client");
         }
     },
     ja = async (o) => {
@@ -585,22 +1003,27 @@ function nh() {
           });
           (_l(Kl.map((A) => (A.id === O.id ? N : A))), tl(!1), Y(null));
         } catch {
-          alert("Error updating client");
+          notifyError("Error updating client");
         }
     },
     Ea = async (o) => {
       if (
-        confirm(
-          "Are you sure you want to delete this client and all their products?",
-        )
+        !(await confirmAction({
+          title: "Eliminar cliente",
+          message:
+            "Se eliminará el cliente y todos sus productos vinculados.",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
       )
-        try {
-          (await I(`/clients/${o}/`, { method: "DELETE" }),
-            _l(Kl.filter((N) => N.id !== o)),
-            W && W.id === o && et(null));
-        } catch {
-          alert("Error deleting client");
-        }
+        return;
+      try {
+        (await I(`/clients/${o}/`, { method: "DELETE" }),
+          _l(Kl.filter((N) => N.id !== o)),
+          W && W.id === o && et(null));
+      } catch {
+        notifyError("Error deleting client");
+      }
     },
     Jt = async (o) => {
       const N = String(o.status || "").toLowerCase() === "active" ? "Pending" : "Active";
@@ -639,7 +1062,7 @@ function nh() {
     ye = async (o = missionStartForm) => {
       const N = String(o.store_name || o.name || "").trim();
       if (!N) {
-        alert("Selecciona o escribe la tienda para iniciar el shopping.");
+        notifyInfo("Selecciona o escribe la tienda para iniciar el shopping.");
         return;
       }
       const A = String(o.calc_mode || "FACTOR").toUpperCase() === "PERCENTAGE"
@@ -680,9 +1103,11 @@ function nh() {
             }),
           });
         }
+        const Se = await I("/store-recommendations/");
         (setShowMissionStartModal(!1),
           zl([...Al, El]),
           Dl(El),
+          setStoreRecommendations(Se || []),
           setCalcMode(A),
           setCalcTaxes(toNumber(o.tax_percentage, 8)),
           setCalcFactor(toNumber(o.factor_value, 1.5)),
@@ -691,7 +1116,7 @@ function nh() {
           setCalcDiscount(toNumber(o.discount_percentage, 0)));
       } catch (vl) {
         console.error("Failed creating mission", vl);
-        alert(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
+        notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
       }
     },
     be = async () => {
@@ -726,15 +1151,23 @@ function nh() {
         } catch { }
     },
     mn = async (o) => {
-      if (confirm("¿Eliminar esta misión y su historial?"))
-        try {
-          (await I(`/missions/${o}/`, { method: "DELETE" }),
-            zl(Al.filter((N) => N.id !== o)),
-            w && w.id === o && Dl(null),
-            fn === o && rn(null));
-        } catch {
-          alert("Error deleting mission");
-        }
+      if (
+        !(await confirmAction({
+          title: "Eliminar misión",
+          message: "¿Eliminar esta misión y su historial?",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
+      )
+        return;
+      try {
+        (await I(`/missions/${o}/`, { method: "DELETE" }),
+          zl(Al.filter((N) => N.id !== o)),
+          w && w.id === o && Dl(null),
+          fn === o && rn(null));
+      } catch {
+        notifyError("Error deleting mission");
+      }
     },
     Fe = async (o) => {
       if (Sa.trim())
@@ -747,7 +1180,7 @@ function nh() {
             w && w.id === o && Dl(N),
             dn(null));
         } catch {
-          alert("Error renaming mission");
+          notifyError("Error renaming mission");
         }
     },
     Qt = async () => {
@@ -760,7 +1193,7 @@ function nh() {
     Ta = (o, N = null) => {
       (setClientGalleryMissionScopeId(N),
         et(o),
-        jt("PS_REVIEW"));
+        jt("REVIEW"));
     },
     Aa = () => {
       (et(null),
@@ -788,17 +1221,19 @@ function nh() {
           N.click());
       } catch (N) {
         (console.error("Failed opening image picker", N),
-          alert("No se pudo abrir el selector de imagen."));
+          notifyError("No se pudo abrir el selector de imagen."));
       }
     },
     su = () => {
+      if (receiptUploading) return;
       openSingleImagePicker(ru);
     },
     openMissionTicketPicker = () => {
-      if (!w) return;
+      if (!w || missionTicketUploading) return;
       openSingleImagePicker(uploadMissionTicket);
     },
     fu = () => {
+      if (newProductUploading) return;
       openSingleImagePicker(lt);
     },
     uploadMissionTicket = async (o) => {
@@ -807,6 +1242,7 @@ function nh() {
       if (!N || N.length === 0) return;
       const A = new FormData();
       A.append("image", N[0]);
+      setMissionTicketUploading(!0);
       try {
         await I(`/missions/${w.id}/upload-ticket/`, {
           method: "POST",
@@ -814,61 +1250,161 @@ function nh() {
         });
         await refreshCoreData();
         W && (await Qt());
-        alert("Ticket de misión cargado y vinculado.");
+        notifySuccess("Ticket de misión cargado y vinculado.");
       } catch (vl) {
         console.error("Mission ticket upload failed", vl);
-        alert("No se pudo subir el ticket de misión.");
+        notifyError("No se pudo subir el ticket de misión.");
+      } finally {
+        setMissionTicketUploading(!1);
+        o.target.value = "";
       }
-      o.target.value = "";
     },
     Xt = (o) => {
+      if (productImageUploadingId) return;
       (Ke(o), openSingleImagePicker(Xl));
+    },
+    // <-------- seccion 8: comprimir imagen antes de subir para no saturar 3G/4G
+    compressImage = (file, maxWidth = 1200, quality = 0.8) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error("Canvas to Blob failed"));
+                  return;
+                }
+                const newFile = new File([blob], file.name, {
+                  type: file.type,
+                  lastModified: Date.now(),
+                });
+                resolve(newFile);
+              },
+              file.type,
+              quality,
+            );
+          };
+          img.onerror = () => reject(new Error("Invalid image format"));
+          img.src = event.target.result;
+        };
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
     },
     Xl = async (o) => {
       if (!he) return;
       const N = o.target.files;
       if (!N || N.length === 0) return;
+      const originalFile = N[0];
+      const compressedFile = await compressImage(originalFile).catch(() => originalFile);
       const A = new FormData();
-      A.append("image", N[0]);
+      A.append("image", compressedFile);
+      const vl = he.id;
+      setProductImageUploadingId(vl);
       try {
-        (await I(`/products/${he.id}/`, { method: "PATCH", body: A }), Qt());
+        await I(`/products/${vl}/`, { method: "PATCH", body: A });
+        await Qt();
       } catch {
-        alert("Error updating photo");
+        notifyError("Error updating photo");
+      } finally {
+        o.target.value = "";
+        setProductImageUploadingId(null);
+        Ke(null);
       }
-      ((o.target.value = ""), Ke(null));
     },
     lt = async (o) => {
       const N = o.target.files;
       if (!N || N.length === 0) return;
-      const A = (prompt("Nombre del producto:") || "").trim();
-      if (!A) {
-        alert("Debes capturar el nombre del producto antes de subir la imagen.");
+      const A = await openInputDialog({
+        title: "Nuevo producto",
+        message: "Escribe el nombre para la imagen seleccionada.",
+        confirmLabel: "Continuar",
+        fields: [
+          {
+            name: "name",
+            label: "Nombre del producto",
+            type: "text",
+            value: "",
+            placeholder: "Ej. Tenis Nike",
+            required: !0,
+            requiredMessage:
+              "Debes capturar el nombre del producto antes de subir la imagen.",
+          },
+        ],
+      });
+      const El = String((A && A.name) || "").trim();
+      if (!El) {
         (o.target.value = "");
         return;
       }
-      const El = X === "AV" ? "IN_REVIEW" : "ANNOTATED";
-      const Se = new Date().toISOString().slice(0, 10);
-      const ea = new FormData();
-      (ea.append("image", N[0]),
-        ea.append("client", W.id),
-        ea.append("name", A),
-        ea.append("status", El),
-        ea.append("purchase_date", Se),
-        w && ea.append("mission", w.id));
+      const Se =
+        wl === "REVIEW" || wl === "REJECTED" || wl === "ANNOTATED"
+          ? wl
+          : X === "AV"
+            ? "REVIEW"
+            : "ANNOTATED";
+      const eaStatus =
+        Se === "REVIEW"
+          ? "IN_REVIEW"
+          : Se === "REJECTED"
+            ? "REJECTED"
+            : "ANNOTATED";
+      const ea = new Date().toISOString().slice(0, 10);
+      const originalFile = N[0];
+      const compressedFile = await compressImage(originalFile).catch(() => originalFile);
+
+      const gl = new FormData();
+      (gl.append("image", compressedFile),
+        gl.append("client", W.id),
+        gl.append("name", El),
+        gl.append("status", eaStatus),
+        gl.append("purchase_date", ea),
+        w && gl.append("mission", w.id));
+      setNewProductUploading(!0);
       try {
-        (await I("/products/", { method: "POST", body: ea }), Qt());
+        const ae = await I("/products/", { method: "POST", body: gl });
+        Se !== "ANNOTATED" &&
+          (await syncProductReviewState(
+            { ...ae, status: eaStatus },
+            null,
+            Se,
+          ));
+        await Qt();
       } catch {
-        alert("Error adding product");
+        notifyError("Error adding product");
+      } finally {
+        setNewProductUploading(!1);
+        o.target.value = "";
       }
-      o.target.value = "";
     },
     xe = async (o) => {
-      if (confirm("Are you sure you want to delete this item?"))
-        try {
-          (await I(`/products/${o}/`, { method: "DELETE" }), Qt());
-        } catch (N) {
-          console.log(N);
-        }
+      if (
+        !(await confirmAction({
+          title: "Eliminar producto",
+          message: "¿Seguro que quieres eliminar este item?",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
+      )
+        return;
+      try {
+        (await I(`/products/${o}/`, { method: "DELETE" }), Qt());
+      } catch (N) {
+        console.log(N);
+      }
     },
     setProductStatusQuick = async (o, N) => {
       try {
@@ -896,7 +1432,10 @@ function nh() {
           charged_price: o.charged_price || "",
           tags: o.tags || "",
           store: A,
-          status: o.status || "ANNOTATED",
+          status: getProductReviewState(
+            o,
+            latestReviewsByProduct[o.id] || null,
+          ),
         }),
         setModalTags(N),
         setNewModalTag(""),
@@ -928,21 +1467,28 @@ function nh() {
           ...st,
           tags: modalTags.join(", "),
           store: w ? null : st.store ? Number(st.store) : null,
+          status:
+            st.status === "PS_REVIEW" || st.status === "AV_REVIEW"
+              ? "IN_REVIEW"
+              : st.status,
           real_price: normalizeNullableNumber(st.real_price),
           charged_price: Number.isFinite(A)
             ? A.toFixed(2)
             : normalizeNullableNumber(st.charged_price),
         };
       try {
-        (await I(`/products/${he.id}/`, {
+        await I(`/products/${he.id}/`, {
           method: "PATCH",
           body: JSON.stringify(vl),
-        }),
-          ut(!1),
-          Ke(null),
-          Qt());
+        });
+        await syncProductReviewState(
+          { ...he, status: vl.status },
+          latestReviewsByProduct[he.id] || null,
+          st.status,
+        );
+        (ut(!1), Ke(null), await refreshProductReviews(W && W.id), Qt());
       } catch {
-        alert("Error updating item");
+        notifyError("Error updating item");
       }
     },
     _i = async (o) => {
@@ -956,7 +1502,7 @@ function nh() {
           We(null),
           Qt());
       } catch {
-        alert("Error updating ticket");
+        notifyError("Error updating ticket");
       }
     },
     ru = async (o) => {
@@ -966,15 +1512,18 @@ function nh() {
       (A.append("image", N[0]),
         A.append("uploaded_by_id", J.id),
         W && W.id && A.append("client", W.id));
+      setReceiptUploading(!0);
       try {
         const vl = await I("/receipts/", { method: "POST", body: A });
-        (Qt(), Kt(vl.id));
+        (await Qt(), Kt(vl.id));
         const El = URL.createObjectURL(N[0]);
         (we(El), ke([]), at(!0));
       } catch {
-        alert("Receipt upload failed");
+        notifyError("Receipt upload failed");
+      } finally {
+        setReceiptUploading(!1);
+        o.target.value = "";
       }
-      o.target.value = "";
     },
     la = (o) => {
       (Kt(o.id), we(resolveMediaUrl(o.image)));
@@ -1121,38 +1670,480 @@ function nh() {
             await navigator.clipboard.writeText(A);
             (setCopiedImageItemId(o),
               setTimeout(() => setCopiedImageItemId(null), 2000),
-              alert(
+              notifyInfo(
                 "Tu navegador no permite copiar imagen directa. Se copio el enlace de la imagen.",
               ));
             return;
           }
         } catch {}
         (console.error("Failed to copy image", vl),
-          alert("No se pudo copiar la imagen. Intenta en Chrome o Edge."));
+          notifyError("No se pudo copiar la imagen. Intenta en Chrome o Edge."));
       }
+    },
+    copyImageUrlToClipboard = async (o, N = "Imagen copiada.") => {
+      if (!o) return;
+      try {
+        const A = await fetch(o);
+        if (!A.ok) throw new Error(`HTTP ${A.status}`);
+        const vl = await A.blob(),
+          El =
+            vl.type && vl.type.startsWith("image/") ? vl.type : "image/png";
+        if (
+          navigator.clipboard &&
+          navigator.clipboard.write &&
+          typeof ClipboardItem != "undefined"
+        ) {
+          const Se = [];
+          try {
+            const ea = await convertBlobToPng(vl);
+            Se.push({ type: "image/png", blob: ea });
+          } catch {}
+          El !== "image/png" && Se.push({ type: El, blob: vl });
+          El === "image/png" && Se.push({ type: El, blob: vl });
+          let ea = !1;
+          for (const gl of Se) {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ [gl.type]: gl.blob }),
+              ]);
+              ea = !0;
+              break;
+            } catch {}
+          }
+          if (!ea) throw new Error("Clipboard image API not supported");
+          notifySuccess(N);
+          return;
+        }
+        throw new Error("Clipboard image API not supported");
+      } catch (A) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(o);
+            notifyInfo(
+              "Tu navegador no permite copiar imagen directa. Se copio el enlace de la imagen.",
+            );
+            return;
+          }
+        } catch {}
+        (console.error("Failed to copy image url", A),
+          notifyError("No se pudo copiar la imagen. Intenta en Chrome o Edge."));
+      }
+    },
+    getFullscreenImageUrl = (o) =>
+      !o ? "" : typeof o == "string" ? o : o.url || "",
+    buildBreakdownMessage = ({
+      title = "DESGLOSE DE TU CUENTA:",
+      items = [],
+      itemsText = "",
+      total = 0,
+      itemBullet = "*",
+    }) => {
+      const o = new Intl.NumberFormat("es-MX"),
+        N =
+          itemsText ||
+          (items.length > 0
+            ? items
+                .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
+                .join("\n")
+            : "Sin productos."),
+        A = (defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE)
+          .replaceAll("{title}", title)
+          .replaceAll("{items}", N)
+          .replaceAll("{total}", o.format(total));
+      return A;
+    },
+    handleFullscreenImageCopy = async () => {
+      if (
+        !fullscreenImage ||
+        typeof fullscreenImage == "string" ||
+        !fullscreenImage.copyOnClick
+      )
+        return;
+      const o = getFullscreenImageUrl(fullscreenImage);
+      o && (await copyImageUrlToClipboard(o, fullscreenImage.copyMessage || "Imagen copiada."));
     },
     copyMissionBreakdown = async (o, N) => {
       const A = (N.products || []).filter((vl) => vl.mission === o.id),
-        vl = new Intl.NumberFormat("es-MX"),
-        El = A.map((Se) => {
+        vl = A.map((Se) => {
           const ea = parseFloat(Se.charged_price || 0);
           return { name: Se.name, finalPrice: Number.isFinite(ea) ? ea : 0 };
         }),
-        Se = El.reduce((ea, gl) => ea + gl.finalPrice, 0),
-        ea =
-          "DESGLOSE DE TU CUENTA:\n\n" +
-          El.map((gl) => `* ${gl.name} - $${vl.format(gl.finalPrice)}`).join("\n") +
-          `\n\nTOTAL TIENDA: $${vl.format(Se)}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗`;
+        El = vl.reduce((ea, gl) => ea + gl.finalPrice, 0),
+        Se = buildBreakdownMessage({
+          items: vl,
+          total: El,
+        });
       try {
-        await navigator.clipboard.writeText(ea);
-        const gl = `${o.id}-${N.id}`;
-        setCopiedMissionClients((ae) =>
-          ae.includes(gl) ? ae : [...ae, gl],
-        );
+        await navigator.clipboard.writeText(Se);
       } catch (gl) {
         console.error("Failed to copy mission breakdown", gl);
       }
     },
+    copyAnnotatedMissionBreakdown = async (o, N) => {
+      const A = ((N && N.products) || []).filter((vl) => {
+          const El = String(vl.status || "").toUpperCase();
+          return Number(vl.mission) === Number(o && o.id) && El === "ANNOTATED";
+        }),
+        vl = A.map((Se) => {
+          const ea = parseFloat(Se.charged_price || 0);
+          return { name: Se.name, finalPrice: Number.isFinite(ea) ? ea : 0 };
+        }),
+        El = vl.reduce((ea, gl) => ea + gl.finalPrice, 0),
+        Se = buildBreakdownMessage({
+          items: vl,
+          total: El,
+        });
+      try {
+        await navigator.clipboard.writeText(Se);
+        const gl = `home-${o.id}-${N.id}`;
+        setCopiedMissionClients((ae) =>
+          ae.includes(gl) ? ae : [...ae, gl],
+        );
+      } catch (gl) {
+        console.error("Failed to copy annotated mission breakdown", gl);
+      }
+    },
+    copyMissionClientsBreakdown = async (o, N = []) => {
+      if (!o) return;
+      const A = new Intl.NumberFormat("es-MX"),
+        vl = N.map((El) => {
+          const Se = ((El && El.products) || []).filter((ea) => {
+              const gl = String(ea.status || "").toUpperCase();
+              return Number(ea.mission) === Number(o.id) && gl === "ANNOTATED";
+            }),
+            ea = Se.map((gl) => {
+              const ae = parseFloat(gl.charged_price || 0);
+              return { name: gl.name, finalPrice: Number.isFinite(ae) ? ae : 0 };
+            }),
+            gl = ea.reduce((ae, oi) => ae + oi.finalPrice, 0);
+          return {
+            name: El.name,
+            items: ea,
+            total: gl,
+          };
+        }).filter((El) => El.items.length > 0);
+      if (vl.length === 0) {
+        notifyInfo("No hay productos anotados para copiar en esta misión.");
+        return;
+      }
+      const El = vl.reduce((Se, ea) => Se + ea.total, 0),
+        Se = buildBreakdownMessage({
+          title: "DESGLOSE DE LA MISION:",
+          itemsText: vl
+            .map(
+              (ea) =>
+                `${ea.name}:\n` +
+                ea.items
+                  .map((gl) => `* ${gl.name} – $${A.format(gl.finalPrice)}`)
+                  .join("\n") +
+                `\nTOTAL CLIENTE: $${A.format(ea.total)}`,
+            )
+            .join("\n\n"),
+          total: El,
+        });
+      try {
+        await navigator.clipboard.writeText(Se);
+      } catch (ea) {
+        console.error("Failed to copy clients mission breakdown", ea);
+      }
+    },
+    generateClientHistoryShareLink = async (o) => {
+      if (!o) throw new Error("Cliente invalido.");
+      const N = await I("/client-share-links/", {
+        method: "POST",
+        body: JSON.stringify({
+          client: o.id,
+        }),
+      });
+      if (!N || !N.share_url) throw new Error("No se pudo generar el enlace.");
+      return N;
+    },
+    copyClientMissionShareLink = async (o, N) => {
+      if (!N) return;
+      try {
+        const A = await generateClientHistoryShareLink(N);
+        await navigator.clipboard.writeText(A.share_url);
+        const vl = `client-history-${N.id}`;
+        setCopiedClientShareLinks((El) =>
+          El.includes(vl) ? El : [...El, vl],
+        );
+        notifySuccess("Link copiado.");
+      } catch (A) {
+        console.error("Failed to copy client mission share link", A);
+        notifyError(
+          (A && A.message) || "No se pudo generar el link del cliente.",
+        );
+      }
+    },
+    openClientHistoryShareLink = async (o) => {
+      if (!o) return;
+      try {
+        const N = await generateClientHistoryShareLink(o);
+        window.open(N.share_path || N.share_url, "_blank", "noopener,noreferrer");
+      } catch (N) {
+        console.error("Failed to open client history share link", N);
+        notifyError(
+          (N && N.message) || "No se pudo abrir el historial del cliente.",
+        );
+      }
+    },
+    copyShipmentShareLink = async (o) => {
+      if (!o || !o.id) return;
+      try {
+        const N = await I("/shipment-share-links/", {
+          method: "POST",
+          body: JSON.stringify({
+            shipment: o.id,
+          }),
+        });
+        if (!N || !N.share_url) throw new Error("No se pudo generar el enlace.");
+        await navigator.clipboard.writeText(N.share_url);
+        const A = `shipment-share-${o.id}`;
+        setCopiedClientShareLinks((vl) =>
+          vl.includes(A) ? vl : [...vl, A],
+        );
+        notifySuccess("Link copiado.");
+      } catch (N) {
+        console.error("Failed to copy shipment share link", N);
+        notifyError(
+          (N && N.message) || "No se pudo generar el link del envio.",
+        );
+      }
+    },
+    getShipmentAssignableProducts = (o = null) =>
+      Kl.flatMap((N) =>
+        ((N && N.products) || [])
+          .filter((A) =>
+            ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(
+              String(A.status || "").toUpperCase(),
+            ),
+          )
+          .filter((A) => (!o ? !0 : Number(A.client) === Number(o)))
+          .map((A) => ({
+            ...A,
+            client_name: N.name,
+            shipping_address:
+              A.shipping_address || N.shipping_address || "",
+          })),
+      ).sort((N, A) => {
+        const vl = String(N.mission_name || N.store_name || "").localeCompare(
+          String(A.mission_name || A.store_name || ""),
+        );
+        if (vl !== 0) return vl;
+        return String(N.name || "").localeCompare(String(A.name || ""));
+      }),
+    getShipmentFormState = (o = null, N = null) => {
+      const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
+      return {
+        id: (o && o.id) || null,
+        client: A,
+        carrier: String((o && o.carrier) || "").trim(),
+        status: String((o && o.status) || "PENDING"),
+        tracking_number: (o && o.tracking_number) || "",
+        guide_price:
+          o && o.guide_price !== null && typeof o.guide_price != "undefined"
+            ? String(o.guide_price)
+            : "",
+        client_price:
+          o && o.client_price !== null && typeof o.client_price != "undefined"
+            ? String(o.client_price)
+            : "",
+        shipping_address:
+          (o && o.shipping_address) ||
+          ((N && (N.shipping_address || "")) || ""),
+        product_ids:
+          ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
+            Number(Se),
+          ),
+      };
+    },
+    openShipmentEditor = (o = null, N = null) => {
+      if (!Kl.length) {
+        notifyInfo("Necesitas al menos un cliente para crear envios.");
+        return;
+      }
+      setShipmentForm(getShipmentFormState(o, N));
+      setShipmentProductSearch("");
+      setShipmentProductPickerOpen(!1);
+      setShipmentModalOpen(!0);
+    },
+    updateShipmentForm = (o, N) => {
+      setShipmentForm((A) => {
+        const vl = { ...A, [o]: N };
+        if (o === "client" && String(A.client || "") !== String(N || "")) {
+          const El = Kl.find((Se) => String(Se.id) === String(N || ""));
+          vl.product_ids = [];
+          if (!String(A.shipping_address || "").trim()) {
+            vl.shipping_address = (El && El.shipping_address) || "";
+          }
+        }
+        return vl;
+      });
+    },
+    toggleShipmentProductSelection = (o) => {
+      if (!o) return;
+      setShipmentForm((N) => {
+        const A = Number(o.id);
+        const vl = (N.product_ids || []).includes(A)
+          ? (N.product_ids || []).filter((El) => Number(El) !== A)
+          : [...(N.product_ids || []), A];
+        return { ...N, product_ids: vl };
+      });
+    },
+    saveShipmentEditor = async () => {
+      const o = Kl.find(
+        (A) => String(A.id) === String(shipmentForm.client || ""),
+      );
+      const N = String(shipmentForm.carrier || "").trim();
+      const A =
+        String(shipmentForm.guide_price || "").trim() === ""
+          ? null
+          : String(shipmentForm.guide_price || "").trim();
+      const vl =
+        String(shipmentForm.client_price || "").trim() === ""
+          ? null
+          : String(shipmentForm.client_price || "").trim();
+      if (!o) {
+        notifyInfo("Selecciona un cliente.");
+        return;
+      }
+      if (!N) {
+        notifyInfo("Captura la paqueteria.");
+        return;
+      }
+      if (!(shipmentForm.product_ids || []).length) {
+        notifyInfo("Selecciona al menos un producto.");
+        return;
+      }
+      try {
+        const El = await I(
+          shipmentForm.id ? `/shipments/${shipmentForm.id}/` : "/shipments/",
+          {
+            method: shipmentForm.id ? "PATCH" : "POST",
+            body: JSON.stringify({
+              client: o.id,
+              carrier: N,
+              status: String(shipmentForm.status || "PENDING"),
+              tracking_number: String(
+                shipmentForm.tracking_number || "",
+              ).trim(),
+              guide_price: A,
+              client_price: vl,
+              shipping_address: String(
+                shipmentForm.shipping_address || "",
+              ).trim(),
+            }),
+          },
+        );
+        await I(`/shipments/${El.id}/set-products/`, {
+          method: "POST",
+          body: JSON.stringify({
+            products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
+          }),
+        });
+        setShipmentModalOpen(!1);
+        setShipmentProductPickerOpen(!1);
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess(shipmentForm.id ? "Envio actualizado." : "Envio creado.");
+      } catch (El) {
+        console.error("Failed saving shipment", El);
+        notifyError((El && El.message) || "No se pudo guardar el envio.");
+      }
+    },
+    openShipmentAssignmentPicker = async (o) => {
+      if (!o) return;
+      const N = shipments.filter(
+        (A) =>
+          Number(A.client) === Number(o.client) &&
+          Number(A.id) !== Number(o.shipment && o.shipment.id),
+      );
+      if (!N.length) {
+        openShipmentEditor(null, o);
+        return;
+      }
+      const A = await openInputDialog({
+        title: "Asignar envio",
+        confirmLabel: "Continuar",
+        cancelLabel: "Cancelar",
+        fields: [
+          {
+            name: "shipment_id",
+            label: "Envio",
+            type: "select",
+            value: "__new__",
+            options: [
+              { value: "__new__", label: "Crear envio nuevo" },
+              ...N.map((vl) => ({
+                value: String(vl.id),
+                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` • ${vl.tracking_number}` : ""}`,
+              })),
+            ],
+          },
+        ],
+      });
+      if (!A) return;
+      if (A.shipment_id === "__new__") {
+        openShipmentEditor(null, o);
+        return;
+      }
+      try {
+        const vl = N.find((El) => String(El.id) === String(A.shipment_id));
+        if (!vl) throw new Error("Envio no encontrado.");
+        await I(`/shipments/${vl.id}/assign-product/`, {
+          method: "POST",
+          body: JSON.stringify({
+            product: o.id,
+          }),
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Envio asignado.");
+      } catch (vl) {
+        console.error("Failed assigning existing shipment", vl);
+        notifyError((vl && vl.message) || "No se pudo asignar el envio.");
+      }
+    },
+    deleteShipment = async (o) => {
+      if (!o || !o.id) return;
+      const N = await confirmAction({
+        title: "Eliminar envio",
+        message: "Este envio se desvinculara del producto.",
+        confirmLabel: "Eliminar",
+        cancelLabel: "Cancelar",
+        tone: "danger",
+      });
+      if (!N) return;
+      try {
+        await I(`/shipments/${o.id}/`, { method: "DELETE" });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Envio eliminado.");
+      } catch (A) {
+        console.error("Failed deleting shipment", A);
+        notifyError((A && A.message) || "No se pudo eliminar el envio.");
+      }
+    },
+    shipmentModalClient = Kl.find(
+      (o) => String(o.id) === String(shipmentForm.client || ""),
+    ),
+    shipmentModalProducts = getShipmentAssignableProducts(shipmentForm.client),
+    shipmentModalFilteredProducts = shipmentModalProducts.filter((o) => {
+      const N = String(shipmentProductSearch || "").trim().toLowerCase();
+      if (!N) return !0;
+      return [
+        o.name,
+        o.mission_name,
+        o.store_name,
+        o.client_name,
+        o.status,
+      ]
+        .filter(Boolean)
+        .some((A) => String(A).toLowerCase().includes(N));
+    }),
+    shipmentSelectedProducts = shipmentModalProducts.filter((o) =>
+      (shipmentForm.product_ids || []).includes(Number(o.id)),
+    ),
     exportMissionCsv = (o) => {
       const N = (ae) => `"${String(ae ?? "").replaceAll('"', '""')}"`,
         A = ["Cliente", "Producto", "Store Price (USD)", "Final Price (MXN)", "Status", "Tienda", "Tags"].join(","),
@@ -1198,16 +2189,106 @@ function nh() {
     },
     getMissionStoreLabel = (o) =>
       o ? o.store_name || o.name || `Tienda #${o.id}` : "",
+    normalizeSearchText = (o) =>
+      String(o || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim(),
+    getSearchTokens = (o) =>
+      normalizeSearchText(o)
+        .split(" ")
+        .map((N) => N.trim())
+        .filter(Boolean),
+    getMissionSearchBlob = (o) => {
+      if (!o) return "";
+      const N = o.start_time ? new Date(o.start_time) : null;
+      const A = N && !Number.isNaN(N.getTime())
+        ? [
+            N.toLocaleDateString("es-MX"),
+            N.toLocaleDateString("en-US"),
+            N.toLocaleDateString("es-MX", { month: "long" }),
+            N.toLocaleDateString("es-MX", { month: "short" }),
+            N.toLocaleDateString("en-US", { month: "long" }),
+            N.toLocaleDateString("en-US", { month: "short" }),
+            `${N.getDate()} ${N.toLocaleDateString("es-MX", { month: "long" })}`,
+            `${N.getDate()} ${N.toLocaleDateString("en-US", { month: "long" })}`,
+            `${String(N.getMonth() + 1).padStart(2, "0")}-${String(N.getDate()).padStart(2, "0")}`,
+            `${String(N.getDate()).padStart(2, "0")}-${String(N.getMonth() + 1).padStart(2, "0")}`,
+            `${String(N.getMonth() + 1).padStart(2, "0")}/${String(N.getDate()).padStart(2, "0")}`,
+            `${String(N.getDate()).padStart(2, "0")}/${String(N.getMonth() + 1).padStart(2, "0")}`,
+            `${N.getFullYear()}-${String(N.getMonth() + 1).padStart(2, "0")}-${String(N.getDate()).padStart(2, "0")}`,
+          ]
+        : [];
+      return normalizeSearchText(
+        [
+          o.name,
+          o.store_name,
+          getMissionStoreLabel(o),
+          ...A,
+        ].join(" "),
+      );
+    },
+    recommendedStoreNames = storeRecommendations.map((o) =>
+      String(o.store_name || "").trim().toLowerCase(),
+    ),
+    recommendedMissionStores = storeRecommendations.map((o) => {
+      const N = stores.find((A) => Number(A.id) === Number(o.store));
+      return {
+        id: N ? N.id : `store-recommendation-${o.id}`,
+        store_id: o.store,
+        name: (N && N.name) || o.store_name,
+        recommendation_id: o.id,
+      };
+    }),
+    latestRecommendedMissionStore =
+      recommendedMissionStores.length > 0 ? recommendedMissionStores[0] : null,
+    orderedMissionStores = recommendedMissionStores,
+    filteredMissionStoreSuggestions = (() => {
+      const o = String(missionStartForm.store_name || "").trim().toLowerCase();
+      if (!o) {
+        const N = latestRecommendedMissionStore
+          ? [latestRecommendedMissionStore]
+          : [];
+        const A = orderedMissionStores.filter(
+          (vl) => !latestRecommendedMissionStore || Number(vl.id) !== Number(latestRecommendedMissionStore.id),
+        );
+        return [...N, ...A].slice(0, 8);
+      }
+      return recommendedMissionStores.filter((A) =>
+        String(A.name || "").toLowerCase().includes(o),
+      ).slice(0, 8);
+    })(),
     findStoreByName = (o) =>
       stores.find(
         (N) =>
           N.name.toLowerCase().trim() === String(o || "").toLowerCase().trim(),
       ) || null,
+    removeStoreRecommendation = async (o, N = "") => {
+      try {
+        await I(`/store-recommendations/${o}/`, { method: "DELETE" });
+        setStoreRecommendations((A) => A.filter((vl) => Number(vl.id) !== Number(o)));
+        notifySuccess(
+          `Se quitó${N ? ` ${N}` : ""} de recomendaciones.`,
+        );
+      } catch (A) {
+        console.error("Failed deleting store recommendation", A);
+        notifyError("No se pudo quitar la tienda de recomendaciones.");
+      }
+    },
     clearNewRequestImage = () => {
       (setNewRequestImageFile(null), setNewRequestImagePreview(""));
     },
+    clearEditingRequestImage = () => {
+      (setEditingRequestImageFile(null), setEditingRequestImagePreview(""));
+    },
     pickRequestImage = () => {
       openSingleImagePicker(handleRequestImageSelection);
+    },
+    pickEditingRequestImage = () => {
+      if (editingRequestSaving) return;
+      openSingleImagePicker(handleEditingRequestImageSelection);
     },
     handleRequestImageSelection = (o) => {
       const N = o.target.files;
@@ -1215,13 +2296,22 @@ function nh() {
       const A = URL.createObjectURL(N[0]);
       (setNewRequestImageFile(N[0]), setNewRequestImagePreview(A), (o.target.value = ""));
     },
+    handleEditingRequestImageSelection = (o) => {
+      const N = o.target.files;
+      if (!N || N.length === 0) return;
+      const A = URL.createObjectURL(N[0]);
+      (setEditingRequestImageFile(N[0]),
+        setEditingRequestImagePreview(A),
+        (o.target.value = ""));
+    },
     createMissionRequest = async () => {
       const o = newRequestText.trim();
       if (!o && !newRequestImageFile) return;
       const Nl = new FormData();
       Nl.append("description", o || "Pendiente con foto");
       Nl.append("status", "PENDING");
-      W && W.id && Nl.append("client", W.id);
+      const Se = String(newRequestClientId || W && W.id || "").trim();
+      Se && Nl.append("client", Se);
       newRequestImageFile && Nl.append("image", newRequestImageFile);
       try {
         const N = await I("/requests/", {
@@ -1233,10 +2323,14 @@ function nh() {
         } else {
           await reloadMissionRequests();
         }
-        (setNewRequestText(""), clearNewRequestImage());
+        (setNewRequestText(""),
+          setNewRequestClientId(""),
+          setNewRequestClientPickerOpen(!1),
+          setNewRequestClientSearch(""),
+          clearNewRequestImage());
       } catch (N) {
         (console.error("Failed creating request", N),
-          alert(`No se pudo crear la petición. ${N.message || ""}`.trim()));
+          notifyError(`No se pudo crear la petición. ${N.message || ""}`.trim()));
       }
     },
     updateMissionRequest = async (o, N, A = {}) => {
@@ -1257,36 +2351,63 @@ function nh() {
       } catch (El) {
         (setRequests(vl),
           console.error("Failed updating request", El),
-          alert(`No se pudo actualizar la petición. ${El.message || ""}`.trim()));
+          notifyError(`No se pudo actualizar la petición. ${El.message || ""}`.trim()));
       }
     },
     startRequestModify = (o) => {
-      (setEditingRequestId(o.id), setEditingRequestText(o.description || ""));
+      (setEditingRequestId(o.id),
+        setEditingRequestText(o.description || ""),
+        setEditingRequestClientId(o.client ? String(o.client) : ""),
+        setEditingRequestClientPickerOpen(!1),
+        setEditingRequestClientSearch(""),
+        setEditingRequestImageFile(null),
+        setEditingRequestImagePreview(o.image ? resolveMediaUrl(o.image) : ""));
+    },
+    cancelRequestModify = () => {
+      (setEditingRequestId(null),
+        setEditingRequestText(""),
+        setEditingRequestClientId(""),
+        setEditingRequestClientPickerOpen(!1),
+        setEditingRequestClientSearch(""),
+        setEditingRequestSaving(!1),
+        clearEditingRequestImage());
     },
     saveRequestModify = async (o) => {
       const N = editingRequestText.trim();
       if (!N) return;
+      const A = new FormData();
+      A.append("description", N);
+      A.append("note", N);
+      A.append("status", "MODIFIED");
+      A.append("client", editingRequestClientId ? String(editingRequestClientId) : "");
+      editingRequestImageFile && A.append("image", editingRequestImageFile);
+      setEditingRequestSaving(!0);
       try {
-        const A = await I(getMissionRequestDetailPath(o.id), {
+        const vl = await I(getMissionRequestDetailPath(o.id), {
           method: "PATCH",
-          body: JSON.stringify({
-            description: N,
-            note: N,
-            status: "MODIFIED",
-          }),
+          body: A,
         });
-        if (!A || typeof A !== "object" || typeof A.id === "undefined")
+        if (!vl || typeof vl !== "object" || typeof vl.id === "undefined")
           throw new Error("Respuesta invalida al modificar la peticion.");
-        (setRequests((vl) => vl.map((El) => (El.id === o.id ? A : El))),
-          setEditingRequestId(null),
-          setEditingRequestText(""));
-      } catch (A) {
-        (console.error("Failed modifying request", A),
-          alert(`No se pudo modificar la petición. ${A.message || ""}`.trim()));
+        (setRequests((El) => El.map((Se) => (Se.id === o.id ? vl : Se))),
+          cancelRequestModify());
+      } catch (vl) {
+        (console.error("Failed modifying request", vl),
+          notifyError(`No se pudo modificar la petición. ${vl.message || ""}`.trim()));
+      } finally {
+        setEditingRequestSaving(!1);
       }
     },
     deleteMissionRequest = async (o) => {
-      if (!confirm("¿Eliminar esta petición? Esta acción no se puede deshacer.")) return;
+      if (
+        !(await confirmAction({
+          title: "Eliminar petición",
+          message: "¿Eliminar esta petición? Esta acción no se puede deshacer.",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
+      )
+        return;
       const N = requests;
       setRequests((A) => A.filter((vl) => vl.id !== o));
       try {
@@ -1294,7 +2415,7 @@ function nh() {
       } catch (A) {
         (setRequests(N),
           console.error("Failed deleting request", A),
-          alert(`No se pudo eliminar la petición. ${A.message || ""}`.trim()));
+          notifyError(`No se pudo eliminar la petición. ${A.message || ""}`.trim()));
       }
     },
     // <-------- seccion 7: utilidades de revisiones y alternativas
@@ -1315,24 +2436,50 @@ function nh() {
           (N.status === "PENDING" || N.status === "ALTERNATIVE_SENT"),
       );
       if (Nl) {
-        alert("Este producto ya tiene una revision activa.");
+        notifyInfo("Este producto ya tiene una revision activa.");
         return;
       }
-      const N = prompt("Nota de revision para PS:");
-      if (!N || !N.trim()) return;
-      const A = prompt(
-        "Tipo de revision (CHECK_SIZE, CHECK_STOCK, CHECK_OTHER):",
-        "CHECK_OTHER",
-      );
-      const vl = ["CHECK_SIZE", "CHECK_STOCK", "CHECK_OTHER"].includes(A)
-        ? A
+      const N = await openInputDialog({
+        title: "Nueva revision para PS",
+        message: "Describe lo que PS necesita revisar en este producto.",
+        confirmLabel: "Enviar",
+        fields: [
+          {
+            name: "review_note",
+            label: "Nota",
+            type: "textarea",
+            value: "",
+            placeholder: "Nota de revision para PS",
+            required: !0,
+            requiredMessage: "Escribe una nota de revision.",
+          },
+          {
+            name: "review_type",
+            label: "Tipo",
+            type: "select",
+            value: "CHECK_OTHER",
+            options: [
+              { value: "CHECK_SIZE", label: "Verificar talla/tamaño" },
+              { value: "CHECK_STOCK", label: "Verificar existencia" },
+              { value: "CHECK_OTHER", label: "Otro" },
+            ],
+          },
+        ],
+      });
+      if (!N) return;
+      const A = String(N.review_note || "").trim();
+      if (!A) return;
+      const vl = ["CHECK_SIZE", "CHECK_STOCK", "CHECK_OTHER"].includes(
+        N.review_type,
+      )
+        ? N.review_type
         : "CHECK_OTHER";
       try {
         await I("/reviews/", {
           method: "POST",
           body: JSON.stringify({
             product: o.id,
-            review_note: N.trim(),
+            review_note: A,
             review_type: vl,
             status: "PENDING",
           }),
@@ -1343,7 +2490,7 @@ function nh() {
             id: `tmp-${Date.now()}`,
             product: o.id,
             status: "PENDING",
-            review_note: N.trim(),
+            review_note: A,
           },
           ...El,
         ]);
@@ -1366,32 +2513,69 @@ function nh() {
         return null;
       }
     },
-    openAlternativeUploadModal = (o) => {
-      if (!o) return;
-      (setAltUploadReviewId(o.id),
+    openProductConversation = (o, N = null) => {
+      if (!o && !N) return;
+      const A = N || (o && latestReviewsByProduct[o.id]) || null,
+        vl = o || (A && W && (W.products || []).find((El) => Number(El.id) === Number(A.product))) || null,
+        El = getUnifiedReviewState(getProductReviewState(vl, A));
+      const Se = vl ? String(latestReviewMessageTokenByProduct[vl.id] || "") : "";
+      setOpenProductInfoId(null),
+        setOpenProductMenuId(null),
+        Se &&
+          vl &&
+          setSeenReviewItemMap((ea) => ({ ...ea, [vl.id]: Se })),
+        A &&
+          A.id &&
+          I(`/reviews/${A.id}/mark-seen/`, {
+            method: "POST",
+            body: JSON.stringify({}),
+          }).catch((ea) => {
+            console.error("Failed marking review conversation as seen", ea);
+          }),
+        setReviewConversationEntry({ review: A, product: vl }),
+        setAltUploadReviewId(A ? A.id : null),
+        setAltUploadProductId(vl ? vl.id : A && A.product ? A.product : null),
+        setAltUploadTargetStatus(El),
         setAltUploadDescription(""),
-        setAltUploadFiles([]));
+        setAltUploadFiles([]);
     },
     closeAlternativeUploadModal = () => {
       (setAltUploadReviewId(null),
+        setAltUploadProductId(null),
+        setAltUploadTargetStatus(""),
         setAltUploadDescription(""),
         setAltUploadFiles([]));
     },
-    sendReviewAlternatives = async () => {
-      if (!altUploadReviewId || altUploadFiles.length === 0) return;
-      const o = new FormData();
-      altUploadFiles.forEach((N) => o.append("images", N));
-      altUploadDescription.trim() &&
-        o.append("description", altUploadDescription.trim());
+    sendReviewAlternatives = async (o = {}) => {
+      if (!altUploadReviewId && !altUploadProductId) return;
+      const Nl =
+          W && (W.products || []).find((A) => Number(A.id) === Number(altUploadProductId)),
+        N =
+          altUploadReviewId && latestReviewsByProduct[altUploadProductId]
+            ? latestReviewsByProduct[altUploadProductId]
+            : null,
+        A = String(altUploadDescription || "").trim();
+      if (!Nl) {
+        notifyError("No se encontro el producto para aplicar el cambio.");
+        return;
+      }
       try {
-        await I(`/reviews/${altUploadReviewId}/send-alternative/`, {
-          method: "POST",
-          body: o,
-        });
-        closeAlternativeUploadModal();
+        await syncProductReviewState(
+          Nl,
+          N,
+          altUploadTargetStatus ||
+            getUnifiedReviewState(getProductReviewState(Nl, N)),
+          A,
+          altUploadFiles,
+        );
         await refreshProductReviews(W && W.id);
+        await Qt();
+        o.closeAfterSave !== !1
+          ? closeAlternativeUploadModal()
+          : (setAltUploadDescription(""), setAltUploadFiles([]));
       } catch (N) {
-        console.error("Failed sending alternatives", N);
+        console.error("Failed saving product status change", N);
+        notifyError("No se pudo guardar el cambio de estado del producto.");
       }
     },
     selectReviewAlternative = async (o, N) => {
@@ -1423,7 +2607,10 @@ function nh() {
     },
     sendProductToAv = (o) => {
       if (!o || X !== "PS") return;
-      openAlternativeUploadModal(o);
+      openProductConversation(
+        o,
+        latestReviewsByProduct[o.id] || null,
+      );
     },
     markProductAnnotated = async (o, N = null) => {
       if (!o) return;
@@ -1451,16 +2638,29 @@ function nh() {
     },
     resendReviewToPs = async (o) => {
       if (!o) return;
-      const N = prompt(
-        "Nota para reenviar a PS (opcional):",
-        o.review_note || "",
-      );
+      const N = await openInputDialog({
+        title: "Reenviar a PS",
+        message: "Puedes ajustar la nota antes de reenviar.",
+        confirmLabel: "Reenviar",
+        fields: [
+          {
+            name: "review_note",
+            label: "Nota",
+            type: "textarea",
+            value: o.review_note || "",
+            placeholder: "Nota para PS (opcional)",
+          },
+        ],
+      });
+      if (!N) return;
       try {
         await I(`/reviews/${o.id}/`, {
           method: "PATCH",
           body: JSON.stringify({
             status: "PENDING",
-            review_note: (N || o.review_note || "").trim(),
+            review_note: String(
+              N.review_note || o.review_note || "",
+            ).trim(),
           }),
         });
         o.product &&
@@ -1480,6 +2680,35 @@ function nh() {
       return Number.isFinite(A) ? A : N;
     },
     hasValue = (o) => o !== null && typeof o !== "undefined" && o !== "",
+    amountFormatter = new Intl.NumberFormat("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }),
+    formatAmount = (o) => amountFormatter.format(toNumber(o, 0)),
+    getHomeVisibleProducts = (o) =>
+      (o.products || []).filter(
+        (N) =>
+          N.mission !== null &&
+          typeof N.mission !== "undefined" &&
+          N.status !== "IN_REVIEW" &&
+          N.status !== "REJECTED",
+      ),
+    getHomeClientTotals = (o) =>
+      o.reduce(
+        (N, A) => ({
+          usd: N.usd + toNumber(A.real_price, 0),
+          sale: N.sale + toNumber(A.charged_price, 0),
+        }),
+        { usd: 0, sale: 0 },
+      ),
+    getHomeClientMissionTotals = (o, missionId) =>
+      (o || []).filter(A => A.mission === missionId).reduce(
+        (N, A) => ({
+          usd: N.usd + toNumber(A.real_price, 0),
+          sale: N.sale + toNumber(A.charged_price, 0),
+        }),
+        { usd: 0, sale: 0 },
+      ),
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
@@ -1495,6 +2724,213 @@ function nh() {
         : o === "AV"
           ? "bg-emerald-600/92 text-white border border-emerald-300/80 shadow-sm"
           : "bg-white/92 text-gray-800 border border-white shadow-sm",
+    getProductStatusLabel = (o, N = null) =>
+      o === "REJECTED"
+        ? "Rechazado"
+        : o === "IN_REVIEW"
+          ? "Revision"
+          : o === "SHIPPED"
+            ? "Enviado"
+            : "Anotado",
+    getUnifiedReviewState = (o) =>
+      o === "PS_REVIEW" || o === "AV_REVIEW" ? "REVIEW" : o,
+    getProductReviewState = (o, N = null) =>
+      o && o.status === "REJECTED"
+        ? "REJECTED"
+        : o && o.status === "SHIPPED"
+          ? "SHIPPED"
+          : o && o.status === "IN_REVIEW"
+            ? N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK")
+              ? "AV_REVIEW"
+              : "PS_REVIEW"
+            : "ANNOTATED",
+    getLatestReviewMessageToken = (o = null) => {
+      if (!o || !(o.messages || []).length) return "";
+      const N = [...(o.messages || [])]
+        .sort(
+          (A, vl) =>
+            new Date(vl.created_at || 0).getTime() -
+            new Date(A.created_at || 0).getTime(),
+        )[0];
+      if (!N) return "";
+      return `REVIEW:${N.created_at || ""}`;
+    },
+    getReviewActivityTime = (o = null) => {
+      if (!o) return 0;
+      const N = [...(o.messages || [])].reduce((A, vl) => {
+        const El = new Date(vl.created_at || 0).getTime();
+        return Number.isFinite(El) && El > A ? El : A;
+      }, 0);
+      if (N > 0) return N;
+      const A = new Date(o.updated_at || o.created_at || 0).getTime();
+      return Number.isFinite(A) ? A : 0;
+    },
+    isReviewTokenUnread = (o, N) => {
+      const A = String(o || ""),
+        vl = String(N || "");
+      if (!A.startsWith("REVIEW")) return !1;
+      if (!vl) return !0;
+      if (!vl.startsWith("REVIEW")) return !0;
+      const El = A.split(":")[1] || "",
+        Se = vl.split(":")[1] || "";
+      if (!El) return !1;
+      if (!Se) return !0;
+      return new Date(El).getTime() > new Date(Se).getTime();
+    },
+    getServerSeenReviewToken = (o = null) => {
+      if (!o) return "";
+      const N = o.current_user_last_seen_message_at || "";
+      return N ? `REVIEW:${N}` : "";
+    },
+    getHomeClientReviewState = (o = [], N = {}) => {
+      const A = (o || []).filter(
+        (vl) => vl && vl.status !== "REJECTED" && vl.status !== "SHIPPED",
+      );
+      if (
+        A.some((vl) => {
+          const El = N[vl.id];
+          return !!El && (El.status === "ALTERNATIVE_SENT" || El.status === "NO_STOCK");
+        })
+      )
+        return "REVIEW";
+      if (
+        A.some((vl) => {
+          const El = N[vl.id];
+          return vl.status === "IN_REVIEW" && (!El || El.status === "PENDING");
+        })
+      )
+        return "REVIEW";
+      return "ANNOTATED";
+    },
+    getHomeClientReviewLabel = (o) =>
+      o === "REVIEW"
+        ? "Revision"
+          : "Anotado",
+    getChatStatusActionOptions = (o) => {
+      const N = ["ANNOTATED", "REVIEW", "REJECTED"];
+      return N.filter((A) => A !== o).map((A) => ({
+        value: A,
+        label: getReviewFlowLabel(A),
+      }));
+    },
+    getHomeClientReviewTone = (o, N = !1) =>
+      `${N ? "" : "opacity-78 "} ${
+        o === "REVIEW"
+          ? "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800"
+          : "bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/35 dark:text-emerald-200 dark:border-emerald-800"
+      }`,
+    getReviewFlowLabel = (o) =>
+      o === "PS_REVIEW" || o === "AV_REVIEW" || o === "REVIEW"
+        ? "Revision"
+          : o === "REJECTED"
+            ? "Rechazado"
+            : "Anotado",
+    syncProductReviewState = async (o, N = null, A, vl = "", El = []) => {
+      if (!o) return;
+      const Se = String(vl || "").trim();
+      const hasMessagePayload = !!Se || (El || []).length > 0;
+      const previousState = getUnifiedReviewState(getProductReviewState(o, N));
+      const effectiveTarget =
+        A === "REVIEW"
+          ? N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK")
+            ? "AV_REVIEW"
+            : "PS_REVIEW"
+          : A;
+      const targetState = getUnifiedReviewState(effectiveTarget);
+      let ea = N || null;
+      if (effectiveTarget === "ANNOTATED") {
+        if (!ea && hasMessagePayload)
+          ea = await I("/reviews/", {
+            method: "POST",
+            body: JSON.stringify({
+              product: o.id,
+              review_note: "Producto marcado como anotado.",
+              review_type: "CHECK_OTHER",
+              status: "PENDING",
+            }),
+          });
+        if (ea) await I(`/reviews/${ea.id}/keep-original/`, { method: "POST", body: JSON.stringify({ ps_response: Se || null }) });
+        else if (o.status !== "ANNOTATED")
+          await I(`/products/${o.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: "ANNOTATED" }),
+          });
+      } else if (effectiveTarget === "PS_REVIEW") {
+        if (ea) {
+          await I(`/reviews/${ea.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              status: "PENDING",
+              review_note: String(Se || ea.review_note || "Revision enviada a PS.").trim(),
+            }),
+          });
+          if (o.status !== "IN_REVIEW")
+            await I(`/products/${o.id}/`, {
+              method: "PATCH",
+              body: JSON.stringify({ status: "IN_REVIEW" }),
+            });
+        } else
+          ea = await I("/reviews/", {
+            method: "POST",
+            body: JSON.stringify({
+              product: o.id,
+              review_note: "Revision enviada a PS.",
+              review_type: "CHECK_OTHER",
+              status: "PENDING",
+            }),
+          });
+      } else if (effectiveTarget === "AV_REVIEW") {
+        if (ea) {
+          await I(`/reviews/${ea.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              status: "ALTERNATIVE_SENT",
+              ps_response: Se || null,
+            }),
+          });
+        } else
+          ea = await I("/reviews/", {
+            method: "POST",
+            body: JSON.stringify({
+              product: o.id,
+              review_note: "Revision enviada a AV.",
+              review_type: "CHECK_OTHER",
+              status: "ALTERNATIVE_SENT",
+            }),
+          });
+      } else if (effectiveTarget === "REJECTED") {
+        if (!ea && hasMessagePayload)
+          ea = await I("/reviews/", {
+            method: "POST",
+            body: JSON.stringify({
+              product: o.id,
+              review_note: "Producto rechazado.",
+              review_type: "CHECK_OTHER",
+              status: "PENDING",
+            }),
+          });
+        if (ea) await I(`/reviews/${ea.id}/discard/`, { method: "POST", body: JSON.stringify({ ps_response: Se || null }) });
+        else if (o.status !== "REJECTED")
+          await I(`/products/${o.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: "REJECTED" }),
+          });
+      }
+      if (ea && (Se || (El || []).length > 0)) {
+        const gl = new FormData();
+        Se && gl.append("message", Se);
+        previousState &&
+          targetState &&
+          previousState !== targetState &&
+          gl.append("from_status", previousState);
+        targetState && gl.append("to_status", targetState);
+        (El || []).forEach((ae) => gl.append("files", ae));
+        await I(`/reviews/${ea.id}/send-message/`, {
+          method: "POST",
+          body: gl,
+        });
+      }
+    },
     discountMultiplier = Math.max(0, 1 - toNumber(calcDiscount, 0) / 100),
     modalStorePrice = parseFloat(st.real_price),
     modalFinalPrice = Number.isFinite(modalStorePrice)
@@ -1518,21 +2954,90 @@ function nh() {
         o[N.product] = N;
         return o;
       }
-      const vl = new Date(N.updated_at || N.created_at || 0).getTime(),
-        El = new Date(A.updated_at || A.created_at || 0).getTime();
+      const vl = getReviewActivityTime(N),
+        El = getReviewActivityTime(A);
       vl >= El && (o[N.product] = N);
       return o;
     }, {}),
+    latestMissionReviewsByProduct = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+      (o, N) => {
+        if (!N || !N.product) return o;
+        const A = o[N.product];
+        if (!A) {
+          o[N.product] = N;
+          return o;
+        }
+        const vl = getReviewActivityTime(N),
+          El = getReviewActivityTime(A);
+        vl >= El && (o[N.product] = N);
+        return o;
+      },
+      {},
+    ),
+    latestReviewMessageTokenByProduct = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+      (o, N) => {
+        if (!N || !N.product) return o;
+        const A = getLatestReviewMessageToken(N),
+          vl = String(o[N.product] || "");
+        if (!A) return o;
+        if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
+        return o;
+      },
+      {},
+    ),
+    serverSeenReviewItemMap = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+      (o, N) => {
+        if (!N || !N.product) return o;
+        const A = getServerSeenReviewToken(N),
+          vl = String(o[N.product] || "");
+        if (!A) return o;
+        if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
+        return o;
+      },
+      {},
+    ),
+    mergedSeenReviewItemMap = Object.entries(serverSeenReviewItemMap).reduce(
+      (o, [N, A]) => {
+        const vl = String(seenReviewItemMap[N] || ""),
+          El = String(A || "");
+        o[N] = vl && !isReviewTokenUnread(vl, El) ? vl : El;
+        return o;
+      },
+      { ...seenReviewItemMap },
+    ),
     activeMissionProducts = w
       ? (Kl || []).flatMap((o) =>
         (o.products || []).filter((N) => Number(N.mission) === Number(w.id)),
       )
       : [],
+    requestAssignableClients = [...(Kl || [])].sort((o, N) =>
+      String(o.name || "").localeCompare(String(N.name || ""), "es", {
+        sensitivity: "base",
+      }),
+    ),
+    getClientNameById = (o) => {
+      if (!o) return "";
+      const N = requestAssignableClients.find((A) => Number(A.id) === Number(o));
+      return (N && N.name) || "";
+    },
+    filteredNewRequestClients = requestAssignableClients.filter((o) =>
+      normalizeSearchText(o.name || "").includes(normalizeSearchText(newRequestClientSearch)),
+    ),
+    filteredEditingRequestClients = requestAssignableClients.filter((o) =>
+      normalizeSearchText(o.name || "").includes(normalizeSearchText(editingRequestClientSearch)),
+    ),
     clientGalleryScopeMission = clientGalleryMissionScopeId
       ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId))
       : null,
     missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
     missionProductsCount = activeMissionProducts.length,
+    missionTotalWithoutTaxes = activeMissionProducts.reduce((o, N) => {
+      const A = toNumber(N.real_price, Number.NaN);
+      if (Number.isFinite(A)) return o + A;
+      const vl = toNumber(N.charged_price, Number.NaN);
+      if (!Number.isFinite(vl)) return o;
+      return o + vl / (1 + missionTaxPercentage / 100);
+    }, 0),
     missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
       const A = toNumber(N.charged_price, Number.NaN);
       if (Number.isFinite(A)) return o + A;
@@ -1540,6 +3045,118 @@ function nh() {
       if (!Number.isFinite(vl)) return o;
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
+    filteredMissionSummaryProducts = activeMissionProducts.filter((o) =>
+      missionSummaryStatusFilter === "ALL"
+        ? !0
+        : String(o.status || "").toUpperCase() === missionSummaryStatusFilter,
+    ).sort((o, N) => {
+      if (missionSummaryStatusFilter !== "ALL") return 0;
+      const A = (vl) => {
+          const El = String(vl.status || "").toUpperCase();
+          return El === "REJECTED" ? 2 : El === "IN_REVIEW" ? 1 : 0;
+        },
+        vl = A(o),
+        El = A(N);
+      if (vl !== El) return vl - El;
+      return String(o.name || "").localeCompare(String(N.name || ""), "es", {
+        sensitivity: "base",
+      });
+    }),
+    filteredMissionSummaryTotal = filteredMissionSummaryProducts.reduce((o, N) => {
+      const A = toNumber(N.charged_price, Number.NaN);
+      if (Number.isFinite(A)) return o + A;
+      const vl = toNumber(N.real_price, Number.NaN);
+      if (!Number.isFinite(vl)) return o;
+      return o + vl * (1 + missionTaxPercentage / 100);
+    }, 0),
+    homeClientMissionProductsMap = Rt.reduce((o, N) => {
+      o[N.id] = (N.products || []).filter((A) => Number(A.mission) === Number(w && w.id));
+      return o;
+    }, {}),
+    homeClientReviewItemStates = Rt.reduce((o, N) => {
+      o[N.id] = ((homeClientMissionProductsMap[N.id] || []).reduce((A, vl) => {
+        A[vl.id] = String(latestReviewMessageTokenByProduct[vl.id] || "");
+        return A;
+      }, {}));
+      return o;
+    }, {}),
+    derivedHomeClientReviewUnreadMap = Rt.reduce((o, N) => {
+      const A = Object.entries(homeClientReviewItemStates[N.id] || {}).reduce(
+        (vl, [El, Se]) => {
+          const ea = String(Se || ""),
+            gl = String(mergedSeenReviewItemMap[El] || "");
+          if (isReviewTokenUnread(ea, gl)) vl[El] = ea;
+          return vl;
+        },
+        {},
+      );
+      o[N.id] = A;
+      return o;
+    }, {}),
+    backendHomeClientReviewUnreadMap = Rt.reduce((o, N) => {
+      const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
+      o[N.id] = (A && (A.product_ids || []).reduce((vl, El) => {
+        vl[El] = String(A.latest_activity_at || "");
+        return vl;
+      }, {})) || {};
+      return o;
+    }, {}),
+    effectiveHomeClientReviewUnreadMap = Object.keys(homeUnreadSummary || {}).length
+      ? backendHomeClientReviewUnreadMap
+      : derivedHomeClientReviewUnreadMap,
+    homeClientLatestUnreadActivityMap = Rt.reduce((o, N) => {
+      const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
+      if (A && A.latest_activity_at) {
+        o[N.id] = new Date(A.latest_activity_at).getTime();
+        return o;
+      }
+      const vl = Object.values(
+        derivedHomeClientReviewUnreadMap[N.id] || {},
+      ).reduce((El, Se) => {
+        const ea = String(Se || "").replace(/^REVIEW:/, "");
+        const gl = new Date(ea || 0).getTime();
+        return Number.isFinite(gl) && gl > El ? gl : El;
+      }, 0);
+      o[N.id] = vl;
+      return o;
+    }, {}),
+    homeClientReviewStates = Rt.reduce((o, N) => {
+      o[N.id] = getHomeClientReviewState(
+        homeClientMissionProductsMap[N.id] || [],
+        latestMissionReviewsByProduct,
+      );
+      return o;
+    }, {}),
+    filteredHomeClientsInMission = Rt.filter((o) =>
+      String(o.name || "").toLowerCase().includes(homeClientSearch.trim().toLowerCase()),
+    ).sort((o, N) => {
+      const A = Object.keys(effectiveHomeClientReviewUnreadMap[o.id] || {}).length,
+        vl = Object.keys(effectiveHomeClientReviewUnreadMap[N.id] || {}).length;
+      if (A !== vl) return vl - A;
+      const El = homeClientLatestUnreadActivityMap[o.id] || 0,
+        Se = homeClientLatestUnreadActivityMap[N.id] || 0;
+      if (El !== Se) return Se - El;
+      return String(o.name || "").localeCompare(String(N.name || ""), "es", {
+        sensitivity: "base",
+      });
+    }),
+    currentConversationProductState = reviewConversationEntry
+      ? getUnifiedReviewState(getProductReviewState(
+          reviewConversationEntry.product ||
+            (reviewConversationEntry.review &&
+              W &&
+              (W.products || []).find(
+                (o) => Number(o.id) === Number(reviewConversationEntry.review.product),
+              )) ||
+            null,
+          reviewConversationEntry.review || null,
+        ))
+      : "ANNOTATED",
+    currentConversationStatusActions = getChatStatusActionOptions(
+      currentConversationProductState,
+    ),
+    selectedClientHomeProducts = W ? getHomeVisibleProducts(W) : [],
+    selectedClientHomeTotals = w ? getHomeClientMissionTotals(selectedClientHomeProducts, w.id) : getHomeClientTotals(selectedClientHomeProducts),
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryMissionScopeId
         ? Number(o.mission) === Number(clientGalleryMissionScopeId) &&
@@ -1549,30 +3166,15 @@ function nh() {
             : !0)
         : !0,
     )),
-    galleryPsReviewCount = galleryProducts.filter((o) => {
-      const N = latestReviewsByProduct[o.id];
-      return o.status === "IN_REVIEW" && (!N || N.status === "PENDING");
-    }).length,
-    galleryAvReviewCount = galleryProducts.filter((o) => {
-      const N = latestReviewsByProduct[o.id];
-      return !!N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK");
-    }).length,
+    galleryReviewCount = galleryProducts.filter((o) => o.status === "IN_REVIEW").length,
     galleryAnnotatedCount = galleryProducts.filter((o) =>
       o.status === "ANNOTATED" || o.status === "BOUGHT",
     ).length,
     galleryRejectedCount = galleryProducts.filter((o) => o.status === "REJECTED").length,
     visibleGalleryProducts =
-      wl === "PS_REVIEW"
-        ? galleryProducts.filter((o) => {
-          const N = latestReviewsByProduct[o.id];
-          return o.status === "IN_REVIEW" && (!N || N.status === "PENDING");
-        })
-        : wl === "AV_REVIEW"
-          ? galleryProducts.filter((o) => {
-            const N = latestReviewsByProduct[o.id];
-            return !!N && (N.status === "ALTERNATIVE_SENT" || N.status === "NO_STOCK");
-          })
-          : wl === "REJECTED"
+      wl === "REVIEW"
+        ? galleryProducts.filter((o) => o.status === "IN_REVIEW")
+        : wl === "REJECTED"
             ? galleryProducts.filter((o) => o.status === "REJECTED")
             : galleryProducts.filter((o) =>
               o.status === "ANNOTATED" || o.status === "BOUGHT",
@@ -1591,7 +3193,674 @@ function nh() {
         gl = vl ? new Date(vl.updated_at || vl.created_at || 0).getTime() : 0;
       return gl - ea;
     }),
+    publicFocusedShipment =
+      publicClientShareData &&
+      (publicClientShareData.shipments || []).find(
+        (o) => Number(o.id) === Number(publicClientShareData.focus_shipment_id),
+      ),
+    publicSelectedShipment =
+      publicClientShareData &&
+      (publicClientShareData.shipments || []).find(
+        (o) => Number(o.id) === Number(publicExpandedShipmentId),
+      ),
+    publicShipmentProductIds = publicClientShareData
+      ? new Set(
+          (publicClientShareData.shipments || []).flatMap((o) =>
+            (o.products_detail || []).map((N) => Number(N.id)),
+          ),
+        )
+      : new Set(),
+    publicPendingShipmentProducts = publicClientShareData
+      ? (publicClientShareData.products || []).filter(
+          (o) =>
+            o.status === "ANNOTATED" &&
+            !publicShipmentProductIds.has(Number(o.id)),
+        )
+      : [],
     missionReviewAlertCount = missionReviewAlerts.length;
+  V.useEffect(() => {
+    if (!publicClientShareToken) return;
+    let o = !0;
+    setPublicClientShareLoading(!0);
+    setPublicClientShareError("");
+    publicApiFetch(
+      publicShareType === "shipment"
+        ? `/public/shipment-share/${encodeURIComponent(publicClientShareToken)}/`
+        : `/public/client-share/${encodeURIComponent(publicClientShareToken)}/`,
+    )
+      .then((N) => {
+        o && setPublicClientShareData(N || null);
+      })
+      .catch((N) => {
+        o &&
+          setPublicClientShareError(
+            (N && N.message) || "No se pudo cargar este enlace.",
+          );
+      })
+      .finally(() => {
+        o && setPublicClientShareLoading(!1);
+      });
+    return () => {
+      o = !1;
+    };
+  }, [publicClientShareToken, publicShareType]);
+  V.useEffect(() => {
+    if (!publicClientShareData) return;
+    if (
+      publicShareType === "shipment" &&
+      publicClientShareData.focus_shipment_id
+    ) {
+      setPublicExpandedShipmentId(Number(publicClientShareData.focus_shipment_id));
+      return;
+    }
+    setPublicExpandedShipmentId(null);
+  }, [
+    publicShareType,
+    publicClientShareData &&
+    publicClientShareData.focus_shipment_id,
+    publicClientShareData &&
+    (publicClientShareData.shipments || []).length,
+  ]);
+  V.useEffect(() => {
+    if (!reviewConversationEntry) return;
+    const o =
+      (reviewConversationEntry.product && reviewConversationEntry.product.id) ||
+      (reviewConversationEntry.review && reviewConversationEntry.review.product);
+    if (!o) return;
+    const N =
+        (W &&
+          (W.products || []).find((A) => Number(A.id) === Number(o))) ||
+        reviewConversationEntry.product ||
+        null,
+      A = latestReviewsByProduct[o] || null;
+    ((N &&
+      reviewConversationEntry.product &&
+      Number(N.id) === Number(reviewConversationEntry.product.id) &&
+      A === reviewConversationEntry.review) ||
+      setReviewConversationEntry((vl) =>
+        vl
+          ? {
+              review: A,
+              product: N || vl.product,
+            }
+          : vl,
+      ),
+      altUploadProductId === o || setAltUploadProductId(o),
+      ((A && altUploadReviewId && Number(A.id) === Number(altUploadReviewId)) ||
+        (!A && altUploadReviewId === null)) ||
+        setAltUploadReviewId(A ? A.id : null));
+  }, [
+    reviewConversationEntry,
+    latestReviewsByProduct,
+    W,
+    altUploadProductId,
+    altUploadReviewId,
+  ]);
+  V.useEffect(() => {
+    if (!reviewConversationEntry) return;
+    const o =
+      (reviewConversationEntry.product && reviewConversationEntry.product.id) ||
+      (reviewConversationEntry.review && reviewConversationEntry.review.product);
+    if (!o) return;
+    const N = String(latestReviewMessageTokenByProduct[o] || "");
+    if (!N) return;
+    setSeenReviewItemMap((A) =>
+      String(A[o] || "") === N ? A : { ...A, [o]: N },
+    );
+  }, [reviewConversationEntry, latestReviewMessageTokenByProduct]);
+  V.useEffect(() => {
+    if (!reviewConversationEntry || !J) return;
+    const o =
+      (reviewConversationEntry.product && reviewConversationEntry.product.id) ||
+      (reviewConversationEntry.review && reviewConversationEntry.review.product);
+    if (!o) return;
+    const N = latestReviewsByProduct[o] || reviewConversationEntry.review || null;
+    if (!N || !N.id) return;
+    const A = [...(N.messages || [])]
+      .sort(
+        (vl, El) =>
+          new Date(El.created_at || 0).getTime() -
+          new Date(vl.created_at || 0).getTime(),
+      )[0];
+    if (!A || !A.id) return;
+    const vl =
+      Number(A.sender) === Number(J.id) ||
+      String(A.sender_username || "").toLowerCase() ===
+        String(J.username || "").toLowerCase();
+    if (vl) return;
+    if (Number(N.current_user_last_seen_message_id || 0) >= Number(A.id)) return;
+    I(`/reviews/${N.id}/mark-seen/`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }).catch((El) => {
+      console.error("Failed auto-marking open review conversation as seen", El);
+    });
+  }, [reviewConversationEntry, latestReviewsByProduct, J]);
+  V.useEffect(() => {
+    if (!reviewConversationEntry) return;
+    const o =
+      reviewConversationEntry.product ||
+      (reviewConversationEntry.review &&
+        W &&
+        (W.products || []).find(
+          (N) => Number(N.id) === Number(reviewConversationEntry.review.product),
+        )) ||
+      null;
+    const N =
+      (o && latestReviewsByProduct[o.id]) ||
+      reviewConversationEntry.review ||
+      null;
+    const A = getUnifiedReviewState(getProductReviewState(o, N));
+    setAltUploadTargetStatus((vl) => {
+      const El = reviewConversationStateRef.current;
+      return !vl || vl === El ? A : vl;
+    });
+    reviewConversationStateRef.current = A;
+  }, [reviewConversationEntry, latestReviewsByProduct, W]);
+  V.useEffect(() => {
+    if (!reviewConversationEntry || !reviewConversationScrollRef.current) return;
+    const o = window.requestAnimationFrame(() => {
+      const N = reviewConversationScrollRef.current;
+      N && (N.scrollTop = N.scrollHeight);
+    });
+    return () => window.cancelAnimationFrame(o);
+  }, [
+    reviewConversationEntry,
+    reviewConversationEntry &&
+    reviewConversationEntry.review &&
+    (reviewConversationEntry.review.messages || []).length,
+  ]);
+  if (publicClientShareToken)
+    return c.jsxs("div", {
+      className:
+        "w-full min-h-[100dvh] bg-background-light dark:bg-background-dark flex justify-center px-4 py-6",
+      children: [
+        fullscreenImage &&
+        c.jsx("div", {
+          className:
+            "fixed inset-0 z-[90] bg-black/92 overflow-auto p-4 ui-backdrop",
+          onClick: () => setFullscreenImage(null),
+          children: c.jsxs("div", {
+            className:
+              "min-h-full w-full flex items-center justify-center relative",
+            children: [
+              c.jsx("button", {
+                onClick: () => setFullscreenImage(null),
+                className:
+                  "fixed top-4 right-4 z-[91] w-10 h-10 rounded-full bg-white/90 text-gray-800 border border-gray-200 flex items-center justify-center shadow",
+                children: c.jsx("span", {
+                  className: "material-symbols-outlined",
+                  children: "close",
+                }),
+              }),
+              c.jsx("img", {
+                src: getFullscreenImageUrl(fullscreenImage),
+                className:
+                  "block max-w-none w-auto h-auto min-w-full sm:min-w-0 sm:max-w-[95vw] object-contain",
+                onClick: (o) => o.stopPropagation(),
+              }),
+            ],
+          }),
+        }),
+        c.jsxs("div", {
+        className:
+          "w-full max-w-[480px] rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-xl overflow-hidden",
+        children: [
+          c.jsxs("div", {
+            className:
+              "px-5 py-4 border-b border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/70",
+            children: [
+              c.jsx("p", {
+                className: "text-[10px] font-black tracking-[0.24em] uppercase text-text-sub",
+                children:
+                  publicShareType === "shipment"
+                    ? "Historial del cliente"
+                    : "Historial del cliente",
+              }),
+              c.jsx("h1", {
+                className: "mt-1 text-lg font-black text-text-main dark:text-white",
+                children:
+                  (publicClientShareData && publicClientShareData.client_name) ||
+                  "Cliente",
+              }),
+              publicClientShareData &&
+              c.jsxs("p", {
+                className: "mt-1 text-xs text-text-sub dark:text-slate-400",
+                children: [
+                  publicShareType === "shipment" && publicFocusedShipment
+                    ? `Enfoque en envio #${publicFocusedShipment.id}`
+                    : `${(publicClientShareData.shipments || []).length || 0} envios • ${(
+                        publicClientShareData.receipts || []
+                      ).length || 0} tickets`,
+                ],
+              }),
+            ],
+          }),
+          publicClientShareLoading
+            ? c.jsxs("div", {
+                className: "px-5 py-12 text-center text-text-sub",
+                children: [
+                  c.jsx("span", {
+                    className:
+                      "material-symbols-outlined animate-spin text-3xl text-primary",
+                    children: "progress_activity",
+                  }),
+                  c.jsx("p", {
+                    className: "mt-3 text-sm font-medium",
+                    children: "Cargando productos...",
+                  }),
+                ],
+              })
+            : publicClientShareError
+              ? c.jsxs("div", {
+                  className: "px-5 py-12 text-center",
+                  children: [
+                    c.jsx("span", {
+                      className: "material-symbols-outlined text-4xl text-rose-500",
+                      children: "lock",
+                    }),
+                    c.jsx("p", {
+                      className: "mt-3 text-sm font-semibold text-rose-600",
+                      children: publicClientShareError,
+                    }),
+                  ],
+                })
+              : c.jsxs("div", {
+                  className: "px-4 py-4 space-y-3",
+                  children: [
+                    publicSelectedShipment &&
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                      children: [
+                        publicShareType !== "shipment" &&
+                        c.jsx("button", {
+                          type: "button",
+                          onClick: () => setPublicExpandedShipmentId(null),
+                          className:
+                            "inline-flex items-center gap-1 text-[11px] font-bold text-primary",
+                          children: [
+                            c.jsx("span", {
+                              className: "material-symbols-outlined text-[16px]",
+                              children: "arrow_back",
+                            }),
+                            "Volver al historial",
+                          ],
+                        }),
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-3",
+                          children: [
+                            c.jsx("span", {
+                              className: "text-[10px] font-bold uppercase tracking-wide text-text-sub",
+                              children: "Status de envio",
+                            }),
+                            c.jsx("span", {
+                              className: "px-2 py-1 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200 text-[10px] font-bold uppercase",
+                              children: getShipmentStatusLabel(
+                                publicSelectedShipment.status,
+                              ),
+                            }),
+                          ],
+                        }),
+                        c.jsxs("p", {
+                          className: "text-xs text-text-main dark:text-white",
+                          children: [
+                            publicSelectedShipment.carrier ||
+                              "Paqueteria",
+                            publicSelectedShipment.tracking_number
+                              ? ` • ${publicSelectedShipment.tracking_number}`
+                              : "",
+                          ],
+                        }),
+                        c.jsxs("div", {
+                          className: "grid grid-cols-1 gap-2",
+                          children: [
+                            c.jsxs("div", {
+                              className:
+                                "rounded-xl bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300",
+                                  children: "Precio",
+                                }),
+                                c.jsxs("p", {
+                                  className:
+                                    "text-xs font-semibold text-emerald-800 dark:text-emerald-200 mt-0.5",
+                                  children: [
+                                    "$",
+                                    formatAmount(
+                                      parseFloat(
+                                        publicSelectedShipment.client_price || 0,
+                                      ),
+                                    ),
+                                  ],
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        publicSelectedShipment.shipping_address &&
+                        c.jsxs("div", {
+                          className:
+                            "rounded-xl bg-slate-50 dark:bg-slate-800/70 px-3 py-2",
+                          children: [
+                            c.jsx("p", {
+                              className:
+                                "text-[10px] font-bold uppercase text-text-sub",
+                              children: "Direccion de envio",
+                            }),
+                            c.jsx("p", {
+                              className:
+                                "text-xs text-text-main dark:text-slate-200 mt-0.5 whitespace-pre-wrap",
+                              children: publicSelectedShipment.shipping_address,
+                            }),
+                          ],
+                        }),
+                        (publicSelectedShipment.products_detail || []).length > 0 &&
+                        c.jsxs("div", {
+                          className: "space-y-2 pt-2",
+                          children: [
+                            c.jsxs("div", {
+                              className:
+                                "flex items-center justify-between gap-2",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[11px] font-bold uppercase tracking-wide text-text-sub",
+                                  children: "Productos",
+                                }),
+                                c.jsxs("span", {
+                                  className: "text-[10px] text-text-sub",
+                                  children: [
+                                    (publicSelectedShipment.products_detail || [])
+                                      .length,
+                                    " items",
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsx("div", {
+                              className: "grid grid-cols-2 gap-2",
+                              children: (publicSelectedShipment.products_detail || []).map(
+                                (o) =>
+                                  c.jsxs(
+                                    "div",
+                                    {
+                                      className:
+                                        "rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 p-2 flex gap-2 items-start",
+                                      children: [
+                                        o.image
+                                          ? c.jsx("img", {
+                                              src: resolveMediaUrl(o.image),
+                                              onClick: () =>
+                                                setFullscreenImage(
+                                                  resolveMediaUrl(o.image),
+                                                ),
+                                              className:
+                                                "w-16 h-16 rounded-lg object-cover cursor-zoom-in shrink-0",
+                                            })
+                                          : c.jsx("div", {
+                                              className:
+                                                "w-16 h-16 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-300 dark:text-slate-600 shrink-0",
+                                              children: c.jsx("span", {
+                                                className:
+                                                  "material-symbols-outlined text-2xl",
+                                                children: "image",
+                                              }),
+                                            }),
+                                        c.jsxs("div", {
+                                          className: "min-w-0 flex-1 pt-0.5",
+                                          children: [
+                                            c.jsx("p", {
+                                              className:
+                                                "text-[11px] font-semibold text-text-main dark:text-white line-clamp-2",
+                                              children: o.name,
+                                            }),
+                                            c.jsxs("p", {
+                                              className:
+                                                "mt-1 text-[13px] font-black text-emerald-700 dark:text-emerald-300",
+                                              children: [
+                                                "$",
+                                                formatAmount(
+                                                  parseFloat(
+                                                    o.charged_price ||
+                                                      o.real_price ||
+                                                      0,
+                                                  ),
+                                                ),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                      ],
+                                    },
+                                    `selected-public-shipment-product-${o.id}`,
+                                  ),
+                              ),
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    !publicSelectedShipment &&
+                    (publicClientShareData.shipments || []).length > 0 &&
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-2",
+                          children: [
+                            c.jsx("h3", {
+                              className: "text-sm font-bold text-text-main dark:text-white",
+                              children: "Envios",
+                            }),
+                            c.jsxs("span", {
+                              className: "text-[11px] text-text-sub",
+                              children: [
+                                (publicClientShareData.shipments || []).length,
+                                " total",
+                              ],
+                            }),
+                          ],
+                        }),
+                        c.jsx("div", {
+                          className: "space-y-2",
+                          children: (publicClientShareData.shipments || []).map((o) =>
+                            c.jsxs(
+                              "button",
+                              {
+                                type: "button",
+                                onClick: () =>
+                                  setPublicExpandedShipmentId(Number(o.id)),
+                                className:
+                                  `w-full text-left rounded-xl border px-3 py-2 transition ${Number(publicClientShareData.focus_shipment_id) === Number(o.id) ? "border-primary bg-primary/5" : "border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-800/50"}`,
+                                children: [
+                                  c.jsxs("div", {
+                                    className: "flex items-center justify-between gap-2",
+                                    children: [
+                                      c.jsxs("div", {
+                                        className: "min-w-0",
+                                        children: [
+                                          c.jsx("p", {
+                                            className: "text-xs font-bold text-text-main dark:text-white truncate",
+                                            children:
+                                              o.tracking_number ||
+                                              o.carrier ||
+                                              `Envio #${o.id}`,
+                                          }),
+                                          c.jsxs("p", {
+                                            className: "mt-1 text-[11px] text-text-sub",
+                                            children: [
+                                              "Precio: $",
+                                              formatAmount(parseFloat(o.client_price || 0)),
+                                            ],
+                                          }),
+                                        ],
+                                      }),
+                                      c.jsxs("div", {
+                                        className: "flex items-center gap-2 shrink-0",
+                                        children: [
+                                          c.jsx("span", {
+                                            className: "text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300",
+                                            children: getShipmentStatusLabel(o.status),
+                                          }),
+                                          c.jsx("span", {
+                                            className: "material-symbols-outlined text-[18px] text-text-sub",
+                                            children: "chevron_right",
+                                          }),
+                                        ],
+                                      }),
+                                    ],
+                                  }),
+                                  o.shipping_address &&
+                                  c.jsx("p", {
+                                    className: "mt-1 text-[11px] text-text-sub line-clamp-2",
+                                    children: o.shipping_address,
+                                  }),
+                                ],
+                              },
+                              `public-shipment-${o.id}`,
+                            ),
+                          ),
+                        }),
+                      ],
+                    }),
+                    !publicSelectedShipment &&
+                    publicPendingShipmentProducts.length > 0 &&
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-3",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-2",
+                          children: [
+                            c.jsx("h3", {
+                              className: "text-sm font-bold text-amber-900 dark:text-amber-100",
+                              children: "Pendiente",
+                            }),
+                            c.jsxs("span", {
+                              className: "text-[11px] text-amber-700 dark:text-amber-300",
+                              children: [
+                                publicPendingShipmentProducts.length,
+                                " item",
+                                publicPendingShipmentProducts.length === 1 ? "" : "s",
+                              ],
+                            }),
+                          ],
+                        }),
+                        c.jsx("div", {
+                          className: "grid grid-cols-2 gap-2",
+                          children: publicPendingShipmentProducts.map((o) =>
+                            c.jsxs(
+                              "div",
+                              {
+                                className:
+                                  "rounded-xl border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-2 flex gap-2 items-start",
+                                children: [
+                                  o.image
+                                    ? c.jsx("img", {
+                                        src: resolveMediaUrl(o.image),
+                                        onClick: () =>
+                                          setFullscreenImage(resolveMediaUrl(o.image)),
+                                        className:
+                                          "w-16 h-16 rounded-lg object-cover cursor-zoom-in shrink-0",
+                                      })
+                                    : c.jsx("div", {
+                                        className:
+                                          "w-16 h-16 rounded-lg bg-amber-100/80 dark:bg-amber-950/20 flex items-center justify-center text-amber-300 dark:text-amber-700 shrink-0",
+                                        children: c.jsx("span", {
+                                          className:
+                                            "material-symbols-outlined text-2xl",
+                                          children: "image",
+                                        }),
+                                      }),
+                                  c.jsxs("div", {
+                                    className: "min-w-0 flex-1 pt-0.5",
+                                    children: [
+                                      c.jsx("p", {
+                                        className:
+                                          "text-[11px] font-semibold text-text-main dark:text-white line-clamp-2",
+                                        children: o.name,
+                                      }),
+                                      c.jsxs("p", {
+                                        className:
+                                          "mt-1 text-[13px] font-black text-amber-700 dark:text-amber-300",
+                                        children: [
+                                          "$",
+                                          formatAmount(
+                                            parseFloat(
+                                              o.charged_price || o.real_price || 0,
+                                            ),
+                                          ),
+                                        ],
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              },
+                              `public-pending-product-${o.id}`,
+                            ),
+                          ),
+                        }),
+                      ],
+                    }),
+                    !publicSelectedShipment &&
+                    (publicClientShareData.receipts || []).length > 0 &&
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                      children: [
+                        c.jsx("h3", {
+                          className: "text-sm font-bold text-text-main dark:text-white",
+                          children: "Tickets",
+                        }),
+                        c.jsx("div", {
+                          className: "grid grid-cols-3 gap-2",
+                          children: (publicClientShareData.receipts || []).map((o) =>
+                            c.jsx(
+                              "button",
+                              {
+                                type: "button",
+                                onClick: () =>
+                                  o.image &&
+                                  setFullscreenImage(resolveMediaUrl(o.image)),
+                                className:
+                                  "overflow-hidden rounded-xl border border-border-light dark:border-border-dark bg-slate-50 dark:bg-slate-800 aspect-square",
+                                children: o.image
+                                  ? c.jsx("img", {
+                                      src: resolveMediaUrl(o.image),
+                                      className: "w-full h-full object-cover",
+                                    })
+                                  : c.jsx("div", {
+                                      className:
+                                        "w-full h-full flex items-center justify-center text-slate-400",
+                                      children: c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined text-[20px]",
+                                        children: "receipt_long",
+                                      }),
+                                    }),
+                              },
+                              `public-receipt-${o.id}`,
+                            ),
+                          ),
+                        }),
+                      ],
+                    }),
+                    (publicClientShareData.shipments || []).length === 0 &&
+                    c.jsx("div", {
+                          className:
+                            "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-10 text-center text-sm text-text-sub",
+                          children: "No hay envios para mostrar.",
+                        }),
+                  ],
+                }),
+        ],
+      }),
+      ],
+    });
   if (!C || !J)
     return c.jsxs("div", {
       className:
@@ -1606,7 +3875,7 @@ function nh() {
               children: "shopping_cart",
             }),
             c.jsx("h1", {
-              className: "text-3xl font-black mb-2",
+              className: "text-3xl md:text-4xl font-black mb-2",
               children: "Personal Shopper",
             }),
             c.jsx("p", {
@@ -1623,7 +3892,7 @@ function nh() {
         }),
         c.jsxs("form", {
           onSubmit: Ai,
-          className: "space-y-4",
+          className: "space-y-3 md:space-y-4",
           children: [
             c.jsx("div", {
               children: c.jsx("input", {
@@ -1631,7 +3900,7 @@ function nh() {
                 value: cl.username,
                 onChange: (o) => Ql({ ...cl, username: o.target.value }),
                 className:
-                  "w-full border p-4 rounded-xl bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 ring-primary",
+                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
                 required: !0,
               }),
             }),
@@ -1642,7 +3911,7 @@ function nh() {
                 value: cl.password,
                 onChange: (o) => Ql({ ...cl, password: o.target.value }),
                 className:
-                  "w-full border p-4 rounded-xl bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 ring-primary",
+                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
                 required: !0,
               }),
             }),
@@ -1652,7 +3921,7 @@ function nh() {
                 value: cl.role,
                 onChange: (o) => Ql({ ...cl, role: o.target.value }),
                 className:
-                  "w-full border p-4 rounded-xl bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 ring-primary",
+                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
                 children: [
                   c.jsx("option", {
                     value: "AV",
@@ -1672,13 +3941,13 @@ function nh() {
             c.jsx("button", {
               type: "submit",
               className:
-                "w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl shadow-lg transition",
+                "w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 md:py-4 rounded-xl shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all",
               children: Q === "LOGIN" ? "Access Account" : "Register Account",
             }),
           ],
         }),
         c.jsx("div", {
-          className: "mt-8 text-center text-sm",
+          className: "mt-6 md:mt-8 pb-4 text-center text-sm",
           children: c.jsx("button", {
             onClick: () => {
               (al(Q === "LOGIN" ? "REGISTER" : "LOGIN"), T(""));
@@ -1694,7 +3963,7 @@ function nh() {
     });
   const ta = () =>
     c.jsxs("div", {
-      className: "space-y-6",
+      className: "flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark",
       children: [
         false && c.jsxs("div", {
           className:
@@ -1779,7 +4048,7 @@ function nh() {
         }),
         c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark shadow-sm",
+            "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
               className: "mb-4",
@@ -1789,7 +4058,7 @@ function nh() {
                   children: ["Peticiones (", requests.length, ")"],
                 }),
                 c.jsx("div", {
-                  className: "space-y-2 pr-1",
+                  className: "space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll",
                   children:
                     requests.length === 0
                       ? c.jsx("p", {
@@ -1800,32 +4069,173 @@ function nh() {
                           c.jsxs(
                             "div",
                             {
-                              className: `relative rounded-2xl border-l-4 px-3 py-2.5 shadow-sm transition ${o.status === "ACKNOWLEDGED" ? "bg-emerald-100/95 border-emerald-500 border-l-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:border-l-emerald-500" : o.status === "NO_STOCK" ? "bg-rose-100/95 border-rose-500 border-l-rose-700 dark:bg-rose-950/60 dark:border-rose-700 dark:border-l-rose-500" : o.status === "MODIFIED" ? "bg-amber-100/95 border-amber-500 border-l-amber-700 dark:bg-amber-950/60 dark:border-amber-700 dark:border-l-amber-500" : o.status === "DISCARDED" ? "bg-slate-100/95 border-slate-400 border-l-slate-600 dark:bg-slate-900 dark:border-slate-600 dark:border-l-slate-400" : "bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400"}`,
+                              className: `relative rounded-xl border-l-4 px-3 py-2.5 shadow-sm transition ${o.status === "ACKNOWLEDGED" ? "bg-emerald-100/95 border-emerald-500 border-l-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:border-l-emerald-500" : o.status === "NO_STOCK" ? "bg-rose-100/95 border-rose-500 border-l-rose-700 dark:bg-rose-950/60 dark:border-rose-700 dark:border-l-rose-500" : o.status === "MODIFIED" ? "bg-amber-100/95 border-amber-500 border-l-amber-700 dark:bg-amber-950/60 dark:border-amber-700 dark:border-l-amber-500" : o.status === "DISCARDED" ? "bg-slate-100/95 border-slate-400 border-l-slate-600 dark:bg-slate-900 dark:border-slate-600 dark:border-l-slate-400" : "bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400"}`,
                               children: [
                                 editingRequestId === o.id
                                   ? c.jsxs("div", {
-                                      className: "flex items-center gap-2",
+                                      className: "space-y-2",
                                       children: [
-                                        c.jsx("input", {
-                                          type: "text",
-                                          value: editingRequestText,
-                                          onChange: (N) => setEditingRequestText(N.target.value),
-                                          className:
-                                            "flex-1 px-2 py-1 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                                        c.jsxs("div", {
+                                          className: "flex items-center gap-2",
+                                          children: [
+                                            c.jsxs("div", {
+                                              className: "relative shrink-0",
+                                              children: [
+                                                c.jsx("button", {
+                                                  type: "button",
+                                                  onClick: () =>
+                                                    setEditingRequestClientPickerOpen((N) => !N),
+                                                  className:
+                                                    "w-9 h-9 rounded-md border border-slate-300 bg-white/85 text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800 flex items-center justify-center",
+                                                  title:
+                                                    getClientNameById(editingRequestClientId) ||
+                                                    "Asignar cliente",
+                                                  children: c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-[15px]",
+                                                    children: "person",
+                                                  }),
+                                                }),
+                                                editingRequestClientPickerOpen &&
+                                                c.jsxs("div", {
+                                                  className:
+                                                    "absolute left-0 top-11 z-30 w-52 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2",
+                                                  children: [
+                                                    c.jsx("input", {
+                                                      type: "text",
+                                                      value: editingRequestClientSearch,
+                                                      onChange: (N) =>
+                                                        setEditingRequestClientSearch(N.target.value),
+                                                      placeholder: "Buscar cliente...",
+                                                      className:
+                                                        "w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                                                    }),
+                                                    c.jsxs("button", {
+                                                      type: "button",
+                                                      onClick: () => {
+                                                        setEditingRequestClientId("");
+                                                        setEditingRequestClientPickerOpen(!1);
+                                                        setEditingRequestClientSearch("");
+                                                      },
+                                                      className:
+                                                        "mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800",
+                                                      children: [
+                                                        "Sin cliente",
+                                                        getClientNameById(editingRequestClientId)
+                                                          ? ""
+                                                          : " ✓",
+                                                      ],
+                                                    }),
+                                                    c.jsx("div", {
+                                                      className: "mt-1 max-h-44 overflow-y-auto ios-scroll",
+                                                      children:
+                                                        filteredEditingRequestClients.length > 0
+                                                          ? filteredEditingRequestClients.map((N) =>
+                                                              c.jsx(
+                                                                "button",
+                                                                {
+                                                                  type: "button",
+                                                                  onClick: () => {
+                                                                    setEditingRequestClientId(String(N.id));
+                                                                    setEditingRequestClientPickerOpen(!1);
+                                                                    setEditingRequestClientSearch("");
+                                                                  },
+                                                                  className:
+                                                                    "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
+                                                                  children:
+                                                                    String(editingRequestClientId) === String(N.id)
+                                                                      ? `${N.name} ✓`
+                                                                      : N.name,
+                                                                },
+                                                                `request-edit-client-${N.id}`,
+                                                              ),
+                                                            )
+                                                          : c.jsx("p", {
+                                                              className:
+                                                                "px-2.5 py-3 text-[11px] text-gray-400 text-center",
+                                                              children: "Sin coincidencias",
+                                                            }),
+                                                    }),
+                                                  ],
+                                                }),
+                                              ],
+                                            }),
+                                            c.jsx("input", {
+                                              type: "text",
+                                              value: editingRequestText,
+                                              onChange: (N) => setEditingRequestText(N.target.value),
+                                              className:
+                                                "flex-1 px-2 py-1 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                                            }),
+                                            c.jsx("button", {
+                                              onClick: pickEditingRequestImage,
+                                              disabled: editingRequestSaving,
+                                              className:
+                                                `w-9 h-9 rounded-md border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200 flex items-center justify-center ${editingRequestSaving ? "opacity-60 cursor-wait" : ""}`,
+                                              title: "Cambiar imagen",
+                                              children: c.jsx("span", {
+                                                className: "material-symbols-outlined text-[16px]",
+                                                children: "imagesmode",
+                                              }),
+                                            }),
+                                          ],
                                         }),
-                                        c.jsx("button", {
-                                          onClick: () => saveRequestModify(o),
+                                        editingRequestImagePreview &&
+                                        c.jsxs("div", {
                                           className:
-                                            "text-[10px] px-3 py-1.5 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition",
-                                          children: "Guardar",
+                                            "flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-2 text-[11px] text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100",
+                                          children: [
+                                            c.jsx("p", {
+                                              className: "min-w-0 flex-1 truncate",
+                                              children:
+                                                editingRequestImageFile &&
+                                                editingRequestImageFile.name
+                                                  ? editingRequestImageFile.name
+                                                  : "Imagen actual",
+                                            }),
+                                            c.jsxs("button", {
+                                              type: "button",
+                                              onClick: () =>
+                                                setFullscreenImage({
+                                                  url: editingRequestImagePreview,
+                                                  copyOnClick: !0,
+                                                  copyMessage: "Imagen copiada.",
+                                                }),
+                                              className:
+                                                "shrink-0 rounded-md border border-sky-300 px-2 py-1 font-semibold text-sky-700 dark:border-sky-700 dark:text-sky-200",
+                                              children: [
+                                                c.jsx("span", {
+                                                  className:
+                                                    "material-symbols-outlined mr-1 text-[13px] align-[-2px]",
+                                                  children: "image",
+                                                }),
+                                                "Abrir",
+                                              ],
+                                            }),
+                                          ],
                                         }),
-                                        c.jsx("button", {
-                                          onClick: () => {
-                                            setEditingRequestId(null);
-                                          },
-                                          className:
-                                            "text-[10px] px-3 py-1.5 rounded-full bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition",
-                                          children: "X",
+                                        c.jsxs("div", {
+                                          className: "flex items-center gap-2",
+                                          children: [
+                                            c.jsx("button", {
+                                              onClick: () => saveRequestModify(o),
+                                              disabled:
+                                                editingRequestSaving ||
+                                                !editingRequestText.trim(),
+                                              className:
+                                                `text-[10px] px-3 py-1.5 rounded-full text-white font-semibold transition ${editingRequestSaving || !editingRequestText.trim() ? "bg-amber-300 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-600"}`,
+                                              children: editingRequestSaving
+                                                ? "Guardando..."
+                                                : "Guardar",
+                                            }),
+                                            c.jsx("button", {
+                                              onClick: cancelRequestModify,
+                                              disabled: editingRequestSaving,
+                                              className:
+                                                "text-[10px] px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition disabled:opacity-60 disabled:cursor-not-allowed",
+                                              children: "X",
+                                            }),
+                                          ],
                                         }),
                                       ],
                                     })
@@ -1838,17 +4248,6 @@ function nh() {
                                             c.jsx("p", {
                                               className: "text-xs font-semibold truncate text-gray-900 dark:text-gray-100",
                                               children: o.description,
-                                            }),
-                                            o.image &&
-                                            c.jsx("button", {
-                                              onClick: () =>
-                                                setFullscreenImage(resolveMediaUrl(o.image)),
-                                              className:
-                                                "mt-2 overflow-hidden rounded-xl border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800",
-                                              children: c.jsx("img", {
-                                                src: resolveMediaUrl(o.image),
-                                                className: "w-16 h-16 object-cover",
-                                              }),
                                             }),
                                             c.jsxs("div", {
                                               className: "mt-1 flex items-center gap-1.5",
@@ -1883,6 +4282,22 @@ function nh() {
                                         c.jsxs("div", {
                                           className: "shrink-0 flex items-center gap-1",
                                           children: [
+                                            o.image &&
+                                            c.jsx("button", {
+                                              onClick: () =>
+                                                setFullscreenImage({
+                                                  url: resolveMediaUrl(o.image),
+                                                  copyOnClick: !0,
+                                                  copyMessage: "Imagen copiada.",
+                                                }),
+                                              className:
+                                                "w-8 h-8 rounded-md border border-slate-300 bg-white/85 text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800 flex items-center justify-center",
+                                              title: "Abrir imagen",
+                                              children: c.jsx("span", {
+                                                className: "material-symbols-outlined text-[14px]",
+                                                children: "image",
+                                              }),
+                                            }),
                                             c.jsx("button", {
                                               onClick: () =>
                                                 updateMissionRequest(
@@ -1892,7 +4307,7 @@ function nh() {
                                                     : "ACKNOWLEDGED",
                                                 ),
                                               className:
-                                                "w-8 h-8 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center",
+                                                "w-8 h-8 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center",
                                               title: "Enterado",
                                               children: c.jsx("span", {
                                                 className: "material-symbols-outlined text-[14px]",
@@ -1908,7 +4323,7 @@ function nh() {
                                                     : "NO_STOCK",
                                                 ),
                                               className:
-                                                "w-8 h-8 rounded-lg border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center",
+                                                "w-8 h-8 rounded-md border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center",
                                               title: "No existencia",
                                               children: c.jsx("span", {
                                                 className: "material-symbols-outlined text-[14px]",
@@ -1918,7 +4333,7 @@ function nh() {
                                             c.jsx("button", {
                                               onClick: () => startRequestModify(o),
                                               className:
-                                                "w-8 h-8 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center",
+                                                "w-8 h-8 rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center",
                                               title: "Modificar",
                                               children: c.jsx("span", {
                                                 className: "material-symbols-outlined text-[14px]",
@@ -1928,7 +4343,7 @@ function nh() {
                                             c.jsx("button", {
                                               onClick: () => deleteMissionRequest(o.id),
                                               className:
-                                                "w-8 h-8 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center",
+                                                "w-8 h-8 rounded-md border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center",
                                               title: "Eliminar",
                                               children: c.jsx("span", {
                                                 className: "material-symbols-outlined text-[14px]",
@@ -1951,45 +4366,135 @@ function nh() {
                     newRequestImagePreview &&
                     c.jsxs("div", {
                       className:
-                        "flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40",
+                        "flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-2 text-[11px] text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100",
                       children: [
-                        c.jsx("img", {
-                          src: newRequestImagePreview,
-                          className: "w-12 h-12 rounded-lg object-cover border border-sky-200 dark:border-sky-800",
-                        }),
                         c.jsx("p", {
-                          className: "flex-1 text-[11px] text-sky-900 dark:text-sky-100",
+                          className: "min-w-0 flex-1 truncate",
                           children: newRequestImageFile && newRequestImageFile.name
                             ? newRequestImageFile.name
                             : "Imagen seleccionada",
                         }),
-                        c.jsx("button", {
-                          onClick: clearNewRequestImage,
-                          className:
-                            "w-8 h-8 rounded-full border border-sky-300 bg-white text-sky-700 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200 flex items-center justify-center",
-                          title: "Quitar imagen",
-                          children: c.jsx("span", {
-                            className: "material-symbols-outlined text-[16px]",
-                            children: "close",
-                          }),
+                        c.jsxs("div", {
+                          className: "flex items-center gap-1.5",
+                          children: [
+                            c.jsx("button", {
+                              type: "button",
+                              onClick: () =>
+                                setFullscreenImage({
+                                  url: newRequestImagePreview,
+                                  copyOnClick: !0,
+                                  copyMessage: "Imagen copiada.",
+                                }),
+                              className:
+                                "rounded-md border border-sky-300 px-2 py-1 font-semibold text-sky-700 dark:border-sky-700 dark:text-sky-200",
+                              children: "Abrir",
+                            }),
+                            c.jsx("button", {
+                              onClick: clearNewRequestImage,
+                              className:
+                                "rounded-md border border-sky-300 px-2 py-1 font-semibold text-sky-700 dark:border-sky-700 dark:text-sky-200",
+                              title: "Quitar imagen",
+                              children: "Quitar",
+                            }),
+                          ],
                         }),
                       ],
                     }),
                     c.jsxs("div", {
-                      className: "flex gap-2",
+                      className: "flex gap-2 items-center flex-wrap sm:flex-nowrap w-full",
                       children: [
+                        c.jsxs("div", {
+                          className: "relative shrink-0",
+                          children: [
+                            c.jsx("button", {
+                              type: "button",
+                              onClick: () =>
+                                setNewRequestClientPickerOpen((o) => !o),
+                              className:
+                                "w-10 h-10 rounded-lg border border-slate-300 bg-white/85 text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800 flex items-center justify-center",
+                              title:
+                                getClientNameById(newRequestClientId) ||
+                                "Asignar cliente",
+                              children: c.jsx("span", {
+                                className:
+                                  "material-symbols-outlined text-[16px]",
+                                children: "person",
+                              }),
+                            }),
+                            newRequestClientPickerOpen &&
+                            c.jsxs("div", {
+                              className:
+                                "absolute left-0 top-12 z-30 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2",
+                              children: [
+                                c.jsx("input", {
+                                  type: "text",
+                                  value: newRequestClientSearch,
+                                  onChange: (o) =>
+                                    setNewRequestClientSearch(o.target.value),
+                                  placeholder: "Buscar cliente...",
+                                  className:
+                                    "w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                                }),
+                                c.jsxs("button", {
+                                  type: "button",
+                                  onClick: () => {
+                                    setNewRequestClientId("");
+                                    setNewRequestClientPickerOpen(!1);
+                                    setNewRequestClientSearch("");
+                                  },
+                                  className:
+                                    "mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800",
+                                  children: [
+                                    "Sin cliente",
+                                    getClientNameById(newRequestClientId) ? "" : " ✓",
+                                  ],
+                                }),
+                                c.jsx("div", {
+                                  className: "mt-1 max-h-44 overflow-y-auto ios-scroll",
+                                  children:
+                                    filteredNewRequestClients.length > 0
+                                      ? filteredNewRequestClients.map((o) =>
+                                          c.jsx(
+                                            "button",
+                                            {
+                                              type: "button",
+                                              onClick: () => {
+                                                setNewRequestClientId(String(o.id));
+                                                setNewRequestClientPickerOpen(!1);
+                                                setNewRequestClientSearch("");
+                                              },
+                                              className:
+                                                "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
+                                              children:
+                                                String(newRequestClientId) === String(o.id)
+                                                  ? `${o.name} ✓`
+                                                  : o.name,
+                                            },
+                                            `request-client-${o.id}`,
+                                          ),
+                                        )
+                                      : c.jsx("p", {
+                                          className:
+                                            "px-2.5 py-3 text-[11px] text-gray-400 text-center",
+                                          children: "Sin coincidencias",
+                                        }),
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
                         c.jsx("input", {
                           type: "text",
                           value: newRequestText,
                           onChange: (o) => setNewRequestText(o.target.value),
                           placeholder: "Nueva petición...",
                           className:
-                            "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                            "flex-1 min-w-[120px] px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                         }),
                         c.jsx("button", {
                           onClick: pickRequestImage,
                           className:
-                            "px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200",
+                            "px-3 py-2 rounded-lg border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200 flex-shrink-0",
                           title: "Adjuntar foto",
                           children: c.jsx("span", {
                             className: "material-symbols-outlined text-[18px]",
@@ -1999,7 +4504,7 @@ function nh() {
                         c.jsx("button", {
                           onClick: createMissionRequest,
                           disabled: !newRequestText.trim() && !newRequestImageFile,
-                          className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
+                          className: `px-4 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 flex-1 sm:flex-none ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
                           children: "Enviar",
                         }),
                       ],
@@ -2014,51 +4519,135 @@ function nh() {
         Rt.length > 0 &&
         c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark shadow-sm",
+            "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
-            c.jsxs("h3", {
-              className:
-                "font-bold text-sm mb-3 text-text-main dark:text-white",
-              children: ["Clients in Mission (", Rt.length, ")"],
+            c.jsxs("div", {
+              className: "mb-3 space-y-2",
+              children: [
+                c.jsxs("h3", {
+                  className:
+                    "font-bold text-sm text-text-main dark:text-white",
+                  children: ["Clients in Mission (", filteredHomeClientsInMission.length, ")"],
+                }),
+                c.jsx("input", {
+                  type: "text",
+                  value: homeClientSearch,
+                  onChange: (o) => setHomeClientSearch(o.target.value),
+                  placeholder: "Buscar client...",
+                  className:
+                    "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                }),
+              ],
             }),
             c.jsx("div", {
-              className: "space-y-2",
-              children: Rt.map((o) =>
+              className:
+                "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
+              children: filteredHomeClientsInMission.map((o) =>
                 c.jsxs(
                   "div",
                   {
-                    onClick: () => Ta(o, w && w.id),
                     className:
-                      "flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition",
+                      "flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition",
                     children: [
                       c.jsx("div", {
+                        onClick: () => Ta(o, w && w.id),
                         className:
                           "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg uppercase border border-primary/20",
                         children: o.name.charAt(0),
                       }),
                       c.jsxs("div", {
+                        onClick: () => Ta(o, w && w.id),
                         className: "flex-1 min-w-0",
                         children: [
-                          c.jsx("p", {
-                            className:
-                              "font-semibold text-xs text-text-main dark:text-gray-100",
-                            children: o.name,
-                          }),
-                          c.jsxs("p", {
-                            className: "text-[10px] text-gray-500",
+                          c.jsxs("div", {
+                            className: "flex items-center justify-between gap-2",
                             children: [
-                              (o.products || []).filter(
-                                (N) => N.mission === w.id,
-                              ).length,
-                              " items in this mission",
+                              c.jsxs("div", {
+                                className: "min-w-0",
+                                children: [
+                                  c.jsxs("div", {
+                                    className: "flex items-center gap-2 min-w-0",
+                                    children: [
+                                      c.jsx("p", {
+                                        className:
+                                          "font-semibold text-xs text-text-main dark:text-gray-100 truncate",
+                                        children: o.name,
+                                      }),
+                                      !!Object.keys(effectiveHomeClientReviewUnreadMap[o.id] || {}).length &&
+                                      c.jsx("span", {
+                                        className:
+                                          "shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-bold",
+                                        children: Object.keys(
+                                          effectiveHomeClientReviewUnreadMap[o.id] || {},
+                                        ).length,
+                                      }),
+                                    ],
+                                  }),
+                                  c.jsxs("p", {
+                                    className: "text-[10px] text-gray-500",
+                                    children: [
+                                      (homeClientMissionProductsMap[o.id] || []).length,
+                                      " items in this mission",
+                                    ],
+                                  }),
+                                ],
+                              }),
                             ],
                           }),
+                          c.jsxs("div", {
+                            className: "flex gap-2 mt-1",
+                            children: [
+                              c.jsxs("span", {
+                                className: "px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold",
+                                children: ["USD: $", formatAmount(getHomeClientMissionTotals(o.products || [], w.id).usd)]
+                              }),
+                              c.jsxs("span", {
+                                className: "px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold",
+                                children: ["Venta: $", formatAmount(getHomeClientMissionTotals(o.products || [], w.id).sale)]
+                              })
+                            ]
+                          })
                         ],
                       }),
-                      c.jsx("span", {
-                        className:
-                          "material-symbols-outlined text-gray-400 text-[18px]",
-                        children: "chevron_right",
+                      c.jsxs("div", {
+                        className: "shrink-0 flex items-center gap-1.5",
+                        children: [
+                          c.jsx("button", {
+                            type: "button",
+                            onClick: (N) => {
+                              N.stopPropagation();
+                              const A = `home-${w.id}-${o.id}`;
+                              if (copiedMissionClients.includes(A)) {
+                                setCopiedMissionClients((vl) =>
+                                  vl.filter((El) => El !== A),
+                                );
+                                return;
+                              }
+                              copyAnnotatedMissionBreakdown(w, o);
+                            },
+                            className:
+                              `w-8 h-8 rounded-md border flex items-center justify-center transition ${
+                                copiedMissionClients.includes(`home-${w.id}-${o.id}`)
+                                  ? "border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/35 dark:text-sky-200"
+                                  : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
+                              }`,
+                            title: copiedMissionClients.includes(`home-${w.id}-${o.id}`)
+                              ? "Desglose copiado"
+                              : "Copiar desglose",
+                            children: c.jsx("span", {
+                              className: "material-symbols-outlined text-[13px]",
+                              children: copiedMissionClients.includes(`home-${w.id}-${o.id}`)
+                                ? "done"
+                                : "receipt_long",
+                            }),
+                          }),
+                          c.jsx("span", {
+                            onClick: () => Ta(o, w && w.id),
+                            className:
+                              "material-symbols-outlined text-gray-400 text-[18px]",
+                            children: "chevron_right",
+                          }),
+                        ],
                       }),
                     ],
                   },
@@ -2072,7 +4661,7 @@ function nh() {
         Rt.length === 0 &&
         c.jsxs("div", {
           className:
-            "text-center py-6 bg-surface-light dark:bg-surface-dark rounded-xl border border-dashed border-gray-300 dark:border-gray-700",
+            "text-center py-8 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark",
           children: [
             c.jsx("p", {
               className: "text-gray-400 text-sm",
@@ -2109,21 +4698,76 @@ function nh() {
                         children: [
                           editingRequestId === o.id
                             ? c.jsxs("div", {
-                              className: "flex gap-2 mb-2",
+                              className: "space-y-2 mb-2",
                               children: [
-                                c.jsx("input", {
-                                  type: "text",
-                                  value: editingRequestText,
-                                  onChange: (N) =>
-                                    setEditingRequestText(N.target.value),
-                                  className:
-                                    "flex-1 px-2 py-1 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                                c.jsxs("div", {
+                                  className: "flex gap-2",
+                                  children: [
+                                    c.jsx("input", {
+                                      type: "text",
+                                      value: editingRequestText,
+                                      onChange: (N) =>
+                                        setEditingRequestText(N.target.value),
+                                      className:
+                                        "flex-1 px-2 py-1 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700",
+                                    }),
+                                    c.jsx("button", {
+                                      onClick: pickEditingRequestImage,
+                                      disabled: editingRequestSaving,
+                                      className:
+                                        `px-2 py-1 rounded-lg border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200 ${editingRequestSaving ? "opacity-60 cursor-wait" : ""}`,
+                                      title: "Cambiar imagen",
+                                      children: c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined text-[16px]",
+                                        children: "imagesmode",
+                                      }),
+                                    }),
+                                  ],
                                 }),
-                                c.jsx("button", {
-                                  onClick: () => saveRequestModify(o),
+                                editingRequestImagePreview &&
+                                c.jsxs("div", {
                                   className:
-                                    "text-xs px-2 py-1 rounded bg-amber-500 text-white font-semibold",
-                                  children: "Guardar",
+                                    "flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40",
+                                  children: [
+                                    c.jsx("img", {
+                                      src: editingRequestImagePreview,
+                                      className:
+                                        "ui-media-frame ui-media-md object-cover",
+                                    }),
+                                    c.jsx("p", {
+                                      className:
+                                        "flex-1 text-[11px] text-sky-900 dark:text-sky-100",
+                                      children:
+                                        editingRequestImageFile &&
+                                        editingRequestImageFile.name
+                                          ? editingRequestImageFile.name
+                                          : "Imagen actual",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className: "flex gap-2",
+                                  children: [
+                                    c.jsx("button", {
+                                      onClick: () => saveRequestModify(o),
+                                      disabled:
+                                        editingRequestSaving ||
+                                        !editingRequestText.trim(),
+                                      className:
+                                        `text-xs px-2 py-1 rounded text-white font-semibold ${editingRequestSaving || !editingRequestText.trim() ? "bg-amber-300 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-600"}`,
+                                      children: editingRequestSaving
+                                        ? "Guardando..."
+                                        : "Guardar",
+                                    }),
+                                    c.jsx("button", {
+                                      onClick: cancelRequestModify,
+                                      disabled: editingRequestSaving,
+                                      className:
+                                        "text-xs px-2.5 py-1.5 rounded-xl ui-btn-secondary font-semibold disabled:opacity-60 disabled:cursor-not-allowed",
+                                      children: "Cancelar",
+                                    }),
+                                  ],
                                 }),
                               ],
                             })
@@ -2139,10 +4783,10 @@ function nh() {
                                   onClick: () =>
                                     setFullscreenImage(resolveMediaUrl(o.image)),
                                   className:
-                                    "mb-2 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900",
+                                    "mb-2 ui-media-frame ui-media-ticket-md",
                                   children: c.jsx("img", {
                                     src: resolveMediaUrl(o.image),
-                                    className: "w-20 h-20 object-cover",
+                                    className: "w-full h-full object-cover",
                                   }),
                                 }),
                               ],
@@ -2225,7 +4869,7 @@ function nh() {
                   children: [
                     c.jsx("img", {
                       src: newRequestImagePreview,
-                      className: "w-12 h-12 rounded-lg object-cover border border-sky-200 dark:border-sky-800",
+                      className: "ui-media-frame ui-media-md object-cover",
                     }),
                     c.jsx("p", {
                       className: "flex-1 text-[11px] text-sky-900 dark:text-sky-100",
@@ -2246,20 +4890,20 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
-                  className: "flex gap-2",
+                  className: "flex gap-2 items-center flex-wrap sm:flex-nowrap w-full",
                   children: [
                     c.jsx("input", {
                       type: "text",
                       value: newRequestText,
                       onChange: (o) => setNewRequestText(o.target.value),
-                      placeholder: "Nueva peticion...",
+                      placeholder: "Nueva petición...",
                       className:
-                        "flex-1 px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
+                        "flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                     }),
                     c.jsx("button", {
                       onClick: pickRequestImage,
                       className:
-                        "px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200",
+                        "px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200 flex-shrink-0",
                       title: "Adjuntar foto",
                       children: c.jsx("span", {
                         className: "material-symbols-outlined text-[18px]",
@@ -2269,7 +4913,7 @@ function nh() {
                     c.jsx("button", {
                       onClick: createMissionRequest,
                       disabled: !newRequestText.trim() && !newRequestImageFile,
-                      className: `px-4 py-2 rounded-xl text-sm font-semibold transition ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
+                      className: `px-4 py-2 rounded-xl text-sm font-semibold transition flex-shrink-0 flex-1 sm:flex-none ${newRequestText.trim() || newRequestImageFile ? "bg-primary text-white hover:bg-primary-dark" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`,
                       children: "Enviar",
                     }),
                   ],
@@ -2280,7 +4924,7 @@ function nh() {
         }),
         c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark rounded-xl px-4 py-3 border border-border-light dark:border-border-dark shadow-sm",
+            "bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4",
           children: [
             c.jsxs("div", {
               className: "flex items-center justify-between gap-2",
@@ -2308,19 +4952,34 @@ function nh() {
             }),
             w &&
             c.jsxs("div", {
-              className: "mt-2 flex items-center justify-between text-[11px] font-semibold",
+              className: "mt-2 flex items-start justify-between gap-3",
               children: [
                 c.jsxs("span", {
-                  className: "text-gray-600 dark:text-gray-300",
+                  className: "pt-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300",
                   children: ["Items: ", missionProductsCount],
                 }),
-                c.jsxs("span", {
-                  className: "text-primary",
+                c.jsxs("div", {
+                  className: "text-right",
                   children: [
-                    "Total+Tax: $",
-                    missionTotalWithTaxes.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
+                    c.jsxs("span", {
+                      className: "block text-[11px] font-semibold text-primary",
+                      children: [
+                        "Total+Tax: $",
+                        missionTotalWithTaxes.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }),
+                      ],
+                    }),
+                    c.jsxs("span", {
+                      className: "mt-0.5 block text-[10px] font-medium text-gray-500 dark:text-gray-400",
+                      children: [
+                        "Sin tax: $",
+                        missionTotalWithoutTaxes.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }),
+                      ],
                     }),
                   ],
                 }),
@@ -2375,9 +5034,10 @@ function nh() {
                     "button",
                     {
                       onClick: openMissionTicketPicker,
+                      disabled: missionTicketUploading,
                       className:
-                        "py-2 rounded-lg bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700",
-                      children: "Ticket",
+                        `py-2 rounded-lg text-white text-[11px] font-bold ${missionTicketUploading ? "bg-purple-400 cursor-wait opacity-80" : "bg-purple-600 hover:bg-purple-700"}`,
+                      children: missionTicketUploading ? "Subiendo..." : "Ticket",
                     },
                     "ticket",
                   ),
@@ -2399,13 +5059,36 @@ function nh() {
             c.jsx("div", {
               className:
                 "mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2",
-              children: w.ticket_image
+              children: missionTicketUploading
+                ? c.jsxs("div", {
+                  className: "flex items-center gap-2 text-purple-700",
+                  children: [
+                    c.jsx("span", {
+                      className:
+                        "material-symbols-outlined animate-spin text-[18px]",
+                      children: "progress_activity",
+                    }),
+                    c.jsxs("div", {
+                      children: [
+                        c.jsx("p", {
+                          className: "text-[11px] font-bold",
+                          children: "Subiendo ticket de mision...",
+                        }),
+                        c.jsx("p", {
+                          className: "text-[10px] text-purple-600",
+                          children: "Se reflejara aqui al terminar la carga.",
+                        }),
+                      ],
+                    }),
+                  ],
+                })
+                : w.ticket_image
                 ? c.jsxs("div", {
                   className: "flex items-center gap-2",
                   children: [
                     c.jsx("img", {
                       src: resolveMediaUrl(w.ticket_image),
-                      className: "w-10 h-10 rounded object-cover border",
+                      className: "ui-media-frame ui-media-sm object-cover",
                     }),
                     c.jsx("button", {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
@@ -2463,6 +5146,14 @@ function nh() {
                 ],
               }),
             ],
+            }),
+          c.jsx("input", {
+            type: "text",
+            value: missionSearch,
+            onChange: (A) => setMissionSearch(A.target.value),
+            placeholder: "Buscar misión o fecha...",
+            className:
+              "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
           }),
           Al.length === 0
             ? c.jsxs("div", {
@@ -2492,7 +5183,12 @@ function nh() {
             })
             : c.jsx("div", {
               className: "space-y-3",
-              children: Al.map((A) => {
+              children: Al.filter((A) => {
+                const vl = getSearchTokens(missionSearch);
+                if (!vl.length) return !0;
+                const El = getMissionSearchBlob(A);
+                return vl.every((Se) => El.includes(Se));
+              }).map((A) => {
                 const vl = fn === A.id,
                   El = w && w.id === A.id,
                   Se = A.clients_detail || [],
@@ -2505,7 +5201,7 @@ function nh() {
                 return c.jsxs(
                   "div",
                   {
-                    className: `bg-surface-light dark:bg-surface-dark rounded-xl border shadow-sm overflow-hidden transition-all ${El ? "border-primary/50 ring-1 ring-primary/20" : "border-border-light dark:border-border-dark"}`,
+                    className: `bg-surface-light dark:bg-surface-dark rounded-xl border shadow-sm overflow-hidden transition-all ui-card-quiet ${El ? "border-primary/50 ring-1 ring-primary/20" : "border-border-light dark:border-border-dark"}`,
                     children: [
                       c.jsx("div", {
                         className:
@@ -2549,7 +5245,7 @@ function nh() {
                                       c.jsx("p", {
                                         className:
                                           "font-bold text-sm truncate",
-                                        children: getMissionStoreLabel(A),
+                                        children: A.name || getMissionStoreLabel(A),
                                       }),
                                       c.jsxs("p", {
                                         className:
@@ -2558,6 +5254,10 @@ function nh() {
                                           new Date(
                                             A.start_time,
                                           ).toLocaleDateString(),
+                                          A.store_name &&
+                                          c.jsxs(c.Fragment, {
+                                            children: [" • ", A.store_name],
+                                          }),
                                           " • ",
                                           qa.length,
                                           " clients • ",
@@ -2648,7 +5348,8 @@ function nh() {
                                 children: [
                                   c.jsx("img", {
                                     src: resolveMediaUrl(A.ticket_image),
-                                    className: "w-10 h-10 rounded object-cover border",
+                                    className:
+                                      "ui-media-frame ui-media-sm object-cover",
                                   }),
                                   c.jsx("button", {
                                     onClick: () => setFullscreenImage(resolveMediaUrl(A.ticket_image)),
@@ -2715,7 +5416,7 @@ function nh() {
                                           ],
                                         }),
                                         c.jsxs("div", {
-                                          className: "flex gap-1",
+                                          className: "flex items-center gap-1 shrink-0",
                                           children: [
                                             c.jsx("button", {
                                               onClick: () => Ta(gl, A.id),
@@ -2723,22 +5424,20 @@ function nh() {
                                                 "text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-lg hover:bg-primary/20 transition",
                                               children: "View",
                                             }),
-                                            c.jsxs("button", {
+                                            c.jsx("button", {
                                               onClick: () =>
                                                 copyMissionBreakdown(
                                                   A,
                                                   gl,
                                                 ),
                                               className:
-                                                "text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg hover:bg-emerald-200 transition",
-                                              children: [
-                                                "📋 ",
-                                                copiedMissionClients.includes(
-                                                  ae,
-                                                )
-                                                  ? "Copiado"
-                                                  : "Copiar",
-                                              ],
+                                                "w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
+                                              title: "Copiar desglose",
+                                              children: c.jsx("span", {
+                                                className:
+                                                  "material-symbols-outlined text-[16px]",
+                                                children: "receipt_long",
+                                              }),
                                             }),
                                           ],
                                         }),
@@ -2761,48 +5460,117 @@ function nh() {
                                 children: ["Products (", ea.length, ")"],
                               }),
                               c.jsx("div", {
-                                className: "space-y-1.5",
+                                className: "grid grid-cols-3 gap-1.5",
                                 children: ea.map((gl) =>
                                   c.jsxs(
                                     "div",
                                     {
                                       className:
-                                        "flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg text-xs border border-gray-100 dark:border-gray-700",
+                                        "relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-surface-light dark:bg-surface-dark shadow-card ui-card-quiet",
                                       children: [
-                                        c.jsxs("div", {
-                                          className: "flex-1 min-w-0",
+                                        c.jsx("div", {
+                                          className:
+                                            "relative h-36 bg-[radial-gradient(circle_at_top,rgba(19,127,236,0.10),transparent_42%),linear-gradient(180deg,rgba(244,247,251,0.95),rgba(236,242,248,0.95))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_38%),linear-gradient(180deg,rgba(22,31,43,0.96),rgba(15,23,34,0.98))]",
                                           children: [
-                                            c.jsx("p", {
-                                              className:
-                                                "font-semibold truncate",
-                                              children: gl.name,
+                                            gl.image
+                                              ? c.jsx("img", {
+                                                src: resolveMediaUrl(gl.image),
+                                                className:
+                                                  "w-full h-full object-cover cursor-zoom-in",
+                                                onClick: () =>
+                                                  setFullscreenImage({
+                                                    url: resolveMediaUrl(gl.image),
+                                                    copyOnClick: !0,
+                                                    copyMessage: "Imagen copiada.",
+                                                  }),
+                                                title: "Abrir imagen",
+                                              })
+                                              : c.jsxs("div", {
+                                                className:
+                                                  "w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500",
+                                                children: [
+                                                  c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-3xl mb-0.5",
+                                                    children: "image",
+                                                  }),
+                                                  c.jsx("span", {
+                                                    className:
+                                                      "text-[9px] uppercase font-bold tracking-wide",
+                                                    children: "No Image",
+                                                  }),
+                                                ],
+                                              }),
+                                            c.jsx("span", {
+                                              className: `absolute right-1.5 top-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm ${String(gl.status).toUpperCase() === "IN_REVIEW" ? "bg-amber-100/92 text-amber-800" : String(gl.status).toUpperCase() === "REJECTED" ? "bg-rose-100/92 text-rose-700" : String(gl.status).toUpperCase() === "BOUGHT" ? "bg-emerald-100/92 text-emerald-700" : String(gl.status).toUpperCase() === "SHIPPED" ? "bg-blue-100/92 text-blue-700" : "bg-white/90 text-gray-700"}`,
+                                              children:
+                                                String(gl.status).toUpperCase() === "IN_REVIEW"
+                                                  ? "Revision"
+                                                  : String(gl.status).toUpperCase() === "ANNOTATED"
+                                                    ? "Anotado"
+                                                    : String(gl.status).toUpperCase() === "BOUGHT"
+                                                      ? "Comprado"
+                                                      : String(gl.status).toUpperCase() === "SHIPPED"
+                                                        ? "Enviado"
+                                                        : String(gl.status).toUpperCase() === "REJECTED"
+                                                          ? "Rechazado"
+                                                          : gl.status,
                                             }),
-                                            gl.tags &&
-                                            c.jsx("p", {
+                                            c.jsxs("div", {
                                               className:
-                                                "text-[9px] text-purple-500 mt-0.5",
-                                              children: gl.tags,
+                                                "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-1.5",
+                                              children: [
+                                                c.jsx("p", {
+                                                  className:
+                                                    "text-[10px] font-bold text-white truncate",
+                                                  children: gl.name,
+                                                }),
+                                                c.jsxs("div", {
+                                                  className:
+                                                    "mt-1 flex items-center justify-between gap-1",
+                                                  children: [
+                                                    c.jsx("span", {
+                                                      className:
+                                                        "inline-flex max-w-[70%] truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm",
+                                                      children:
+                                                        gl.client_name || `Cliente #${gl.client}`,
+                                                    }),
+                                                    hasValue(gl.charged_price) &&
+                                                      c.jsxs("span", {
+                                                        className:
+                                                          "shrink-0 rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm",
+                                                        children: ["$", gl.charged_price],
+                                                      }),
+                                                  ],
+                                                }),
+                                              ],
                                             }),
                                           ],
                                         }),
-                                        c.jsxs("div", {
+                                        gl.tags &&
+                                        c.jsx("div", {
                                           className:
-                                            "flex items-center gap-2 ml-2",
-                                          children: [
-                                            hasValue(gl.charged_price) &&
-                                            c.jsxs("span", {
-                                              className:
-                                                "text-[10px] font-bold text-blue-600",
-                                              children: [
-                                                "$",
-                                                gl.charged_price,
-                                              ],
-                                            }),
-                                            c.jsx("span", {
-                                              className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${N(gl.status)}`,
-                                              children: gl.status,
-                                            }),
-                                          ],
+                                            "px-1.5 py-1 flex flex-wrap gap-1 border-t border-gray-100 dark:border-gray-800 bg-white/75 dark:bg-gray-900/25",
+                                          children: gl.tags
+                                            .split(",")
+                                            .map((vl) => parseVisualTag(vl))
+                                            .filter((vl) => vl)
+                                            .slice(0, 2)
+                                            .map((vl, El) =>
+                                              c.jsx(
+                                                "span",
+                                                {
+                                                  className: `${getTagClassName(vl.type)} text-[9px] px-1.5 py-0.5 rounded`,
+                                                  children: vl.label,
+                                                },
+                                                `${gl.id}-mission-product-tag-${El}`,
+                                              ),
+                                            ),
+                                        }),
+                                        !gl.tags &&
+                                        c.jsx("div", {
+                                          className:
+                                            "h-1.5 bg-white dark:bg-gray-900/25",
                                         }),
                                       ],
                                     },
@@ -2957,59 +5725,54 @@ function nh() {
             })
             : o.map((N) => {
               const A = Ei === N.id,
-                vl = (N.products || []).filter(
-                  (ea) =>
-                    ea.mission !== null &&
-                    typeof ea.mission !== "undefined" &&
-                    ea.status !== "IN_REVIEW" &&
-                    ea.status !== "REJECTED",
-                ),
-                El = vl.reduce((Se, ea) => {
-                  const gl = String(ea.mission);
-                  return (Se[gl] || (Se[gl] = []), Se[gl].push(ea), Se);
+                vl = getHomeVisibleProducts(N),
+                El = getHomeClientTotals(vl),
+                Se = vl.reduce((ea, gl) => {
+                  const ae = String(gl.mission);
+                  return (ea[ae] || (ea[ae] = []), ea[ae].push(gl), ea);
                 }, {}),
-                Se = Object.entries(El)
-                  .map(([ea, gl]) => {
-                    const ae =
-                        Al.find((oi) => oi.id === Number(ea)),
-                      oiName = (gl[0] && gl[0].mission_name
-                        ? String(gl[0].mission_name).trim()
+                ea = Object.entries(Se)
+                  .map(([gl, ae]) => {
+                    const oi =
+                        Al.find((mi) => mi.id === Number(gl)),
+                      oiName = (ae[0] && ae[0].mission_name
+                        ? String(ae[0].mission_name).trim()
                         : ""),
-                      oi =
-                        ae && ae.name
-                          ? ae.name
+                      mi =
+                        oi && oi.name
+                          ? oi.name
                           : oiName
                             ? oiName
-                            : `Tienda #${ea}`,
-                      mi =
-                        (ae && ae.start_time) ||
-                        (gl[0] && (gl[0].mission_date || gl[0].created_at)) ||
+                            : `Tienda #${gl}`,
+                      Ri =
+                        (oi && oi.start_time) ||
+                        (ae[0] && (ae[0].mission_date || ae[0].created_at)) ||
                         "";
                     return {
-                      key: ea,
-                      mission: ae,
-                      title: oi,
-                      date: mi,
-                      items: gl,
+                      key: gl,
+                      mission: oi,
+                      title: mi,
+                      date: Ri,
+                      items: ae,
                     };
                   })
                   .sort(
-                    (ea, gl) =>
-                      new Date(gl.date || 0).getTime() -
-                      new Date(ea.date || 0).getTime(),
+                    (gl, ae) =>
+                      new Date(ae.date || 0).getTime() -
+                      new Date(gl.date || 0).getTime(),
                   );
               return c.jsxs(
                 "div",
                 {
                   className:
-                    "bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-light overflow-hidden group",
+                    "bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark overflow-hidden group ui-card-quiet",
                   children: [
                     c.jsxs("div", {
-                      className: "p-4 flex items-center gap-4 relative",
+                      className: "px-3 py-3 flex items-center gap-3 relative",
                       children: [
                         c.jsx("div", {
                           className:
-                            "w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl uppercase border",
+                            "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base uppercase border border-primary/15",
                           children: N.name.charAt(0),
                         }),
                         c.jsxs("div", {
@@ -3029,6 +5792,64 @@ function nh() {
                                 " tickets",
                               ],
                             }),
+                            c.jsxs("div", {
+                              className: "mt-1.5 space-y-0.5",
+                              children: [
+                                c.jsxs("p", {
+                                  className:
+                                    "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                  children: [
+                                    "Total USD: $",
+                                    formatAmount(El.usd),
+                                  ],
+                                }),
+                                c.jsxs("p", {
+                                  className:
+                                    "text-[11px] font-bold text-blue-700 dark:text-blue-300",
+                                  children: [
+                                    "Total Venta: $",
+                                    formatAmount(El.sale),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "mt-2 grid grid-cols-2 gap-2 max-w-[18rem] min-w-0",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-xl border border-emerald-200 bg-emerald-50/90 px-2 py-2 shadow-[0_12px_24px_-22px_rgba(5,150,105,0.45)] min-w-0 overflow-hidden",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700/75",
+                                      children: "USD",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-emerald-800 leading-none truncate tabular-nums",
+                                      children: ["$", formatAmount(El.usd)],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-xl border border-blue-200 bg-blue-50/95 px-2 py-2 shadow-[0_14px_24px_-22px_rgba(37,99,235,0.48)] min-w-0 overflow-hidden",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[9px] font-black uppercase tracking-[0.08em] text-blue-700/75",
+                                      children: "Venta",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 leading-none truncate tabular-nums",
+                                      children: ["$", formatAmount(El.sale)],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
                             N.tags &&
                             c.jsx("p", {
                               className:
@@ -3038,47 +5859,67 @@ function nh() {
                           ],
                         }),
                         w
-                          ? c.jsxs("div", {
+                          ? c.jsx("div", {
                             onClick: () => Jt(N),
-                            className: `px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition flex items-center gap-1 cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
-                            children: [
-                              c.jsx("span", {
-                                className:
-                                  "material-symbols-outlined text-[14px]",
-                                children:
-                                  N.status === "Active"
-                                    ? "check_circle"
-                                    : "radio_button_unchecked",
-                              }),
+                            className: `px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                            children:
                               N.status === "Active" ? "In Mission" : "Idle",
-                            ],
                           })
                           : null,
-                        X !== "PS" &&
                         c.jsx("div", {
                           className:
-                            "opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
-                          children: c.jsx("button", {
-                            onClick: () => {
-                              (Y(N),
-                                hl({
-                                  name: N.name,
-                                  tags: N.tags || "",
-                                  status: N.status,
-                                  phone: N.phone || "",
-                                  email: N.email || "",
-                                  shipping_address:
-                                    N.shipping_address || "",
-                                }),
-                                tl(!0));
-                            },
-                            className:
-                              "w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
-                            children: c.jsx("span", {
-                              className: "material-symbols-outlined",
-                              children: "more_vert",
+                            "flex items-center gap-1 shrink-0",
+                          children: [
+                            c.jsx("button", {
+                              onClick: () => {
+                                const A = `client-history-${N.id}`;
+                                if (copiedClientShareLinks.includes(A)) {
+                                  setCopiedClientShareLinks((vl) =>
+                                    vl.filter((El) => El !== A),
+                                  );
+                                  return;
+                                }
+                                copyClientMissionShareLink(null, N);
+                              },
+                              className:
+                                `w-8 h-8 rounded-full flex items-center justify-center ${copiedClientShareLinks.includes(`client-history-${N.id}`) ? "bg-sky-100 text-sky-700 dark:bg-sky-950/35 dark:text-sky-200" : "hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30"}`,
+                              children: c.jsx("span", {
+                                className: "material-symbols-outlined text-[18px]",
+                                children: "share",
+                              }),
                             }),
-                          }),
+                            c.jsx("button", {
+                              type: "button",
+                              onClick: () => openClientHistoryShareLink(N),
+                              className:
+                                "w-8 h-8 rounded-full flex items-center justify-center hover:bg-sky-100 text-sky-700 dark:text-sky-200 dark:hover:bg-sky-950/30",
+                              children: c.jsx("span", {
+                                className: "material-symbols-outlined text-[18px]",
+                                children: "history",
+                              }),
+                            }),
+                            c.jsx("button", {
+                              onClick: () => {
+                                (Y(N),
+                                  hl({
+                                    name: N.name,
+                                    tags: N.tags || "",
+                                    status: N.status,
+                                    phone: N.phone || "",
+                                    email: N.email || "",
+                                    shipping_address:
+                                      N.shipping_address || "",
+                                  }),
+                                  tl(!0));
+                              },
+                              className:
+                                "w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
+                              children: c.jsx("span", {
+                                className: "material-symbols-outlined",
+                                children: "more_vert",
+                              }),
+                            }),
+                          ],
                         }),
                         c.jsx("span", {
                           className:
@@ -3129,7 +5970,7 @@ function nh() {
                               c.jsx("div", {
                                 className:
                                   "space-y-1.5 max-h-[300px] overflow-y-auto",
-                                children: Se.map((ea) =>
+                                children: ea.map((ea) =>
                                   c.jsxs(
                                     "div",
                                     {
@@ -3172,14 +6013,37 @@ function nh() {
                                                 }),
                                               ],
                                             }),
-                                            c.jsx("span", {
-                                              className:
-                                                "material-symbols-outlined text-[16px] text-gray-500",
-                                              children:
-                                                openHistoryMissionByClient[N.id] ===
-                                                ea.key
-                                                  ? "expand_less"
-                                                  : "expand_more",
+                                            c.jsxs("div", {
+                                              className: "ml-2 flex items-center gap-1 shrink-0",
+                                              children: [
+                                                c.jsx("button", {
+                                                  type: "button",
+                                                  onClick: (gl) => {
+                                                    gl.stopPropagation();
+                                                    copyMissionBreakdown(
+                                                      ea.mission || { id: Number(ea.key) },
+                                                      N,
+                                                    );
+                                                  },
+                                                  className:
+                                                    "w-8 h-8 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
+                                                  title: "Copiar desglose de esta misión",
+                                                  children: c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-[16px]",
+                                                    children: "receipt_long",
+                                                  }),
+                                                }),
+                                                c.jsx("span", {
+                                                  className:
+                                                    "material-symbols-outlined text-[16px] text-gray-500",
+                                                  children:
+                                                    openHistoryMissionByClient[N.id] ===
+                                                    ea.key
+                                                      ? "expand_less"
+                                                      : "expand_more",
+                                                }),
+                                              ],
                                             }),
                                           ],
                                         }),
@@ -3205,11 +6069,11 @@ function nh() {
                                                             gl.image,
                                                           ),
                                                           className:
-                                                            "w-7 h-7 rounded object-cover border",
+                                                            "ui-media-frame ui-media-xs object-cover",
                                                         })
                                                         : c.jsx("div", {
                                                           className:
-                                                            "w-7 h-7 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center",
+                                                            "ui-media-frame ui-media-xs bg-gray-200 dark:bg-gray-700 flex items-center justify-center",
                                                           children: c.jsx(
                                                             "span",
                                                             {
@@ -3228,6 +6092,19 @@ function nh() {
                                                               "font-semibold truncate",
                                                             children: gl.name,
                                                           }),
+                                                          gl.shipment &&
+                                                          c.jsxs("p", {
+                                                            className:
+                                                              "text-[9px] text-sky-600 dark:text-sky-300 truncate",
+                                                            children: [
+                                                              "Envio: ",
+                                                              gl.shipment.carrier ||
+                                                                "Paqueteria",
+                                                              gl.shipment.tracking_number
+                                                                ? ` • ${gl.shipment.tracking_number}`
+                                                                : "",
+                                                            ],
+                                                          }),
                                                           gl.tags &&
                                                           c.jsx("p", {
                                                             className:
@@ -3242,6 +6119,34 @@ function nh() {
                                                     className:
                                                       "flex items-center gap-2 ml-2",
                                                     children: [
+                                                      c.jsx("button", {
+                                                        type: "button",
+                                                        onClick: (ae) => {
+                                                          ae.stopPropagation();
+                                                          gl.shipment
+                                                            ? openShipmentEditor(
+                                                                gl.shipment,
+                                                                gl,
+                                                              )
+                                                            : openShipmentAssignmentPicker(
+                                                                gl,
+                                                              );
+                                                        },
+                                                        className:
+                                                          `w-7 h-7 rounded-md border flex items-center justify-center ${
+                                                            gl.shipment
+                                                              ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+                                                              : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                                          }`,
+                                                        title: gl.shipment
+                                                          ? "Editar envio"
+                                                          : "Asignar envio",
+                                                        children: c.jsx("span", {
+                                                          className:
+                                                            "material-symbols-outlined text-[14px]",
+                                                          children: "local_shipping",
+                                                        }),
+                                                      }),
                                                       hasValue(gl.charged_price) &&
                                                       c.jsxs("span", {
                                                         className:
@@ -3294,6 +6199,319 @@ function nh() {
         ],
       });
     },
+    xu = () => {
+      const o = shipments.filter((N) => {
+        const A = String(shipmentSearch || "").trim().toLowerCase();
+        if (!A) return !0;
+        return [
+          N.client_name,
+          N.mission_name,
+          ...((N.mission_names || [])),
+          N.carrier,
+          N.tracking_number,
+          N.shipping_address,
+          ...((N.products_detail || []).map((vl) => vl.name)),
+        ]
+          .filter(Boolean)
+          .some((vl) => String(vl).toLowerCase().includes(A));
+      });
+      return c.jsxs("div", {
+        className: "space-y-4",
+        children: [
+          c.jsxs("div", {
+            className: "flex items-center justify-between mb-2",
+            children: [
+              c.jsxs("div", {
+                children: [
+                  c.jsx("h2", {
+                    className: "text-lg font-bold text-text-main",
+                    children: "Shipments",
+                  }),
+                  c.jsxs("p", {
+                    className: "text-xs text-text-sub",
+                    children: ["Total: ", shipments.length],
+                  }),
+                ],
+              }),
+              c.jsxs("button", {
+                onClick: () => openShipmentEditor(),
+                className:
+                  "bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition",
+                children: [
+                  c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "add",
+                  }),
+                  " New",
+                ],
+              }),
+            ],
+          }),
+          c.jsxs("div", {
+            className: "relative",
+            children: [
+              c.jsx("span", {
+                className:
+                  "material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400",
+                children: "search",
+              }),
+              c.jsx("input", {
+                type: "text",
+                placeholder: "Buscar envio, cliente o guia...",
+                value: shipmentSearch,
+                onChange: (N) => setShipmentSearch(N.target.value),
+                className:
+                  "w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow",
+              }),
+            ],
+          }),
+          o.length === 0
+            ? c.jsx("div", {
+                className:
+                  "text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed",
+                children: c.jsx("p", {
+                  className: "text-gray-500 text-sm",
+                  children: "No hay envios definidos o coincidentes.",
+                }),
+              })
+            : c.jsx("div", {
+                className: "space-y-2",
+                children: o.map((N) =>
+                  c.jsxs(
+                    "div",
+                    {
+                      className:
+                        "rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-start justify-between gap-2",
+                          children: [
+                            c.jsxs("div", {
+                              className: "min-w-0",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-xs font-bold text-text-main dark:text-white truncate",
+                                  children:
+                                    N.tracking_number ||
+                                    N.carrier ||
+                                    `Envio #${N.id}`,
+                                }),
+                                c.jsxs("p", {
+                                  className: "text-[11px] text-text-sub truncate",
+                                  children: [
+                                    N.client_name || "Cliente",
+                                    (N.mission_names || []).length > 0
+                                      ? ` • ${(N.mission_names || []).slice(0, 2).join(", ")}`
+                                      : N.mission_name
+                                        ? ` • ${N.mission_name}`
+                                        : "",
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className: "mt-1 flex items-center gap-2 text-[11px]",
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        "font-bold uppercase text-sky-700 dark:text-sky-300",
+                                      children: getShipmentStatusLabel(N.status),
+                                    }),
+                                    c.jsxs("span", {
+                                      className: "text-text-sub",
+                                      children: [
+                                        "$",
+                                        formatAmount(parseFloat(N.client_price || 0)),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "flex items-center gap-1",
+                              children: [
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: () =>
+                                    setExpandedShipmentId((A) =>
+                                      Number(A) === Number(N.id) ? null : N.id,
+                                    ),
+                                  className:
+                                    "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[16px]",
+                                    children:
+                                      Number(expandedShipmentId) === Number(N.id)
+                                        ? "expand_less"
+                                        : "expand_more",
+                                  }),
+                                }),
+                                c.jsx("button", {
+                                  onClick: () => openShipmentEditor(N),
+                                  className:
+                                    "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[16px]",
+                                    children: "edit",
+                                  }),
+                                }),
+                                c.jsx("button", {
+                                  onClick: () => deleteShipment(N),
+                                  className:
+                                    "w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[16px]",
+                                    children: "delete",
+                                  }),
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        Number(expandedShipmentId) === Number(N.id) &&
+                        c.jsxs("div", {
+                          className: "mt-2 space-y-1.5",
+                          children: [
+                            c.jsxs("div", {
+                              className: "grid grid-cols-2 gap-1.5",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-text-sub",
+                                      children: "Paqueteria",
+                                    }),
+                                    c.jsx("p", {
+                                      className: "text-xs font-semibold mt-0.5",
+                                      children: N.carrier || "Sin definir",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-text-sub",
+                                      children: "Guia",
+                                    }),
+                                    c.jsx("p", {
+                                      className:
+                                        "text-xs font-semibold mt-0.5 break-all",
+                                      children: N.tracking_number || "Sin definir",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
+                                      children: "Precio guia",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-xs font-semibold mt-0.5 text-amber-800 dark:text-amber-200",
+                                      children: [
+                                        "$",
+                                        formatAmount(parseFloat(N.guide_price || 0)),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1.5",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
+                                      children: "Precio cliente",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-xs font-semibold mt-0.5 text-emerald-800 dark:text-emerald-200",
+                                      children: [
+                                        "$",
+                                        formatAmount(parseFloat(N.client_price || 0)),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className:
+                                "rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-1.5",
+                              children: [
+                                c.jsxs("p", {
+                                  className:
+                                    "text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300",
+                                  children: [
+                                    "Productos (",
+                                    N.product_count || 0,
+                                    ")",
+                                  ],
+                                }),
+                                (N.products_detail || []).length > 0
+                                  ? c.jsx("div", {
+                                      className: "mt-1 flex flex-wrap gap-1",
+                                      children: (N.products_detail || []).map((vl) =>
+                                        c.jsx(
+                                          "span",
+                                          {
+                                            className:
+                                              "px-1.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/80 text-[9px] font-medium text-sky-800 dark:text-sky-100 border border-sky-100 dark:border-sky-900",
+                                            children: vl.name,
+                                          },
+                                          `${N.id}-shipment-product-${vl.id}`,
+                                        ),
+                                      ),
+                                    })
+                                  : c.jsx("p", {
+                                      className:
+                                        "mt-1 text-xs text-sky-700/80 dark:text-sky-300/80",
+                                      children: "Sin productos asignados.",
+                                    }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className:
+                                "rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2.5 py-1.5",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[10px] uppercase font-bold text-text-sub",
+                                  children: "Direccion",
+                                }),
+                                c.jsx("p", {
+                                  className:
+                                    "text-xs mt-0.5 text-text-main dark:text-slate-200 whitespace-pre-wrap",
+                                  children:
+                                    N.shipping_address || "Sin direccion capturada",
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                      ],
+                    },
+                    N.id,
+                  ),
+                ),
+              }),
+        ],
+      });
+    },
     du = () =>
       c.jsxs("div", {
         className: "space-y-6",
@@ -3315,6 +6533,59 @@ function nh() {
                 className:
                   "inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-xs uppercase rounded-full",
                 children: J.profile.role,
+              }),
+            ],
+          }),
+          c.jsxs("div", {
+            className:
+              "bg-surface-light p-4 rounded-2xl border shadow-card space-y-3",
+            children: [
+              c.jsxs("div", {
+                children: [
+                  c.jsx("h3", {
+                    className: "text-sm font-bold text-text-main",
+                    children: "Desglose Default",
+                  }),
+                  c.jsx("p", {
+                    className: "text-xs text-text-sub mt-1",
+                    children:
+                      "Variables disponibles: {title}, {items}, {total}",
+                  }),
+                ],
+              }),
+              c.jsx("textarea", {
+                value: defaultBreakdownTemplate,
+                onChange: (o) => {
+                  const N = o.target.value;
+                  setDefaultBreakdownTemplate(N);
+                  localStorage.setItem("default_breakdown_template", N);
+                },
+                rows: 8,
+                className:
+                  "w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 px-3 py-2 text-xs text-text-main dark:text-white outline-none focus:ring-2 focus:ring-primary/40 whitespace-pre-wrap",
+              }),
+              c.jsxs("div", {
+                className: "flex items-center gap-2",
+                children: [
+                  c.jsx("button", {
+                    type: "button",
+                    onClick: () => {
+                      setDefaultBreakdownTemplate(DEFAULT_BREAKDOWN_TEMPLATE);
+                      localStorage.setItem(
+                        "default_breakdown_template",
+                        DEFAULT_BREAKDOWN_TEMPLATE,
+                      );
+                    },
+                    className:
+                      "px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-bold",
+                    children: "Reset",
+                  }),
+                  c.jsx("p", {
+                    className: "text-[11px] text-text-sub",
+                    children:
+                      "Se usa para los copiados de desglose en general.",
+                  }),
+                ],
               }),
             ],
           }),
@@ -3500,7 +6771,7 @@ function nh() {
   };
   return c.jsxs("div", {
     className:
-      "w-full max-w-[480px] h-screen bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
+      "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
     children: [
       J &&
       J.profile.role === "BOTH" &&
@@ -3585,18 +6856,24 @@ function nh() {
           nl === "HOME" && ta(),
           nl === "MISSIONS" && pe(),
           nl === "CLIENTS" && Hl(),
+          nl === "SHIPMENTS" && xu(),
           nl === "CALCULATOR" && hu(),
           nl === "PROFILE" && du(),
-          c.jsx("div", { className: "h-20" }),
+          c.jsx("div", {
+            className: "shrink-0",
+            style: { height: "calc(env(safe-area-inset-bottom, 0px) + 4.75rem)" },
+          }),
         ],
       }),
       showMissionStartModal &&
       c.jsx("div", {
         className:
           "absolute inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
               className: "text-base font-bold mb-3",
@@ -3613,7 +6890,6 @@ function nh() {
                     }),
                     c.jsx("input", {
                       type: "text",
-                      list: "mission-store-options",
                       value: missionStartForm.store_name,
                       onChange: (o) =>
                         setMissionStartForm({
@@ -3625,15 +6901,58 @@ function nh() {
                       className:
                         "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
                     }),
-                    c.jsx("datalist", {
-                      id: "mission-store-options",
-                      children: stores.map((o) =>
-                        c.jsx("option", { value: o.name }, o.id),
-                      ),
-                    }),
-                    c.jsx("p", {
-                      className: "mt-1 text-[10px] text-gray-500",
-                      children: "Si escribes una tienda nueva, se guarda automaticamente al iniciar el shopping.",
+                    c.jsx("div", {
+                      className:
+                        "mt-2 max-h-52 overflow-y-auto ios-scroll rounded-xl border border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm",
+                      children:
+                        filteredMissionStoreSuggestions.length > 0
+                          ? filteredMissionStoreSuggestions.map((o) =>
+                              c.jsxs(
+                                "div",
+                                {
+                                  className:
+                                    "relative flex items-center gap-2 px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800",
+                                  children: [
+                                    o.recommendation_id &&
+                                    c.jsx("button", {
+                                      type: "button",
+                                      onClick: (N) => {
+                                        N.stopPropagation();
+                                        removeStoreRecommendation(
+                                          o.recommendation_id,
+                                          o.name,
+                                        );
+                                      },
+                                      className:
+                                        "absolute right-3 top-1/2 -translate-y-1/2 z-10 text-[18px] font-bold leading-none text-black/50 dark:text-white/60 hover:text-rose-600",
+                                      "aria-label": `Quitar ${o.name} de recomendaciones`,
+                                      children: "×",
+                                    }),
+                                    c.jsxs("button", {
+                                      type: "button",
+                                      onClick: () =>
+                                        setMissionStartForm({
+                                          ...missionStartForm,
+                                          store_name: o.name,
+                                          name: o.name,
+                                        }),
+                                      className:
+                                        "flex-1 pr-8 text-left text-sm hover:text-primary",
+                                      children: c.jsx("span", {
+                                        className: "font-medium",
+                                        children: o.name,
+                                      }),
+                                    }),
+                                  ],
+                                },
+                                o.recommendation_id || o.id,
+                              ),
+                            )
+                          : c.jsx("div", {
+                              className:
+                                "px-3 py-2 text-sm text-gray-400 dark:text-gray-500",
+                              children: "Sin sugerencias",
+                            }),
                     }),
                   ],
                 }),
@@ -3798,10 +7117,12 @@ function nh() {
       missionSummaryOpen &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-[66] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+          "absolute inset-0 z-[66] bg-black/50 flex items-center justify-center ui-backdrop p-3 sm:p-4",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-lg p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl max-h-[85vh] overflow-y-auto ui-sheet",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-lg p-5 rounded-2xl border border-border-light dark:border-border-dark shadow-2xl max-h-[85vh] overflow-y-auto ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
               className: "flex items-center justify-between mb-3",
@@ -3813,11 +7134,51 @@ function nh() {
                 c.jsx("button", {
                   onClick: () => setMissionSummaryOpen(!1),
                   className:
-                    "w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center",
+                    "w-8 h-8 rounded-full ui-icon-button flex items-center justify-center",
                   children: c.jsx("span", {
                     className: "material-symbols-outlined text-[16px]",
                     children: "close",
                   }),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mb-3 grid grid-cols-[1fr_auto] gap-2 items-center",
+              children: [
+                c.jsx("select", {
+                  value: missionSummaryStatusFilter,
+                  onChange: (o) => setMissionSummaryStatusFilter(o.target.value),
+                  className:
+                    "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                  children: [
+                    c.jsx("option", { value: "ALL", children: "Todos" }),
+                    c.jsx("option", {
+                      value: "ANNOTATED",
+                      children: "Anotado",
+                    }),
+                    c.jsx("option", {
+                      value: "IN_REVIEW",
+                      children: "Revision",
+                    }),
+                    c.jsx("option", {
+                      value: "REJECTED",
+                      children: "Rechazado",
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className:
+                    "rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-right",
+                  children: [
+                    c.jsx("p", {
+                      className: "text-[10px] font-semibold text-emerald-700",
+                      children: "Total filtrado",
+                    }),
+                    c.jsxs("p", {
+                      className: "text-sm font-bold text-emerald-900",
+                      children: ["$", formatAmount(filteredMissionSummaryTotal)],
+                    }),
+                  ],
                 }),
               ],
             }),
@@ -3831,7 +7192,7 @@ function nh() {
                   children: [
                     c.jsx("img", {
                       src: resolveMediaUrl(w.ticket_image),
-                      className: "w-12 h-12 rounded object-cover border",
+                      className: "ui-media-frame ui-media-md object-cover",
                     }),
                     c.jsx("button", {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
@@ -3846,54 +7207,121 @@ function nh() {
                   children: "Esta misión todavía no tiene ticket cargado.",
                 }),
             }),
-            activeMissionProducts.length === 0
+            filteredMissionSummaryProducts.length === 0
               ? c.jsx("p", {
                 className: "text-xs text-gray-500 text-center py-6",
-                children: "No products linked to the active mission yet.",
+                children: "No hay productos para ese filtro en la misión activa.",
               })
               : c.jsx("div", {
-                className: "space-y-2",
-                children: activeMissionProducts.map((o) =>
+                className: "grid grid-cols-3 gap-1.5",
+                children: filteredMissionSummaryProducts.map((o) =>
                   c.jsxs(
                     "div",
                     {
                       className:
-                        "flex items-center gap-3 p-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800/30",
+                        "relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-surface-light dark:bg-surface-dark shadow-card ui-card-quiet",
                       children: [
-                        o.image
-                          ? c.jsx("button", {
-                            onClick: () => setFullscreenImage(resolveMediaUrl(o.image)),
-                            className: "shrink-0",
-                            children: c.jsx("img", {
-                              src: resolveMediaUrl(o.image),
-                              className: "w-20 h-20 rounded-lg object-cover border",
-                            }),
-                          })
-                          : c.jsx("div", {
-                            className:
-                              "w-20 h-20 rounded-lg bg-gray-100 border flex items-center justify-center text-gray-400 shrink-0",
-                            children: c.jsx("span", {
-                              className: "material-symbols-outlined",
-                              children: "image",
-                            }),
-                          }),
-                        c.jsxs("div", {
-                          className: "flex-1 min-w-0",
+                        c.jsx("div", {
+                          className:
+                            "relative h-36 bg-[radial-gradient(circle_at_top,rgba(19,127,236,0.10),transparent_42%),linear-gradient(180deg,rgba(244,247,251,0.95),rgba(236,242,248,0.95))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_38%),linear-gradient(180deg,rgba(22,31,43,0.96),rgba(15,23,34,0.98))]",
                           children: [
-                            c.jsx("p", {
-                              className: "text-xs font-bold truncate",
-                              children: o.name,
+                            o.image
+                              ? c.jsx("img", {
+                                src: resolveMediaUrl(o.image),
+                                className: "w-full h-full object-cover cursor-zoom-in",
+                                onClick: () =>
+                                  setFullscreenImage({
+                                    url: resolveMediaUrl(o.image),
+                                    copyOnClick: !0,
+                                    copyMessage: "Imagen copiada.",
+                                  }),
+                                title: "Abrir imagen",
+                              })
+                              : c.jsxs("div", {
+                                className:
+                                  "w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500",
+                                children: [
+                                  c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-3xl mb-0.5",
+                                    children: "image",
+                                  }),
+                                  c.jsx("span", {
+                                    className:
+                                      "text-[9px] uppercase font-bold tracking-wide",
+                                    children: "No Image",
+                                  }),
+                                ],
+                              }),
+                            c.jsx("span", {
+                              className:
+                                `absolute right-1.5 top-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm ${String(o.status).toUpperCase() === "IN_REVIEW" ? "bg-amber-100/92 text-amber-800" : String(o.status).toUpperCase() === "REJECTED" ? "bg-rose-100/92 text-rose-700" : String(o.status).toUpperCase() === "BOUGHT" ? "bg-emerald-100/92 text-emerald-700" : String(o.status).toUpperCase() === "SHIPPED" ? "bg-blue-100/92 text-blue-700" : "bg-white/90 text-gray-700"}`,
+                              children:
+                                String(o.status).toUpperCase() === "IN_REVIEW"
+                                  ? "Revision"
+                                  : String(o.status).toUpperCase() === "ANNOTATED"
+                                    ? "Anotado"
+                                    : String(o.status).toUpperCase() === "BOUGHT"
+                                      ? "Comprado"
+                                      : String(o.status).toUpperCase() === "SHIPPED"
+                                        ? "Enviado"
+                                        : String(o.status).toUpperCase() === "REJECTED"
+                                          ? "Rechazado"
+                                          : o.status,
                             }),
-                            c.jsxs("p", {
-                              className: "text-[10px] text-gray-500 truncate",
-                              children: ["Cliente: ", o.client_name || `#${o.client}`],
+                            c.jsxs("div", {
+                              className:
+                                "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-1.5",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[10px] font-bold text-white truncate",
+                                  children: o.name,
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "mt-1 flex items-center justify-between gap-1",
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        "inline-flex max-w-[70%] truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm",
+                                      children: o.client_name || `Cliente #${o.client}`,
+                                    }),
+                                    hasValue(o.charged_price) &&
+                                      c.jsxs("span", {
+                                        className:
+                                          "shrink-0 rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm",
+                                        children: ["$", o.charged_price],
+                                      }),
+                                  ],
+                                }),
+                              ],
                             }),
                           ],
                         }),
-                        c.jsx("span", {
+                        o.tags &&
+                        c.jsx("div", {
                           className:
-                            "text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600",
-                          children: o.status,
+                            "px-1.5 py-1 flex flex-wrap gap-1 border-t border-gray-100 dark:border-gray-800 bg-white/75 dark:bg-gray-900/25",
+                          children: o.tags
+                            .split(",")
+                            .map((N) => parseVisualTag(N))
+                            .filter((N) => N)
+                            .slice(0, 2)
+                            .map((N, A) =>
+                              c.jsx(
+                                "span",
+                                {
+                                  className: `${getTagClassName(N.type)} text-[9px] px-1.5 py-0.5 rounded`,
+                                  children: N.label,
+                                },
+                                `${o.id}-mission-tag-${A}`,
+                              ),
+                            ),
+                        }),
+                        !o.tags &&
+                        c.jsx("div", {
+                          className: "h-1.5 bg-white dark:bg-gray-900/25",
                         }),
                       ],
                     },
@@ -3908,9 +7336,11 @@ function nh() {
       c.jsx("div", {
         className:
           "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -4018,13 +7448,13 @@ function nh() {
                       type: "button",
                       onClick: () => k(!1),
                       className:
-                        "flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-semibold rounded-xl transition",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
                     }),
                     c.jsx("button", {
                       type: "submit",
                       className:
-                        "flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition shadow-lg shadow-primary/30",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
                       children: "Create",
                     }),
                   ],
@@ -4038,9 +7468,11 @@ function nh() {
       c.jsx("div", {
         className:
           "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -4148,13 +7580,13 @@ function nh() {
                         (tl(!1), Y(null));
                       },
                       className:
-                        "flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-semibold rounded-xl transition",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
                     }),
                     c.jsx("button", {
                       type: "submit",
                       className:
-                        "flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition shadow-lg shadow-primary/30",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
                       children: "Save",
                     }),
                   ],
@@ -4184,9 +7616,11 @@ function nh() {
       c.jsx("div", {
         className:
           "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
@@ -4483,10 +7917,6 @@ function nh() {
                             className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
                             children: getMissionStoreLabel(w) || "Sin tienda asignada",
                           }),
-                          c.jsx("p", {
-                            className: "text-[11px] text-sky-700 dark:text-sky-300 mt-0.5",
-                            children: "Se hereda automaticamente de la tienda seleccionada al iniciar el shopping.",
-                          }),
                         ],
                       })
                       : c.jsxs(c.Fragment, {
@@ -4569,7 +7999,7 @@ function nh() {
                       className: "grid grid-cols-2 gap-2",
                       children: [
                         ["ANNOTATED", "Anotado"],
-                        ["IN_REVIEW", "Revision"],
+                        ["REVIEW", "Revision"],
                         ["REJECTED", "Rechazado"],
                       ].map(([o, N]) =>
                         c.jsx(
@@ -4595,13 +8025,13 @@ function nh() {
                         (ut(!1), Ke(null));
                       },
                       className:
-                        "flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-semibold rounded-xl transition",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
                     }),
                     c.jsx("button", {
                       type: "submit",
                       className:
-                        "flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition shadow-lg shadow-primary/30",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
                       children: "Save Changes",
                     }),
                   ],
@@ -4616,9 +8046,11 @@ function nh() {
       c.jsx("div", {
         className:
           "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+          onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("h3", {
               className: "text-xl font-bold mb-4",
@@ -4723,13 +8155,13 @@ function nh() {
                         (sn(!1), We(null));
                       },
                       className:
-                        "flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-semibold rounded-xl transition",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
                     }),
                     c.jsx("button", {
                       type: "submit",
                       className:
-                        "flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition shadow-lg shadow-primary/30",
+                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
                       children: "Save",
                     }),
                   ],
@@ -4754,7 +8186,7 @@ function nh() {
                   c.jsx("button", {
                     onClick: Aa,
                     className:
-                      "w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition",
+                      "w-10 h-10 flex items-center justify-center rounded-full ui-icon-button",
                     children: c.jsx("span", {
                       className: "material-symbols-outlined",
                       children: "arrow_back",
@@ -4782,14 +8214,9 @@ function nh() {
                   "flex px-4 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-2",
                 children: [
                   c.jsxs("button", {
-                    onClick: () => jt("PS_REVIEW"),
-                    className: `pb-3 border-b-2 transition-colors ${wl === "PS_REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
-                    children: ["PS Revision (", galleryPsReviewCount, ")"],
-                  }),
-                  c.jsxs("button", {
-                    onClick: () => jt("AV_REVIEW"),
-                    className: `pb-3 border-b-2 transition-colors ${wl === "AV_REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
-                    children: ["AV Revision (", galleryAvReviewCount, ")"],
+                    onClick: () => jt("REVIEW"),
+                    className: `pb-3 border-b-2 transition-colors ${wl === "REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
+                    children: ["Revision (", galleryReviewCount, ")"],
                   }),
                   c.jsxs("button", {
                     onClick: () => jt("ANNOTATED"),
@@ -4810,31 +8237,94 @@ function nh() {
             children: [
               c.jsxs("div", {
                 className:
-                  "flex items-center gap-4 bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light",
+                  "bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light space-y-3",
                 children: [
-                  c.jsx("div", {
-                    className:
-                      "w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl uppercase border",
-                    children: W.name.charAt(0),
+                  c.jsxs("div", {
+                    className: "flex items-center gap-4",
+                    children: [
+                      c.jsx("div", {
+                        className:
+                          "w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl uppercase border",
+                        children: W.name.charAt(0),
+                      }),
+                      c.jsxs("div", {
+                        className: "min-w-0",
+                        children: [
+                          c.jsx("span", {
+                            className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${W.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
+                            children:
+                              W.status === "Active" ? "In Mission" : "Idle",
+                          }),
+                          c.jsx("p", {
+                            className:
+                              "text-xs text-text-sub dark:text-slate-400 truncate",
+                            children: W.tags,
+                          }),
+                          c.jsxs("div", {
+                            className: "mt-1.5 space-y-0.5",
+                            children: [
+                              c.jsxs("p", {
+                                className:
+                                  "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                children: [
+                                  "Total USD: $",
+                                  formatAmount(selectedClientHomeTotals.usd),
+                                ],
+                              }),
+                              c.jsxs("p", {
+                                className:
+                                  "text-[11px] font-bold text-blue-700 dark:text-blue-300",
+                                children: [
+                                  "Total Venta: $",
+                                  formatAmount(selectedClientHomeTotals.sale),
+                                ],
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                    ],
                   }),
                   c.jsxs("div", {
+                    className: "flex gap-2",
                     children: [
-                      c.jsx("span", {
-                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${W.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
-                        children:
-                          W.status === "Active" ? "In Mission" : "Idle",
-                      }),
-                      c.jsx("p", {
+                      c.jsxs("span", {
                         className:
-                          "text-xs text-text-sub dark:text-slate-400",
-                        children: W.tags,
+                          "flex-1 rounded-lg border border-emerald-200 bg-emerald-50/90 px-2 py-1.5 shadow-sm text-center",
+                        children: [
+                          c.jsx("span", {
+                            className:
+                              "text-[9px] font-black uppercase text-emerald-700/75 mr-1",
+                            children: "USD",
+                          }),
+                          c.jsxs("span", {
+                            className:
+                              "text-sm font-bold text-emerald-800",
+                            children: ["$", formatAmount(selectedClientHomeTotals.usd)],
+                          }),
+                        ],
+                      }),
+                      c.jsxs("span", {
+                        className:
+                          "flex-1 rounded-lg border border-blue-200 bg-blue-50/95 px-2 py-1.5 shadow-sm text-center",
+                        children: [
+                          c.jsx("span", {
+                            className:
+                              "text-[9px] font-black uppercase text-blue-700/75 mr-1",
+                            children: "Venta",
+                          }),
+                          c.jsxs("span", {
+                            className:
+                              "text-sm font-bold text-blue-800",
+                            children: ["$", formatAmount(selectedClientHomeTotals.sale)],
+                          }),
+                        ],
                       }),
                     ],
                   }),
                 ],
               }),
-              (wl === "PS_REVIEW" ||
-                wl === "AV_REVIEW" ||
+              (wl === "REVIEW" ||
                 wl === "ANNOTATED" ||
                 wl === "REJECTED") &&
               c.jsxs("div", {
@@ -4846,23 +8336,19 @@ function nh() {
                       c.jsx("h4", {
                         className: "font-bold text-lg",
                         children:
-                          wl === "PS_REVIEW"
-                            ? "Productos por revisar (PS)"
-                            : wl === "AV_REVIEW"
-                              ? "Productos por revisar (AV)"
+                          wl === "REVIEW"
+                            ? "Productos en revision"
                               : wl === "REJECTED"
                                 ? "Productos rechazados"
-                                : "Productos Anotados",
+                                : "Productos anotados",
                       }),
                       c.jsxs("p", {
                         className: "text-xs text-gray-500 mt-1",
                         children: [
                           "Anotado: ",
                           galleryAnnotatedCount,
-                          " • PS Rev: ",
-                          galleryPsReviewCount,
-                          " • AV Rev: ",
-                          galleryAvReviewCount,
+                          " • Revision: ",
+                          galleryReviewCount,
                           " • Rechazado: ",
                           galleryRejectedCount,
                         ],
@@ -4870,15 +8356,14 @@ function nh() {
                     ],
                   }),
                   c.jsxs("div", {
-                    className: "grid grid-cols-2 gap-1",
+                    className: "grid grid-cols-3 gap-1",
                     children: [
                       // <-------- seccion 7: tarjetas con estado de revision y acciones por rol
                       sortedVisibleGalleryProducts.map((o) => {
                         const reviewEntry = latestReviewsByProduct[o.id],
-                          hasPulse =
-                            reviewEntry &&
-                            (reviewEntry.status === "PENDING" ||
-                              reviewEntry.status === "ALTERNATIVE_SENT"),
+                          hasPulse = !!(
+                            effectiveHomeClientReviewUnreadMap[W && W.id] || {}
+                          )[o.id],
                           isPendingReview =
                             reviewEntry && reviewEntry.status === "PENDING",
                           isAltReady =
@@ -4887,25 +8372,31 @@ function nh() {
                         return c.jsxs(
                           "div",
                           {
-                            className: `bg-surface-light dark:bg-surface-dark rounded-lg overflow-hidden shadow-card border flex flex-col relative group ${hasPulse ? "review-pending border-amber-300" : "border-border-light dark:border-border-dark"}`,
+                            className: `bg-surface-light dark:bg-surface-dark rounded-lg overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ${hasPulse ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
                             children: [
+                              hasPulse &&
+                              c.jsx("span", {
+                                className:
+                                  "absolute top-1.5 left-1.5 z-20 w-2.5 h-2.5 rounded-full bg-red-500 border border-white dark:border-slate-900",
+                              }),
                               c.jsxs("div", {
-                                className: "absolute top-2 right-2 z-20",
+                                className: "absolute top-1.5 right-1.5 z-20",
                                 "data-product-menu": "1",
                                 children: [
                                   c.jsx("button", {
                                     onClick: (N) => {
                                       (N.stopPropagation(),
+                                        setOpenProductInfoId(null),
                                         setOpenProductMenuId((A) =>
                                           A === o.id ? null : o.id,
                                         ));
                                     },
                                     className:
-                                      "w-8 h-8 rounded-full bg-white/95 text-gray-700 hover:bg-white border border-gray-200 shadow-sm flex items-center justify-center",
+                                      "w-6 h-6 rounded-full bg-white/38 text-gray-700 hover:bg-white/56 border border-white/35 shadow-sm backdrop-blur-[2px] flex items-center justify-center",
                                     title: "Opciones",
                                     children: c.jsx("span", {
                                       className:
-                                        "material-symbols-outlined text-[16px]",
+                                        "material-symbols-outlined text-[12px]",
                                       children: "more_vert",
                                     }),
                                   }),
@@ -4937,55 +8428,21 @@ function nh() {
                                             setOpenProductMenuId(null),
                                             Xt(o));
                                         },
+                                        disabled: productImageUploadingId === o.id,
                                         className:
-                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-purple-700 hover:bg-purple-50",
+                                          `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-purple-700 ${productImageUploadingId === o.id ? "opacity-60 cursor-wait bg-purple-50" : "hover:bg-purple-50"}`,
                                         children: [
                                           c.jsx("span", {
                                             className:
-                                              "material-symbols-outlined text-[14px]",
-                                            children: "add_a_photo",
+                                              `material-symbols-outlined text-[14px] ${productImageUploadingId === o.id ? "animate-spin" : ""}`,
+                                            children:
+                                              productImageUploadingId === o.id
+                                                ? "progress_activity"
+                                                : "add_a_photo",
                                           }),
-                                          "Cambiar foto",
-                                        ],
-                                      }),
-                                      c.jsxs("button", {
-                                        onClick: (N) => {
-                                          (N.stopPropagation(),
-                                            setOpenProductMenuId(null),
-                                            markProductAnnotated(
-                                              o,
-                                              reviewEntry || null,
-                                            ));
-                                        },
-                                        className:
-                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-emerald-700 hover:bg-emerald-50",
-                                        children: [
-                                          c.jsx("span", {
-                                            className:
-                                              "material-symbols-outlined text-[14px]",
-                                            children: "check_circle",
-                                          }),
-                                          "Anotado",
-                                        ],
-                                      }),
-                                      c.jsxs("button", {
-                                        onClick: (N) => {
-                                          (N.stopPropagation(),
-                                            setOpenProductMenuId(null),
-                                            markProductRejected(
-                                              o,
-                                              reviewEntry || null,
-                                            ));
-                                        },
-                                        className:
-                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-amber-700 hover:bg-amber-50",
-                                        children: [
-                                          c.jsx("span", {
-                                            className:
-                                              "material-symbols-outlined text-[14px]",
-                                            children: "block",
-                                          }),
-                                          "Rechazar",
+                                          productImageUploadingId === o.id
+                                            ? "Subiendo foto"
+                                            : "Cambiar foto",
                                         ],
                                       }),
                                       c.jsxs("button", {
@@ -5010,67 +8467,111 @@ function nh() {
                                 ],
                               }),
                               c.jsx("div", {
-                                className: "absolute top-2 left-2 z-20",
+                                className: "absolute top-1.5 left-1.5 z-20",
                                 "data-product-info": "1",
                                 children: c.jsx("button", {
                                   onClick: (N) => {
                                     (N.stopPropagation(),
+                                      setOpenProductMenuId(null),
                                       setOpenProductInfoId((A) =>
                                         A === o.id ? null : o.id,
                                       ));
                                   },
                                   className:
-                                    "w-8 h-8 rounded-full bg-white/95 text-gray-700 hover:bg-white border border-gray-200 shadow-sm flex items-center justify-center",
+                                    "w-6 h-6 rounded-full bg-white/38 text-gray-700 hover:bg-white/56 border border-white/35 shadow-sm backdrop-blur-[2px] flex items-center justify-center",
                                   title: "Info del producto",
                                   children: c.jsx("span", {
                                     className:
-                                      "material-symbols-outlined text-[16px]",
+                                      "material-symbols-outlined text-[12px]",
                                     children: "info",
                                   }),
                                 }),
                               }),
                               c.jsxs("div", {
                                 className:
-                                  "w-full h-40 bg-gray-100 dark:bg-gray-800 relative flex items-center justify-center",
+                                  "w-full h-36 bg-[radial-gradient(circle_at_top,rgba(19,127,236,0.10),transparent_42%),linear-gradient(180deg,rgba(244,247,251,0.95),rgba(236,242,248,0.95))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_38%),linear-gradient(180deg,rgba(22,31,43,0.96),rgba(15,23,34,0.98))] relative flex items-center justify-center",
                                 children: [
-                                  o.image
-                                    ? c.jsx("img", {
-                                      src: resolveMediaUrl(o.image),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-0 overflow-hidden",
+                                    children: o.image
+                                      ? c.jsx("img", {
+                                        src: resolveMediaUrl(o.image),
+                                        className:
+                                          "w-full h-full object-cover cursor-zoom-in",
+                                        onClick: () =>
+                                          setFullscreenImage({
+                                            url: resolveMediaUrl(o.image),
+                                            copyOnClick: !0,
+                                            copyMessage: "Imagen copiada.",
+                                          }),
+                                        title: "Abrir imagen",
+                                      })
+                                      : c.jsxs("div", {
+                                        className:
+                                          "w-full h-full flex flex-col items-center justify-center text-gray-400",
+                                        children: [
+                                          c.jsx("span", {
+                                            className:
+                                              "material-symbols-outlined text-3xl mb-0.5",
+                                            children: "image",
+                                          }),
+                                          c.jsx("span", {
+                                            className:
+                                              "text-[9px] uppercase font-bold",
+                                            children: "No Image",
+                                          }),
+                                        ],
+                                      }),
+                                  }),
+                                  c.jsx("div", {
+                                    className: "absolute right-0.5 bottom-0.5 z-20",
+                                    children: c.jsxs("button", {
+                                      onClick: (N) => {
+                                        (N.stopPropagation(),
+                                          setOpenProductInfoId(null),
+                                          setOpenProductMenuId(null),
+                                          openProductConversation(
+                                            o,
+                                            reviewEntry || null,
+                                          ));
+                                      },
                                       className:
-                                        "w-full h-full object-contain cursor-copy",
-                                      onClick: () =>
-                                        copyProductImageToClipboard(
-                                          o.id,
-                                          o.image,
-                                        ),
-                                      title: "Copiar imagen",
-                                    })
-                                    : c.jsxs("div", {
-                                      className:
-                                        "flex flex-col items-center justify-center text-gray-400",
+                                        "px-0.5 py-[1px] rounded-full bg-white/34 text-slate-700 hover:bg-white/50 border border-white/30 shadow-sm backdrop-blur-[2px] inline-flex items-center gap-0.5",
+                                      title: "Historial de conversacion",
                                       children: [
                                         c.jsx("span", {
                                           className:
-                                            "material-symbols-outlined text-3xl mb-0.5",
-                                          children: "image",
-                                        }),
-                                        c.jsx("span", {
-                                          className:
-                                            "text-[9px] uppercase font-bold",
-                                          children: "No Image",
+                                            "material-symbols-outlined text-[10px]",
+                                          children: "chat",
                                         }),
                                       ],
                                     }),
-                                  o.purchase_date &&
-                                  c.jsx("span", {
+                                  }),
+                                  productImageUploadingId === o.id &&
+                                  c.jsxs("div", {
                                     className:
-                                      "absolute top-1 left-10 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded",
-                                    children: new Date(o.purchase_date).toLocaleDateString(),
+                                      "absolute inset-0 z-10 bg-black/60 text-white flex flex-col items-center justify-center gap-1.5",
+                                    children: [
+                                      c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined animate-spin text-xl",
+                                        children: "progress_activity",
+                                      }),
+                                      c.jsx("span", {
+                                        className: "text-[11px] font-semibold",
+                                        children: "Subiendo imagen...",
+                                      }),
+                                      c.jsx("span", {
+                                        className: "text-[9px] opacity-85",
+                                        children: "Esperando confirmacion del servidor",
+                                      }),
+                                    ],
                                   }),
                                   o.tags &&
                                   c.jsx("div", {
                                     className:
-                                      "absolute left-1 right-8 bottom-1 flex flex-wrap gap-1",
+                                      "absolute left-1 right-8 bottom-6 flex flex-wrap gap-1",
                                     children: o.tags
                                       .split(",")
                                       .map((N) => parseVisualTag(N))
@@ -5087,60 +8588,7 @@ function nh() {
                                         ),
                                       ),
                                   }),
-                                  reviewEntry &&
-                                  reviewEntry.review_note &&
-                                  c.jsx("div", {
-                                    className:
-                                      "absolute left-1 right-10 top-9 rounded-md bg-black/58 text-white px-2 py-1 backdrop-blur-[1px]",
-                                    children: c.jsx("p", {
-                                      className: "text-[9px] leading-tight line-clamp-2",
-                                      children: reviewEntry.review_note,
-                                    }),
-                                  }),
-                                  c.jsxs("div", {
-                                    className:
-                                      "absolute left-1 right-8 bottom-8 flex flex-wrap gap-1",
-                                    children: [
-                                      X !== "PS" &&
-                                      c.jsx("button", {
-                                        onClick: () => sendProductToPs(o, reviewEntry || null),
-                                        className:
-                                          "px-1.5 py-1 rounded bg-amber-500/95 text-white text-[9px] font-bold",
-                                        children: "Mandar a PS",
-                                      }),
-                                      X === "PS" &&
-                                      isPendingReview &&
-                                      c.jsx("button", {
-                                        onClick: () => sendProductToAv(reviewEntry),
-                                        className:
-                                          "px-1.5 py-1 rounded bg-sky-600/95 text-white text-[9px] font-bold",
-                                        children: "Mandar a AV",
-                                      }),
-                                      c.jsx("button", {
-                                        onClick: () => markProductAnnotated(o, reviewEntry || null),
-                                        className:
-                                          "px-1.5 py-1 rounded bg-emerald-600/95 text-white text-[9px] font-bold",
-                                        children: "Anotado",
-                                      }),
-                                      c.jsx("button", {
-                                        onClick: () => markProductRejected(o, reviewEntry || null),
-                                        className:
-                                          "px-1.5 py-1 rounded bg-rose-600/95 text-white text-[9px] font-bold",
-                                        children: "Rechazado",
-                                      }),
                                     ],
-                                  }),
-                                  o.image &&
-                                  c.jsx("button", {
-                                    onClick: () => setFullscreenImage(resolveMediaUrl(o.image)),
-                                    className:
-                                      "absolute bottom-1 right-1 w-6 h-6 rounded-md bg-white/90 hover:bg-white text-gray-600 flex items-center justify-center border border-gray-200",
-                                    title: "Fullscreen",
-                                    children: c.jsx("span", {
-                                      className:
-                                        "material-symbols-outlined text-[14px]",
-                                      children: "fullscreen",
-                                    }),
                                   }),
                                   openProductInfoId === o.id &&
                                   c.jsxs("div", {
@@ -5206,301 +8654,38 @@ function nh() {
                                           }),
                                         ],
                                       }),
-                                      reviewEntry &&
-                                      reviewEntry.review_note &&
-                                      c.jsxs("p", {
-                                        className:
-                                          "text-[10px] mt-1 break-words opacity-95",
-                                        children: [
-                                          "Revision: ",
-                                          reviewEntry.review_note,
-                                        ],
-                                      }),
                                     ],
                                   }),
-                                  openProductInfoId !== o.id &&
-                                  c.jsxs("div", {
-                                    className:
-                                      "absolute left-1 bottom-1 max-w-[70%] bg-black/45 text-white rounded px-1.5 py-0.5 backdrop-blur-[1px]",
-                                    children: [
-                                      c.jsx("p", {
-                                        className: "text-[10px] font-semibold truncate",
-                                        children: o.name,
-                                      }),
-                                      c.jsx("p", {
-                                        className: "text-[9px] uppercase tracking-wide",
-                                        children: o.status,
-                                      }),
-                                    ],
-                                  }),
-                                ],
-                              }),
-                              c.jsxs("div", {
-                                className: "hidden",
-                                children: [
-                                  c.jsxs("div", {
-                                    children: [
-                                      c.jsx("p", {
-                                        className:
-                                          "font-bold text-sm truncate",
-                                        children: o.name,
-                                      }),
-                                      o.mission_date &&
-                                      c.jsxs("p", {
-                                        className:
-                                          "text-[10px] text-gray-500 mt-0.5",
-                                        children: [
-                                          "Mission ",
-                                          new Date(
-                                            o.mission_date,
-                                          ).toLocaleDateString(),
-                                        ],
-                                      }),
-                                      o.tags &&
-                                      c.jsx("div", {
-                                        className:
-                                          "flex flex-wrap gap-1 mt-1",
-                                        children: o.tags
-                                          .split(",")
-                                          .map((N) => parseVisualTag(N))
-                                          .filter((N) => N)
-                                          .map((N, A) =>
-                                            c.jsx(
-                                              "span",
-                                              {
-                                                className: `${getTagClassName(N.type)} text-[9px] px-1.5 py-0.5 rounded font-medium`,
-                                                children: N.label,
-                                              },
-                                              A,
-                                            ),
-                                          ),
-                                      }),
-                                      c.jsxs("div", {
-                                        className:
-                                          "flex flex-wrap gap-1 mt-1.5",
-                                        children: [
-                                          hasValue(o.charged_price) &&
-                                          c.jsxs("span", {
-                                            className:
-                                              "text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold",
-                                            children: [
-                                              "$",
-                                              o.charged_price,
-                                            ],
-                                          }),
-                                          hasValue(o.real_price) &&
-                                          c.jsxs("span", {
-                                            className:
-                                              "text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold",
-                                            children: [
-                                              "Store: $",
-                                              o.real_price,
-                                            ],
-                                          }),
-                                        ],
-                                      }),
-                                      copiedImageItemId === o.id &&
-                                      c.jsx("p", {
-                                        className:
-                                          "text-[10px] mt-1 font-bold text-emerald-600",
-                                        children: "📋 Imagen copiada",
-                                      }),
-                                      reviewEntry &&
-                                      reviewEntry.review_note &&
-                                      c.jsxs("div", {
-                                        className:
-                                          "mt-2 p-2 rounded-lg border border-amber-200 bg-amber-50",
-                                        children: [
-                                          c.jsxs("p", {
-                                            className:
-                                              "text-[10px] uppercase font-bold text-amber-700",
-                                            children: [
-                                              reviewEntry.review_type ||
-                                              "CHECK_OTHER",
-                                              " • ",
-                                              reviewEntry.status,
-                                            ],
-                                          }),
-                                          c.jsx("p", {
-                                            className:
-                                              "text-[10px] text-amber-800 mt-0.5",
-                                            children:
-                                              reviewEntry.review_note,
-                                          }),
-                                        ],
-                                      }),
-                                      X !== "PS" &&
-                                      c.jsx("button", {
-                                        onClick: () =>
-                                          createProductReview(o),
-                                        className:
-                                          "mt-2 w-full text-[10px] py-1.5 rounded-lg bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200",
-                                        children: "Solicitar revision",
-                                      }),
-                                      X === "PS" &&
-                                      isPendingReview &&
-                                      c.jsxs("div", {
-                                        className: "mt-2 grid grid-cols-1 gap-1",
-                                        children: [
-                                          c.jsx("button", {
-                                            onClick: () =>
-                                              updateProductReviewAction(
-                                                reviewEntry,
-                                                "confirm",
-                                              ),
-                                            className:
-                                              "text-[10px] py-1.5 rounded-lg bg-emerald-100 text-emerald-700 font-semibold hover:bg-emerald-200",
-                                            children: "✓ Confirmar",
-                                          }),
-                                          c.jsx("button", {
-                                            onClick: () =>
-                                              updateProductReviewAction(
-                                                reviewEntry,
-                                                "no-stock",
-                                              ),
-                                            className:
-                                              "text-[10px] py-1.5 rounded-lg bg-red-100 text-red-700 font-semibold hover:bg-red-200",
-                                            children: "✕ No existe",
-                                          }),
-                                          c.jsx("button", {
-                                            onClick: () =>
-                                              openAlternativeUploadModal(
-                                                reviewEntry,
-                                              ),
-                                            className:
-                                              "text-[10px] py-1.5 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200",
-                                            children:
-                                              "📸 Enviar Alternativa",
-                                          }),
-                                        ],
-                                      }),
-                                      X !== "PS" &&
-                                      isAltReady &&
-                                      c.jsxs("div", {
-                                        className:
-                                          "mt-2 border border-sky-200 bg-sky-50 rounded-lg p-2",
-                                        children: [
-                                          c.jsx("p", {
-                                            className:
-                                              "text-[10px] font-bold text-sky-700 mb-1",
-                                            children:
-                                              "Alternativas disponibles",
-                                          }),
-                                          c.jsx("div", {
-                                            className:
-                                              "grid grid-cols-2 gap-1",
-                                            children: (
-                                              reviewEntry.alternatives ||
-                                              []
-                                            ).map((N) =>
-                                              c.jsxs(
-                                                "button",
-                                                {
-                                                  onClick: () =>
-                                                    selectReviewAlternative(
-                                                      reviewEntry,
-                                                      N,
-                                                    ),
-                                                  className:
-                                                    "text-left rounded border border-sky-200 bg-white hover:bg-sky-100 overflow-hidden",
-                                                  children: [
-                                                    N.image &&
-                                                    c.jsx("img", {
-                                                      src: resolveMediaUrl(N.image),
-                                                      className:
-                                                        "w-full h-14 object-cover",
-                                                    }),
-                                                    c.jsx("span", {
-                                                      className:
-                                                        "block p-1 text-[9px] text-sky-800 truncate",
-                                                      children:
-                                                        N.description ||
-                                                        "Seleccionar",
-                                                    }),
-                                                  ],
-                                                },
-                                                N.id,
-                                              ),
-                                            ),
-                                          }),
-                                          c.jsxs("div", {
-                                            className: "mt-2 grid grid-cols-1 gap-1",
-                                            children: [
-                                              c.jsx("button", {
-                                                onClick: () =>
-                                                  keepOriginalProduct(
-                                                    reviewEntry,
-                                                  ),
-                                                className:
-                                                  "text-[10px] py-1 rounded bg-emerald-100 text-emerald-700 font-semibold hover:bg-emerald-200",
-                                                children:
-                                                  "Quedarse original",
-                                              }),
-                                              c.jsx("button", {
-                                                onClick: () =>
-                                                  resendReviewToPs(
-                                                    reviewEntry,
-                                                  ),
-                                                className:
-                                                  "text-[10px] py-1 rounded bg-orange-100 text-orange-700 font-semibold hover:bg-orange-200",
-                                                children: "Reenviar a PS",
-                                              }),
-                                              c.jsx("button", {
-                                                onClick: () =>
-                                                  discardReviewedProduct(
-                                                    reviewEntry,
-                                                  ),
-                                                className:
-                                                  "text-[10px] py-1 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300",
-                                                children: "Descartar",
-                                              }),
-                                            ],
-                                          }),
-                                        ],
-                                      }),
-                                    ],
-                                  }),
-                                  c.jsxs("div", {
-                                    className:
-                                      "mt-2 flex justify-between items-center",
-                                    children: [
-                                      c.jsx("span", {
-                                        className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${o.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : o.status === "REJECTED" ? "bg-red-100 text-red-700" : o.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
-                                        children: o.status === "BOUGHT" ? "ANNOTATED" : o.status,
-                                      }),
-                                      o.receipt &&
-                                      c.jsx("span", {
-                                        className:
-                                          "material-symbols-outlined text-gray-400 text-[14px]",
-                                        title: "Linked to Ticket",
-                                        children: "link",
-                                      }),
-                                    ],
-                                  }),
-                                ],
-                              }),
                             ],
                           },
                           o.id,
                         );
                       }),
                       c.jsxs("div", {
-                        onClick: fu,
+                        onClick: newProductUploading ? void 0 : fu,
                         className:
-                          "bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 h-40 cursor-pointer hover:bg-primary/5 transition hover:border-primary/40 group",
+                          `bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 h-40 transition group ${newProductUploading ? "cursor-wait opacity-75 border-primary/40" : "cursor-pointer hover:bg-primary/5 hover:border-primary/40"}`,
                         children: [
                           c.jsx("span", {
                             className:
-                              "material-symbols-outlined text-3xl text-primary mb-2 group-hover:scale-110 transition-transform",
-                            children: "add_photo_alternate",
+                              `material-symbols-outlined text-3xl text-primary mb-2 transition-transform ${newProductUploading ? "animate-spin" : "group-hover:scale-110"}`,
+                            children: newProductUploading
+                              ? "progress_activity"
+                              : "add_photo_alternate",
                           }),
                           c.jsx("span", {
                             className:
                               "text-sm font-semibold text-center px-4",
-                            children:
-                              X === "PS"
+                            children: newProductUploading
+                              ? "Subiendo imagen..."
+                              : X === "PS"
                                 ? "+ Photo / Found Product"
                                 : "+ Photo / Pre-order",
+                          }),
+                          newProductUploading &&
+                          c.jsx("span", {
+                            className: "text-[11px] text-text-sub mt-1 px-4 text-center",
+                            children: "No cierres la ventana hasta que termine la carga.",
                           }),
                         ],
                       }),
@@ -5527,7 +8712,7 @@ function nh() {
                           "div",
                           {
                             className:
-                              "bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-card border border-border-light dark:border-border-dark flex flex-col p-4 relative group",
+                              "bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-card border border-border-light dark:border-border-dark flex flex-col p-4 relative group ui-card-quiet",
                             children: [
                               c.jsxs("div", {
                                 className: "flex gap-4 items-start",
@@ -5536,11 +8721,11 @@ function nh() {
                                     ? c.jsx("img", {
                                       src: resolveMediaUrl(o.image),
                                       className:
-                                        "w-16 h-20 rounded-md object-cover bg-gray-100 border border-gray-200",
+                                        "ui-media-frame ui-media-ticket-md object-cover",
                                     })
                                     : c.jsx("div", {
                                       className:
-                                        "w-16 h-20 bg-gray-200 rounded-md flex items-center justify-center",
+                                        "ui-media-frame ui-media-ticket-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center",
                                       children: c.jsx("span", {
                                         className:
                                           "material-symbols-outlined text-gray-400",
@@ -5675,19 +8860,28 @@ function nh() {
                       ),
                       X === "PS" &&
                       c.jsxs("div", {
-                        onClick: su,
+                        onClick: receiptUploading ? void 0 : su,
                         className:
-                          "bg-purple-50 dark:bg-purple-900/10 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-purple-300 dark:border-purple-700/50 py-8 cursor-pointer hover:bg-purple-100/50 transition",
+                          `bg-purple-50 dark:bg-purple-900/10 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-purple-300 dark:border-purple-700/50 py-8 transition ${receiptUploading ? "cursor-wait opacity-75" : "cursor-pointer hover:bg-purple-100/50"}`,
                         children: [
                           c.jsx("span", {
                             className:
-                              "material-symbols-outlined text-4xl text-purple-600 mb-2",
-                            children: "receipt_long",
+                              `material-symbols-outlined text-4xl text-purple-600 mb-2 ${receiptUploading ? "animate-spin" : ""}`,
+                            children: receiptUploading
+                              ? "progress_activity"
+                              : "receipt_long",
                           }),
                           c.jsx("span", {
                             className:
                               "text-sm font-semibold text-purple-700 dark:text-purple-400",
-                            children: "Upload Store Ticket",
+                            children: receiptUploading
+                              ? "Subiendo ticket..."
+                              : "Upload Store Ticket",
+                          }),
+                          receiptUploading &&
+                          c.jsx("span", {
+                            className: "text-[11px] text-purple-600 mt-1",
+                            children: "Esperando confirmacion del servidor.",
                           }),
                         ],
                       }),
@@ -5730,61 +8924,6 @@ function nh() {
                   ],
                 }),
               }),
-              // <-------- seccion 7: modal PS para subir alternativas
-              altUploadReviewId &&
-              c.jsx("div", {
-                className:
-                  "fixed inset-0 z-[72] bg-black/60 flex items-end sm:items-center justify-center ui-backdrop",
-                children: c.jsxs("div", {
-                  className:
-                    "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
-                  children: [
-                    c.jsx("h3", {
-                      className: "text-base font-bold mb-3",
-                      children: "Enviar alternativas",
-                    }),
-                    c.jsx("input", {
-                      type: "file",
-                      accept: "image/*",
-                      multiple: !0,
-                      onChange: (o) =>
-                        setAltUploadFiles(Array.from(o.target.files || [])),
-                      className:
-                        "w-full text-xs mb-3 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300",
-                    }),
-                    c.jsx("textarea", {
-                      rows: 3,
-                      value: altUploadDescription,
-                      onChange: (o) =>
-                        setAltUploadDescription(o.target.value),
-                      placeholder: "Descripcion de alternativa (opcional)",
-                      className:
-                        "w-full px-3 py-2 text-xs border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
-                    }),
-                    c.jsxs("p", {
-                      className: "text-[10px] text-gray-500 mt-2",
-                      children: ["Archivos seleccionados: ", altUploadFiles.length],
-                    }),
-                    c.jsxs("div", {
-                      className: "mt-4 grid grid-cols-2 gap-2",
-                      children: [
-                        c.jsx("button", {
-                          onClick: closeAlternativeUploadModal,
-                          className:
-                            "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold",
-                          children: "Cancelar",
-                        }),
-                        c.jsx("button", {
-                          onClick: sendReviewAlternatives,
-                          disabled: altUploadFiles.length === 0,
-                          className: `py-2 rounded-lg text-xs font-semibold ${altUploadFiles.length === 0 ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-primary text-white hover:bg-primary-dark"}`,
-                          children: "Enviar",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-              }),
             ],
           }),
           false &&
@@ -5817,154 +8956,1131 @@ function nh() {
           Pl &&
           c.jsxs("div", {
             className:
-              "absolute inset-x-0 bottom-0 z-[60] bg-background-light dark:bg-background-dark flex flex-col animate-in slide-in-from-bottom duration-300 h-[85vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-border-light dark:border-border-dark overflow-hidden",
+              "absolute inset-0 z-[60] bg-black/50 flex items-end ui-backdrop",
+            onClick: () => dismissActiveOverlayRef.current(),
             children: [
               c.jsxs("div", {
                 className:
-                  "p-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gray-50 dark:bg-gray-800",
-                children: [
-                  c.jsx("h3", {
-                    className: "text-lg font-bold",
-                    children: "Group Products into Ticket",
-                  }),
-                  c.jsx("button", {
-                    onClick: () => {
-                      (at(!1), we(null), Kt(null));
-                    },
-                    className:
-                      "w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300",
-                    children: c.jsx("span", {
-                      className: "material-symbols-outlined",
-                      children: "close",
-                    }),
-                  }),
-                ],
-              }),
-              c.jsxs("div", {
-                className: "flex-1 overflow-y-auto p-5",
+                  "bg-background-light dark:bg-background-dark flex flex-col animate-in slide-in-from-bottom duration-300 h-[85vh] w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-border-light dark:border-border-dark overflow-hidden",
+                onClick: (o) => o.stopPropagation(),
                 children: [
                   c.jsxs("div", {
                     className:
-                      "mb-4 flex items-center gap-4 bg-purple-50 border border-purple-100 p-3 rounded-xl",
+                      "p-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gray-50 dark:bg-gray-800",
                     children: [
-                      va
-                        ? c.jsx("img", {
-                          src: va,
-                          className:
-                            "w-12 h-16 object-cover rounded shadow-sm border border-gray-300",
-                        })
-                        : c.jsx("div", {
-                          className:
-                            "w-12 h-16 bg-white border border-gray-300 rounded shadow-sm text-gray-300 flex items-center justify-center",
-                          children: c.jsx("span", {
-                            className: "material-symbols-outlined",
-                            children: "receipt",
-                          }),
+                      c.jsx("h3", {
+                        className: "text-lg font-bold",
+                        children: "Group Products into Ticket",
+                      }),
+                      c.jsx("button", {
+                        onClick: () => {
+                          (at(!1), we(null), Kt(null));
+                        },
+                        className:
+                          "w-8 h-8 flex items-center justify-center rounded-full ui-icon-button",
+                        children: c.jsx("span", {
+                          className: "material-symbols-outlined",
+                          children: "close",
                         }),
-                      c.jsxs("div", {
-                        children: [
-                          c.jsxs("p", {
-                            className:
-                              "font-semibold text-sm text-purple-900",
-                            children: ["Selecting Group for Ticket #", kt],
-                          }),
-                          c.jsx("p", {
-                            className: "text-xs text-purple-700",
-                            children:
-                              "Tap products below to group them into this ticket.",
-                          }),
-                        ],
                       }),
                     ],
                   }),
-                  W.products.length === 0
-                    ? c.jsx("p", {
-                      className: "text-sm text-center text-gray-500 my-8",
-                      children:
-                        "This client has no products added. Add products first to link them to tickets.",
-                    })
-                    : c.jsx("div", {
-                      className: "space-y-3 pb-24",
-                      children: W.products.map((o) =>
-                        c.jsxs(
-                          "div",
-                          {
-                            onClick: () => gn(o.id),
-                            className: `flex items-center gap-4 p-3 rounded-xl border-2 transition-colors cursor-pointer ${ct.includes(o.id) ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
-                            children: [
-                              o.image
-                                ? c.jsx("img", {
-                                  src: resolveMediaUrl(o.image),
-                                  className:
-                                    "w-12 h-12 rounded object-cover border",
-                                })
-                                : c.jsx("div", {
-                                  className:
-                                    "w-12 h-12 bg-white flex items-center justify-center text-gray-400 rounded border",
-                                  children: c.jsx("span", {
-                                    className:
-                                      "material-symbols-outlined",
-                                    children: "image",
-                                  }),
-                                }),
-                              c.jsxs("div", {
-                                className: "flex-1",
-                                children: [
-                                  c.jsx("p", {
-                                    className: "font-semibold text-sm",
-                                    children: o.name,
-                                  }),
-                                  c.jsx("p", {
-                                    className:
-                                      "text-[10px] text-gray-500 uppercase",
-                                    children: o.status,
-                                  }),
-                                ],
+                  c.jsxs("div", {
+                    className: "flex-1 overflow-y-auto p-5",
+                    children: [
+                      c.jsxs("div", {
+                        className:
+                                "mb-4 flex items-center gap-4 bg-purple-50 border border-purple-100 p-3 rounded-xl shadow-[0_14px_28px_-24px_rgba(88,28,135,0.3)]",
+                        children: [
+                          va
+                            ? c.jsx("img", {
+                              src: va,
+                              className:
+                                "ui-media-frame ui-media-ticket-sm object-cover",
+                            })
+                            : c.jsx("div", {
+                              className:
+                                "ui-media-frame ui-media-ticket-sm bg-white text-gray-300 flex items-center justify-center",
+                              children: c.jsx("span", {
+                                className: "material-symbols-outlined",
+                                children: "receipt",
                               }),
-                              c.jsx("div", {
-                                className: `w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${ct.includes(o.id) ? "border-green-600 bg-green-500 text-white" : "border-gray-300"}`,
+                            }),
+                          c.jsxs("div", {
+                            children: [
+                              c.jsxs("p", {
+                                className:
+                                  "font-semibold text-sm text-purple-900",
+                                children: ["Selecting Group for Ticket #", kt],
+                              }),
+                              c.jsx("p", {
+                                className: "text-xs text-purple-700",
                                 children:
-                                  ct.includes(o.id) &&
-                                  c.jsx("span", {
-                                    className:
-                                      "material-symbols-outlined text-[16px] font-bold",
-                                    children: "check",
-                                  }),
+                                  "Tap products below to group them into this ticket.",
                               }),
                             ],
-                          },
-                          o.id,
-                        ),
-                      ),
-                    }),
-                ],
-              }),
-              c.jsx("div", {
-                className:
-                  "absolute bottom-0 inset-x-0 p-4 border-t border-border-light dark:border-border-dark bg-white dark:bg-surface-dark pb-8",
-                children: c.jsx("button", {
-                  onClick: ve,
-                  disabled: W.products.length === 0,
-                  className: `w-full py-4 text-white font-bold rounded-xl shadow-lg transition flex justify-center items-center gap-2 ${W.products.length === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`,
-                  children:
-                    ct.length > 0
-                      ? c.jsxs(c.Fragment, {
-                        children: [
-                          "Save Ticket & Group ",
-                          ct.length,
-                          " Item(s)",
+                          }),
                         ],
-                      })
-                      : c.jsx(c.Fragment, {
-                        children: "Save Group (0 Items)",
                       }),
-                }),
+                      W.products.length === 0
+                        ? c.jsx("p", {
+                          className: "text-sm text-center text-gray-500 my-8",
+                          children:
+                            "This client has no products added. Add products first to link them to tickets.",
+                        })
+                        : c.jsx("div", {
+                          className: "space-y-3 pb-24",
+                          children: W.products.map((o) =>
+                            c.jsxs(
+                              "div",
+                              {
+                                onClick: () => gn(o.id),
+                                className: `flex items-center gap-4 p-3 rounded-xl border-2 transition-colors cursor-pointer ${ct.includes(o.id) ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
+                                children: [
+                                  o.image
+                                    ? c.jsx("img", {
+                                      src: resolveMediaUrl(o.image),
+                                      className:
+                                        "ui-media-frame ui-media-md object-cover",
+                                    })
+                                    : c.jsx("div", {
+                                      className:
+                                        "ui-media-frame ui-media-md bg-white dark:bg-slate-900 flex items-center justify-center text-gray-400",
+                                      children: c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined",
+                                        children: "image",
+                                      }),
+                                    }),
+                                  c.jsxs("div", {
+                                    className: "flex-1",
+                                    children: [
+                                      c.jsx("p", {
+                                        className: "font-semibold text-sm",
+                                        children: o.name,
+                                      }),
+                                      c.jsx("p", {
+                                        className:
+                                          "text-[10px] text-gray-500 uppercase",
+                                        children: o.status,
+                                      }),
+                                    ],
+                                  }),
+                                  c.jsx("div", {
+                                    className: `w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${ct.includes(o.id) ? "border-green-600 bg-green-500 text-white" : "border-gray-300"}`,
+                                    children:
+                                      ct.includes(o.id) &&
+                                      c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined text-[16px] font-bold",
+                                        children: "check",
+                                      }),
+                                  }),
+                                ],
+                              },
+                              o.id,
+                            ),
+                          ),
+                        }),
+                    ],
+                  }),
+                  c.jsx("div", {
+                    className:
+                      "absolute bottom-0 inset-x-0 p-4 border-t border-border-light dark:border-border-dark bg-white dark:bg-surface-dark pb-8",
+                    children: c.jsx("button", {
+                      onClick: ve,
+                      disabled: W.products.length === 0,
+                      className: `w-full py-4 text-white font-bold rounded-xl shadow-lg transition flex justify-center items-center gap-2 ${W.products.length === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`,
+                      children:
+                        ct.length > 0
+                          ? c.jsxs(c.Fragment, {
+                            children: [
+                              "Save Ticket & Group ",
+                              ct.length,
+                              " Item(s)",
+                            ],
+                          })
+                          : c.jsx(c.Fragment, {
+                            children: "Save Group (0 Items)",
+                          }),
+                    }),
+                  }),
+                ],
               }),
             ],
           }),
         ],
       }),
-      fullscreenImage &&
+      toasts.length > 0 &&
+      c.jsx("div", {
+        className:
+          "fixed inset-x-0 top-4 z-[88] flex flex-col items-center gap-2 px-4 pointer-events-none",
+        children: toasts.map((o) =>
+          c.jsxs(
+            "div",
+            {
+              className:
+                `pointer-events-auto w-full max-w-md rounded-2xl border shadow-lg backdrop-blur-sm px-4 py-3 flex items-start gap-3 ${o.tone === "success"
+                  ? "bg-emerald-50/95 border-emerald-200 text-emerald-800"
+                  : o.tone === "error"
+                    ? "bg-rose-50/95 border-rose-200 text-rose-800"
+                    : "bg-slate-50/95 border-slate-200 text-slate-800"}`,
+              children: [
+                c.jsx("span", {
+                  className: "material-symbols-outlined text-[18px] mt-0.5",
+                  children:
+                    o.tone === "success"
+                      ? "check_circle"
+                      : o.tone === "error"
+                        ? "error"
+                        : "info",
+                }),
+                c.jsx("p", {
+                  className: "flex-1 text-sm font-medium leading-5",
+                  children: o.message,
+                }),
+                c.jsx("button", {
+                  onClick: () => dismissToast(o.id),
+                  className:
+                    "w-7 h-7 rounded-full hover:bg-black/5 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[16px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            },
+            o.id,
+          ),
+        ),
+      }),
+      confirmDialog &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
+        onClick: () => closeConfirmDialog(!1),
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className: "flex items-start gap-3",
+              children: [
+                c.jsx("div", {
+                  className:
+                    `w-10 h-10 rounded-2xl flex items-center justify-center ${confirmDialog.tone === "danger" ? "bg-rose-100 text-rose-700" : "bg-sky-100 text-sky-700"}`,
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined",
+                    children:
+                      confirmDialog.tone === "danger" ? "warning" : "help",
+                  }),
+                }),
+                c.jsxs("div", {
+                  className: "flex-1",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: confirmDialog.title,
+                    }),
+                    c.jsx("p", {
+                      className: "text-sm text-text-sub mt-1",
+                      children: confirmDialog.message,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mt-5 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => closeConfirmDialog(!1),
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
+                  children: confirmDialog.cancelLabel,
+                }),
+                c.jsx("button", {
+                  onClick: () => closeConfirmDialog(!0),
+                  className:
+                    `py-2.5 rounded-xl text-sm font-semibold text-white ${confirmDialog.tone === "danger" ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primary-dark"}`,
+                  children: confirmDialog.confirmLabel,
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      inputDialog &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
+        onClick: () => closeInputDialog(null),
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet flex flex-col",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsx("div", {
+              className: "flex-1 overflow-y-auto ios-scroll pr-1",
+              children: [
+                c.jsx("h3", {
+                  className: "text-base font-bold text-text-main",
+                  children: inputDialog.title,
+                }),
+                inputDialog.message &&
+                c.jsx("p", {
+                  className: "text-sm text-text-sub mt-1",
+                  children: inputDialog.message,
+                }),
+                c.jsx("div", {
+                  className: "mt-4 space-y-3",
+                  children: inputDialog.fields.map((o) =>
+                    c.jsxs(
+                      "label",
+                      {
+                        className: "block",
+                        children: [
+                          c.jsx("span", {
+                            className: "text-[11px] font-semibold text-text-sub",
+                            children: o.label || o.name,
+                          }),
+                          o.type === "textarea"
+                            ? c.jsx("textarea", {
+                              rows: 4,
+                              value: o.value,
+                              onChange: (N) =>
+                                updateInputDialogField(o.name, N.target.value),
+                              placeholder: o.placeholder || "",
+                              className:
+                                "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                            })
+                            : o.type === "select"
+                              ? c.jsx("select", {
+                                value: o.value,
+                                onChange: (N) =>
+                                  updateInputDialogField(o.name, N.target.value),
+                                className:
+                                  "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                children: (o.options || []).map((N) =>
+                                  c.jsx(
+                                    "option",
+                                    { value: N.value, children: N.label },
+                                    `${o.name}-${N.value}`,
+                                  ),
+                                ),
+                              })
+                              : c.jsx("input", {
+                                type: "text",
+                                value: o.value,
+                                onChange: (N) =>
+                                  updateInputDialogField(o.name, N.target.value),
+                                placeholder: o.placeholder || "",
+                                className:
+                                  "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                              }),
+                        ],
+                      },
+                      o.name,
+                    ),
+                  ),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mt-5 grid grid-cols-2 gap-2 pt-3 border-t border-border-light dark:border-border-dark",
+              children: [
+                c.jsx("button", {
+                  onClick: () => closeInputDialog(null),
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
+                  children: inputDialog.cancelLabel,
+                }),
+                c.jsx("button", {
+                  onClick: submitInputDialog,
+                  className:
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
+                  children: inputDialog.confirmLabel,
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      shipmentModalOpen &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+        onClick: () => {
+          setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
+        },
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: shipmentForm.id ? "Editar envio" : "Nuevo envio",
+                    }),
+                    c.jsx("p", {
+                      className: "text-[11px] text-text-sub mt-0.5",
+                      children: "Selecciona cliente, paqueteria y productos.",
+                    }),
+                  ],
+                }),
+                c.jsx("button", {
+                  onClick: () => {
+                    setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
+                  },
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-4",
+              children: [
+                c.jsxs("label", {
+                  className: "block",
+                  children: [
+                    c.jsx("span", {
+                      className: "text-[11px] font-semibold text-text-sub",
+                      children: "Cliente",
+                    }),
+                    c.jsx("select", {
+                      value: shipmentForm.client,
+                      onChange: (o) =>
+                        updateShipmentForm("client", o.target.value),
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                      children: Kl.map((o) =>
+                        c.jsx(
+                          "option",
+                          { value: String(o.id), children: o.name },
+                          `shipment-client-${o.id}`,
+                        ),
+                      ),
+                    }),
+                  ],
+                }),
+                c.jsxs("label", {
+                  className: "block",
+                  children: [
+                    c.jsx("span", {
+                      className: "text-[11px] font-semibold text-text-sub",
+                      children: "Paqueteria",
+                    }),
+                    c.jsx("input", {
+                      type: "text",
+                      list: "shipment-carrier-options",
+                      value: shipmentForm.carrier,
+                      onChange: (o) =>
+                        updateShipmentForm("carrier", o.target.value),
+                      placeholder: "Ej. DHL, FedEx, Estafeta",
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                    }),
+                    c.jsx("datalist", {
+                      id: "shipment-carrier-options",
+                      children: shippingCarrierRecommendations.map((o) =>
+                        c.jsx(
+                          "option",
+                          { value: String(o.name || "") },
+                          `shipment-carrier-${o.id}`,
+                        ),
+                      ),
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: "grid grid-cols-1 sm:grid-cols-4 gap-3",
+                  children: [
+                    c.jsxs("label", {
+                      className: "block",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-[11px] font-semibold text-text-sub",
+                          children: "Status de envio",
+                        }),
+                        c.jsx("select", {
+                          value: shipmentForm.status,
+                          onChange: (o) =>
+                            updateShipmentForm("status", o.target.value),
+                          className:
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                          children: [
+                            c.jsx("option", { value: "PENDING", children: "Pendiente" }, "shipment-status-pending"),
+                            c.jsx("option", { value: "PREPARING", children: "Preparando" }, "shipment-status-preparing"),
+                            c.jsx("option", { value: "SHIPPED", children: "Enviado" }, "shipment-status-shipped"),
+                            c.jsx("option", { value: "DELIVERED", children: "Entregado" }, "shipment-status-delivered"),
+                            c.jsx("option", { value: "CANCELLED", children: "Cancelado" }, "shipment-status-cancelled"),
+                          ],
+                        }),
+                      ],
+                    }),
+                    c.jsxs("label", {
+                      className: "block",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-[11px] font-semibold text-text-sub",
+                          children: "Guia",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          value: shipmentForm.tracking_number,
+                          onChange: (o) =>
+                            updateShipmentForm("tracking_number", o.target.value),
+                          className:
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("label", {
+                      className: "block",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-[11px] font-semibold text-text-sub",
+                          children: "Precio guia",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          inputMode: "decimal",
+                          value: shipmentForm.guide_price,
+                          onChange: (o) =>
+                            updateShipmentForm("guide_price", o.target.value),
+                          className:
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("label", {
+                      className: "block",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-[11px] font-semibold text-text-sub",
+                          children: "Precio cliente",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          inputMode: "decimal",
+                          value: shipmentForm.client_price,
+                          onChange: (o) =>
+                            updateShipmentForm("client_price", o.target.value),
+                          className:
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("label", {
+                  className: "block",
+                  children: [
+                    c.jsx("span", {
+                      className: "text-[11px] font-semibold text-text-sub",
+                      children: "Direccion de envio",
+                    }),
+                    c.jsx("textarea", {
+                      rows: 3,
+                      value: shipmentForm.shipping_address,
+                      onChange: (o) =>
+                        updateShipmentForm("shipping_address", o.target.value),
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className:
+                    "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3",
+                  children: [
+                    c.jsxs("div", {
+                      className: "flex items-center justify-between gap-3",
+                      children: [
+                        c.jsxs("div", {
+                          className: "min-w-0",
+                          children: [
+                            c.jsx("p", {
+                              className: "text-xs font-bold text-text-main",
+                              children: "Productos del envio",
+                            }),
+                            c.jsxs("p", {
+                              className: "text-[11px] text-text-sub",
+                              children: [
+                                shipmentSelectedProducts.length,
+                                " seleccionados",
+                              ],
+                            }),
+                          ],
+                        }),
+                        c.jsxs("button", {
+                          type: "button",
+                          onClick: () => setShipmentProductPickerOpen(!0),
+                          className:
+                            "shrink-0 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1.5",
+                          children: [
+                            c.jsx("span", {
+                              className:
+                                "material-symbols-outlined text-[15px]",
+                              children: "photo_library",
+                            }),
+                            "Galeria",
+                          ],
+                        }),
+                      ],
+                    }),
+                    shipmentSelectedProducts.length > 0
+                      ? c.jsx("div", {
+                          className: "grid grid-cols-2 sm:grid-cols-3 gap-2",
+                          children: shipmentSelectedProducts.map((o) =>
+                            c.jsxs(
+                              "button",
+                              {
+                                type: "button",
+                                onClick: () => toggleShipmentProductSelection(o),
+                                className:
+                                  "relative overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 text-left",
+                                children: [
+                                  o.image
+                                    ? c.jsx("img", {
+                                        src: resolveMediaUrl(o.image),
+                                        className: "w-full aspect-[4/5] object-cover",
+                                      })
+                                    : c.jsx("div", {
+                                        className:
+                                          "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
+                                        children: c.jsx("span", {
+                                          className:
+                                            "material-symbols-outlined text-[20px]",
+                                          children: "image",
+                                        }),
+                                      }),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
+                                    children: c.jsxs("div", {
+                                      className: "space-y-0.5",
+                                      children: [
+                                        c.jsx("p", {
+                                          className:
+                                            "text-[11px] font-semibold text-white truncate",
+                                          children: o.name,
+                                        }),
+                                        c.jsx("p", {
+                                          className:
+                                            "text-[10px] text-white/80 truncate",
+                                          children:
+                                            o.mission_name ||
+                                            o.store_name ||
+                                            "Sin mission",
+                                        }),
+                                      ],
+                                    }),
+                                  }),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center",
+                                    children: c.jsx("span", {
+                                      className:
+                                        "material-symbols-outlined text-[14px]",
+                                      children: "close",
+                                    }),
+                                  }),
+                                ],
+                              },
+                              `shipment-picked-${o.id}`,
+                            ),
+                          ),
+                        })
+                      : c.jsx("p", {
+                          className: "text-xs text-text-sub",
+                          children:
+                            "Abre la galeria para elegir productos de todas las missions de este cliente.",
+                        }),
+                  ],
+                }),
+                shipmentModalClient &&
+                c.jsxs("div", {
+                  className:
+                    "rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2",
+                  children: [
+                    c.jsx("p", {
+                      className:
+                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
+                      children: "Cliente",
+                    }),
+                    c.jsx("p", {
+                      className:
+                        "text-xs text-amber-800 dark:text-amber-100 mt-0.5",
+                      children: shipmentModalClient.name,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => {
+                    setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
+                  },
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                  children: "Cancelar",
+                }),
+                c.jsx("button", {
+                  onClick: saveShipmentEditor,
+                  className:
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
+                  children: shipmentForm.id ? "Guardar" : "Crear",
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      shipmentProductPickerOpen &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[90] bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+        onClick: () => setShipmentProductPickerOpen(!1),
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-4xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: "Productos del cliente",
+                    }),
+                    c.jsx("p", {
+                      className: "text-[11px] text-text-sub mt-0.5",
+                      children:
+                        "Selecciona varios productos aunque sean de distintas missions.",
+                    }),
+                  ],
+                }),
+                c.jsx("button", {
+                  onClick: () => setShipmentProductPickerOpen(!1),
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "px-4 py-3 border-b border-border-light dark:border-border-dark space-y-3",
+              children: [
+                c.jsxs("div", {
+                  className: "relative",
+                  children: [
+                    c.jsx("span", {
+                      className:
+                        "material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]",
+                      children: "search",
+                    }),
+                    c.jsx("input", {
+                      type: "text",
+                      placeholder: "Buscar producto, mission o tienda...",
+                      value: shipmentProductSearch,
+                      onChange: (o) => setShipmentProductSearch(o.target.value),
+                      className:
+                        "w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow",
+                    }),
+                  ],
+                }),
+                c.jsxs("p", {
+                  className: "text-[11px] text-text-sub",
+                  children: [
+                    shipmentSelectedProducts.length,
+                    " producto(s) seleccionado(s)",
+                  ],
+                }),
+              ],
+            }),
+            shipmentModalFilteredProducts.length === 0
+              ? c.jsx("div", {
+                  className:
+                    "flex-1 overflow-y-auto ios-scroll px-4 py-10 text-center text-sm text-text-sub",
+                  children:
+                    "No hay productos compartibles para este cliente con ese filtro.",
+                })
+              : c.jsx("div", {
+                  className:
+                    "flex-1 overflow-y-auto ios-scroll p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
+                  children: shipmentModalFilteredProducts.map((o) => {
+                    const N = (shipmentForm.product_ids || []).includes(
+                      Number(o.id),
+                    );
+                    return c.jsxs(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => toggleShipmentProductSelection(o),
+                        className:
+                          `relative overflow-hidden rounded-2xl border text-left ${N ? "border-primary ring-2 ring-primary/30" : "border-border-light dark:border-border-dark"} bg-surface-light dark:bg-surface-dark`,
+                        children: [
+                          o.image
+                            ? c.jsx("img", {
+                                src: resolveMediaUrl(o.image),
+                                className: "w-full aspect-[3/4] object-cover",
+                              })
+                            : c.jsx("div", {
+                                className:
+                                  "w-full aspect-[3/4] bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400",
+                                children: c.jsx("span", {
+                                  className:
+                                    "material-symbols-outlined text-[24px]",
+                                  children: "image",
+                                }),
+                              }),
+                          c.jsx("div", {
+                            className:
+                              "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
+                            children: c.jsxs("div", {
+                              className: "space-y-0.5",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[11px] font-semibold text-white truncate",
+                                  children: o.name,
+                                }),
+                                c.jsx("p", {
+                                  className: "text-[10px] text-white/80 truncate",
+                                  children:
+                                    o.mission_name ||
+                                    o.store_name ||
+                                    "Sin mision",
+                                }),
+                              ],
+                            }),
+                          }),
+                          c.jsx("div", {
+                            className:
+                              `absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center ${N ? "bg-primary border-primary text-white" : "bg-white/85 border-white/90 text-slate-400"}`,
+                            children:
+                              N &&
+                              c.jsx("span", {
+                                className:
+                                  "material-symbols-outlined text-[15px]",
+                                children: "check",
+                              }),
+                          }),
+                        ],
+                      },
+                      `shipment-picker-${o.id}`,
+                    );
+                  }),
+                }),
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => setShipmentProductPickerOpen(!1),
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                  children: "Cerrar",
+                }),
+                c.jsx("button", {
+                  onClick: () => setShipmentProductPickerOpen(!1),
+                  className:
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
+                  children: "Usar seleccion",
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      reviewConversationEntry &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[79] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+        onClick: () => {
+          setReviewConversationEntry(null), closeAlternativeUploadModal();
+        },
+        children: c.jsxs("div", {
+          className:
+            "w-full sm:max-w-lg max-h-[82vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-start justify-between gap-3",
+              children: [
+                c.jsx("p", {
+                  className: "text-[11px] text-gray-500 dark:text-slate-400",
+                  children:
+                    (reviewConversationEntry.product &&
+                      reviewConversationEntry.product.name) ||
+                    "Producto",
+                }),
+                c.jsx("button", {
+                  onClick: () => {
+                    setReviewConversationEntry(null), closeAlternativeUploadModal();
+                  },
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsx("div", {
+              ref: reviewConversationScrollRef,
+              className: "px-3 py-2 flex-1 overflow-y-auto ios-scroll",
+              children:
+                reviewConversationEntry.review &&
+                (reviewConversationEntry.review.messages || []).length > 0
+                  ? [...(reviewConversationEntry.review.messages || [])]
+                    .sort(
+                      (o, N) =>
+                        new Date(o.created_at || 0).getTime() -
+                        new Date(N.created_at || 0).getTime(),
+                    )
+                    .map((o) => {
+                    const N =
+                      (J && o.sender && Number(o.sender) === Number(J.id)) ||
+                      (J &&
+                        o.sender_username &&
+                        String(o.sender_username).toLowerCase() ===
+                          String(J.username || "").toLowerCase());
+                    return (
+                    c.jsxs(
+                      "div",
+                      {
+                        className: `w-full flex ${N ? "justify-end" : "justify-start"} ${N ? "mt-1" : "mt-0.5"}`,
+                        children: [
+                          c.jsxs("div", {
+                            className:
+                              `max-w-[88%] rounded-2xl px-3 py-2 ${N ? "ml-auto bg-primary text-white rounded-br-md" : "mr-auto bg-white/90 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-bl-md"}`,
+                            children: [
+                              c.jsxs("div", {
+                                className:
+                                  `flex items-center gap-2 text-[10px] mb-0.5 ${N ? "justify-end text-white/70" : "justify-between text-slate-400 dark:text-slate-500"}`,
+                                children: [
+                                  !N &&
+                                  c.jsxs("span", {
+                                    className:
+                                      "font-semibold text-slate-700 dark:text-slate-100",
+                                    children: [
+                                      o.sender_username || "Usuario",
+                                      " • ",
+                                      o.sender_role || "AV",
+                                    ],
+                                  }),
+                                  c.jsx("span", {
+                                    className: N ? "inline-flex items-center gap-1 text-white/70" : "",
+                                    children: N
+                                      ? [
+                                          o.created_at
+                                            ? new Date(o.created_at).toLocaleString()
+                                            : "",
+                                          c.jsx(
+                                            "span",
+                                            {
+                                              className:
+                                                "material-symbols-outlined text-[12px] leading-none",
+                                              children: o.seen_by_other ? "done_all" : "done",
+                                            },
+                                            `${o.id}-seen-status`,
+                                          ),
+                                        ]
+                                      : o.created_at
+                                        ? new Date(o.created_at).toLocaleString()
+                                        : "",
+                                  }),
+                                ],
+                              }),
+                              (o.from_status || o.to_status) &&
+                              c.jsx("p", {
+                                className:
+                                  `mb-1 text-[10px] font-semibold ${N ? "text-white/80 text-right" : "text-primary/80 dark:text-sky-300/80"}`,
+                                children:
+                                  o.from_status &&
+                                  o.to_status &&
+                                  o.from_status !== o.to_status
+                                    ? `${getReviewFlowLabel(o.from_status)} -> ${getReviewFlowLabel(o.to_status)}`
+                                    : getReviewFlowLabel(
+                                        o.to_status || o.from_status,
+                                      ),
+                              }),
+                              o.message &&
+                              c.jsx("p", {
+                                className:
+                                  `text-[12px] leading-relaxed whitespace-pre-wrap break-words ${N ? "text-white text-right" : "text-slate-700 dark:text-slate-200"}`,
+                                children: o.message,
+                              }),
+                              (o.attachments || []).length > 0 &&
+                              c.jsx("div", {
+                                className: `mt-1.5 flex flex-wrap gap-1.5 ${N ? "justify-end" : ""}`,
+                                children: (o.attachments || []).map((A) =>
+                                  c.jsx(
+                                    "button",
+                                    {
+                                      onClick: () =>
+                                        setFullscreenImage({
+                                          url: resolveMediaUrl(A.file),
+                                          copyOnClick: !0,
+                                          copyMessage: "Imagen copiada.",
+                                        }),
+                                      className:
+                                        "w-14 h-14 overflow-hidden rounded-lg border border-white/20 dark:border-slate-700 bg-white dark:bg-slate-950",
+                                      children: c.jsx("img", {
+                                        src: resolveMediaUrl(A.file),
+                                        className: "w-full h-full object-cover",
+                                      }),
+                                    },
+                                    A.id,
+                                  ),
+                                ),
+                              }),
+                            ],
+                          }),
+                        ],
+                      },
+                      o.id,
+                    )
+                    );
+                  })
+                  : c.jsx("p", {
+                    className:
+                      "text-sm text-center text-gray-500 dark:text-slate-400 py-8",
+                    children: "No hay mensajes guardados en esta revision.",
+                  }),
+            }),
+            c.jsxs("div", {
+              className:
+                "border-t border-border-light dark:border-border-dark px-3 py-3 bg-white/88 dark:bg-slate-950/40 space-y-2.5",
+              children: [
+                c.jsxs("div", {
+                  className: "flex items-center justify-between gap-2",
+                  children: [
+                    c.jsx("div", {
+                      className: "flex items-center gap-1.5",
+                      children: currentConversationStatusActions.map((o) =>
+                        c.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => setAltUploadTargetStatus(o.value),
+                            className:
+                              `px-2.5 py-1.5 rounded-full text-[11px] font-medium border ${
+                                altUploadTargetStatus === o.value
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white/92 dark:bg-slate-900/92 text-slate-600 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                              }`,
+                            children: o.label,
+                          },
+                          o.value,
+                        ),
+                      ),
+                    }),
+                    c.jsxs("button", {
+                      type: "button",
+                      onClick: () =>
+                        altUploadFileInputRef.current &&
+                        altUploadFileInputRef.current.click(),
+                      className:
+                        "shrink-0 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/92 dark:bg-slate-900/92 text-[11px] font-medium text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                      children: [
+                        "Adjuntar",
+                        altUploadFiles.length > 0 ? ` (${altUploadFiles.length})` : "",
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsx("input", {
+                  ref: altUploadFileInputRef,
+                  type: "file",
+                  accept: "image/*",
+                  multiple: !0,
+                  onChange: (o) =>
+                    setAltUploadFiles(Array.from(o.target.files || [])),
+                  className: "hidden",
+                }),
+                c.jsx("textarea", {
+                  rows: 1,
+                  value: altUploadDescription,
+                  onChange: (o) => setAltUploadDescription(o.target.value),
+                  onKeyDown: (o) => {
+                    if (o.key !== "Enter" || o.shiftKey) return;
+                    o.preventDefault();
+                    sendReviewAlternatives({ closeAfterSave: !1 });
+                  },
+                  onInput: (o) => {
+                    o.target.style.height = "0px";
+                    o.target.style.height = `${Math.min(o.target.scrollHeight, 128)}px`;
+                  },
+                  placeholder: "Comentario opcional para este cambio",
+                  className:
+                    "w-full min-h-[38px] max-h-32 px-3 py-2 text-xs border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto ios-scroll",
+                }),
+                c.jsxs("div", {
+                  className:
+                    "flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-slate-400",
+                  children: [
+                    c.jsx("span", {
+                      children: "Comentario opcional",
+                    }),
+                    altUploadFiles.length > 0 &&
+                    c.jsxs("span", {
+                      children: ["Archivos: ", altUploadFiles.length],
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: "grid grid-cols-2 gap-2",
+                  children: [
+                    c.jsx("button", {
+                      onClick: () => {
+                        setReviewConversationEntry(null), closeAlternativeUploadModal();
+                      },
+                      className:
+                        "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 text-xs font-semibold",
+                      children: "Cerrar",
+                    }),
+                    c.jsx("button", {
+                      onClick: () => sendReviewAlternatives({ closeAfterSave: !1 }),
+                      className:
+                        "py-2 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-dark",
+                      children: "Enviar",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      getFullscreenImageUrl(fullscreenImage) &&
       c.jsx("div", {
         className:
           "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
@@ -5977,7 +10093,7 @@ function nh() {
               className: "absolute -top-11 right-0 flex items-center gap-2",
               children: [
                 c.jsx("a", {
-                  href: fullscreenImage,
+                  href: getFullscreenImageUrl(fullscreenImage),
                   target: "_blank",
                   rel: "noreferrer",
                   className:
@@ -5996,136 +10112,112 @@ function nh() {
               ],
             }),
             c.jsx("img", {
-              src: fullscreenImage,
+              src: getFullscreenImageUrl(fullscreenImage),
               className:
-                "max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black",
+                `max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
+              onClick: () => handleFullscreenImageCopy(),
               onError: (o) => {
                 o.currentTarget.style.display = "none";
               },
+            }),
+            typeof fullscreenImage == "object" &&
+            fullscreenImage &&
+            fullscreenImage.copyOnClick &&
+            c.jsx("p", {
+              className:
+                "mt-3 text-center text-xs font-medium text-white/80",
+              children: "Toca la imagen para copiarla.",
             }),
           ],
         }),
       }),
       c.jsx("nav", {
         className:
-          "sticky bottom-0 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-t border-border-light dark:border-border-dark pb-5 pt-2 px-6 z-30",
+          "fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-t border-border-light dark:border-border-dark pt-1 px-3 z-[55]",
+        style: { paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)" },
         children: c.jsxs("div", {
           className: "flex justify-around items-center",
           children: [
-            c.jsxs("button", {
+            c.jsx("button", {
               onClick: () => Ll("HOME"),
-              className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "HOME" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
-              children: [
-                c.jsxs("div", {
-                  className: "relative",
-                  children: [
-                    c.jsx("span", {
-                      className:
-                        "material-symbols-outlined font-variation-settings-fill",
-                      children: "dashboard",
-                    }),
-                    homeNeedsAttention &&
-                    c.jsxs("span", {
-                      className: "absolute -top-1 -right-1 flex h-3 w-3",
-                      children: [
-                        c.jsx("span", {
-                          className:
-                            "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75",
-                        }),
-                        c.jsx("span", {
-                          className:
-                            "relative inline-flex rounded-full h-3 w-3 bg-rose-600 border border-white dark:border-gray-900",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsx("span", {
-                  className: "text-[10px] font-medium",
-                  children: "Home",
-                }),
-              ],
+              className: `relative p-1.5 transition-colors ${nl === "HOME" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsxs("div", {
+                className: "relative",
+                children: [
+                  c.jsx("span", {
+                    className:
+                      "material-symbols-outlined font-variation-settings-fill text-[20px]",
+                    children: "dashboard",
+                  }),
+                  homeNeedsAttention &&
+                  c.jsxs("span", {
+                    className: "absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75",
+                      }),
+                      c.jsx("span", {
+                        className:
+                          "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border border-white dark:border-gray-900",
+                      }),
+                    ],
+                  }),
+                ],
+              }),
             }),
-            c.jsxs("button", {
+            c.jsx("button", {
               onClick: () => Ll("MISSIONS"),
-              className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "MISSIONS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
-              children: [
-                c.jsxs("div", {
-                  className: "relative",
-                  children: [
-                    c.jsx("span", {
-                      className: "material-symbols-outlined",
-                      children: "shopping_bag",
-                    }),
-                    w &&
-                    c.jsx("span", {
-                      className:
-                        "absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white dark:border-gray-900",
-                    }),
-                  ],
-                }),
-                c.jsx("span", {
-                  className: "text-[10px] font-medium",
-                  children: "Missions",
-                }),
-              ],
+              className: `relative p-1.5 transition-colors ${nl === "MISSIONS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsxs("div", {
+                className: "relative",
+                children: [
+                  c.jsx("span", {
+                    className: "material-symbols-outlined text-[20px]",
+                    children: "shopping_bag",
+                  }),
+                  w &&
+                  c.jsx("span", {
+                    className:
+                      "absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900",
+                  }),
+                ],
+              }),
             }),
-            c.jsxs("button", {
+            c.jsx("button", {
               onClick: () => Ll("CLIENTS"),
-              className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "CLIENTS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
-              children: [
-                c.jsxs("div", {
-                  className: "relative",
-                  children: [
-                    c.jsx("span", {
-                      className: "material-symbols-outlined",
-                      children: "group",
-                    }),
-                    // <-------- seccion 7: badge de alertas de revision
-                    missionReviewAlertCount > 0 &&
-                    c.jsx("span", {
-                      className:
-                        "absolute -top-1 -right-2 min-w-[14px] h-[14px] px-1 rounded-full bg-amber-500 text-white text-[9px] leading-[14px] text-center font-bold",
-                      children:
-                        missionReviewAlertCount > 9
-                          ? "9+"
-                          : missionReviewAlertCount,
-                    }),
-                  ],
+              className: `relative p-1.5 transition-colors ${nl === "CLIENTS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsx("div", {
+                className: "relative",
+                children: c.jsx("span", {
+                  className: "material-symbols-outlined text-[20px]",
+                  children: "group",
                 }),
-                c.jsx("span", {
-                  className: "text-[10px] font-medium",
-                  children: "Clients",
-                }),
-              ],
+              }),
             }),
-            c.jsxs("button", {
+            c.jsx("button", {
+              onClick: () => Ll("SHIPMENTS"),
+              className: `relative p-1.5 transition-colors ${nl === "SHIPMENTS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[20px]",
+                children: "local_shipping",
+              }),
+            }),
+            c.jsx("button", {
               onClick: () => Ll("CALCULATOR"),
-              className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "CALCULATOR" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
-              children: [
-                c.jsx("span", {
-                  className: "material-symbols-outlined",
-                  children: "calculate",
-                }),
-                c.jsx("span", {
-                  className: "text-[10px] font-medium",
-                  children: "Calculator",
-                }),
-              ],
+              className: `relative p-1.5 transition-colors ${nl === "CALCULATOR" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[20px]",
+                children: "calculate",
+              }),
             }),
-            c.jsxs("button", {
+            c.jsx("button", {
               onClick: () => Ll("PROFILE"),
-              className: `flex flex-col items-center gap-1 p-2 transition-colors ${nl === "PROFILE" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
-              children: [
-                c.jsx("span", {
-                  className: "material-symbols-outlined",
-                  children: "person",
-                }),
-                c.jsx("span", {
-                  className: "text-[10px] font-medium",
-                  children: "Profile",
-                }),
-              ],
+              className: `relative p-1.5 transition-colors ${nl === "PROFILE" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[20px]",
+                children: "person",
+              }),
             }),
           ],
         }),

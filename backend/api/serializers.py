@@ -7,9 +7,17 @@ from .models import (
     ProductItem,
     Mission,
     Store,
+    StoreRecommendation,
+    ShippingCarrierRecommendation,
     Request,
     ProductReview,
     ReviewAlternative,
+    ProductReviewMessage,
+    ProductReviewMessageAttachment,
+    ProductReviewReadState,
+    ClientHistoryShareLink,
+    Shipment,
+    ShipmentShareLink,
 )
 
 class RelativeImageField(serializers.ImageField):
@@ -69,10 +77,46 @@ class ProductItemSerializer(serializers.ModelSerializer):
     mission_date = serializers.DateTimeField(
         source='mission.start_time', read_only=True, default=None
     )
+    shipment = serializers.SerializerMethodField()
+
+    def get_shipment(self, obj):
+        shipment = None
+        try:
+            shipment = getattr(obj, 'shipment', None)
+        except Exception:
+            shipment = None
+        if shipment:
+            return ShipmentSerializer(shipment, context=self.context).data
+        related_shipments = getattr(obj, 'shipments', None)
+        if related_shipments is None:
+            return None
+        active_shipment = related_shipments.order_by('-updated_at', '-id').first()
+        if not active_shipment:
+            return None
+        return ShipmentSerializer(active_shipment, context=self.context).data
 
     class Meta:
         model = ProductItem
         fields = '__all__'
+
+
+class ShipmentProductSummarySerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+    mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    store_name = serializers.CharField(source='store.name', read_only=True, default=None)
+
+    class Meta:
+        model = ProductItem
+        fields = [
+            'id',
+            'name',
+            'image',
+            'charged_price',
+            'real_price',
+            'status',
+            'mission_name',
+            'store_name',
+        ]
 
 
 class ReceiptSerializer(serializers.ModelSerializer):
@@ -88,6 +132,33 @@ class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = '__all__'
+
+
+class StoreRecommendationSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.name', read_only=True)
+
+    class Meta:
+        model = StoreRecommendation
+        fields = [
+            'id',
+            'store',
+            'store_name',
+            'times_used',
+            'last_used_at',
+            'created_at',
+        ]
+
+
+class ShippingCarrierRecommendationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShippingCarrierRecommendation
+        fields = [
+            'id',
+            'name',
+            'times_used',
+            'last_used_at',
+            'created_at',
+        ]
 
 
 class MissionSerializer(serializers.ModelSerializer):
@@ -138,6 +209,9 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         source='requested_by.userprofile.role', read_only=True, default='AV'
     )
     alternatives = serializers.SerializerMethodField()
+    messages = serializers.SerializerMethodField()
+    current_user_last_seen_message_id = serializers.SerializerMethodField()
+    current_user_last_seen_message_at = serializers.SerializerMethodField()
 
     def get_alternatives(self, obj):
         serializer = ReviewAlternativeSerializer(
@@ -145,9 +219,46 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         )
         return serializer.data
 
+    def get_messages(self, obj):
+        serializer = ProductReviewMessageSerializer(
+            obj.messages.all(), many=True, context=self.context
+        )
+        return serializer.data
+
+    def _get_read_state(self, obj):
+        product_id = getattr(obj, 'product_id', None)
+        if not product_id:
+            return None
+        state_map = self.context.get('review_read_state_map') or {}
+        state = state_map.get(product_id)
+        if state is not None:
+            return state
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return None
+        return (
+            ProductReviewReadState.objects.select_related('last_seen_message')
+            .filter(user=user, product_id=product_id)
+            .first()
+        )
+
+    def get_current_user_last_seen_message_id(self, obj):
+        state = self._get_read_state(obj)
+        return state.last_seen_message_id if state else None
+
+    def get_current_user_last_seen_message_at(self, obj):
+        state = self._get_read_state(obj)
+        if not state or not state.last_seen_message:
+            return None
+        return state.last_seen_message.created_at
+
     class Meta:
         model = ProductReview
         fields = '__all__'
+        extra_kwargs = {
+            'requested_by': {'read_only': True},
+        }
 
 
 class ReviewAlternativeSerializer(serializers.ModelSerializer):
@@ -156,3 +267,205 @@ class ReviewAlternativeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReviewAlternative
         fields = '__all__'
+
+
+class ProductReviewMessageAttachmentSerializer(serializers.ModelSerializer):
+    file = RelativeImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = ProductReviewMessageAttachment
+        fields = '__all__'
+
+
+class ProductReviewMessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(
+        source='sender.username', read_only=True
+    )
+    sender_role = serializers.CharField(
+        source='sender.userprofile.role', read_only=True, default='AV'
+    )
+    attachments = ProductReviewMessageAttachmentSerializer(many=True, read_only=True)
+    delivery_status = serializers.SerializerMethodField()
+    seen_by_other = serializers.SerializerMethodField()
+
+    def get_delivery_status(self, obj):
+        return 'sent'
+
+    def get_seen_by_other(self, obj):
+        review = getattr(obj, 'review', None)
+        product_id = getattr(review, 'product_id', None)
+        sender_id = getattr(obj, 'sender_id', None)
+        if not product_id or not sender_id:
+            return False
+        return ProductReviewReadState.objects.filter(
+            product_id=product_id,
+            last_seen_message_id__gte=obj.id,
+        ).exclude(user_id=sender_id).exists()
+
+    class Meta:
+        model = ProductReviewMessage
+        fields = '__all__'
+        extra_kwargs = {
+            'sender': {'read_only': True},
+        }
+
+
+class ClientHistoryShareLinkSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.name', read_only=True)
+
+    class Meta:
+        model = ClientHistoryShareLink
+        fields = [
+            'id',
+            'client',
+            'client_name',
+            'is_active',
+            'expires_at',
+            'last_accessed_at',
+            'created_at',
+        ]
+
+
+class ShipmentShareLinkSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='shipment.client.name', read_only=True)
+
+    class Meta:
+        model = ShipmentShareLink
+        fields = [
+            'id',
+            'shipment',
+            'client_name',
+            'is_active',
+            'expires_at',
+            'last_accessed_at',
+            'created_at',
+        ]
+
+
+class PublicShipmentSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shipment
+        fields = [
+            'id',
+            'status',
+            'carrier',
+            'tracking_number',
+            'guide_price',
+            'client_price',
+            'shipping_address',
+            'updated_at',
+        ]
+
+
+class ClientMissionShareProductSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+    shipment = serializers.SerializerMethodField()
+
+    def get_shipment(self, obj):
+        shipment = None
+        try:
+            shipment = getattr(obj, 'shipment', None)
+        except Exception:
+            shipment = None
+        if shipment:
+            return PublicShipmentSummarySerializer(shipment, context=self.context).data
+        related_shipments = getattr(obj, 'shipments', None)
+        if related_shipments is None:
+            return None
+        active_shipment = related_shipments.order_by('-updated_at', '-id').first()
+        if not active_shipment:
+            return None
+        return PublicShipmentSummarySerializer(active_shipment, context=self.context).data
+
+    class Meta:
+        model = ProductItem
+        fields = [
+            'id',
+            'name',
+            'image',
+            'status',
+            'charged_price',
+            'real_price',
+            'created_at',
+            'purchase_date',
+            'shipment',
+        ]
+
+
+class PublicClientReceiptSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Receipt
+        fields = [
+            'id',
+            'image',
+            'uploaded_at',
+            'total_real_price',
+            'total_charged_price',
+        ]
+
+
+class ShipmentSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.name', read_only=True)
+    mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    products_detail = ShipmentProductSummarySerializer(source='products', many=True, read_only=True)
+    product_count = serializers.SerializerMethodField()
+    mission_names = serializers.SerializerMethodField()
+
+    def get_product_count(self, obj):
+        return obj.products.count()
+
+    def get_mission_names(self, obj):
+        mission_names = []
+        seen = set()
+        for product in obj.products.select_related('mission').all():
+            mission_name = None
+            if product.mission and product.mission.name:
+                mission_name = product.mission.name
+            elif product.store and product.store.name:
+                mission_name = product.store.name
+            elif product.mission_id:
+                mission_name = f'Mision #{product.mission_id}'
+            if mission_name and mission_name not in seen:
+                seen.add(mission_name)
+                mission_names.append(mission_name)
+        return mission_names
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        client = attrs.get('client') or getattr(self.instance, 'client', None)
+        mission = attrs.get('mission') if 'mission' in attrs else getattr(self.instance, 'mission', None)
+        tracking_number = attrs.get('tracking_number') if 'tracking_number' in attrs else getattr(self.instance, 'tracking_number', None)
+        tracking_number = (tracking_number or '').strip()
+        if not client or not tracking_number:
+            return attrs
+        queryset = Shipment.objects.filter(
+            client=client,
+            tracking_number=tracking_number,
+            mission=mission,
+        )
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError(
+                {'tracking_number': 'Ya existe una guia igual para este cliente y mision.'}
+            )
+        return attrs
+
+    class Meta:
+        model = Shipment
+        fields = '__all__'
+        read_only_fields = ['created_by']
+        validators = []
+        extra_kwargs = {
+            'client': {'required': True},
+            'mission': {'required': False, 'allow_null': True},
+            'product': {'required': False, 'allow_null': True},
+            'carrier': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'tracking_number': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'guide_price': {'required': False, 'allow_null': True},
+            'client_price': {'required': False, 'allow_null': True},
+            'shipping_address': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'products': {'required': False},
+        }

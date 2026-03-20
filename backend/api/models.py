@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Role(models.TextChoices):
     AV = 'AV', 'Agente de Ventas'
@@ -49,6 +50,59 @@ class Store(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class StoreRecommendation(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='store_recommendations',
+    )
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='recommendations',
+    )
+    times_used = models.PositiveIntegerField(default=1)
+    last_used_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'store'],
+                name='unique_store_recommendation_per_user',
+            ),
+        ]
+        ordering = ['-last_used_at', '-times_used', 'store__name']
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.store.name}"
+
+
+class ShippingCarrierRecommendation(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipping_carrier_recommendations',
+    )
+    name = models.CharField(max_length=120)
+    normalized_name = models.CharField(max_length=120)
+    times_used = models.PositiveIntegerField(default=1)
+    last_used_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'normalized_name'],
+                name='unique_shipping_carrier_recommendation_per_user',
+            ),
+        ]
+        ordering = ['-last_used_at', '-times_used', 'name']
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.name}"
 
 class ProductItem(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='products')
@@ -196,3 +250,215 @@ class ReviewAlternative(models.Model):
 
     def __str__(self):
         return f"Alternative {self.id} for review {self.review_id}"
+
+
+class ProductReviewMessage(models.Model):
+    review = models.ForeignKey(
+        ProductReview,
+        on_delete=models.CASCADE,
+        related_name='messages',
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='product_review_messages',
+    )
+    from_status = models.CharField(max_length=32, blank=True, null=True)
+    to_status = models.CharField(max_length=32, blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def __str__(self):
+        return f"Review message {self.id} for review {self.review_id}"
+
+
+class ProductReviewMessageAttachment(models.Model):
+    message = models.ForeignKey(
+        ProductReviewMessage,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+    )
+    file = models.ImageField(upload_to='review_messages/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def __str__(self):
+        return f"Review attachment {self.id} for message {self.message_id}"
+
+
+class ProductReviewReadState(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='product_review_read_states',
+    )
+    product = models.ForeignKey(
+        ProductItem,
+        on_delete=models.CASCADE,
+        related_name='review_read_states',
+    )
+    last_seen_message = models.ForeignKey(
+        ProductReviewMessage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='read_states',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique_review_read_state_per_user_product',
+            ),
+        ]
+        ordering = ['-updated_at', '-id']
+
+    def __str__(self):
+        return f"Review read state {self.user_id}:{self.product_id}"
+
+
+class ClientHistoryShareLink(models.Model):
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='history_share_links',
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='client_history_share_links_created',
+    )
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_accessed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['client', 'is_active'],
+                condition=models.Q(is_active=True),
+                name='unique_active_share_link_per_client',
+            ),
+        ]
+
+    @property
+    def is_expired(self):
+        return bool(self.expires_at and self.expires_at <= timezone.now())
+
+    def __str__(self):
+        return f"Client history share {self.client_id}"
+
+
+class Shipment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pendiente'
+        PREPARING = 'PREPARING', 'Preparando'
+        SHIPPED = 'SHIPPED', 'Enviado'
+        DELIVERED = 'DELIVERED', 'Entregado'
+        CANCELLED = 'CANCELLED', 'Cancelado'
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='shipments',
+    )
+    mission = models.ForeignKey(
+        Mission,
+        on_delete=models.CASCADE,
+        related_name='shipments',
+        null=True,
+        blank=True,
+    )
+    product = models.OneToOneField(
+        ProductItem,
+        on_delete=models.CASCADE,
+        related_name='shipment',
+        null=True,
+        blank=True,
+    )
+    products = models.ManyToManyField(
+        ProductItem,
+        related_name='shipments',
+        blank=True,
+    )
+    carrier = models.CharField(max_length=120, blank=True, null=True)
+    tracking_number = models.CharField(max_length=120, blank=True, null=True)
+    guide_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    client_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    shipping_address = models.TextField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shipments_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['client', 'mission', 'tracking_number'],
+                condition=models.Q(tracking_number__isnull=False),
+                name='unique_tracking_per_client_mission_when_present',
+            ),
+        ]
+
+    def __str__(self):
+        return f"Shipment {self.id} - client {self.client_id}"
+
+
+class ShipmentShareLink(models.Model):
+    shipment = models.ForeignKey(
+        Shipment,
+        on_delete=models.CASCADE,
+        related_name='share_links',
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shipment_share_links_created',
+    )
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_accessed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['shipment', 'is_active'],
+                condition=models.Q(is_active=True),
+                name='unique_active_share_link_per_shipment',
+            ),
+        ]
+
+    @property
+    def is_expired(self):
+        return bool(self.expires_at and self.expires_at <= timezone.now())
+
+    def __str__(self):
+        return f"Shipment share {self.shipment_id}"

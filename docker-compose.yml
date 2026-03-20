@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-personal_shopper}
+      POSTGRES_USER: ${POSTGRES_USER:-personal_shopper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personal_shopper}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-personal_shopper} -d ${POSTGRES_DB:-personal_shopper}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - personal_shopper_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - personal_shopper_redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-docker-local}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend,ps.servidorfs.com}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://ps.servidorfs.com}
+      DJANGO_TIME_ZONE: ${DJANGO_TIME_ZONE:-UTC}
+      CORS_ALLOW_ALL_ORIGINS: ${CORS_ALLOW_ALL_ORIGINS:-true}
+      DB_ENGINE: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-personal_shopper}
+      POSTGRES_USER: ${POSTGRES_USER:-personal_shopper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personal_shopper}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      CHANNEL_LAYER_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - personal_shopper_media_data:/app/media
+      - personal_shopper_static_data:/app/staticfiles
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "192.168.3.100:18173:80"
+    networks:
+      default:
+      npm_default:
+        aliases:
+          - ps-frontend
+
+volumes:
+  personal_shopper_postgres_data:
+  personal_shopper_redis_data:
+  personal_shopper_media_data:
+  personal_shopper_static_data:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.16.120.0/24
+  npm_default:
+    external: true

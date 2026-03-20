@@ -1,14 +1,19 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action, api_view, parser_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from django.core.files.base import ContentFile
+from django.http import Http404
+from collections import defaultdict
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import hashlib
+import secrets
 from .models import (
     Client,
     ProductItem,
@@ -16,9 +21,17 @@ from .models import (
     Mission,
     UserProfile,
     Store,
+    StoreRecommendation,
+    ShippingCarrierRecommendation,
     Request,
     ProductReview,
     ReviewAlternative,
+    ProductReviewMessage,
+    ProductReviewMessageAttachment,
+    ProductReviewReadState,
+    ClientHistoryShareLink,
+    Shipment,
+    ShipmentShareLink,
 )
 from .serializers import (
     ClientSerializer,
@@ -27,12 +40,20 @@ from .serializers import (
     MissionSerializer,
     UserSerializer,
     StoreSerializer,
+    StoreRecommendationSerializer,
+    ShippingCarrierRecommendationSerializer,
     RequestSerializer,
     ProductReviewSerializer,
     ReviewAlternativeSerializer,
+    ClientHistoryShareLinkSerializer,
+    ClientMissionShareProductSerializer,
+    ShipmentSerializer,
+    ShipmentShareLinkSerializer,
+    PublicClientReceiptSerializer,
 )
 import random
-from datetime import date
+from datetime import date, timedelta
+import os
 
 
 # <-------- seccion 8: helper de broadcast para websocket group "updates"
@@ -49,6 +70,97 @@ def broadcast_update(model, action='changed', object_id=None):
             'id': object_id,
         },
     )
+
+
+def hash_share_token(raw_token):
+    return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+
+
+def build_public_client_share_url(request, raw_token):
+    base_url = os.getenv('PUBLIC_SHARE_BASE_URL', 'https://ps.servidorfs.com').rstrip('/')
+    return f'{base_url}/share/client/{raw_token}/'
+
+
+def build_public_shipment_share_url(request, raw_token):
+    base_url = os.getenv('PUBLIC_SHARE_BASE_URL', 'https://ps.servidorfs.com').rstrip('/')
+    return f'{base_url}/share/shipment/{raw_token}/'
+
+
+PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
+
+
+def deactivate_empty_client_share_links(client_id=None, mission_id=None):
+    if not client_id:
+        return
+    still_shareable = ProductItem.objects.filter(client_id=client_id).exists()
+    if still_shareable:
+        return
+    ClientHistoryShareLink.objects.filter(
+        client_id=client_id,
+        is_active=True,
+    ).update(is_active=False)
+
+
+def deactivate_empty_shipment_share_links(shipment):
+    if not shipment:
+        return
+    if shipment.products.exists():
+        return
+    ShipmentShareLink.objects.filter(
+        shipment=shipment,
+        is_active=True,
+    ).update(is_active=False)
+
+
+def sync_product_shipment_status(product):
+    if not product:
+        return
+    if product.status != 'SHIPPED':
+        product.status = 'SHIPPED'
+        product.save(update_fields=['status'])
+
+
+def attach_products_to_shipment(shipment, products):
+    if not shipment:
+        return
+    desired_ids = [product.id for product in products]
+    current_ids = list(shipment.products.values_list('id', flat=True))
+    remove_ids = [product_id for product_id in current_ids if product_id not in desired_ids]
+    if remove_ids:
+        shipment.products.remove(*remove_ids)
+        for product_id in remove_ids:
+            broadcast_update('products', action='updated', object_id=product_id)
+    if not desired_ids:
+        deactivate_empty_shipment_share_links(shipment)
+    for product in products:
+        for other in Shipment.objects.filter(products=product).exclude(id=shipment.id):
+            other.products.remove(product)
+            if other.product_id == product.id:
+                fallback_product_id = other.products.order_by('id').values_list('id', flat=True).first()
+                other.product_id = fallback_product_id
+                other.save(update_fields=['product'])
+            broadcast_update('shipments', action='updated', object_id=other.id)
+        shipment.products.add(product)
+        sync_product_shipment_status(product)
+        broadcast_update('products', action='updated', object_id=product.id)
+    primary_product_id = desired_ids[0] if desired_ids else None
+    mission_ids = list(
+        {
+            product.mission_id
+            for product in products
+            if getattr(product, 'mission_id', None)
+        }
+    )
+    derived_mission_id = mission_ids[0] if len(mission_ids) == 1 else None
+    update_fields = []
+    if shipment.product_id != primary_product_id:
+        shipment.product_id = primary_product_id
+        update_fields.append('product')
+    if shipment.mission_id != derived_mission_id:
+        shipment.mission_id = derived_mission_id
+        update_fields.append('mission')
+    if update_fields:
+        shipment.save(update_fields=update_fields)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -83,6 +195,355 @@ def me(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
+
+def touch_store_recommendation(user, store):
+    if not user or not store:
+        return None
+    recommendation, created = StoreRecommendation.objects.get_or_create(
+        user=user,
+        store=store,
+        defaults={'times_used': 1},
+    )
+    if not created:
+        StoreRecommendation.objects.filter(id=recommendation.id).update(
+            times_used=F('times_used') + 1,
+            last_used_at=timezone.now(),
+        )
+    return recommendation
+
+
+def normalize_shipping_carrier_name(name):
+    return " ".join(str(name or "").strip().split()).lower()
+
+
+def touch_shipping_carrier_recommendation(user, carrier_name):
+    cleaned_name = " ".join(str(carrier_name or "").strip().split())
+    normalized_name = normalize_shipping_carrier_name(cleaned_name)
+    if not user or not normalized_name:
+        return None
+    recommendation, created = ShippingCarrierRecommendation.objects.get_or_create(
+        user=user,
+        normalized_name=normalized_name,
+        defaults={'name': cleaned_name, 'times_used': 1},
+    )
+    if not created:
+        ShippingCarrierRecommendation.objects.filter(id=recommendation.id).update(
+            name=cleaned_name,
+            times_used=F('times_used') + 1,
+            last_used_at=timezone.now(),
+        )
+    return recommendation
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def store_recommendations(request):
+    queryset = (
+        StoreRecommendation.objects.select_related('store')
+        .filter(user=request.user)
+        .order_by('-last_used_at', '-times_used', 'store__name')
+    )
+    serializer = StoreRecommendationSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_store_recommendation(request, recommendation_id):
+    deleted, _ = StoreRecommendation.objects.filter(
+        id=recommendation_id,
+        user=request.user,
+    ).delete()
+    if deleted == 0:
+        return Response(
+            {'error': 'Store recommendation not found.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def shipping_carrier_recommendations(request):
+    queryset = (
+        ShippingCarrierRecommendation.objects.filter(user=request.user)
+        .order_by('-last_used_at', '-times_used', 'name')
+    )
+    serializer = ShippingCarrierRecommendationSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unread_review_summary(request):
+    mission_id = request.query_params.get('mission')
+    queryset = ProductReview.objects.select_related(
+        'product', 'product__client'
+    ).prefetch_related(
+        'messages',
+    ).exclude(product_id__isnull=True)
+    if mission_id:
+        queryset = queryset.filter(product__mission_id=mission_id)
+    else:
+        queryset = queryset.filter(product__mission__status__in=['ACTIVE', 'PAUSED'])
+    latest_by_product = {}
+    for review in queryset:
+        product_id = review.product_id
+        if not product_id:
+            continue
+        latest_message = None
+        for message in review.messages.all():
+            if latest_message is None:
+                latest_message = message
+                continue
+            if (
+                message.created_at > latest_message.created_at
+                or (
+                    message.created_at == latest_message.created_at
+                    and message.id > latest_message.id
+                )
+            ):
+                latest_message = message
+        if latest_message is None:
+            continue
+        current = latest_by_product.get(product_id)
+        if current is None:
+            latest_by_product[product_id] = (review, latest_message)
+            continue
+        _, current_message = current
+        if (
+            latest_message.created_at > current_message.created_at
+            or (
+                latest_message.created_at == current_message.created_at
+                and latest_message.id > current_message.id
+            )
+        ):
+            latest_by_product[product_id] = (review, latest_message)
+    read_state_map = {
+        state.product_id: state.last_seen_message_id
+        for state in ProductReviewReadState.objects.filter(
+            user=request.user,
+            product_id__in=list(latest_by_product.keys()),
+        )
+    }
+    by_client = defaultdict(lambda: {'product_ids': [], 'latest_activity_at': None})
+    for product_id, (review, latest_message) in latest_by_product.items():
+        last_seen_message_id = read_state_map.get(product_id)
+        if last_seen_message_id and last_seen_message_id >= latest_message.id:
+            continue
+        client_id = getattr(review.product, 'client_id', None)
+        if not client_id:
+            continue
+        by_client[client_id]['product_ids'].append(product_id)
+        latest_iso = latest_message.created_at.isoformat()
+        if (
+            by_client[client_id]['latest_activity_at'] is None
+            or latest_iso > by_client[client_id]['latest_activity_at']
+        ):
+            by_client[client_id]['latest_activity_at'] = latest_iso
+    return Response({
+        str(client_id): value
+        for client_id, value in by_client.items()
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_client_mission_share_link(request):
+    client_id = request.data.get('client')
+    if not client_id:
+        return Response(
+            {'error': 'client is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    client = Client.objects.filter(id=client_id).first()
+    if not client:
+        return Response(
+            {'error': 'Client not found.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if not (
+        ProductItem.objects.filter(client=client).exists()
+        or Receipt.objects.filter(client=client).exists()
+        or Shipment.objects.filter(client=client).exists()
+    ):
+        return Response(
+            {'error': 'This client has no public history to share.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    ClientHistoryShareLink.objects.filter(
+        client=client,
+        is_active=True,
+    ).update(is_active=False)
+    raw_token = secrets.token_urlsafe(32)
+    share_link = ClientHistoryShareLink.objects.create(
+        client=client,
+        token_hash=hash_share_token(raw_token),
+        created_by=request.user,
+    )
+    serializer = ClientHistoryShareLinkSerializer(share_link)
+    return Response(
+        {
+            'share_url': build_public_client_share_url(request, raw_token),
+            'share_path': f'/share/client/{raw_token}/',
+            'link': serializer.data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_shipment_share_link(request):
+    shipment_id = request.data.get('shipment')
+    if not shipment_id:
+        return Response(
+            {'error': 'Shipment is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    shipment = (
+        Shipment.objects.select_related('client')
+        .prefetch_related('products')
+        .filter(id=shipment_id)
+        .first()
+    )
+    if not shipment:
+        return Response(
+            {'error': 'Shipment not found.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if not shipment.products.exists():
+        return Response(
+            {'error': 'This shipment has no products to share.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    ShipmentShareLink.objects.filter(
+        shipment=shipment,
+        is_active=True,
+    ).update(is_active=False)
+    raw_token = secrets.token_urlsafe(32)
+    share_link = ShipmentShareLink.objects.create(
+        shipment=shipment,
+        token_hash=hash_share_token(raw_token),
+        created_by=request.user,
+    )
+    serializer = ShipmentShareLinkSerializer(share_link)
+    return Response(
+        {
+            'share_url': build_public_shipment_share_url(request, raw_token),
+            'share_path': f'/share/shipment/{raw_token}/',
+            'link': serializer.data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_client_mission_share_view(request, token):
+    token_hash = hash_share_token(token)
+    share_link = (
+        ClientHistoryShareLink.objects.select_related('client')
+        .filter(token_hash=token_hash, is_active=True)
+        .first()
+    )
+    if not share_link or share_link.is_expired:
+        raise Http404('Shared link not found.')
+    products = ProductItem.objects.filter(
+        client=share_link.client,
+    ).select_related(
+        'shipment', 'mission', 'store'
+    ).prefetch_related(
+        'shipments'
+    ).order_by('-created_at', '-id')
+    receipts = Receipt.objects.filter(
+        client=share_link.client,
+    ).order_by('-uploaded_at', '-id')
+    shipments = Shipment.objects.filter(
+        client=share_link.client,
+    ).prefetch_related('products').order_by('-updated_at', '-id')
+    if not products.exists() and not receipts.exists() and not shipments.exists():
+        share_link.is_active = False
+        share_link.save(update_fields=['is_active'])
+        raise Http404('Shared link not found.')
+    share_link.last_accessed_at = timezone.now()
+    share_link.save(update_fields=['last_accessed_at'])
+    serializer = ClientMissionShareProductSerializer(products, many=True)
+    receipt_serializer = PublicClientReceiptSerializer(receipts, many=True)
+    shipment_serializer = ShipmentSerializer(shipments, many=True)
+    total = sum(
+        float(product.charged_price or product.real_price or 0)
+        for product in products
+    )
+    return Response(
+        {
+            'share_type': 'client_history',
+            'client_name': share_link.client.name,
+            'products': serializer.data,
+            'receipts': receipt_serializer.data,
+            'shipments': shipment_serializer.data,
+            'total': total,
+        }
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_shipment_share_view(request, token):
+    token_hash = hash_share_token(token)
+    share_link = (
+        ShipmentShareLink.objects.select_related(
+            'shipment',
+            'shipment__client',
+        )
+        .prefetch_related(
+            'shipment__products',
+        )
+        .filter(token_hash=token_hash, is_active=True)
+        .first()
+    )
+    if not share_link or share_link.is_expired:
+        raise Http404('Shared link not found.')
+    shipment = share_link.shipment
+    products = shipment.products.all().order_by('created_at', 'id')
+    if not products.exists():
+        share_link.is_active = False
+        share_link.save(update_fields=['is_active'])
+        raise Http404('Shared link not found.')
+    share_link.last_accessed_at = timezone.now()
+    share_link.save(update_fields=['last_accessed_at'])
+    products = ProductItem.objects.filter(
+        client=shipment.client,
+    ).select_related(
+        'shipment', 'mission', 'store'
+    ).prefetch_related(
+        'shipments'
+    ).order_by('-created_at', '-id')
+    receipts = Receipt.objects.filter(
+        client=shipment.client,
+    ).order_by('-uploaded_at', '-id')
+    shipments = Shipment.objects.filter(
+        client=shipment.client,
+    ).prefetch_related('products').order_by('-updated_at', '-id')
+    serializer = ClientMissionShareProductSerializer(products, many=True)
+    receipt_serializer = PublicClientReceiptSerializer(receipts, many=True)
+    shipment_serializer = ShipmentSerializer(shipments, many=True)
+    total = sum(
+        float(product.charged_price or product.real_price or 0)
+        for product in products
+    )
+    return Response(
+        {
+            'share_type': 'shipment_history',
+            'client_name': shipment.client.name,
+            'products': serializer.data,
+            'receipts': receipt_serializer.data,
+            'shipments': shipment_serializer.data,
+            'focus_shipment_id': shipment.id,
+            'total': total,
+        }
+    )
+
 class MissionViewSet(viewsets.ModelViewSet):
     serializer_class = MissionSerializer
     permission_classes = [IsAuthenticated]
@@ -94,6 +555,7 @@ class MissionViewSet(viewsets.ModelViewSet):
         store = serializer.validated_data.get('store')
         mission_name = serializer.validated_data.get('name') or (store.name if store else None)
         mission = serializer.save(shopper=self.request.user, name=mission_name)
+        touch_store_recommendation(self.request.user, store)
         # Auto-link currently active clients to this mission
         active_clients = Client.objects.filter(status__iexact='active')
         mission.clients.set(active_clients)
@@ -102,6 +564,7 @@ class MissionViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         previous_status = serializer.instance.status
+        previous_store_id = serializer.instance.store_id
         store = serializer.validated_data.get('store', serializer.instance.store)
         mission_name = serializer.validated_data.get('name')
         if not mission_name and store:
@@ -109,6 +572,8 @@ class MissionViewSet(viewsets.ModelViewSet):
         elif mission_name is None:
             mission_name = serializer.instance.name
         mission = serializer.save(name=mission_name)
+        if store and mission.store_id != previous_store_id:
+            touch_store_recommendation(self.request.user, store)
         if mission.status == 'COMPLETED':
             if not mission.end_time:
                 mission.end_time = timezone.now()
@@ -273,6 +738,15 @@ class RequestViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
         broadcast_update('requests', action='deleted', object_id=request_id)
 
+    @action(detail=False, methods=['post'], url_path='cleanup')
+    def cleanup(self, request):
+        limit = timezone.now() - timedelta(days=30)
+        # Limpiar peticiones PENDING con más de 30 días
+        deleted_count, _ = Request.objects.filter(status='PENDING', created_at__lt=limit).delete()
+        if deleted_count > 0:
+            broadcast_update('requests', action='deleted')
+        return Response({'message': f'{deleted_count} peticiones antiguas borradas'})
+
 
 # <-------- seccion 7: endpoints de revision de productos
 class ProductReviewViewSet(viewsets.ModelViewSet):
@@ -283,7 +757,11 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = ProductReview.objects.select_related(
             'product', 'requested_by'
-        ).prefetch_related('alternatives').all().order_by('-updated_at')
+        ).prefetch_related(
+            'alternatives',
+            'messages__attachments',
+            'messages__sender__userprofile',
+        ).all().order_by('-updated_at')
         product_id = self.request.query_params.get('product')
         client_id = self.request.query_params.get('client')
         mission_id = self.request.query_params.get('mission')
@@ -297,6 +775,28 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         if status_value:
             queryset = queryset.filter(status=status_value)
         return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = getattr(self.request, 'user', None)
+        if not user or not user.is_authenticated:
+            return context
+        product_ids = list(
+            self.get_queryset()
+            .exclude(product_id__isnull=True)
+            .values_list('product_id', flat=True)
+            .distinct()
+        )
+        if not product_ids:
+            context['review_read_state_map'] = {}
+            return context
+        context['review_read_state_map'] = {
+            state.product_id: state
+            for state in ProductReviewReadState.objects.select_related(
+                'last_seen_message'
+            ).filter(user=user, product_id__in=product_ids)
+        }
+        return context
 
     def perform_create(self, serializer):
         review = serializer.save(requested_by=self.request.user)
@@ -387,6 +887,69 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
             review.ps_response = response_note
         review.save()
         broadcast_update('reviews', action='updated', object_id=review.id)
+        return Response(self.get_serializer(review).data)
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='send-message',
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def send_message(self, request, pk=None):
+        review = self.get_object()
+        message_text = (
+            request.data.get('message')
+            or request.data.get('description')
+            or ''
+        ).strip()
+        from_status = (request.data.get('from_status') or '').strip() or None
+        to_status = (request.data.get('to_status') or '').strip() or None
+        files = request.FILES.getlist('files')
+        if not files:
+            single_file = request.FILES.get('file') or request.FILES.get('image')
+            if single_file:
+                files = [single_file]
+
+        message_obj = None
+        if message_text or files:
+            message_obj = ProductReviewMessage.objects.create(
+                review=review,
+                sender=request.user,
+                from_status=from_status,
+                to_status=to_status,
+                message=message_text or '',
+            )
+            for file_obj in files:
+                ProductReviewMessageAttachment.objects.create(
+                    message=message_obj,
+                    file=file_obj,
+                )
+            if review.product_id:
+                ProductReviewReadState.objects.update_or_create(
+                    user=request.user,
+                    product_id=review.product_id,
+                    defaults={'last_seen_message': message_obj},
+                )
+        broadcast_update('reviews', action='updated', object_id=review.id)
+        return Response(self.get_serializer(review).data)
+
+    @action(detail=True, methods=['post'], url_path='mark-seen')
+    def mark_seen(self, request, pk=None):
+        review = self.get_object()
+        if not review.product_id:
+            return Response(self.get_serializer(review).data)
+        latest_message = (
+            ProductReviewMessage.objects.filter(review__product_id=review.product_id)
+            .order_by('-created_at', '-id')
+            .first()
+        )
+        if latest_message:
+            ProductReviewReadState.objects.update_or_create(
+                user=request.user,
+                product_id=review.product_id,
+                defaults={'last_seen_message': latest_message},
+            )
+            broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 
     # <-------- seccion 7: AV selecciona alternativa y reemplaza producto
@@ -595,6 +1158,8 @@ class ProductItemViewSet(viewsets.ModelViewSet):
         broadcast_update('products', action='created', object_id=product.id)
 
     def perform_update(self, serializer):
+        previous_client_id = serializer.instance.client_id
+        previous_mission_id = serializer.instance.mission_id
         mission = serializer.validated_data.get('mission', serializer.instance.mission)
         store = serializer.validated_data.get('store', serializer.instance.store)
         if mission is not None and mission.store_id:
@@ -602,11 +1167,16 @@ class ProductItemViewSet(viewsets.ModelViewSet):
         product = serializer.save(mission=mission, store=store)
         if product.mission_id and product.client_id:
             product.mission.clients.add(product.client)
+        deactivate_empty_client_share_links(previous_client_id, previous_mission_id)
+        deactivate_empty_client_share_links(product.client_id, product.mission_id)
         broadcast_update('products', action='updated', object_id=product.id)
 
     def perform_destroy(self, instance):
+        client_id = instance.client_id
+        mission_id = instance.mission_id
         product_id = instance.id
         super().perform_destroy(instance)
+        deactivate_empty_client_share_links(client_id, mission_id)
         broadcast_update('products', action='deleted', object_id=product_id)
 
 class ReceiptViewSet(viewsets.ModelViewSet):
@@ -665,3 +1235,106 @@ def scan_receipt(request):
             "date": date.today().isoformat()
         }
     })
+
+
+class ShipmentViewSet(viewsets.ModelViewSet):
+    serializer_class = ShipmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Shipment.objects.select_related(
+            'client', 'product', 'mission', 'created_by'
+        ).prefetch_related('products').all().order_by('-updated_at', '-id')
+        client_id = self.request.query_params.get('client')
+        mission_id = self.request.query_params.get('mission')
+        product_id = self.request.query_params.get('product')
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+        if mission_id:
+            queryset = queryset.filter(mission_id=mission_id)
+        if product_id:
+            queryset = queryset.filter(products__id=product_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        client = serializer.validated_data.get('client')
+        if not client:
+            raise serializers.ValidationError({'detail': 'Client is required.'})
+        shipment = serializer.save(created_by=self.request.user, product=None)
+        touch_shipping_carrier_recommendation(
+            self.request.user,
+            shipment.carrier,
+        )
+        broadcast_update('shipments', action='created', object_id=shipment.id)
+
+    def perform_update(self, serializer):
+        client = serializer.validated_data.get('client', serializer.instance.client)
+        if not client:
+            raise serializers.ValidationError({'detail': 'Client is required.'})
+        shipment = serializer.save(product=serializer.instance.product)
+        touch_shipping_carrier_recommendation(
+            self.request.user,
+            shipment.carrier,
+        )
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+
+    def perform_destroy(self, instance):
+        shipment_id = instance.id
+        product_ids = list(instance.products.values_list('id', flat=True))
+        ShipmentShareLink.objects.filter(shipment=instance).update(is_active=False)
+        super().perform_destroy(instance)
+        for product_id in product_ids:
+            broadcast_update('products', action='updated', object_id=product_id)
+        broadcast_update('shipments', action='deleted', object_id=shipment_id)
+
+    @action(detail=True, methods=['post'], url_path='assign-product')
+    def assign_product(self, request, pk=None):
+        shipment = self.get_object()
+        product_id = request.data.get('product')
+        product = ProductItem.objects.filter(id=product_id).first()
+        if not product:
+            return Response({'error': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if product.client_id != shipment.client_id:
+            return Response({'error': 'Product belongs to a different client.'}, status=status.HTTP_400_BAD_REQUEST)
+        current_products = list(shipment.products.all())
+        if product.id not in [item.id for item in current_products]:
+            current_products.append(product)
+        attach_products_to_shipment(shipment, current_products)
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+        return Response(self.get_serializer(shipment).data)
+
+    @action(detail=True, methods=['post'], url_path='set-products')
+    def set_products(self, request, pk=None):
+        shipment = self.get_object()
+        product_ids = request.data.get('products') or []
+        if not isinstance(product_ids, list):
+            return Response(
+                {'error': 'Products must be provided as a list.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        cleaned_ids = []
+        for product_id in product_ids:
+            try:
+                cleaned_ids.append(int(product_id))
+            except (TypeError, ValueError):
+                continue
+        products = list(
+            ProductItem.objects.filter(id__in=cleaned_ids).select_related('mission', 'client')
+        )
+        product_map = {product.id: product for product in products}
+        products = [product_map[product_id] for product_id in cleaned_ids if product_id in product_map]
+        found_ids = set(product_map.keys())
+        missing_ids = [product_id for product_id in cleaned_ids if product_id not in found_ids]
+        if missing_ids:
+            return Response(
+                {'error': 'One or more products were not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if any(product.client_id != shipment.client_id for product in products):
+            return Response(
+                {'error': 'All products must belong to the same client as the shipment.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        attach_products_to_shipment(shipment, products)
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+        return Response(self.get_serializer(shipment).data)
