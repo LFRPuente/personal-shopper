@@ -1875,18 +1875,6 @@ function nh() {
         );
       }
     },
-    openClientHistoryShareLink = async (o) => {
-      if (!o) return;
-      try {
-        const N = await generateClientHistoryShareLink(o);
-        window.open(N.share_path || N.share_url, "_blank", "noopener,noreferrer");
-      } catch (N) {
-        console.error("Failed to open client history share link", N);
-        notifyError(
-          (N && N.message) || "No se pudo abrir el historial del cliente.",
-        );
-      }
-    },
     copyShipmentShareLink = async (o) => {
       if (!o || !o.id) return;
       try {
@@ -5871,14 +5859,14 @@ function nh() {
                         w
                           ? c.jsx("div", {
                             onClick: () => Jt(N),
-                            className: `px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                            className: `px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
                             children:
                               N.status === "Active" ? "In Mission" : "Idle",
                           })
                           : null,
                         c.jsx("div", {
                           className:
-                            "flex items-center gap-1 shrink-0",
+                            "flex items-center gap-0.5 shrink-0",
                           children: [
                             c.jsx("button", {
                               onClick: () => {
@@ -5892,20 +5880,10 @@ function nh() {
                                 copyClientMissionShareLink(null, N);
                               },
                               className:
-                                `w-8 h-8 rounded-full flex items-center justify-center ${copiedClientShareLinks.includes(`client-history-${N.id}`) ? "bg-sky-100 text-sky-700 dark:bg-sky-950/35 dark:text-sky-200" : "hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30"}`,
+                                `w-7 h-7 rounded-full flex items-center justify-center ${copiedClientShareLinks.includes(`client-history-${N.id}`) ? "bg-sky-100 text-sky-700 dark:bg-sky-950/35 dark:text-sky-200" : "hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30"}`,
                               children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[18px]",
+                                className: "material-symbols-outlined text-[16px]",
                                 children: "share",
-                              }),
-                            }),
-                            c.jsx("button", {
-                              type: "button",
-                              onClick: () => openClientHistoryShareLink(N),
-                              className:
-                                "w-8 h-8 rounded-full flex items-center justify-center hover:bg-sky-100 text-sky-700 dark:text-sky-200 dark:hover:bg-sky-950/30",
-                              children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[18px]",
-                                children: "history",
                               }),
                             }),
                             c.jsx("button", {
@@ -5923,9 +5901,9 @@ function nh() {
                                   tl(!0));
                               },
                               className:
-                                "w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
+                                "w-7 h-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
                               children: c.jsx("span", {
-                                className: "material-symbols-outlined",
+                                className: "material-symbols-outlined text-[17px]",
                                 children: "more_vert",
                               }),
                             }),
@@ -5933,7 +5911,7 @@ function nh() {
                         }),
                         c.jsx("span", {
                           className:
-                            "material-symbols-outlined text-gray-400 text-[18px] cursor-pointer transition-transform",
+                            "material-symbols-outlined text-gray-400 text-[16px] cursor-pointer transition-transform",
                           style: { transform: A ? "rotate(180deg)" : "" },
                           onClick: () => ge(A ? null : N.id),
                           children: "expand_more",
