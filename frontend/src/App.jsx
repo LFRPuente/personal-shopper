@@ -4065,7 +4065,7 @@ function nh() {
   const ta = () =>
     c.jsxs("div", {
       className: isDesktopLayout
-        ? "grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)] items-start"
+        ? "grid gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(340px,380px)] xl:grid-rows-[auto_minmax(0,1fr)] items-stretch"
         : "flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark",
       children: [
         false && c.jsxs("div", {
@@ -4151,7 +4151,9 @@ function nh() {
         }),
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-3 xl:col-start-2 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card self-start"
+            ? w
+              ? "xl:order-2 xl:col-start-1 xl:row-start-2 bg-surface-light dark:bg-surface-dark p-5 border border-border-light dark:border-border-dark shadow-card min-h-[420px] xl:rounded-t-none xl:rounded-br-none xl:rounded-bl-3xl xl:border-t-0 xl:-mt-px"
+              : "xl:order-2 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-5 rounded-b-3xl border border-border-light dark:border-border-dark shadow-card min-h-[420px] xl:border-t-0 xl:-mt-px"
             : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
@@ -4163,7 +4165,7 @@ function nh() {
                 }),
                 c.jsx("div", {
                   className: isDesktopLayout
-                    ? "space-y-2 pr-1 max-h-[440px] overflow-y-auto ios-scroll"
+                    ? "space-y-2 pr-1 max-h-[520px] overflow-y-auto ios-scroll"
                     : "space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll",
                   children:
                     requests.length === 0
@@ -4625,7 +4627,7 @@ function nh() {
         Rt.length > 0 &&
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-2 xl:col-start-1 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-[640px]"
+            ? "xl:order-3 xl:col-start-2 xl:row-span-2 bg-surface-light dark:bg-surface-dark p-4 border border-border-light dark:border-border-dark shadow-card min-h-[640px] flex flex-col xl:rounded-l-none xl:rounded-tr-3xl xl:rounded-br-3xl xl:-ml-px"
             : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
@@ -4648,7 +4650,7 @@ function nh() {
             }),
             c.jsx("div", {
               className: isDesktopLayout
-                ? "pr-1 max-h-[700px] overflow-y-auto overscroll-contain ios-scroll"
+                ? "pr-0 max-h-[calc(100vh-18rem)] overflow-y-auto overscroll-contain ios-scroll"
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) =>
                 c.jsxs(
@@ -4769,7 +4771,7 @@ function nh() {
         Rt.length === 0 &&
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-2 xl:col-start-1 text-center py-12 bg-surface-light dark:bg-surface-dark rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-[420px] flex flex-col items-center justify-center"
+            ? "xl:order-3 xl:col-start-2 xl:row-span-2 text-center py-12 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-card min-h-[420px] flex flex-col items-center justify-center xl:rounded-l-none xl:rounded-tr-3xl xl:rounded-br-3xl xl:-ml-px"
             : "text-center py-8 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark",
           children: [
             c.jsx("p", {
@@ -5033,12 +5035,14 @@ function nh() {
         }),
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-1 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-6 rounded-3xl border border-border-light dark:border-border-dark shadow-card"
+            ? w
+              ? "xl:order-1 xl:col-start-1 xl:row-start-1 bg-surface-light dark:bg-surface-dark p-4 border border-border-light dark:border-border-dark shadow-card xl:rounded-tl-3xl xl:rounded-tr-none xl:rounded-br-none xl:rounded-bl-none"
+              : "xl:order-1 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card"
             : "bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4",
           children: [
             c.jsxs("div", {
               className: isDesktopLayout
-                ? "flex items-start justify-between gap-6"
+                ? "flex items-start justify-between gap-4"
                 : "flex items-center justify-between gap-2",
               children: [
                 c.jsxs("div", {
@@ -5046,13 +5050,13 @@ function nh() {
                   children: [
                     c.jsx("h3", {
                       className: isDesktopLayout
-                        ? "font-bold text-xl text-text-main dark:text-white truncate"
+                        ? "font-bold text-lg text-text-main dark:text-white truncate"
                         : "font-bold text-sm text-text-main dark:text-white truncate",
                       children: "Shopping en Tienda",
                     }),
                     c.jsx("p", {
                       className: isDesktopLayout
-                        ? "text-sm text-gray-500 truncate mt-1"
+                        ? "text-xs text-gray-500 truncate mt-0.5"
                         : "text-[10px] text-gray-500 truncate",
                       children: w
                         ? `${getMissionStoreLabel(w)} • ${w.status}`
@@ -5061,7 +5065,7 @@ function nh() {
                   ],
                 }),
                 c.jsx("span", {
-                  className: `font-bold rounded-full ${isDesktopLayout ? "text-xs px-3 py-1.5" : "text-[10px] px-2 py-1"} ${w ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
+                  className: `font-bold rounded-full ${isDesktopLayout ? "text-[11px] px-2.5 py-1" : "text-[10px] px-2 py-1"} ${w ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`,
                   children: w ? "ON" : "OFF",
                 }),
               ],
@@ -5069,12 +5073,12 @@ function nh() {
             w &&
             c.jsxs("div", {
               className: isDesktopLayout
-                ? "mt-4 flex items-start justify-between gap-6"
+                ? "mt-3 flex items-center justify-between gap-4"
                 : "mt-2 flex items-start justify-between gap-3",
               children: [
                 c.jsxs("span", {
                   className: isDesktopLayout
-                    ? "pt-0.5 text-sm font-semibold text-gray-600 dark:text-gray-300"
+                    ? "pt-0.5 text-xs font-semibold text-gray-600 dark:text-gray-300"
                     : "pt-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300",
                   children: ["Items: ", missionProductsCount],
                 }),
@@ -5082,7 +5086,9 @@ function nh() {
                   className: "text-right",
                   children: [
                     c.jsxs("span", {
-                      className: "block text-[11px] font-semibold text-primary",
+                      className: isDesktopLayout
+                        ? "block text-[10px] font-semibold text-primary"
+                        : "block text-[11px] font-semibold text-primary",
                       children: [
                         "Total+Tax: $",
                         missionTotalWithTaxes.toLocaleString("en-US", {
@@ -5092,7 +5098,9 @@ function nh() {
                       ],
                     }),
                     c.jsxs("span", {
-                      className: "mt-0.5 block text-[10px] font-medium text-gray-500 dark:text-gray-400",
+                      className: isDesktopLayout
+                        ? "mt-0.5 block text-[9px] font-medium text-gray-500 dark:text-gray-400"
+                        : "mt-0.5 block text-[10px] font-medium text-gray-500 dark:text-gray-400",
                       children: [
                         "Sin tax: $",
                         missionTotalWithoutTaxes.toLocaleString("en-US", {
@@ -5107,7 +5115,7 @@ function nh() {
             }),
             c.jsxs("div", {
               className: isDesktopLayout
-                ? "mt-4 grid grid-cols-2 xl:grid-cols-4 gap-3"
+                ? "mt-3 grid grid-cols-2 xl:grid-cols-4 gap-2"
                 : "mt-2 grid grid-cols-4 gap-2",
               children: w
                 ? [
@@ -5117,7 +5125,9 @@ function nh() {
                       {
                         onClick: be,
                         className:
-                          "py-2 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600",
+                          isDesktopLayout
+                            ? "py-1.5 rounded-lg bg-amber-500 text-white text-[10px] font-bold hover:bg-amber-600"
+                            : "py-2 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600",
                         children: "Pause",
                       },
                       "pause",
@@ -5127,7 +5137,9 @@ function nh() {
                       {
                         onClick: cu,
                         className:
-                          "py-2 rounded-lg bg-green-600 text-white text-[11px] font-bold hover:bg-green-700",
+                          isDesktopLayout
+                            ? "py-1.5 rounded-lg bg-green-600 text-white text-[10px] font-bold hover:bg-green-700"
+                            : "py-2 rounded-lg bg-green-600 text-white text-[11px] font-bold hover:bg-green-700",
                         children: "Resume",
                       },
                       "resume",
@@ -5137,7 +5149,9 @@ function nh() {
                     {
                       onClick: on,
                       className:
-                        "py-2 rounded-lg bg-red-500 text-white text-[11px] font-bold hover:bg-red-600",
+                        isDesktopLayout
+                          ? "py-1.5 rounded-lg bg-red-500 text-white text-[10px] font-bold hover:bg-red-600"
+                          : "py-2 rounded-lg bg-red-500 text-white text-[11px] font-bold hover:bg-red-600",
                       children: "End",
                     },
                     "end",
@@ -5147,7 +5161,9 @@ function nh() {
                     {
                       onClick: () => setMissionSummaryOpen(!0),
                       className:
-                        "py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
+                        isDesktopLayout
+                          ? "py-1.5 rounded-lg bg-primary text-white text-[10px] font-bold hover:bg-primary-dark"
+                          : "py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
                       children: "View",
                     },
                     "view",
@@ -5158,7 +5174,7 @@ function nh() {
                       onClick: openMissionTicketPicker,
                       disabled: missionTicketUploading,
                       className:
-                        `py-2 rounded-lg text-white text-[11px] font-bold ${missionTicketUploading ? "bg-purple-400 cursor-wait opacity-80" : "bg-purple-600 hover:bg-purple-700"}`,
+                        `${isDesktopLayout ? "py-1.5 text-[10px]" : "py-2 text-[11px]"} rounded-lg text-white font-bold ${missionTicketUploading ? "bg-purple-400 cursor-wait opacity-80" : "bg-purple-600 hover:bg-purple-700"}`,
                       children: missionTicketUploading ? "Subiendo..." : "Ticket",
                     },
                     "ticket",
@@ -5170,7 +5186,7 @@ function nh() {
                     {
                       onClick: openMissionStart,
                       className:
-                        "col-span-4 py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark",
+                        `${isDesktopLayout ? "col-span-4 py-1.5 text-[10px]" : "col-span-4 py-2 text-[11px]"} rounded-lg bg-primary text-white font-bold hover:bg-primary-dark`,
                       children: "Iniciar Shopping",
                     },
                     "start",
@@ -5181,7 +5197,7 @@ function nh() {
             c.jsx("div", {
               className:
                 isDesktopLayout
-                  ? "mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3"
+                  ? "mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2.5"
                   : "mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2",
               children: missionTicketUploading
                 ? c.jsxs("div", {
