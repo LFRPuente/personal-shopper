@@ -6469,12 +6469,18 @@ function nh() {
                                                       className:
                                                         `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
                                                           ea.balance < 0
-                                                            ? "bg-amber-50 text-amber-700"
+                                                            ? "bg-emerald-50 text-emerald-700"
                                                             : "bg-slate-100 text-slate-700"
                                                         }`,
                                                       children: [
-                                                        "Saldo: $",
-                                                        formatAmount(ea.balance),
+                                                        ea.balance < 0
+                                                          ? "Credito: $"
+                                                          : "Saldo: $",
+                                                        formatAmount(
+                                                          ea.balance < 0
+                                                            ? Math.abs(ea.balance)
+                                                            : ea.balance,
+                                                        ),
                                                       ],
                                                     }),
                                                   ],
@@ -6658,14 +6664,20 @@ function nh() {
                                                               className:
                                                                 `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
                                                                   bi < 0
-                                                                    ? "bg-amber-100 text-amber-700"
+                                                                    ? "bg-emerald-100 text-emerald-700"
                                                                     : bi > 0
                                                                       ? "bg-slate-200 text-slate-700"
                                                                       : "bg-emerald-100 text-emerald-700"
                                                                 }`,
                                                               children: [
-                                                                "Saldo: $",
-                                                                formatAmount(bi),
+                                                                bi < 0
+                                                                  ? "Credito: $"
+                                                                  : "Saldo: $",
+                                                                formatAmount(
+                                                                  bi < 0
+                                                                    ? Math.abs(bi)
+                                                                    : bi,
+                                                                ),
                                                               ],
                                                             }),
                                                           ],
@@ -10444,7 +10456,7 @@ function nh() {
                                   className:
                                     `rounded-2xl border px-3 py-2 ${
                                       paymentFormBalance < 0
-                                        ? "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900"
+                                        ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
                                         : paymentFormBalance > 0
                                           ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
                                           : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
@@ -10454,25 +10466,32 @@ function nh() {
                                       className:
                                         `text-[10px] uppercase font-bold ${
                                           paymentFormBalance < 0
-                                            ? "text-amber-700 dark:text-amber-300"
+                                            ? "text-emerald-700 dark:text-emerald-300"
                                             : paymentFormBalance > 0
                                               ? "text-slate-700 dark:text-slate-300"
                                               : "text-emerald-700 dark:text-emerald-300"
                                         }`,
-                                      children: "Saldo",
+                                      children:
+                                        paymentFormBalance < 0
+                                          ? "Credito"
+                                          : "Saldo",
                                     }),
                                     c.jsxs("p", {
                                       className:
                                         `text-lg font-bold mt-1 ${
                                           paymentFormBalance < 0
-                                            ? "text-amber-700 dark:text-amber-100"
+                                            ? "text-emerald-700 dark:text-emerald-100"
                                             : paymentFormBalance > 0
                                               ? "text-slate-700 dark:text-slate-100"
                                               : "text-emerald-700 dark:text-emerald-100"
                                         }`,
                                       children: [
                                         "$",
-                                        formatAmount(paymentFormBalance),
+                                        formatAmount(
+                                          paymentFormBalance < 0
+                                            ? Math.abs(paymentFormBalance)
+                                            : paymentFormBalance,
+                                        ),
                                       ],
                                     }),
                                   ],
@@ -10484,7 +10503,7 @@ function nh() {
                                 "text-[11px] leading-5 text-text-sub",
                               children:
                                 paymentFormBalance < 0
-                                  ? "Saldo negativo: el pago es mayor que la venta seleccionada."
+                                  ? "Credito a favor: el cliente pago mas de lo seleccionado."
                                   : "Puedes quitar o agregar productos para ajustar lo que cubre este pago.",
                             }),
                           ],
