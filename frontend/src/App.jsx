@@ -6330,9 +6330,9 @@ function nh() {
                                   tl(!0));
                               },
                               className:
-                                "w-7 h-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
+                                "w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
                               children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[17px]",
+                                className: "material-symbols-outlined text-[15px]",
                                 children: "more_vert",
                               }),
                             }),
@@ -6340,7 +6340,7 @@ function nh() {
                         }),
                         c.jsx("span", {
                           className:
-                            "material-symbols-outlined text-gray-400 text-[16px] cursor-pointer transition-transform",
+                            "material-symbols-outlined text-gray-400 text-[15px] cursor-pointer transition-transform",
                           style: { transform: A ? "rotate(180deg)" : "" },
                           onClick: () => ge(A ? null : N.id),
                           children: "expand_more",
@@ -6472,7 +6472,7 @@ function nh() {
                                               ],
                                             }),
                                             c.jsxs("div", {
-                                              className: "ml-2 flex items-center gap-1 shrink-0",
+                                              className: "ml-2 flex items-center gap-0.5 shrink-0",
                                               children: [
                                                 c.jsx("button", {
                                                   type: "button",
@@ -6484,11 +6484,11 @@ function nh() {
                                                     );
                                                   },
                                                   className:
-                                                    "w-8 h-8 rounded-md bg-violet-100 text-violet-700 hover:bg-violet-200 transition flex items-center justify-center",
+                                                    "w-7 h-7 rounded-md bg-violet-100 text-violet-700 hover:bg-violet-200 transition flex items-center justify-center",
                                                   title: "Registrar pago",
                                                   children: c.jsx("span", {
                                                     className:
-                                                      "material-symbols-outlined text-[16px]",
+                                                      "material-symbols-outlined text-[14px]",
                                                     children: "payments",
                                                   }),
                                                 }),
@@ -6502,17 +6502,17 @@ function nh() {
                                                     );
                                                   },
                                                   className:
-                                                    "w-8 h-8 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
+                                                    "w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
                                                   title: "Copiar desglose de esta misión",
                                                   children: c.jsx("span", {
                                                     className:
-                                                      "material-symbols-outlined text-[16px]",
+                                                      "material-symbols-outlined text-[14px]",
                                                     children: "receipt_long",
                                                   }),
                                                 }),
                                                 c.jsx("span", {
                                                   className:
-                                                    "material-symbols-outlined text-[16px] text-gray-500",
+                                                    "material-symbols-outlined text-[14px] text-gray-500",
                                                   children:
                                                     openHistoryMissionByClient[N.id] ===
                                                     ea.key
@@ -6579,7 +6579,7 @@ function nh() {
                                                             }),
                                                             c.jsxs("div", {
                                                               className:
-                                                                "flex items-center gap-1 shrink-0",
+                                                                "flex items-center gap-0.5 shrink-0",
                                                               children: [
                                                                 c.jsx("button", {
                                                                   type: "button",
@@ -6592,11 +6592,11 @@ function nh() {
                                                                     );
                                                                   },
                                                                   className:
-                                                                    "w-7 h-7 rounded-md bg-white/90 dark:bg-slate-900/70 text-violet-700 dark:text-violet-200 border border-violet-200 dark:border-violet-800 flex items-center justify-center",
+                                                                    "w-6 h-6 rounded-md bg-white/90 dark:bg-slate-900/70 text-violet-700 dark:text-violet-200 border border-violet-200 dark:border-violet-800 flex items-center justify-center",
                                                                   title: "Editar pago",
                                                                   children: c.jsx("span", {
                                                                     className:
-                                                                      "material-symbols-outlined text-[14px]",
+                                                                      "material-symbols-outlined text-[13px]",
                                                                     children:
                                                                       "edit",
                                                                   }),
@@ -6610,12 +6610,12 @@ function nh() {
                                                                     );
                                                                   },
                                                                   className:
-                                                                    "w-7 h-7 rounded-md bg-white/90 dark:bg-slate-900/70 text-rose-700 dark:text-rose-200 border border-rose-200 dark:border-rose-800 flex items-center justify-center",
+                                                                    "w-6 h-6 rounded-md bg-white/90 dark:bg-slate-900/70 text-rose-700 dark:text-rose-200 border border-rose-200 dark:border-rose-800 flex items-center justify-center",
                                                                   title:
                                                                     "Eliminar pago",
                                                                   children: c.jsx("span", {
                                                                     className:
-                                                                      "material-symbols-outlined text-[14px]",
+                                                                      "material-symbols-outlined text-[13px]",
                                                                     children:
                                                                       "delete",
                                                                   }),
@@ -6837,11 +6837,11 @@ function nh() {
                         c.jsxs("button", {
                           onClick: () => Ta(N),
                           className:
-                            "w-full mt-3 py-2 text-xs font-bold bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition flex items-center justify-center gap-1",
+                            "mt-2 px-3 py-1.5 text-[11px] font-bold bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition inline-flex items-center justify-center gap-1",
                           children: [
                             c.jsx("span", {
                               className:
-                                "material-symbols-outlined text-[14px]",
+                                "material-symbols-outlined text-[13px]",
                               children: "open_in_new",
                             }),
                             " Open Full Gallery",
