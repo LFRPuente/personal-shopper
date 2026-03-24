@@ -2200,6 +2200,48 @@ function nh() {
     shipmentSelectedProducts = shipmentModalProducts.filter((o) =>
       (shipmentForm.product_ids || []).includes(Number(o.id)),
     ),
+    paymentLocalToNumber = (o, N = 0) => {
+      const A = parseFloat(o);
+      return Number.isFinite(A) ? A : N;
+    },
+    paymentLocalHasValue = (o) =>
+      o !== null && typeof o !== "undefined" && o !== "",
+    paymentLocalProductAmount = (o) => {
+      const N = paymentLocalToNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(N)) return N;
+      const A = paymentLocalToNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(A) ? A : 0;
+    },
+    paymentLocalShoppingProducts = (o, N) =>
+      ((o && o.products) || []).filter(
+        (A) =>
+          Number(A && A.shopping) === Number(N) &&
+          String((A && A.status) || "").toUpperCase() !== "REJECTED",
+      ),
+    paymentLocalProductsTotal = (o = []) =>
+      (o || []).reduce((N, A) => N + paymentLocalProductAmount(A), 0),
+    paymentLocalRecordProducts = (o = null) =>
+      (o && (o.products_detail || [])) || [],
+    paymentLocalRecordShoppingId = (o = null) =>
+      Number((o && (o.shopping || o.mission)) || 0),
+    paymentLocalRecordAmount = (o = null) =>
+      paymentLocalToNumber(o && o.amount, 0),
+    paymentLocalRecordProductsTotal = (o = null) =>
+      paymentLocalHasValue(o && o.products_total)
+        ? paymentLocalToNumber(o.products_total, 0)
+        : paymentLocalProductsTotal(paymentLocalRecordProducts(o)),
+    paymentLocalRecordBalance = (o = null) =>
+      paymentLocalHasValue(o && o.balance)
+        ? paymentLocalToNumber(o.balance, 0)
+        : paymentLocalRecordProductsTotal(o) - paymentLocalRecordAmount(o),
+    paymentLocalShoppingPayments = (o, N) =>
+      (((o && o.payments) || []).filter(
+        (A) => paymentLocalRecordShoppingId(A) === Number(N),
+      )).sort(
+        (A, vl) =>
+          new Date(vl.updated_at || vl.created_at || 0).getTime() -
+          new Date(A.updated_at || A.created_at || 0).getTime(),
+      ),
     paymentModalClient = Kl.find(
       (o) => String(o.id) === String(paymentForm.client || ""),
     ) || null,
@@ -2207,13 +2249,13 @@ function nh() {
       (o) => String(o.id) === String(paymentForm.shopping || ""),
     ) || null,
     paymentModalProducts = paymentModalClient && paymentForm.shopping
-      ? getClientShoppingProducts(paymentModalClient, paymentForm.shopping)
+      ? paymentLocalShoppingProducts(paymentModalClient, paymentForm.shopping)
       : [],
     paymentReservedProductIds = paymentModalClient && paymentForm.shopping
-      ? getClientShoppingPayments(paymentModalClient, paymentForm.shopping).reduce(
+      ? paymentLocalShoppingPayments(paymentModalClient, paymentForm.shopping).reduce(
         (o, N) => {
           if (Number(N.id) === Number(paymentForm.id || 0)) return o;
-          getPaymentRecordProducts(N).forEach((A) => {
+          paymentLocalRecordProducts(N).forEach((A) => {
             o.add(Number(A.id));
           });
           return o;
@@ -2236,13 +2278,13 @@ function nh() {
     paymentSelectedProducts = paymentModalProducts.filter((o) =>
       (paymentForm.product_ids || []).includes(Number(o.id)),
     ),
-    paymentSelectedProductsTotal = getPaymentProductsTotal(paymentSelectedProducts),
-    paymentFormAmountValue = toNumber(paymentForm.amount, 0),
+    paymentSelectedProductsTotal = paymentLocalProductsTotal(paymentSelectedProducts),
+    paymentFormAmountValue = paymentLocalToNumber(paymentForm.amount, 0),
     paymentFormBalance = paymentSelectedProductsTotal - paymentFormAmountValue,
     getDefaultPaymentProductIds = (o, N) =>
-      getClientShoppingProducts(o, N)
-        .filter((A) => !getClientShoppingPayments(o, N).some((vl) =>
-          getPaymentRecordProducts(vl).some((El) => Number(El.id) === Number(A.id)),
+      paymentLocalShoppingProducts(o, N)
+        .filter((A) => !paymentLocalShoppingPayments(o, N).some((vl) =>
+          paymentLocalRecordProducts(vl).some((El) => Number(El.id) === Number(A.id)),
         ))
         .map((A) => Number(A.id)),
     openPaymentModal = (o, N = null, A = null) => {
@@ -2256,7 +2298,7 @@ function nh() {
         return;
       }
       const El = A
-        ? getPaymentRecordProducts(A).map((Se) => Number(Se.id))
+        ? paymentLocalRecordProducts(A).map((Se) => Number(Se.id))
         : getDefaultPaymentProductIds(o, vl);
       setPaymentForm({
         id: (A && A.id) || null,
@@ -2301,7 +2343,7 @@ function nh() {
             body: JSON.stringify({
               client: o.id,
               shopping: N.id,
-              amount: toNumber(A, 0).toFixed(2),
+              amount: paymentLocalToNumber(A, 0).toFixed(2),
               note: String(paymentForm.note || "").trim(),
               products: (paymentForm.product_ids || []).map((vl) => Number(vl)),
             }),
