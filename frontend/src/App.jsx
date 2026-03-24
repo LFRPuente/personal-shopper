@@ -3528,6 +3528,9 @@ function nh() {
             !publicShipmentProductIds.has(Number(o.id)),
         )
       : [],
+    publicClientCreditTotal = publicClientShareData
+      ? Math.max(toNumber(publicClientShareData.client_credit, 0), 0)
+      : 0,
     missionReviewAlertCount = missionReviewAlerts.length,
     isDesktopLayout = layoutMode === "WEB" && isWideViewport;
   V.useEffect(() => {
@@ -3789,6 +3792,29 @@ function nh() {
               : c.jsxs("div", {
                   className: "px-4 py-4 space-y-3",
                   children: [
+                    publicClientCreditTotal > 0 &&
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3",
+                      children: [
+                        c.jsx("p", {
+                          className:
+                            "text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300",
+                          children: "Credito disponible",
+                        }),
+                        c.jsxs("p", {
+                          className:
+                            "mt-1 text-lg font-black text-emerald-800 dark:text-emerald-100",
+                          children: ["$", formatAmount(publicClientCreditTotal)],
+                        }),
+                        c.jsx("p", {
+                          className:
+                            "mt-1 text-[11px] leading-5 text-emerald-700/80 dark:text-emerald-200/80",
+                          children:
+                            "Este credito ya considera las compras donde se uso credito previo.",
+                        }),
+                      ],
+                    }),
                     publicSelectedShipment &&
                     c.jsxs("div", {
                       className:

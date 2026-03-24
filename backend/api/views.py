@@ -105,6 +105,23 @@ def build_public_shipment_share_url(request, raw_token):
 PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
 
 
+def calculate_client_credit_total(client):
+    if not client:
+        return 0
+    credit_total = 0
+    payments = (
+        ShoppingPayment.objects.filter(client=client)
+        .prefetch_related('products')
+        .order_by('-created_at', '-id')
+    )
+    for payment in payments:
+        products_total = 0
+        for product in payment.products.all():
+            products_total += float(product.charged_price or product.real_price or 0)
+        credit_total += float(payment.amount or 0) - products_total
+    return round(max(credit_total, 0), 2)
+
+
 def deactivate_empty_client_share_links(client_id=None, mission_id=None):
     if not client_id:
         return
@@ -511,6 +528,7 @@ def public_client_mission_share_view(request, token):
             'products': serializer.data,
             'receipts': [],
             'shipments': shipment_serializer.data,
+            'client_credit': calculate_client_credit_total(share_link.client),
             'total': total,
         }
     )
@@ -569,6 +587,7 @@ def public_shipment_share_view(request, token):
             'receipts': receipt_serializer.data,
             'shipments': shipment_serializer.data,
             'focus_shipment_id': shipment.id,
+            'client_credit': calculate_client_credit_total(shipment.client),
             'total': total,
         }
     )
