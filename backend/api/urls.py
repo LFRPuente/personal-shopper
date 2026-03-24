@@ -27,6 +27,7 @@ router = DefaultRouter()
 router.register(r'clients', ClientViewSet, basename='client')
 router.register(r'products', ProductItemViewSet)
 router.register(r'receipts', ReceiptViewSet)
+router.register(r'shoppings', MissionViewSet, basename='shopping')
 router.register(r'missions', MissionViewSet, basename='mission')
 router.register(r'stores', StoreViewSet, basename='store')
 router.register(r'requests', RequestViewSet, basename='request')
@@ -46,7 +47,9 @@ urlpatterns = [
     path('shipping-carrier-recommendations/', shipping_carrier_recommendations, name='shipping-carrier-recommendations'),
     path('store-recommendations/<int:recommendation_id>/', delete_store_recommendation, name='delete-store-recommendation'),
     path('reviews/unread-summary/', unread_review_summary, name='unread-review-summary'),
+    path('client-shopping-share-links/', create_client_mission_share_link, name='create-client-shopping-share-link'),
     path('client-share-links/', create_client_mission_share_link, name='create-client-mission-share-link'),
+    path('public/client-shopping-share/<str:token>/', public_client_mission_share_view, name='public-client-shopping-share-view'),
     path('public/client-share/<str:token>/', public_client_mission_share_view, name='public-client-mission-share-view'),
     path('shipment-share-links/', create_shipment_share_link, name='create-shipment-share-link'),
     path('public/shipment-share/<str:token>/', public_shipment_share_view, name='public-shipment-share-view'),

@@ -73,6 +73,19 @@ def broadcast_update(model, action='changed', object_id=None):
     )
 
 
+def broadcast_shopping_update(action='changed', object_id=None):
+    broadcast_update('shoppings', action=action, object_id=object_id)
+    broadcast_update('missions', action=action, object_id=object_id)
+
+
+def get_shopping_query_param(request):
+    return request.query_params.get('shopping') or request.query_params.get('mission')
+
+
+def get_shopping_data_value(request):
+    return request.data.get('shopping', request.data.get('mission'))
+
+
 def hash_share_token(raw_token):
     return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
 
@@ -294,7 +307,7 @@ def shipping_carrier_recommendations(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def unread_review_summary(request):
-    mission_id = request.query_params.get('mission')
+    mission_id = get_shopping_query_param(request)
     queryset = ProductReview.objects.select_related(
         'product', 'product__client'
     ).prefetch_related(
@@ -570,11 +583,11 @@ class MissionViewSet(viewsets.ModelViewSet):
         mission_name = serializer.validated_data.get('name') or (store.name if store else None)
         mission = serializer.save(shopper=self.request.user, name=mission_name)
         touch_store_recommendation(self.request.user, store)
-        # Auto-link currently active clients to this mission
+        # Auto-link currently active clients to this shopping
         active_clients = Client.objects.filter(status__iexact='active')
         mission.clients.set(active_clients)
-        # <-------- seccion 8: notificar cambios de misiones
-        broadcast_update('missions', action='created', object_id=mission.id)
+        # <-------- seccion 8: notificar cambios de shoppings
+        broadcast_shopping_update(action='created', object_id=mission.id)
 
     def perform_update(self, serializer):
         previous_status = serializer.instance.status
@@ -592,10 +605,10 @@ class MissionViewSet(viewsets.ModelViewSet):
             if not mission.end_time:
                 mission.end_time = timezone.now()
                 mission.save(update_fields=['end_time'])
-            # Ensure every active client returns to idle when mission ends.
+            # Ensure every active client returns to idle when shopping ends.
             Client.objects.filter(status__iexact='active').update(status='Pending')
             mission.clients.all().update(status='Pending')
-            # <-------- seccion 9: limpiar productos rechazados al cerrar mision
+            # <-------- seccion 9: limpiar productos rechazados al cerrar shopping
             if previous_status != 'COMPLETED':
                 ProductItem.objects.filter(
                     mission=mission,
@@ -604,23 +617,23 @@ class MissionViewSet(viewsets.ModelViewSet):
                 broadcast_update('products', action='updated')
             # <-------- seccion 8: cambios masivos en clientes
             broadcast_update('clients', action='updated')
-        # Whenever active mission is saved, sync active clients into it
+        # Whenever an active shopping is saved, sync active clients into it
         elif mission.status == 'ACTIVE':
             active_clients = Client.objects.filter(status__iexact='active')
             for c in active_clients:
                 mission.clients.add(c)
-        # <-------- seccion 8: notificar cambios de misiones
-        broadcast_update('missions', action='updated', object_id=mission.id)
+        # <-------- seccion 8: notificar cambios de shoppings
+        broadcast_shopping_update(action='updated', object_id=mission.id)
 
     def perform_destroy(self, instance):
         mission_id = instance.id
-        # Evita basura cuando se elimina una mision historica.
+        # Evita basura cuando se elimina un shopping historico.
         ProductItem.objects.filter(mission=instance, status='REJECTED').delete()
         super().perform_destroy(instance)
-        # <-------- seccion 8: notificar borrado de misiones
-        broadcast_update('missions', action='deleted', object_id=mission_id)
+        # <-------- seccion 8: notificar borrado de shoppings
+        broadcast_shopping_update(action='deleted', object_id=mission_id)
 
-    # <-------- seccion 9: subir ticket de tienda para toda la mision
+    # <-------- seccion 9: subir ticket de tienda para todo el shopping
     @action(
         detail=True,
         methods=['post'],
@@ -639,7 +652,7 @@ class MissionViewSet(viewsets.ModelViewSet):
         products = ProductItem.objects.filter(mission=mission).select_related('client')
         if not products.exists():
             return Response(
-                {'error': 'Mission has no products to link.'},
+                {'error': 'Shopping has no products to link.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -650,7 +663,7 @@ class MissionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Keep a mission-level ticket preview.
+        # Keep a shopping-level ticket preview.
         mission.ticket_image.save(image_file.name, ContentFile(image_bytes), save=False)
         mission.save(update_fields=['ticket_image'])
 
@@ -675,15 +688,16 @@ class MissionViewSet(viewsets.ModelViewSet):
             ).update(receipt=receipt)
             created_receipts += 1
 
-        broadcast_update('missions', action='updated', object_id=mission.id)
+        broadcast_shopping_update(action='updated', object_id=mission.id)
         broadcast_update('receipts', action='updated')
         broadcast_update('products', action='updated')
         broadcast_update('clients', action='updated')
 
         return Response(
             {
-                'message': 'Mission ticket uploaded and linked.',
+                'message': 'Shopping ticket uploaded and linked.',
                 'mission_id': mission.id,
+                'shopping_id': mission.id,
                 'receipts_created': created_receipts,
                 'products_linked': linked_products,
             },
@@ -718,7 +732,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         queryset = Request.objects.select_related(
             'created_by', 'client', 'mission', 'product'
         ).all().order_by('-updated_at')
-        mission_id = self.request.query_params.get('mission')
+        mission_id = get_shopping_query_param(self.request)
         client_id = self.request.query_params.get('client')
         status_value = self.request.query_params.get('status')
         if mission_id:
@@ -730,7 +744,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        mission_id = self.request.data.get('mission')
+        mission_id = get_shopping_data_value(self.request)
         mission_obj = None
         if mission_id not in [None, '', 'null']:
             mission_obj = Mission.objects.filter(id=mission_id).first()
@@ -778,7 +792,7 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         ).all().order_by('-updated_at')
         product_id = self.request.query_params.get('product')
         client_id = self.request.query_params.get('client')
-        mission_id = self.request.query_params.get('mission')
+        mission_id = get_shopping_query_param(self.request)
         status_value = self.request.query_params.get('status')
         if product_id:
             queryset = queryset.filter(product_id=product_id)
@@ -1118,7 +1132,7 @@ class ClientViewSet(viewsets.ModelViewSet):
         if status_value == 'active' and client.status != 'Active':
             client.status = 'Active'
             client.save(update_fields=['status'])
-        # Keep active mission membership in sync with client toggles.
+        # Keep active shopping membership in sync with client toggles.
         if status_value == 'active':
             active_mission = Mission.objects.filter(
                 status__in=['ACTIVE', 'PAUSED']
@@ -1260,7 +1274,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             'client', 'product', 'mission', 'created_by'
         ).prefetch_related('products').all().order_by('-updated_at', '-id')
         client_id = self.request.query_params.get('client')
-        mission_id = self.request.query_params.get('mission')
+        mission_id = get_shopping_query_param(self.request)
         product_id = self.request.query_params.get('product')
         if client_id:
             queryset = queryset.filter(client_id=client_id)

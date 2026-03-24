@@ -127,7 +127,7 @@ class ProductItem(models.Model):
     # PS (Personal Shopper) sube el ticket y lo vincula
     receipt = models.ForeignKey(Receipt, on_delete=models.SET_NULL, null=True, blank=True, related_name='items')
     
-    # Misión en la que se agregó/compró el producto
+    # Shopping en el que se agrego/compro el producto
     mission = models.ForeignKey('Mission', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
 
     # Tienda donde se encontro/compro el producto
@@ -157,8 +157,8 @@ class Mission(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     shopper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='missions')
     store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='missions')
-    status = models.CharField(max_length=50, choices=[('ACTIVE', 'Misión Activa'), ('PAUSED', 'Misión Pausada'), ('COMPLETED', 'Misión Finalizada')], default='ACTIVE')
-    # <-------- seccion 9: configuracion comercial por mision
+    status = models.CharField(max_length=50, choices=[('ACTIVE', 'Shopping Activo'), ('PAUSED', 'Shopping Pausado'), ('COMPLETED', 'Shopping Finalizado')], default='ACTIVE')
+    # <-------- seccion 9: configuracion comercial por shopping
     calc_mode = models.CharField(
         max_length=20,
         choices=[('FACTOR', 'Factor'), ('PERCENTAGE', 'Porcentaje')],
@@ -174,8 +174,12 @@ class Mission(models.Model):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        verbose_name = 'shopping'
+        verbose_name_plural = 'shoppings'
+
     def __str__(self):
-        return f"Mission {self.id} by {self.shopper.username if self.shopper else 'Unknown'}"
+        return f"Shopping {self.id} by {self.shopper.username if self.shopper else 'Unknown'}"
 
 class Request(models.Model):
     status = models.CharField(

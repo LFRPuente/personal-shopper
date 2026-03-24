@@ -71,6 +71,18 @@ class ProductItemSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.name', read_only=True, default='')
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
+    shopping = serializers.PrimaryKeyRelatedField(
+        source='mission',
+        queryset=Mission.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    shopping_name = serializers.CharField(
+        source='mission.name', read_only=True, default=None
+    )
+    shopping_date = serializers.DateTimeField(
+        source='mission.start_time', read_only=True, default=None
+    )
     mission_name = serializers.CharField(
         source='mission.name', read_only=True, default=None
     )
@@ -102,6 +114,7 @@ class ProductItemSerializer(serializers.ModelSerializer):
 
 class ShipmentProductSummarySerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
 
@@ -114,6 +127,7 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
             'charged_price',
             'real_price',
             'status',
+            'shopping_name',
             'mission_name',
             'store_name',
         ]
@@ -175,6 +189,12 @@ class MissionSerializer(serializers.ModelSerializer):
 
 class RequestSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
+    shopping = serializers.PrimaryKeyRelatedField(
+        source='mission',
+        queryset=Mission.objects.all(),
+        required=False,
+        allow_null=True,
+    )
     created_by_username = serializers.SerializerMethodField()
     created_by_role = serializers.SerializerMethodField()
     client_name = serializers.CharField(source='client.name', read_only=True, default=None)
@@ -408,9 +428,17 @@ class PublicClientReceiptSerializer(serializers.ModelSerializer):
 
 class ShipmentSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source='client.name', read_only=True)
+    shopping = serializers.PrimaryKeyRelatedField(
+        source='mission',
+        queryset=Mission.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     products_detail = ShipmentProductSummarySerializer(source='products', many=True, read_only=True)
     product_count = serializers.SerializerMethodField()
+    shopping_names = serializers.SerializerMethodField()
     mission_names = serializers.SerializerMethodField()
 
     def get_product_count(self, obj):
@@ -426,11 +454,14 @@ class ShipmentSerializer(serializers.ModelSerializer):
             elif product.store and product.store.name:
                 mission_name = product.store.name
             elif product.mission_id:
-                mission_name = f'Mision #{product.mission_id}'
+                mission_name = f'Shopping #{product.mission_id}'
             if mission_name and mission_name not in seen:
                 seen.add(mission_name)
                 mission_names.append(mission_name)
         return mission_names
+
+    def get_shopping_names(self, obj):
+        return self.get_mission_names(obj)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -449,7 +480,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
             queryset = queryset.exclude(pk=self.instance.pk)
         if queryset.exists():
             raise serializers.ValidationError(
-                {'tracking_number': 'Ya existe una guia igual para este cliente y mision.'}
+                {'tracking_number': 'Ya existe una guia igual para este cliente y shopping.'}
             )
         return attrs
 

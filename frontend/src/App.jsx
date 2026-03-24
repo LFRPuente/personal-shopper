@@ -349,7 +349,7 @@ function nh() {
           ));
         const [N, A, yl, qs] = await Promise.all([
           I("/clients/"),
-          I("/missions/"),
+          I("/shoppings/"),
           I("/shipments/"),
           I("/shipping-carrier-recommendations/"),
         ]);
@@ -368,7 +368,7 @@ function nh() {
         setStoreRecommendations(Se || []);
         Dl(vl || null);
         if (vl && vl.id) {
-          const ea = await I(`/reviews/unread-summary/?mission=${vl.id}`);
+          const ea = await I(`/reviews/unread-summary/?shopping=${vl.id}`);
           setHomeUnreadSummary(ea || {});
         } else setHomeUnreadSummary({});
       } catch (o) {
@@ -380,7 +380,7 @@ function nh() {
       try {
         const [N, A, vl, yl, qs] = await Promise.all([
           I("/clients/"),
-          I("/missions/"),
+          I("/shoppings/"),
           I("/store-recommendations/"),
           I("/shipments/"),
           I("/shipping-carrier-recommendations/"),
@@ -395,7 +395,7 @@ function nh() {
         );
         Dl(El || null);
         if (El && El.id) {
-          const Se = await I(`/reviews/unread-summary/?mission=${El.id}`);
+          const Se = await I(`/reviews/unread-summary/?shopping=${El.id}`);
           setHomeUnreadSummary(Se || {});
         } else setHomeUnreadSummary({});
       } catch {}
@@ -538,9 +538,9 @@ function nh() {
                     : Il
                       ? "add-client"
                       : missionSummaryOpen
-                        ? "mission-summary"
+                        ? "shopping-summary"
                         : showMissionStartModal
-                          ? "mission-start"
+                          ? "shopping-start"
                           : "",
     overlayHistorySkipRef = V.useRef(!1),
     activeOverlayKeyRef = V.useRef(""),
@@ -691,7 +691,7 @@ function nh() {
         const N = await I("/requests/");
         setRequests(N || []);
       } catch (N) {
-        console.error("Failed loading mission requests", N);
+        console.error("Failed loading shopping requests", N);
       }
     };
     const refreshReviewsForCurrentContext = async () => {
@@ -707,7 +707,7 @@ function nh() {
       }
       if (N) {
         try {
-          const A = await I(`/reviews/?mission=${N}`);
+          const A = await I(`/reviews/?shopping=${N}`);
           setMissionReviewAlerts(
             (A || []).filter(
               (vl) =>
@@ -715,7 +715,7 @@ function nh() {
             ),
           );
         } catch (A) {
-          console.error("Failed loading mission reviews", A);
+          console.error("Failed loading shopping reviews", A);
         }
       } else {
         setMissionReviewAlerts([]);
@@ -728,7 +728,7 @@ function nh() {
         return;
       }
       try {
-        const N = await I(`/reviews/unread-summary/?mission=${o}`);
+        const N = await I(`/reviews/unread-summary/?shopping=${o}`);
         setHomeUnreadSummary(N || {});
       } catch (N) {
         console.error("Failed loading unread review summary", N);
@@ -757,7 +757,7 @@ function nh() {
           ) {
             Se();
           }
-          if (vl === "clients" || vl === "missions") {
+          if (vl === "clients" || vl === "shoppings") {
             await refreshCoreData();
             return;
           }
@@ -902,7 +902,7 @@ function nh() {
     let isMounted = !0;
     const loadUnreadSummary = async () => {
       try {
-        const o = await I(`/reviews/unread-summary/?mission=${w.id}`);
+        const o = await I(`/reviews/unread-summary/?shopping=${w.id}`);
         isMounted && setHomeUnreadSummary(o || {});
       } catch (o) {
         console.error("Failed loading unread review summary", o);
@@ -922,7 +922,7 @@ function nh() {
     let isMounted = !0;
     const loadMissionReviews = async () => {
       try {
-        const o = await I(`/reviews/?mission=${w.id}`);
+        const o = await I(`/reviews/?shopping=${w.id}`);
         isMounted &&
           setMissionReviewAlerts(
             (o || []).filter(
@@ -930,7 +930,7 @@ function nh() {
             ),
           );
       } catch (o) {
-        console.error("Failed loading mission reviews", o);
+        console.error("Failed loading shopping reviews", o);
       }
     };
     loadMissionReviews();
@@ -1116,7 +1116,7 @@ function nh() {
         }
         let El = null;
         try {
-          El = await I("/missions/", {
+          El = await I("/shoppings/", {
             method: "POST",
             body: JSON.stringify({
               name: N,
@@ -1130,7 +1130,7 @@ function nh() {
             }),
           });
         } catch {
-          El = await I("/missions/", {
+          El = await I("/shoppings/", {
             method: "POST",
             body: JSON.stringify({
               name: N,
@@ -1150,14 +1150,14 @@ function nh() {
           setCalcExchangeRate(toNumber(o.exchange_rate, 17.5)),
           setCalcDiscount(toNumber(o.discount_percentage, 0)));
       } catch (vl) {
-        console.error("Failed creating mission", vl);
+        console.error("Failed creating shopping", vl);
         notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
       }
     },
     be = async () => {
       if (w)
         try {
-          const o = await I(`/missions/${w.id}/`, {
+          const o = await I(`/shoppings/${w.id}/`, {
             method: "PATCH",
             body: JSON.stringify({ status: "PAUSED" }),
           });
@@ -1167,7 +1167,7 @@ function nh() {
     cu = async () => {
       if (w)
         try {
-          const o = await I(`/missions/${w.id}/`, {
+          const o = await I(`/shoppings/${w.id}/`, {
             method: "PATCH",
             body: JSON.stringify({ status: "ACTIVE" }),
           });
@@ -1177,7 +1177,7 @@ function nh() {
     on = async () => {
       if (w)
         try {
-          const o = await I(`/missions/${w.id}/`, {
+          const o = await I(`/shoppings/${w.id}/`, {
             method: "PATCH",
             body: JSON.stringify({ status: "COMPLETED" }),
           });
@@ -1196,18 +1196,18 @@ function nh() {
       )
         return;
       try {
-        (await I(`/missions/${o}/`, { method: "DELETE" }),
+        (await I(`/shoppings/${o}/`, { method: "DELETE" }),
           zl(Al.filter((N) => N.id !== o)),
           w && w.id === o && Dl(null),
           fn === o && rn(null));
       } catch {
-        notifyError("Error deleting mission");
+        notifyError("Error deleting shopping");
       }
     },
     Fe = async (o) => {
       if (Sa.trim())
         try {
-          const N = await I(`/missions/${o}/`, {
+          const N = await I(`/shoppings/${o}/`, {
             method: "PATCH",
             body: JSON.stringify({ name: Sa }),
           });
@@ -1215,7 +1215,7 @@ function nh() {
             w && w.id === o && Dl(N),
             dn(null));
         } catch {
-          notifyError("Error renaming mission");
+          notifyError("Error renaming shopping");
         }
     },
     Qt = async () => {
@@ -1279,7 +1279,7 @@ function nh() {
       A.append("image", N[0]);
       setMissionTicketUploading(!0);
       try {
-        await I(`/missions/${w.id}/upload-ticket/`, {
+        await I(`/shoppings/${w.id}/upload-ticket/`, {
           method: "POST",
           body: A,
         });
@@ -1287,7 +1287,7 @@ function nh() {
         W && (await Qt());
         notifySuccess("Ticket de misión cargado y vinculado.");
       } catch (vl) {
-        console.error("Mission ticket upload failed", vl);
+        console.error("Shopping ticket upload failed", vl);
         notifyError("No se pudo subir el ticket de misión.");
       } finally {
         setMissionTicketUploading(!1);
@@ -1407,7 +1407,7 @@ function nh() {
         gl.append("name", El),
         gl.append("status", eaStatus),
         gl.append("purchase_date", ea),
-        w && gl.append("mission", w.id));
+        w && gl.append("shopping", w.id));
       setNewProductUploading(!0);
       try {
         const ae = await I("/products/", { method: "POST", body: gl });
@@ -1798,7 +1798,7 @@ function nh() {
       o && (await copyImageUrlToClipboard(o, fullscreenImage.copyMessage || "Imagen copiada."));
     },
     copyMissionBreakdown = async (o, N) => {
-      const A = (N.products || []).filter((vl) => vl.mission === o.id),
+      const A = (N.products || []).filter((vl) => vl.shopping === o.id),
         vl = A.map((Se) => {
           const ea = parseFloat(Se.charged_price || 0);
           return { name: Se.name, finalPrice: Number.isFinite(ea) ? ea : 0 };
@@ -1811,13 +1811,13 @@ function nh() {
       try {
         await navigator.clipboard.writeText(Se);
       } catch (gl) {
-        console.error("Failed to copy mission breakdown", gl);
+        console.error("Failed to copy shopping breakdown", gl);
       }
     },
     copyAnnotatedMissionBreakdown = async (o, N) => {
       const A = ((N && N.products) || []).filter((vl) => {
           const El = String(vl.status || "").toUpperCase();
-          return Number(vl.mission) === Number(o && o.id) && El === "ANNOTATED";
+          return Number(vl.shopping) === Number(o && o.id) && El === "ANNOTATED";
         }),
         vl = A.map((Se) => {
           const ea = parseFloat(Se.charged_price || 0);
@@ -1835,7 +1835,7 @@ function nh() {
           ae.includes(gl) ? ae : [...ae, gl],
         );
       } catch (gl) {
-        console.error("Failed to copy annotated mission breakdown", gl);
+        console.error("Failed to copy annotated shopping breakdown", gl);
       }
     },
     copyMissionClientsBreakdown = async (o, N = []) => {
@@ -1844,7 +1844,7 @@ function nh() {
         vl = N.map((El) => {
           const Se = ((El && El.products) || []).filter((ea) => {
               const gl = String(ea.status || "").toUpperCase();
-              return Number(ea.mission) === Number(o.id) && gl === "ANNOTATED";
+              return Number(ea.shopping) === Number(o.id) && gl === "ANNOTATED";
             }),
             ea = Se.map((gl) => {
               const ae = parseFloat(gl.charged_price || 0);
@@ -1879,7 +1879,7 @@ function nh() {
       try {
         await navigator.clipboard.writeText(Se);
       } catch (ea) {
-        console.error("Failed to copy clients mission breakdown", ea);
+        console.error("Failed to copy clients shopping breakdown", ea);
       }
     },
     generateClientHistoryShareLink = async (o) => {
@@ -1904,7 +1904,7 @@ function nh() {
         );
         notifySuccess("Link copiado.");
       } catch (A) {
-        console.error("Failed to copy client mission share link", A);
+        console.error("Failed to copy client shopping share link", A);
         notifyError(
           (A && A.message) || "No se pudo generar el link del cliente.",
         );
@@ -1967,8 +1967,8 @@ function nh() {
               A.shipping_address || N.shipping_address || "",
           })),
       ).sort((N, A) => {
-        const vl = String(N.mission_name || N.store_name || "").localeCompare(
-          String(A.mission_name || A.store_name || ""),
+        const vl = String(N.shopping_name || N.mission_name || N.store_name || "").localeCompare(
+          String(A.shopping_name || A.mission_name || A.store_name || ""),
         );
         if (vl !== 0) return vl;
         return String(N.name || "").localeCompare(String(A.name || ""));
@@ -2170,7 +2170,7 @@ function nh() {
       if (!N) return !0;
       return [
         o.name,
-        o.mission_name,
+        o.shopping_name || o.mission_name,
         o.store_name,
         o.client_name,
         o.status,
@@ -2186,7 +2186,7 @@ function nh() {
         A = ["Cliente", "Producto", "Store Price (USD)", "Final Price (MXN)", "Status", "Tienda", "Tags"].join(","),
         vl = (o.clients_detail || []).flatMap((El) =>
           (El.products || [])
-            .filter((Se) => Se.mission === o.id)
+            .filter((Se) => Se.shopping === o.id)
             .map((Se) =>
               [
                 N(El.name),
@@ -2751,8 +2751,8 @@ function nh() {
     getHomeVisibleProducts = (o) =>
       (o.products || []).filter(
         (N) =>
-          N.mission !== null &&
-          typeof N.mission !== "undefined" &&
+          N.shopping !== null &&
+          typeof N.shopping !== "undefined" &&
           N.status !== "IN_REVIEW" &&
           N.status !== "REJECTED",
       ),
@@ -2765,7 +2765,7 @@ function nh() {
         { usd: 0, sale: 0 },
       ),
     getHomeClientMissionTotals = (o, missionId) =>
-      (o || []).filter(A => A.mission === missionId).reduce(
+      (o || []).filter(A => A.shopping === missionId).reduce(
         (N, A) => ({
           usd: N.usd + toNumber(A.real_price, 0),
           sale: N.sale + toNumber(A.charged_price, 0),
@@ -3070,7 +3070,7 @@ function nh() {
     ),
     activeMissionProducts = w
       ? (Kl || []).flatMap((o) =>
-        (o.products || []).filter((N) => Number(N.mission) === Number(w.id)),
+        (o.products || []).filter((N) => Number(N.shopping) === Number(w.id)),
       )
       : [],
     requestAssignableClients = [...(Kl || [])].sort((o, N) =>
@@ -3133,7 +3133,7 @@ function nh() {
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
     homeClientMissionProductsMap = Rt.reduce((o, N) => {
-      o[N.id] = (N.products || []).filter((A) => Number(A.mission) === Number(w && w.id));
+      o[N.id] = (N.products || []).filter((A) => Number(A.shopping) === Number(w && w.id));
       return o;
     }, {}),
     homeClientReviewItemStates = Rt.reduce((o, N) => {
@@ -3222,7 +3222,7 @@ function nh() {
     selectedClientHomeTotals = w ? getHomeClientMissionTotals(selectedClientHomeProducts, w.id) : getHomeClientTotals(selectedClientHomeProducts),
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryMissionScopeId
-        ? Number(o.mission) === Number(clientGalleryMissionScopeId) &&
+        ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
           (clientGalleryScopeMission &&
           clientGalleryScopeMission.status === "COMPLETED"
             ? o.status === "ANNOTATED"
@@ -4636,7 +4636,7 @@ function nh() {
                 c.jsxs("h3", {
                   className:
                     "font-bold text-sm text-text-main dark:text-white",
-                  children: ["Clients in Mission (", filteredHomeClientsInMission.length, ")"],
+                  children: ["Clients in Shopping (", filteredHomeClientsInMission.length, ")"],
                 }),
                 c.jsx("input", {
                   type: "text",
@@ -4697,7 +4697,7 @@ function nh() {
                                     className: "text-[10px] text-gray-500",
                                     children: [
                                       (homeClientMissionProductsMap[o.id] || []).length,
-                                      " items in this mission",
+                                      " items in this shopping",
                                     ],
                                   }),
                                 ],
@@ -4776,7 +4776,7 @@ function nh() {
           children: [
             c.jsx("p", {
               className: "text-gray-400 text-sm",
-              children: "No clients assigned to this mission yet.",
+              children: "No clients assigned to this shopping yet.",
             }),
             c.jsx("p", {
               className: "text-[10px] text-gray-400 mt-1",
@@ -5272,7 +5272,7 @@ function nh() {
             children: [
               c.jsx("h2", {
                 className: "text-lg font-bold text-text-main dark:text-white",
-                children: "Missions",
+                children: "Shoppings",
               }),
               !w &&
               c.jsxs("button", {
@@ -5310,7 +5310,7 @@ function nh() {
                 }),
                 c.jsx("p", {
                   className: "font-bold text-lg mb-2",
-                  children: "No missions yet",
+                  children: "No shoppings yet",
                 }),
                 c.jsx("p", {
                   className: "text-gray-500 text-sm mb-4",
@@ -5338,7 +5338,7 @@ function nh() {
                   El = w && w.id === A.id,
                   Se = A.clients_detail || [],
                   qa = Se.filter((gl) =>
-                    (gl.products || []).some((ae) => ae.mission === A.id),
+                    (gl.products || []).some((ae) => ae.shopping === A.id),
                   ),
                   ea = (A.products || []).filter((gl) =>
                     A.status === "COMPLETED" ? gl.status === "ANNOTATED" : !0,
@@ -5527,7 +5527,7 @@ function nh() {
                                   const ae = `${A.id}-${gl.id}`,
                                     oi = (gl.products || []).filter(
                                       (mi) =>
-                                        mi.mission === A.id &&
+                                        mi.shopping === A.id &&
                                         (A.status === "COMPLETED"
                                           ? mi.status === "ANNOTATED"
                                           : !0),
@@ -5711,7 +5711,7 @@ function nh() {
                                                   className: `${getTagClassName(vl.type)} text-[9px] px-1.5 py-0.5 rounded`,
                                                   children: vl.label,
                                                 },
-                                                `${gl.id}-mission-product-tag-${El}`,
+                                                `${gl.id}-shopping-product-tag-${El}`,
                                               ),
                                             ),
                                         }),
@@ -5735,7 +5735,7 @@ function nh() {
                             children: c.jsx("p", {
                               className: "text-xs text-gray-400",
                               children:
-                                "No clients or products linked to this mission.",
+                                "No clients or products linked to this shopping.",
                             }),
                           }),
                           A.status === "COMPLETED" &&
@@ -5879,15 +5879,15 @@ function nh() {
                 vl = getHomeVisibleProducts(N),
                 El = getHomeClientTotals(vl),
                 Se = vl.reduce((ea, gl) => {
-                  const ae = String(gl.mission);
+                  const ae = String(gl.shopping);
                   return (ea[ae] || (ea[ae] = []), ea[ae].push(gl), ea);
                 }, {}),
                 ea = Object.entries(Se)
                   .map(([gl, ae]) => {
                     const oi =
                         Al.find((mi) => mi.id === Number(gl)),
-                      oiName = (ae[0] && ae[0].mission_name
-                        ? String(ae[0].mission_name).trim()
+                      oiName = (ae[0] && (ae[0].shopping_name || ae[0].mission_name)
+                        ? String(ae[0].shopping_name || ae[0].mission_name).trim()
                         : ""),
                       mi =
                         oi && oi.name
@@ -5897,11 +5897,11 @@ function nh() {
                             : `Tienda #${gl}`,
                       Ri =
                         (oi && oi.start_time) ||
-                        (ae[0] && (ae[0].mission_date || ae[0].created_at)) ||
+                        (ae[0] && (ae[0].shopping_date || ae[0].mission_date || ae[0].created_at)) ||
                         "";
                     return {
                       key: gl,
-                      mission: oi,
+                      shopping: oi,
                       title: mi,
                       date: Ri,
                       items: ae,
@@ -6014,7 +6014,7 @@ function nh() {
                             onClick: () => Jt(N),
                             className: `px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
                             children:
-                              N.status === "Active" ? "In Mission" : "Idle",
+                              N.status === "Active" ? "In Shopping" : "Idle",
                           })
                           : null,
                         c.jsx("div", {
@@ -6162,7 +6162,7 @@ function nh() {
                                                   onClick: (gl) => {
                                                     gl.stopPropagation();
                                                     copyMissionBreakdown(
-                                                      ea.mission || { id: Number(ea.key) },
+                                                      ea.shopping || { id: Number(ea.key) },
                                                       N,
                                                     );
                                                   },
@@ -6346,8 +6346,8 @@ function nh() {
         if (!A) return !0;
         return [
           N.client_name,
-          N.mission_name,
-          ...((N.mission_names || [])),
+          N.shopping_name || N.mission_name,
+          ...((N.shopping_names || N.mission_names || [])),
           N.carrier,
           N.tracking_number,
           N.shipping_address,
@@ -6448,10 +6448,10 @@ function nh() {
                                     : "text-[11px] text-text-sub truncate",
                                   children: [
                                     N.client_name || "Cliente",
-                                    (N.mission_names || []).length > 0
-                                      ? ` • ${(N.mission_names || []).slice(0, 2).join(", ")}`
-                                      : N.mission_name
-                                        ? ` • ${N.mission_name}`
+                                    (N.shopping_names || N.mission_names || []).length > 0
+                                      ? ` • ${(N.shopping_names || N.mission_names || []).slice(0, 2).join(", ")}`
+                                      : N.shopping_name || N.mission_name
+                                        ? ` • ${N.shopping_name || N.mission_name}`
                                         : "",
                                   ],
                                 }),
@@ -7497,7 +7497,7 @@ function nh() {
                                   className: `${getTagClassName(N.type)} text-[9px] px-1.5 py-0.5 rounded`,
                                   children: N.label,
                                 },
-                                `${o.id}-mission-tag-${A}`,
+                                `${o.id}-shopping-tag-${A}`,
                               ),
                             ),
                         }),
@@ -8452,7 +8452,7 @@ function nh() {
                           c.jsx("span", {
                             className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${W.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
                             children:
-                              W.status === "Active" ? "In Mission" : "Idle",
+                              W.status === "Active" ? "In Shopping" : "Idle",
                           }),
                           c.jsx("p", {
                             className:
@@ -8828,13 +8828,13 @@ function nh() {
                                           "text-[10px] uppercase tracking-wide opacity-90",
                                         children: ["Estado: ", o.status],
                                       }),
-                                      o.mission_date &&
+                                      (o.shopping_date || o.mission_date) &&
                                       c.jsxs("p", {
                                         className: "text-[10px] opacity-90",
                                         children: [
-                                          "Mision: ",
+                                          "Shopping: ",
                                           new Date(
-                                            o.mission_date,
+                                            o.shopping_date || o.mission_date,
                                           ).toLocaleDateString(),
                                         ],
                                       }),
@@ -9785,9 +9785,10 @@ function nh() {
                                           className:
                                             "text-[10px] text-white/80 truncate",
                                           children:
+                                            o.shopping_name ||
                                             o.mission_name ||
                                             o.store_name ||
-                                            "Sin mission",
+                                            "Sin shopping",
                                         }),
                                       ],
                                     }),
@@ -9810,7 +9811,7 @@ function nh() {
                       : c.jsx("p", {
                           className: "text-xs text-text-sub",
                           children:
-                            "Abre la galeria para elegir productos de todas las missions de este cliente.",
+                            "Abre la galeria para elegir productos de todas las shoppings de este cliente.",
                         }),
                   ],
                 }),
@@ -9880,7 +9881,7 @@ function nh() {
                     c.jsx("p", {
                       className: "text-[11px] text-text-sub mt-0.5",
                       children:
-                        "Selecciona varios productos aunque sean de distintas missions.",
+                        "Selecciona varios productos aunque sean de distintas shoppings.",
                     }),
                   ],
                 }),
@@ -9908,7 +9909,7 @@ function nh() {
                     }),
                     c.jsx("input", {
                       type: "text",
-                      placeholder: "Buscar producto, mission o tienda...",
+                      placeholder: "Buscar producto, shopping o tienda...",
                       value: shipmentProductSearch,
                       onChange: (o) => setShipmentProductSearch(o.target.value),
                       className:
@@ -9975,9 +9976,10 @@ function nh() {
                                 c.jsx("p", {
                                   className: "text-[10px] text-white/80 truncate",
                                   children:
+                                    o.shopping_name ||
                                     o.mission_name ||
                                     o.store_name ||
-                                    "Sin mision",
+                                    "Sin shopping",
                                 }),
                               ],
                             }),
@@ -10453,7 +10455,7 @@ function nh() {
                       }),
                       c.jsx("span", {
                         className: "text-sm font-semibold",
-                        children: "Missions",
+                        children: "Shoppings",
                       }),
                     ],
                   })
