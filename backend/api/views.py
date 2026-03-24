@@ -31,6 +31,7 @@ from .models import (
     ProductReviewMessageAttachment,
     ProductReviewReadState,
     ClientHistoryShareLink,
+    ShoppingPayment,
     Shipment,
     ShipmentShareLink,
 )
@@ -48,6 +49,7 @@ from .serializers import (
     ReviewAlternativeSerializer,
     ClientHistoryShareLinkSerializer,
     ClientMissionShareProductSerializer,
+    ShoppingPaymentSerializer,
     ShipmentSerializer,
     ShipmentShareLinkSerializer,
     PublicClientReceiptSerializer,
@@ -576,7 +578,13 @@ class MissionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Mission.objects.select_related('store').prefetch_related('clients', 'clients__products', 'clients__receipts').all().order_by('-start_time')
+        return Mission.objects.select_related('store').prefetch_related(
+            'clients',
+            'clients__products',
+            'clients__receipts',
+            'clients__payments',
+            'clients__payments__products',
+        ).all().order_by('-start_time')
 
     def perform_create(self, serializer):
         store = serializer.validated_data.get('store')
@@ -1110,15 +1118,21 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_queryset = Client.objects.prefetch_related(
+            'products',
+            'receipts',
+            'payments',
+            'payments__products',
+        )
         # Si la persona autenticada tiene perfil de AV, solo ve a sus clientes
         if hasattr(user, 'userprofile'):
             if user.userprofile.role == 'AV':
-                return Client.objects.filter(added_by=user)
+                return base_queryset.filter(added_by=user)
             elif user.userprofile.role in ['PS', 'BOTH']:
                 # Si es PS (Shopper) o Ambos, ve todos para poder comprar
-                return Client.objects.all()
+                return base_queryset.all()
         # Fallback en caso de que no tenga profile
-        return Client.objects.all()
+        return base_queryset.all()
 
     def perform_create(self, serializer):
         # Asigna el Agente automáticamente
@@ -1263,6 +1277,40 @@ def scan_receipt(request):
             "date": date.today().isoformat()
         }
     })
+
+
+class ShoppingPaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = ShoppingPaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ShoppingPayment.objects.select_related(
+            'client', 'mission', 'created_by'
+        ).prefetch_related('products').all().order_by('-created_at', '-id')
+        client_id = self.request.query_params.get('client')
+        shopping_id = get_shopping_query_param(self.request)
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+        if shopping_id:
+            queryset = queryset.filter(mission_id=shopping_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        payment = serializer.save(created_by=self.request.user)
+        broadcast_update('payments', action='created', object_id=payment.id)
+        broadcast_update('clients', action='updated', object_id=payment.client_id)
+
+    def perform_update(self, serializer):
+        payment = serializer.save()
+        broadcast_update('payments', action='updated', object_id=payment.id)
+        broadcast_update('clients', action='updated', object_id=payment.client_id)
+
+    def perform_destroy(self, instance):
+        payment_id = instance.id
+        client_id = instance.client_id
+        super().perform_destroy(instance)
+        broadcast_update('payments', action='deleted', object_id=payment_id)
+        broadcast_update('clients', action='updated', object_id=client_id)
 
 
 class ShipmentViewSet(viewsets.ModelViewSet):

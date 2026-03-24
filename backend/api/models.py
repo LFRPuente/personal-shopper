@@ -339,6 +339,43 @@ class ProductReviewReadState(models.Model):
         return f"Review read state {self.user_id}:{self.product_id}"
 
 
+class ShoppingPayment(models.Model):
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='payments',
+    )
+    mission = models.ForeignKey(
+        Mission,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+    )
+    products = models.ManyToManyField(
+        ProductItem,
+        related_name='payments',
+        blank=True,
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    note = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shopping_payments_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f"Payment {self.id} - client {self.client_id}"
+
+
 class ClientHistoryShareLink(models.Model):
     client = models.ForeignKey(
         Client,

@@ -219,6 +219,17 @@ function nh() {
       shipping_address: "",
       product_ids: [],
     }),
+    [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
+    [paymentSaving, setPaymentSaving] = V.useState(!1),
+    [paymentProductSearch, setPaymentProductSearch] = V.useState(""),
+    [paymentForm, setPaymentForm] = V.useState({
+      id: null,
+      client: "",
+      shopping: "",
+      amount: "",
+      note: "",
+      product_ids: [],
+    }),
     [newRequestText, setNewRequestText] = V.useState(""),
     [newRequestClientId, setNewRequestClientId] = V.useState(""),
     [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
@@ -519,6 +530,8 @@ function nh() {
       ? "confirm"
       : inputDialog
         ? "input"
+        : paymentModalOpen
+          ? "payment-modal"
         : shipmentProductPickerOpen
           ? "shipment-product-picker"
           : shipmentModalOpen
@@ -558,6 +571,11 @@ function nh() {
       }
       if (inputDialog) {
         closeInputDialog(null);
+        return;
+      }
+      if (paymentModalOpen) {
+        setPaymentModalOpen(!1);
+        setPaymentProductSearch("");
         return;
       }
       if (shipmentProductPickerOpen) {
@@ -613,6 +631,7 @@ function nh() {
     activeOverlayKey,
     confirmDialog,
     inputDialog,
+    paymentModalOpen,
     shipmentProductPickerOpen,
     shipmentModalOpen,
     fullscreenImage,
@@ -2181,6 +2200,145 @@ function nh() {
     shipmentSelectedProducts = shipmentModalProducts.filter((o) =>
       (shipmentForm.product_ids || []).includes(Number(o.id)),
     ),
+    paymentModalClient = Kl.find(
+      (o) => String(o.id) === String(paymentForm.client || ""),
+    ) || null,
+    paymentModalShopping = Al.find(
+      (o) => String(o.id) === String(paymentForm.shopping || ""),
+    ) || null,
+    paymentModalProducts = paymentModalClient && paymentForm.shopping
+      ? getClientShoppingProducts(paymentModalClient, paymentForm.shopping)
+      : [],
+    paymentReservedProductIds = paymentModalClient && paymentForm.shopping
+      ? getClientShoppingPayments(paymentModalClient, paymentForm.shopping).reduce(
+        (o, N) => {
+          if (Number(N.id) === Number(paymentForm.id || 0)) return o;
+          getPaymentRecordProducts(N).forEach((A) => {
+            o.add(Number(A.id));
+          });
+          return o;
+        },
+        new Set(),
+      )
+      : new Set(),
+    paymentFilteredProducts = paymentModalProducts.filter((o) => {
+      const N = String(paymentProductSearch || "").trim().toLowerCase();
+      if (!N) return !0;
+      return [
+        o.name,
+        o.shopping_name || o.mission_name,
+        o.store_name,
+        o.status,
+      ]
+        .filter(Boolean)
+        .some((A) => String(A).toLowerCase().includes(N));
+    }),
+    paymentSelectedProducts = paymentModalProducts.filter((o) =>
+      (paymentForm.product_ids || []).includes(Number(o.id)),
+    ),
+    paymentSelectedProductsTotal = getPaymentProductsTotal(paymentSelectedProducts),
+    paymentFormAmountValue = toNumber(paymentForm.amount, 0),
+    paymentFormBalance = paymentSelectedProductsTotal - paymentFormAmountValue,
+    getDefaultPaymentProductIds = (o, N) =>
+      getClientShoppingProducts(o, N)
+        .filter((A) => !getClientShoppingPayments(o, N).some((vl) =>
+          getPaymentRecordProducts(vl).some((El) => Number(El.id) === Number(A.id)),
+        ))
+        .map((A) => Number(A.id)),
+    openPaymentModal = (o, N = null, A = null) => {
+      const vl = Number(
+        (A && (A.shopping || A.mission)) ||
+        (N && N.id) ||
+        (N || (w && w.id) || 0),
+      );
+      if (!o || !vl) {
+        notifyInfo("Selecciona cliente y shopping.");
+        return;
+      }
+      const El = A
+        ? getPaymentRecordProducts(A).map((Se) => Number(Se.id))
+        : getDefaultPaymentProductIds(o, vl);
+      setPaymentForm({
+        id: (A && A.id) || null,
+        client: String(o.id),
+        shopping: String(vl),
+        amount: A && hasValue(A.amount) ? String(A.amount) : "",
+        note: (A && A.note) || "",
+        product_ids: El,
+      });
+      setPaymentProductSearch("");
+      setPaymentModalOpen(!0);
+    },
+    togglePaymentProductSelection = (o) => {
+      if (!o) return;
+      if (paymentReservedProductIds.has(Number(o.id))) return;
+      setPaymentForm((N) => {
+        const A = Number(o.id);
+        const vl = (N.product_ids || []).includes(A)
+          ? (N.product_ids || []).filter((El) => Number(El) !== A)
+          : [...(N.product_ids || []), A];
+        return { ...N, product_ids: vl };
+      });
+    },
+    savePayment = async () => {
+      const o = Kl.find((A) => String(A.id) === String(paymentForm.client || ""));
+      const N = Al.find((A) => String(A.id) === String(paymentForm.shopping || ""));
+      const A = String(paymentForm.amount || "").trim();
+      if (!o || !N) {
+        notifyInfo("Selecciona cliente y shopping.");
+        return;
+      }
+      if (A === "" || !Number.isFinite(parseFloat(A))) {
+        notifyInfo("Captura un monto valido.");
+        return;
+      }
+      setPaymentSaving(!0);
+      try {
+        await I(
+          paymentForm.id ? `/payments/${paymentForm.id}/` : "/payments/",
+          {
+            method: paymentForm.id ? "PATCH" : "POST",
+            body: JSON.stringify({
+              client: o.id,
+              shopping: N.id,
+              amount: toNumber(A, 0).toFixed(2),
+              note: String(paymentForm.note || "").trim(),
+              products: (paymentForm.product_ids || []).map((vl) => Number(vl)),
+            }),
+          },
+        );
+        setPaymentModalOpen(!1);
+        setPaymentProductSearch("");
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess(paymentForm.id ? "Pago actualizado." : "Pago guardado.");
+      } catch (vl) {
+        console.error("Failed saving payment", vl);
+        notifyError((vl && vl.message) || "No se pudo guardar el pago.");
+      } finally {
+        setPaymentSaving(!1);
+      }
+    },
+    deletePayment = async (o) => {
+      if (!o || !o.id) return;
+      const N = await confirmAction({
+        title: "Eliminar pago",
+        message: "Este pago se quitara del historial del cliente.",
+        confirmLabel: "Eliminar",
+        cancelLabel: "Cancelar",
+        tone: "danger",
+      });
+      if (!N) return;
+      try {
+        await I(`/payments/${o.id}/`, { method: "DELETE" });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Pago eliminado.");
+      } catch (A) {
+        console.error("Failed deleting payment", A);
+        notifyError((A && A.message) || "No se pudo eliminar el pago.");
+      }
+    },
     exportMissionCsv = (o) => {
       const N = (ae) => `"${String(ae ?? "").replaceAll('"', '""')}"`,
         A = ["Cliente", "Producto", "Store Price (USD)", "Final Price (MXN)", "Status", "Tienda", "Tags"].join(","),
@@ -2771,6 +2929,48 @@ function nh() {
           sale: N.sale + toNumber(A.charged_price, 0),
         }),
         { usd: 0, sale: 0 },
+      ),
+    getProductPaymentAmount = (o) => {
+      const N = toNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(N)) return N;
+      const A = toNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(A) ? A : 0;
+    },
+    getClientShoppingProducts = (o, N) =>
+      ((o && o.products) || []).filter(
+        (A) =>
+          Number(A && A.shopping) === Number(N) &&
+          String(A && A.status || "").toUpperCase() !== "REJECTED",
+      ),
+    getPaymentProductsTotal = (o = []) =>
+      (o || []).reduce((N, A) => N + getProductPaymentAmount(A), 0),
+    getPaymentRecordProducts = (o = null) => (o && (o.products_detail || [])) || [],
+    getPaymentRecordShoppingId = (o = null) =>
+      Number((o && (o.shopping || o.mission)) || 0),
+    getPaymentRecordAmount = (o = null) => toNumber(o && o.amount, 0),
+    getPaymentRecordProductsTotal = (o = null) =>
+      hasValue(o && o.products_total)
+        ? toNumber(o.products_total, 0)
+        : getPaymentProductsTotal(getPaymentRecordProducts(o)),
+    getPaymentRecordBalance = (o = null) =>
+      hasValue(o && o.balance)
+        ? toNumber(o.balance, 0)
+        : getPaymentRecordProductsTotal(o) - getPaymentRecordAmount(o),
+    getClientShoppingPayments = (o, N) =>
+      (((o && o.payments) || []).filter(
+        (A) => getPaymentRecordShoppingId(A) === Number(N),
+      )).sort(
+        (A, vl) =>
+          new Date(vl.updated_at || vl.created_at || 0).getTime() -
+          new Date(A.updated_at || A.created_at || 0).getTime(),
+      ),
+    getClientShoppingPaymentSummary = (o, N) =>
+      getClientShoppingPayments(o, N).reduce(
+        (A, vl) => ({
+          amount: A.amount + getPaymentRecordAmount(vl),
+          balance: A.balance + getPaymentRecordBalance(vl),
+        }),
+        { amount: 0, balance: 0 },
       ),
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
@@ -4726,6 +4926,21 @@ function nh() {
                             type: "button",
                             onClick: (N) => {
                               N.stopPropagation();
+                              openPaymentModal(o, w);
+                            },
+                            className:
+                              "w-8 h-8 rounded-md border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200 flex items-center justify-center transition",
+                            title: "Registrar pago",
+                            children: c.jsx("span", {
+                              className:
+                                "material-symbols-outlined text-[14px]",
+                              children: "payments",
+                            }),
+                          }),
+                          c.jsx("button", {
+                            type: "button",
+                            onClick: (N) => {
+                              N.stopPropagation();
                               const A = `home-${w.id}-${o.id}`;
                               if (copiedMissionClients.includes(A)) {
                                 setCopiedMissionClients((vl) =>
@@ -5882,13 +6097,27 @@ function nh() {
                   const ae = String(gl.shopping);
                   return (ea[ae] || (ea[ae] = []), ea[ae].push(gl), ea);
                 }, {}),
-                ea = Object.entries(Se)
-                  .map(([gl, ae]) => {
+                ea = Array.from(
+                  new Set([
+                    ...Object.keys(Se),
+                    ...((N.payments || []).map((gl) =>
+                      String((gl && (gl.shopping || gl.mission)) || ""),
+                    ).filter(Boolean)),
+                  ]),
+                )
+                  .map((gl) => {
+                    const ae = Se[gl] || [],
+                      Pi = getClientShoppingPayments(N, gl),
+                      pa = getClientShoppingPaymentSummary(N, gl),
+                      oiPaymentName =
+                        (Pi[0] && (Pi[0].shopping_name || Pi[0].mission_name)) || "",
+                      oiPaymentDate =
+                        (Pi[0] && (Pi[0].updated_at || Pi[0].created_at)) || "";
                     const oi =
                         Al.find((mi) => mi.id === Number(gl)),
                       oiName = (ae[0] && (ae[0].shopping_name || ae[0].mission_name)
                         ? String(ae[0].shopping_name || ae[0].mission_name).trim()
-                        : ""),
+                        : oiPaymentName),
                       mi =
                         oi && oi.name
                           ? oi.name
@@ -5898,6 +6127,7 @@ function nh() {
                       Ri =
                         (oi && oi.start_time) ||
                         (ae[0] && (ae[0].shopping_date || ae[0].mission_date || ae[0].created_at)) ||
+                        oiPaymentDate ||
                         "";
                     return {
                       key: gl,
@@ -5905,6 +6135,10 @@ function nh() {
                       title: mi,
                       date: Ri,
                       items: ae,
+                      payments: Pi,
+                      productsTotal: getPaymentProductsTotal(ae),
+                      paymentsTotal: pa.amount,
+                      balance: pa.balance,
                     };
                   })
                   .sort(
@@ -6091,7 +6325,7 @@ function nh() {
                           className: "text-[10px] text-gray-500 mb-2",
                           children: ["📦 ", N.shipping_address],
                         }),
-                        vl.length === 0
+                        vl.length === 0 && (N.payments || []).length === 0
                           ? c.jsx("p", {
                             className:
                               "text-xs text-gray-400 text-center py-4",
@@ -6103,8 +6337,8 @@ function nh() {
                                 className:
                                   "text-xs font-bold text-text-sub uppercase mb-2",
                                 children: [
-                                  "Purchase History (",
-                                  vl.length,
+                                  "Shopping History (",
+                                  ea.length,
                                   ")",
                                 ],
                               }),
@@ -6141,6 +6375,14 @@ function nh() {
                                                   children: [
                                                     ea.items.length,
                                                     " item(s)",
+                                                    ea.payments.length > 0 &&
+                                                    c.jsxs(c.Fragment, {
+                                                      children: [
+                                                        " • ",
+                                                        ea.payments.length,
+                                                        " pago(s)",
+                                                      ],
+                                                    }),
                                                     ea.date &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
@@ -6152,11 +6394,62 @@ function nh() {
                                                     }),
                                                   ],
                                                 }),
+                                                c.jsxs("div", {
+                                                  className: "mt-1 flex flex-wrap gap-1",
+                                                  children: [
+                                                    c.jsxs("span", {
+                                                      className:
+                                                        "inline-flex rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                      children: [
+                                                        "Venta: $",
+                                                        formatAmount(ea.productsTotal),
+                                                      ],
+                                                    }),
+                                                    c.jsxs("span", {
+                                                      className:
+                                                        "inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
+                                                      children: [
+                                                        "Pagado: $",
+                                                        formatAmount(ea.paymentsTotal),
+                                                      ],
+                                                    }),
+                                                    c.jsxs("span", {
+                                                      className:
+                                                        `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                                          ea.balance < 0
+                                                            ? "bg-amber-50 text-amber-700"
+                                                            : "bg-slate-100 text-slate-700"
+                                                        }`,
+                                                      children: [
+                                                        "Saldo: $",
+                                                        formatAmount(ea.balance),
+                                                      ],
+                                                    }),
+                                                  ],
+                                                }),
                                               ],
                                             }),
                                             c.jsxs("div", {
                                               className: "ml-2 flex items-center gap-1 shrink-0",
                                               children: [
+                                                c.jsx("button", {
+                                                  type: "button",
+                                                  onClick: (gl) => {
+                                                    gl.stopPropagation();
+                                                    openPaymentModal(
+                                                      N,
+                                                      ea.shopping || { id: Number(ea.key) },
+                                                    );
+                                                  },
+                                                  className:
+                                                    "w-8 h-8 rounded-md bg-violet-100 text-violet-700 hover:bg-violet-200 transition flex items-center justify-center",
+                                                  title: "Registrar pago",
+                                                  children: c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-[16px]",
+                                                    children: "payments",
+                                                  }),
+                                                }),
                                                 c.jsx("button", {
                                                   type: "button",
                                                   onClick: (gl) => {
@@ -6193,7 +6486,188 @@ function nh() {
                                         c.jsx("div", {
                                           className:
                                             "border-t border-gray-200 dark:border-gray-700 px-2 py-1.5 space-y-1",
-                                          children: ea.items.map((gl) =>
+                                          children: [
+                                            ea.payments.length > 0 &&
+                                            c.jsxs("div", {
+                                              className: "mb-2 space-y-1.5",
+                                              children: [
+                                                c.jsx("p", {
+                                                  className:
+                                                    "text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-300",
+                                                  children: "Pagos",
+                                                }),
+                                                ea.payments.map((gl) => {
+                                                  const ae = getPaymentRecordProducts(gl),
+                                                    oi = getPaymentRecordAmount(gl),
+                                                    Pi = getPaymentRecordProductsTotal(gl),
+                                                    bi = getPaymentRecordBalance(gl);
+                                                  return c.jsxs(
+                                                    "div",
+                                                    {
+                                                      className:
+                                                        "rounded-lg border border-violet-100 dark:border-violet-900/60 bg-violet-50/60 dark:bg-violet-950/20 px-2.5 py-2 space-y-2",
+                                                      children: [
+                                                        c.jsxs("div", {
+                                                          className:
+                                                            "flex items-start justify-between gap-2",
+                                                          children: [
+                                                            c.jsxs("div", {
+                                                              className:
+                                                                "min-w-0",
+                                                              children: [
+                                                                c.jsx("p", {
+                                                                  className:
+                                                                    "text-xs font-bold text-text-main dark:text-white",
+                                                                  children: `Pago #${gl.id}`,
+                                                                }),
+                                                                c.jsxs("p", {
+                                                                  className:
+                                                                    "text-[10px] text-text-sub mt-0.5",
+                                                                  children: [
+                                                                    gl.created_by_username ||
+                                                                    "Usuario",
+                                                                    " - ",
+                                                                    getRelativeTime(
+                                                                      gl.updated_at ||
+                                                                        gl.created_at,
+                                                                    ),
+                                                                  ],
+                                                                }),
+                                                              ],
+                                                            }),
+                                                            c.jsxs("div", {
+                                                              className:
+                                                                "flex items-center gap-1 shrink-0",
+                                                              children: [
+                                                                c.jsx("button", {
+                                                                  type: "button",
+                                                                  onClick: (oiEvent) => {
+                                                                    oiEvent.stopPropagation();
+                                                                    openPaymentModal(
+                                                                      N,
+                                                                      ea.shopping || { id: Number(ea.key) },
+                                                                      gl,
+                                                                    );
+                                                                  },
+                                                                  className:
+                                                                    "w-7 h-7 rounded-md bg-white/90 dark:bg-slate-900/70 text-violet-700 dark:text-violet-200 border border-violet-200 dark:border-violet-800 flex items-center justify-center",
+                                                                  title: "Editar pago",
+                                                                  children: c.jsx("span", {
+                                                                    className:
+                                                                      "material-symbols-outlined text-[14px]",
+                                                                    children:
+                                                                      "edit",
+                                                                  }),
+                                                                }),
+                                                                c.jsx("button", {
+                                                                  type: "button",
+                                                                  onClick: (oiEvent) => {
+                                                                    oiEvent.stopPropagation();
+                                                                    deletePayment(
+                                                                      gl,
+                                                                    );
+                                                                  },
+                                                                  className:
+                                                                    "w-7 h-7 rounded-md bg-white/90 dark:bg-slate-900/70 text-rose-700 dark:text-rose-200 border border-rose-200 dark:border-rose-800 flex items-center justify-center",
+                                                                  title:
+                                                                    "Eliminar pago",
+                                                                  children: c.jsx("span", {
+                                                                    className:
+                                                                      "material-symbols-outlined text-[14px]",
+                                                                    children:
+                                                                      "delete",
+                                                                  }),
+                                                                }),
+                                                              ],
+                                                            }),
+                                                          ],
+                                                        }),
+                                                        c.jsxs("div", {
+                                                          className:
+                                                            "flex flex-wrap gap-1",
+                                                          children: [
+                                                            c.jsxs("span", {
+                                                              className:
+                                                                "inline-flex rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
+                                                              children: [
+                                                                "Monto: $",
+                                                                formatAmount(oi),
+                                                              ],
+                                                            }),
+                                                            c.jsxs("span", {
+                                                              className:
+                                                                "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                              children: [
+                                                                "Venta: $",
+                                                                formatAmount(Pi),
+                                                              ],
+                                                            }),
+                                                            c.jsxs("span", {
+                                                              className:
+                                                                `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                                                  bi < 0
+                                                                    ? "bg-amber-100 text-amber-700"
+                                                                    : bi > 0
+                                                                      ? "bg-slate-200 text-slate-700"
+                                                                      : "bg-emerald-100 text-emerald-700"
+                                                                }`,
+                                                              children: [
+                                                                "Saldo: $",
+                                                                formatAmount(bi),
+                                                              ],
+                                                            }),
+                                                          ],
+                                                        }),
+                                                        gl.note &&
+                                                        c.jsx("p", {
+                                                          className:
+                                                            "text-[10px] text-text-sub rounded-md bg-white/80 dark:bg-slate-900/50 px-2 py-1 border border-violet-100 dark:border-violet-900/50",
+                                                          children: gl.note,
+                                                        }),
+                                                        ae.length > 0
+                                                          ? c.jsx("div", {
+                                                            className:
+                                                              "flex flex-wrap gap-1",
+                                                            children: ae.map((oiProduct) =>
+                                                              c.jsxs(
+                                                                "span",
+                                                                {
+                                                                  className:
+                                                                    "inline-flex items-center gap-1 rounded-full border border-violet-200 dark:border-violet-800 bg-white/90 dark:bg-slate-900/70 px-2 py-1 text-[10px] font-medium text-violet-700 dark:text-violet-200",
+                                                                  children: [
+                                                                    oiProduct.name,
+                                                                    c.jsxs("span", {
+                                                                      className:
+                                                                        "font-bold",
+                                                                      children: [
+                                                                        "$",
+                                                                        formatAmount(
+                                                                          getProductPaymentAmount(
+                                                                            oiProduct,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    }),
+                                                                  ],
+                                                                },
+                                                                `payment-product-${gl.id}-${oiProduct.id}`,
+                                                              ),
+                                                            ),
+                                                          })
+                                                          : c.jsx("p", {
+                                                            className:
+                                                              "text-[10px] text-text-sub",
+                                                            children:
+                                                              "Sin productos ligados a este pago.",
+                                                          }),
+                                                      ],
+                                                    },
+                                                    gl.id,
+                                                  );
+                                                }),
+                                              ],
+                                            }),
+                                            ea.items.map((gl) =>
                                             c.jsxs(
                                               "div",
                                               {
@@ -6308,6 +6782,7 @@ function nh() {
                                               gl.id,
                                             ),
                                           ),
+                                          ],
                                         }),
                                       ],
                                     },
@@ -9505,6 +9980,528 @@ function nh() {
                   className:
                     "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
                   children: inputDialog.confirmLabel,
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      paymentModalOpen &&
+      c.jsx("div", {
+        className:
+          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+        onClick: () => {
+          setPaymentModalOpen(!1), setPaymentProductSearch("");
+        },
+        children: c.jsxs("div", {
+          className:
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-5xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: paymentForm.id ? "Editar pago" : "Registrar pago",
+                    }),
+                    c.jsx("p", {
+                      className: "text-[11px] text-text-sub mt-0.5",
+                      children:
+                        "Selecciona productos de la shopping y registra el monto pagado.",
+                    }),
+                  ],
+                }),
+                c.jsx("button", {
+                  onClick: () => {
+                    setPaymentModalOpen(!1), setPaymentProductSearch("");
+                  },
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "flex-1 overflow-y-auto ios-scroll p-4 space-y-4",
+              children: [
+                c.jsxs("div", {
+                  className: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3",
+                  children: [
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 px-3 py-2 xl:col-span-2",
+                      children: [
+                        c.jsx("p", {
+                          className:
+                            "text-[10px] uppercase font-bold tracking-wide text-text-sub",
+                          children: "Cliente",
+                        }),
+                        c.jsx("p", {
+                          className:
+                            "text-sm font-semibold text-text-main dark:text-white mt-1",
+                          children:
+                            (paymentModalClient && paymentModalClient.name) ||
+                            "Sin cliente",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 px-3 py-2 xl:col-span-2",
+                      children: [
+                        c.jsx("p", {
+                          className:
+                            "text-[10px] uppercase font-bold tracking-wide text-text-sub",
+                          children: "Shopping",
+                        }),
+                        c.jsx("p", {
+                          className:
+                            "text-sm font-semibold text-text-main dark:text-white mt-1",
+                          children:
+                            (paymentModalShopping &&
+                              (paymentModalShopping.name ||
+                                paymentModalShopping.store_name)) ||
+                            `Shopping #${paymentForm.shopping}`,
+                        }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-violet-100 dark:border-violet-900/60 bg-violet-50/70 dark:bg-violet-950/20 px-3 py-2",
+                      children: [
+                        c.jsx("p", {
+                          className:
+                            "text-[10px] uppercase font-bold tracking-wide text-violet-600 dark:text-violet-300",
+                          children: "Seleccion",
+                        }),
+                        c.jsxs("p", {
+                          className:
+                            "text-sm font-semibold text-violet-700 dark:text-violet-100 mt-1",
+                          children: [
+                            paymentSelectedProducts.length,
+                            " producto(s)",
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className:
+                    "grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4",
+                  children: [
+                    c.jsxs("div", {
+                      className:
+                        "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 overflow-hidden",
+                      children: [
+                        c.jsxs("div", {
+                          className:
+                            "px-4 py-3 border-b border-border-light dark:border-border-dark space-y-3",
+                          children: [
+                            c.jsxs("div", {
+                              className:
+                                "flex items-center justify-between gap-3",
+                              children: [
+                                c.jsxs("div", {
+                                  className: "min-w-0",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-sm font-bold text-text-main",
+                                      children: "Productos del pago",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-[11px] text-text-sub mt-0.5",
+                                      children: [
+                                        paymentSelectedProducts.length,
+                                        " seleccionados de ",
+                                        paymentModalProducts.length,
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("span", {
+                                  className:
+                                    "inline-flex rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-700",
+                                  children: [
+                                    "Venta: $",
+                                    formatAmount(paymentSelectedProductsTotal),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "relative",
+                              children: [
+                                c.jsx("span", {
+                                  className:
+                                    "material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]",
+                                  children: "search",
+                                }),
+                                c.jsx("input", {
+                                  type: "text",
+                                  value: paymentProductSearch,
+                                  onChange: (o) =>
+                                    setPaymentProductSearch(o.target.value),
+                                  placeholder: "Buscar producto o status...",
+                                  className:
+                                    "w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow",
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        paymentModalProducts.length === 0
+                          ? c.jsx("div", {
+                            className:
+                              "px-4 py-10 text-sm text-center text-text-sub",
+                            children:
+                              "Este cliente no tiene productos en esta shopping.",
+                          })
+                          : paymentFilteredProducts.length === 0
+                            ? c.jsx("div", {
+                              className:
+                                "px-4 py-10 text-sm text-center text-text-sub",
+                              children:
+                                "No hay productos que coincidan con ese filtro.",
+                            })
+                            : c.jsx("div", {
+                              className:
+                                "max-h-[52vh] overflow-y-auto ios-scroll p-3 space-y-2",
+                              children: paymentFilteredProducts.map((o) => {
+                                const N = (paymentForm.product_ids || []).includes(
+                                    Number(o.id),
+                                  ),
+                                  A = paymentReservedProductIds.has(
+                                    Number(o.id),
+                                  );
+                                return c.jsxs(
+                                  "button",
+                                  {
+                                    type: "button",
+                                    onClick: () => togglePaymentProductSelection(o),
+                                    disabled: A,
+                                    className:
+                                      `w-full text-left rounded-2xl border px-3 py-3 transition ${
+                                        N
+                                          ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
+                                          : A
+                                            ? "border-slate-200 bg-slate-100/80 text-slate-400 cursor-not-allowed dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-500"
+                                            : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50 hover:border-primary/40 hover:bg-primary/5"
+                                      }`,
+                                    children: [
+                                      c.jsxs("div", {
+                                        className:
+                                          "flex items-center justify-between gap-3",
+                                        children: [
+                                          c.jsxs("div", {
+                                            className:
+                                              "flex items-center gap-3 flex-1 min-w-0",
+                                            children: [
+                                              o.image
+                                                ? c.jsx("img", {
+                                                  src: resolveMediaUrl(o.image),
+                                                  className:
+                                                    "ui-media-frame ui-media-xs object-cover",
+                                                })
+                                                : c.jsx("div", {
+                                                  className:
+                                                    "ui-media-frame ui-media-xs bg-gray-200 dark:bg-gray-700 flex items-center justify-center",
+                                                  children: c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-gray-400 text-[14px]",
+                                                    children: "image",
+                                                  }),
+                                                }),
+                                              c.jsxs("div", {
+                                                className: "min-w-0 flex-1",
+                                                children: [
+                                                  c.jsx("p", {
+                                                    className:
+                                                      "text-sm font-semibold truncate text-text-main dark:text-white",
+                                                    children: o.name,
+                                                  }),
+                                                  c.jsxs("div", {
+                                                    className:
+                                                      "mt-1 flex flex-wrap gap-1",
+                                                    children: [
+                                                      c.jsxs("span", {
+                                                        className:
+                                                          "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                        children: [
+                                                          "$",
+                                                          formatAmount(
+                                                            getProductPaymentAmount(
+                                                              o,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      }),
+                                                      c.jsx("span", {
+                                                        className:
+                                                          "inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-700",
+                                                        children:
+                                                          o.status || "SIN STATUS",
+                                                      }),
+                                                      A &&
+                                                      c.jsx("span", {
+                                                        className:
+                                                          "inline-flex rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700",
+                                                        children:
+                                                          "Ligado a otro pago",
+                                                      }),
+                                                    ],
+                                                  }),
+                                                ],
+                                              }),
+                                            ],
+                                          }),
+                                          c.jsx("div", {
+                                            className:
+                                              `w-8 h-8 rounded-full border flex items-center justify-center ${
+                                                N
+                                                  ? "border-violet-500 bg-violet-500 text-white"
+                                                  : "border-slate-300 text-slate-400 dark:border-slate-700"
+                                              }`,
+                                            children: c.jsx("span", {
+                                              className:
+                                                "material-symbols-outlined text-[16px]",
+                                              children: N ? "check" : "add",
+                                            }),
+                                          }),
+                                        ],
+                                      }),
+                                    ],
+                                  },
+                                  `payment-modal-product-${o.id}`,
+                                );
+                              }),
+                            }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      className: "space-y-4",
+                      children: [
+                        c.jsxs("div", {
+                          className:
+                            "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 p-4 space-y-4",
+                          children: [
+                            c.jsxs("div", {
+                              className: "grid grid-cols-1 gap-3",
+                              children: [
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        "text-[11px] font-semibold text-text-sub",
+                                      children: "Monto del pago",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "number",
+                                      step: "0.01",
+                                      inputMode: "decimal",
+                                      value: paymentForm.amount,
+                                      onChange: (o) =>
+                                        setPaymentForm((N) => ({
+                                          ...N,
+                                          amount: o.target.value,
+                                        })),
+                                      placeholder: "0.00",
+                                      className:
+                                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        "text-[11px] font-semibold text-text-sub",
+                                      children: "Nota",
+                                    }),
+                                    c.jsx("textarea", {
+                                      rows: 4,
+                                      value: paymentForm.note,
+                                      onChange: (o) =>
+                                        setPaymentForm((N) => ({
+                                          ...N,
+                                          note: o.target.value,
+                                        })),
+                                      placeholder:
+                                        "Opcional: referencia, metodo de pago, comentario...",
+                                      className:
+                                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "grid grid-cols-1 sm:grid-cols-3 gap-2",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300",
+                                      children: "Venta",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-lg font-bold text-blue-700 dark:text-blue-100 mt-1",
+                                      children: [
+                                        "$",
+                                        formatAmount(paymentSelectedProductsTotal),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 px-3 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
+                                      children: "Pago",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
+                                      children: [
+                                        "$",
+                                        formatAmount(paymentFormAmountValue),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    `rounded-2xl border px-3 py-2 ${
+                                      paymentFormBalance < 0
+                                        ? "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900"
+                                        : paymentFormBalance > 0
+                                          ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
+                                          : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
+                                    }`,
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        `text-[10px] uppercase font-bold ${
+                                          paymentFormBalance < 0
+                                            ? "text-amber-700 dark:text-amber-300"
+                                            : paymentFormBalance > 0
+                                              ? "text-slate-700 dark:text-slate-300"
+                                              : "text-emerald-700 dark:text-emerald-300"
+                                        }`,
+                                      children: "Saldo",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        `text-lg font-bold mt-1 ${
+                                          paymentFormBalance < 0
+                                            ? "text-amber-700 dark:text-amber-100"
+                                            : paymentFormBalance > 0
+                                              ? "text-slate-700 dark:text-slate-100"
+                                              : "text-emerald-700 dark:text-emerald-100"
+                                        }`,
+                                      children: [
+                                        "$",
+                                        formatAmount(paymentFormBalance),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsx("p", {
+                              className:
+                                "text-[11px] leading-5 text-text-sub",
+                              children:
+                                paymentFormBalance < 0
+                                  ? "Saldo negativo: el pago es mayor que la venta seleccionada."
+                                  : "Puedes quitar o agregar productos para ajustar lo que cubre este pago.",
+                            }),
+                          ],
+                        }),
+                        paymentSelectedProducts.length > 0 &&
+                        c.jsxs("div", {
+                          className:
+                            "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 p-4 space-y-2",
+                          children: [
+                            c.jsx("p", {
+                              className:
+                                "text-[11px] font-bold uppercase tracking-wide text-text-sub",
+                              children: "Incluye",
+                            }),
+                            c.jsx("div", {
+                              className: "flex flex-wrap gap-1.5",
+                              children: paymentSelectedProducts.map((o) =>
+                                c.jsxs(
+                                  "button",
+                                  {
+                                    type: "button",
+                                    onClick: () =>
+                                      togglePaymentProductSelection(o),
+                                    className:
+                                      "inline-flex items-center gap-1 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 text-[10px] font-medium text-violet-700 dark:text-violet-200",
+                                    children: [
+                                      o.name,
+                                      c.jsx("span", {
+                                        className:
+                                          "material-symbols-outlined text-[12px]",
+                                        children: "close",
+                                      }),
+                                    ],
+                                  },
+                                  `payment-selected-${o.id}`,
+                                ),
+                              ),
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => {
+                    setPaymentModalOpen(!1), setPaymentProductSearch("");
+                  },
+                  disabled: paymentSaving,
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
+                  children: "Cancelar",
+                }),
+                c.jsx("button", {
+                  onClick: savePayment,
+                  disabled: paymentSaving,
+                  className:
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-70",
+                  children: paymentSaving
+                    ? "Guardando..."
+                    : paymentForm.id
+                      ? "Guardar"
+                      : "Crear",
                 }),
               ],
             }),

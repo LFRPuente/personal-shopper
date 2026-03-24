@@ -16,6 +16,7 @@ from .models import (
     ProductReviewMessageAttachment,
     ProductReviewReadState,
     ClientHistoryShareLink,
+    ShoppingPayment,
     Shipment,
     ShipmentShareLink,
 )
@@ -49,6 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ClientSerializer(serializers.ModelSerializer):
     products = serializers.SerializerMethodField()
     receipts = serializers.SerializerMethodField()
+    payments = serializers.SerializerMethodField()
 
     class Meta:
         model = Client
@@ -63,6 +65,12 @@ class ClientSerializer(serializers.ModelSerializer):
     def get_receipts(self, obj):
         serializer = ReceiptSerializer(
             obj.receipts.all(), many=True, context=self.context
+        )
+        return serializer.data
+
+    def get_payments(self, obj):
+        serializer = ShoppingPaymentSerializer(
+            obj.payments.all(), many=True, context=self.context
         )
         return serializer.data
 
@@ -131,6 +139,80 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
             'mission_name',
             'store_name',
         ]
+
+
+class ShoppingPaymentProductSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+    shopping = serializers.IntegerField(source='mission_id', read_only=True)
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+
+    class Meta:
+        model = ProductItem
+        fields = [
+            'id',
+            'name',
+            'image',
+            'charged_price',
+            'real_price',
+            'status',
+            'shopping',
+            'shopping_name',
+        ]
+
+
+class ShoppingPaymentSerializer(serializers.ModelSerializer):
+    shopping = serializers.PrimaryKeyRelatedField(
+        source='mission',
+        queryset=Mission.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    client_name = serializers.CharField(source='client.name', read_only=True, default=None)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
+    products_detail = ShoppingPaymentProductSerializer(source='products', many=True, read_only=True)
+    products_total = serializers.SerializerMethodField()
+    balance = serializers.SerializerMethodField()
+
+    def get_products_total(self, obj):
+        total = 0
+        for product in obj.products.all():
+            amount = product.charged_price if product.charged_price is not None else product.real_price
+            if amount is None:
+                continue
+            total += float(amount)
+        return round(total, 2)
+
+    def get_balance(self, obj):
+        return round(self.get_products_total(obj) - float(obj.amount or 0), 2)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        client = attrs.get('client') or getattr(self.instance, 'client', None)
+        mission = attrs.get('mission') if 'mission' in attrs else getattr(self.instance, 'mission', None)
+        products = attrs.get('products') if 'products' in attrs else (
+            self.instance.products.all() if self.instance else []
+        )
+        if mission is None:
+            raise serializers.ValidationError({'shopping': 'Shopping is required.'})
+        if client is None:
+            raise serializers.ValidationError({'client': 'Client is required.'})
+        for product in products:
+            if product.client_id != client.id:
+                raise serializers.ValidationError({'products': 'All selected products must belong to the client.'})
+            if product.mission_id != mission.id:
+                raise serializers.ValidationError({'products': 'All selected products must belong to the selected shopping.'})
+        return attrs
+
+    class Meta:
+        model = ShoppingPayment
+        fields = '__all__'
+        read_only_fields = ['created_by']
+        extra_kwargs = {
+            'mission': {'required': False, 'allow_null': True},
+            'products': {'required': False},
+            'note': {'required': False, 'allow_null': True, 'allow_blank': True},
+        }
 
 
 class ReceiptSerializer(serializers.ModelSerializer):
