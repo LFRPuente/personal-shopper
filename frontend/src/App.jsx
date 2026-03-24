@@ -6195,7 +6195,7 @@ function nh() {
                     "bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark overflow-hidden group ui-card-quiet",
                   children: [
                     c.jsxs("div", {
-                      className: "px-3 py-3 flex items-center gap-3 relative",
+                      className: "px-3 py-3 flex items-start gap-3 relative",
                       children: [
                         c.jsx("div", {
                           className:
@@ -6285,65 +6285,75 @@ function nh() {
                             }),
                           ],
                         }),
-                        w
-                          ? c.jsx("div", {
-                            onClick: () => Jt(N),
-                            className: `px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
-                            children:
-                              N.status === "Active" ? "In Shopping" : "Idle",
-                          })
-                          : null,
-                        c.jsx("div", {
+                        c.jsxs("div", {
                           className:
-                            "flex items-center gap-0.5 shrink-0",
+                            "shrink-0 self-start flex flex-col items-end gap-1.5 pt-0.5",
                           children: [
-                            c.jsx("button", {
-                              onClick: () => {
-                                const A = `client-history-${N.id}`;
-                                if (copiedClientShareLinks.includes(A)) {
-                                  setCopiedClientShareLinks((vl) =>
-                                    vl.filter((El) => El !== A),
-                                  );
-                                  return;
-                                }
-                                copyClientMissionShareLink(null, N);
-                              },
+                            w
+                              ? c.jsx("div", {
+                                onClick: () => Jt(N),
+                                className: `px-2.5 py-1 rounded-full text-[8px] font-bold uppercase leading-none tracking-[0.08em] whitespace-nowrap transition cursor-pointer ${N.status === "Active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`,
+                                children:
+                                  N.status === "Active"
+                                    ? "In Shopping"
+                                    : "Idle",
+                              })
+                              : null,
+                            c.jsxs("div", {
                               className:
-                                `w-7 h-7 rounded-full flex items-center justify-center ${copiedClientShareLinks.includes(`client-history-${N.id}`) ? "bg-sky-100 text-sky-700 dark:bg-sky-950/35 dark:text-sky-200" : "hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30"}`,
-                              children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[16px]",
-                                children: "share",
-                              }),
-                            }),
-                            c.jsx("button", {
-                              onClick: () => {
-                                (Y(N),
-                                  hl({
-                                    name: N.name,
-                                    tags: N.tags || "",
-                                    status: N.status,
-                                    phone: N.phone || "",
-                                    email: N.email || "",
-                                    shipping_address:
-                                      N.shipping_address || "",
+                                "flex items-center justify-end gap-0.5 shrink-0",
+                              children: [
+                                c.jsx("button", {
+                                  onClick: () => {
+                                    const A = `client-history-${N.id}`;
+                                    if (copiedClientShareLinks.includes(A)) {
+                                      setCopiedClientShareLinks((vl) =>
+                                        vl.filter((El) => El !== A),
+                                      );
+                                      return;
+                                    }
+                                    copyClientMissionShareLink(null, N);
+                                  },
+                                  className:
+                                    `w-7 h-7 rounded-full flex items-center justify-center ${copiedClientShareLinks.includes(`client-history-${N.id}`) ? "bg-sky-100 text-sky-700 dark:bg-sky-950/35 dark:text-sky-200" : "hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30"}`,
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[15px]",
+                                    children: "share",
                                   }),
-                                  tl(!0));
-                              },
-                              className:
-                                "w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
-                              children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[15px]",
-                                children: "more_vert",
-                              }),
+                                }),
+                                c.jsx("button", {
+                                  onClick: () => {
+                                    (Y(N),
+                                      hl({
+                                        name: N.name,
+                                        tags: N.tags || "",
+                                        status: N.status,
+                                        phone: N.phone || "",
+                                        email: N.email || "",
+                                        shipping_address:
+                                          N.shipping_address || "",
+                                      }),
+                                      tl(!0));
+                                  },
+                                  className:
+                                    "w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[15px]",
+                                    children: "more_vert",
+                                  }),
+                                }),
+                                c.jsx("span", {
+                                  className:
+                                    "material-symbols-outlined text-gray-400 text-[15px] cursor-pointer transition-transform",
+                                  style: { transform: A ? "rotate(180deg)" : "" },
+                                  onClick: () => ge(A ? null : N.id),
+                                  children: "expand_more",
+                                }),
+                              ],
                             }),
                           ],
-                        }),
-                        c.jsx("span", {
-                          className:
-                            "material-symbols-outlined text-gray-400 text-[15px] cursor-pointer transition-transform",
-                          style: { transform: A ? "rotate(180deg)" : "" },
-                          onClick: () => ge(A ? null : N.id),
-                          children: "expand_more",
                         }),
                       ],
                     }),
