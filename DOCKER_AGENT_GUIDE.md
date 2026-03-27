@@ -1,304 +1,240 @@
 # Docker Agent Guide
 
-Esta guia documenta como esta montado `personal-shopper` y que reglas debe seguir cualquier agente para hacer cambios y desplegarlos sin romper otros servicios del servidor.
+This guide documents how `personal-shopper` is mounted today and what rules any agent must follow to deploy safely without breaking other services on the server.
 
-## Estado actual
+## Current operational state
 
-- Dominio publico: `https://ps.servidorfs.com/`
-- Proxy publico: `Nginx Proxy Manager` (`npm-app-1`)
-- Frontend expuesto solo a traves de NPM
-- Backend, Postgres y Redis sin puertos publicados al host
-- DNS de `ps.servidorfs.com` creado en Cloudflare como `CNAME -> servidorfs.com` con proxy habilitado
+- Public domain: `https://ps.servidorfs.com/`
+- Public proxy: `Nginx Proxy Manager` in `npm-app-1`
+- Main stack: `frontend`, `backend`, `postgres`, `redis`
+- Traffic still goes through NPM to `ps-frontend:80`
+- Local source of truth is the Windows repo
+- Production deploy target is the Mac Mini repo
 
-## Arquitectura actual
+Current repo paths:
 
-### Stack de `personal-shopper`
+- Windows: `C:\Users\luis_\Desktop\personal_shopper`
+- Mac Mini: `/Users/homeserver/Documents/personal-shopper`
 
-- Archivo principal: [/Users/homeserver/Documents/personal-shopper/docker-compose.yml](/Users/homeserver/Documents/personal-shopper/docker-compose.yml)
-- Servicios:
+Current Git remotes:
+
+- Windows push remote: `new-origin -> https://github.com/LFRPuente/personal-shopper.git`
+- Mac Mini pull remote: `origin -> git@github.com-personal-shopper:LFRPuente/personal-shopper.git`
+
+Current Docker binary on the Mac Mini:
+
+- `/usr/local/bin/docker`
+
+## Architecture
+
+### Stack
+
+- Compose file: `docker-compose.yml`
+- Services:
   - `frontend`
   - `backend`
   - `postgres`
   - `redis`
 
-### Redes
+### Networks
 
-- Red interna del stack: `personal-shopper_default`
-  - Subred Docker privada, no es la LAN real
-  - Aqui viven `postgres`, `redis`, `backend` y `frontend`
-- Red compartida con NPM: `npm_default`
-  - Subred `172.18.0.0/16`
-  - Solo `frontend` esta conectado aqui
-  - Alias del frontend en esta red: `ps-frontend`
+- Internal stack network: `personal-shopper_default`
+  - `postgres`, `redis`, `backend`, and `frontend` live here
+- Shared NPM network: `npm_default`
+  - only `frontend` should touch this network
+  - frontend alias on this network: `ps-frontend`
 
-### Flujo de trafico
+### Traffic flow
 
-- Cliente -> Cloudflare -> NPM -> `ps-frontend:80` -> `backend:8000`
-- El `frontend` hace proxy interno de:
+- Client -> Cloudflare -> NPM -> `ps-frontend:80` -> `backend:8000`
+- Frontend proxies:
   - `/api/` -> `backend:8000/api/`
   - `/media/` -> `backend:8000/media/`
   - `/ws/` -> `backend:8000/ws/`
 
-Archivos clave:
+Key files:
 
-- Compose: [/Users/homeserver/Documents/personal-shopper/docker-compose.yml](/Users/homeserver/Documents/personal-shopper/docker-compose.yml)
-- Proxy interno del frontend: [/Users/homeserver/Documents/personal-shopper/frontend/nginx.conf](/Users/homeserver/Documents/personal-shopper/frontend/nginx.conf)
-- Config Django: [/Users/homeserver/Documents/personal-shopper/backend/backend/settings.py](/Users/homeserver/Documents/personal-shopper/backend/backend/settings.py)
+- [docker-compose.yml](C:/Users/luis_/Desktop/personal_shopper/docker-compose.yml)
+- [frontend/nginx.conf](C:/Users/luis_/Desktop/personal_shopper/frontend/nginx.conf)
+- [backend/backend/settings.py](C:/Users/luis_/Desktop/personal_shopper/backend/backend/settings.py)
 
-## Reglas que no se deben romper
+## Rules that must not be broken
 
-1. No publicar puertos nuevos del stack al host salvo que el usuario lo pida explicitamente.
-2. No conectar `backend`, `postgres` o `redis` a `npm_default`.
-3. Solo `frontend` puede tocar `npm_default`.
-4. No apuntar NPM a `192.168.3.100:puerto` para `personal-shopper`.
-5. Para `personal-shopper`, NPM debe apuntar a `ps-frontend:80`.
-6. No usar una IP fija `172.18.x.x` en NPM; usar alias o nombre de contenedor.
-7. No tocar otros proxy hosts o stacks salvo que sea parte explicita de la tarea.
-8. No editar credenciales de NPM o Cloudflare salvo que sea imprescindible y este aprobado.
+1. Do not publish new host ports for this stack unless the user explicitly asks for it.
+2. Do not connect `backend`, `postgres`, or `redis` to `npm_default`.
+3. Only `frontend` should touch `npm_default`.
+4. For `personal-shopper`, NPM must point to `ps-frontend:80`.
+5. Do not switch this app to a fixed IP in NPM.
+6. Do not touch other proxy hosts or stacks unless the task explicitly requires it.
+7. Do not edit or print secrets unless the task explicitly requires it.
 
-## Estado de NPM relevante
+## NPM state that matters
 
-- Proxy host de `personal-shopper`:
-  - Dominio: `ps.servidorfs.com`
-  - Upstream: `ps-frontend:80`
-- Certificado de NPM para `personal-shopper`:
-  - `ps.servidorfs.com`
-- Varios servicios legacy del servidor fueron corregidos para usar `host.docker.internal` en NPM en lugar de `192.168.3.100`
-  - Ejemplos actuales:
-    - `home.servidorfs.com`
-    - `n8n.servidorfs.com`
-    - `chat.servidorfs.com`
-    - `waha.servidorfs.com`
-    - `stremio.servidorfs.com`
+Correct state for `personal-shopper`:
 
-Regla importante:
+- domain: `ps.servidorfs.com`
+- upstream host: `ps-frontend`
+- upstream port: `80`
+- websocket upgrade: enabled
 
-- No revertir esos upstreams a `192.168.3.100` sin verificar antes desde dentro de `npm-app-1`.
+Legacy services already depend on their own upstream rules and should not be changed during an app deploy.
 
-## Estado de Django relevante
+Examples that must keep working after each deploy:
 
-Configuracion actual:
+- `home.servidorfs.com`
+- `n8n.servidorfs.com`
+- `chat.servidorfs.com`
+- `waha.servidorfs.com`
+- `stremio.servidorfs.com`
 
-- `ALLOWED_HOSTS` incluye `ps.servidorfs.com`
-- `CSRF_TRUSTED_ORIGINS` incluye `https://ps.servidorfs.com`
-- `SECURE_PROXY_SSL_HEADER` y `USE_X_FORWARDED_HOST` estan activos
-- Base de datos por Docker en este stack: `Postgres`
-- Channels por Docker en este stack: `Redis`
+## Django state that matters
 
-Regla importante:
+Current settings expectations:
 
-- Si cambias el dominio publico, ajusta tambien `DJANGO_ALLOWED_HOSTS` y `DJANGO_CSRF_TRUSTED_ORIGINS`.
+- `ALLOWED_HOSTS` includes `ps.servidorfs.com`
+- `CSRF_TRUSTED_ORIGINS` includes `https://ps.servidorfs.com`
+- `SECURE_PROXY_SSL_HEADER` is enabled
+- `USE_X_FORWARDED_HOST` is enabled
+- PostgreSQL runs in Docker for this stack
+- Redis runs in Docker for this stack
 
-## Estado de almacenamiento
+If the public domain changes, update:
 
-Estado actual real:
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CSRF_TRUSTED_ORIGINS`
 
-- `personal-shopper` usa volumenes Docker nombrados
-- No esta montado actualmente sobre el disco externo de 20 TB
+## Storage state
 
-Volumenes actuales:
+Current real storage state:
+
+- the app uses named Docker volumes
+- data is not currently mounted on the external 20 TB disk
+
+Current named volumes:
 
 - `personal-shopper_personal_shopper_postgres_data`
 - `personal-shopper_personal_shopper_redis_data`
 - `personal-shopper_personal_shopper_media_data`
 - `personal-shopper_personal_shopper_static_data`
 
-Regla importante:
+Do not assume app data lives in a normal host folder.
 
-- No asumir que los datos viven en una carpeta del host.
-- Si la tarea es mover datos al disco de 20 TB, tratarlo como tarea separada y con validacion propia.
+## Current deploy model
 
-## Como hacer cambios de codigo sin romper el despliegue
+The deploy path is:
 
-### Cambios de frontend
+1. edit locally on Windows
+2. validate locally
+3. push to GitHub from Windows
+4. SSH into the Mac Mini through Cloudflare Access
+5. `git pull origin main` in `/Users/homeserver/Documents/personal-shopper`
+6. rebuild only the affected services
+7. run migrations if needed
+8. validate stack, NPM reachability, public domain, and shared services
 
-1. Editar el codigo en [/Users/homeserver/Documents/personal-shopper/frontend](/Users/homeserver/Documents/personal-shopper/frontend)
-2. Reconstruir solo el frontend:
+Do not use direct code edits on the Mac Mini as the default workflow.
 
-```bash
-cd /Users/homeserver/Documents/personal-shopper
-docker compose up -d --build frontend
-```
+Detailed steps live in:
 
-3. Validar:
+- [deploy.md](C:/Users/luis_/Desktop/personal_shopper/.agents/workflows/deploy.md)
+- [CONTEXT.md](C:/Users/luis_/Desktop/personal_shopper/CONTEXT.md)
 
-```bash
-docker compose ps
-docker exec npm-app-1 node -e "const http=require('http');const req=http.request({host:'ps-frontend',port:80,path:'/',method:'HEAD',timeout:4000},res=>{console.log(res.statusCode);res.resume();});req.on('error',e=>{console.error(e.code||e.message)});req.end();"
-curl -I --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/
-```
+## Validation minimum after every deploy
 
-### Cambios de backend
-
-1. Editar el codigo en [/Users/homeserver/Documents/personal-shopper/backend](/Users/homeserver/Documents/personal-shopper/backend)
-2. Reconstruir solo el backend:
+### 1. Stack health
 
 ```bash
 cd /Users/homeserver/Documents/personal-shopper
-docker compose up -d --build backend
+/usr/local/bin/docker compose ps
 ```
 
-3. Validar:
-
-```bash
-docker compose ps
-curl -I --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/api/
-```
-
-### Cambios de dependencias o de imagen
-
-Si cambias `Dockerfile`, dependencias Python, `package.json`, `nginx.conf` o el `docker-compose.yml`, reconstruye el servicio afectado o el stack completo:
-
-```bash
-cd /Users/homeserver/Documents/personal-shopper
-docker compose up -d --build
-```
-
-## Validacion minima obligatoria despues de cualquier despliegue
-
-Siempre validar estas 3 capas:
-
-### 1. Stack del proyecto
-
-```bash
-cd /Users/homeserver/Documents/personal-shopper
-docker compose ps
-```
-
-Debe quedar `Up`:
+Expected `Up`:
 
 - `frontend`
 - `backend`
 - `postgres`
 - `redis`
 
-### 2. Reachability desde NPM
+### 2. NPM reachability
 
 ```bash
-docker exec npm-app-1 node -e "const http=require('http');const req=http.request({host:'ps-frontend',port:80,path:'/',method:'HEAD',timeout:4000},res=>{console.log(res.statusCode);res.resume();});req.on('error',e=>{console.error(e.code||e.message)});req.end();"
+/usr/local/bin/docker exec npm-app-1 node -e "const http=require('http');const req=http.request({host:'ps-frontend',port:80,path:'/',method:'HEAD',timeout:4000},res=>{console.log(res.statusCode);res.resume();});req.on('error',e=>{console.error(e.code||e.message);process.exit(1)});req.end();"
 ```
 
-Debe responder `200`.
+Expected result: `200`
 
-### 3. Dominio publico
+### 3. Public checks
 
 ```bash
-curl -I --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/
-curl -I --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/api/
+curl -sI --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/ | head -1
+curl -sI --resolve ps.servidorfs.com:443:127.0.0.1 https://ps.servidorfs.com/api/ | head -1
 ```
 
-Ambos deben responder `200`.
+Expected result: `HTTP/1.1 200 OK`
 
-## Verificacion de no interferencia con otros servicios
+## Non-interference checks
 
-Antes y despues de cualquier cambio grande, verificar al menos:
+Before and after any significant rebuild, check at least:
 
 ```bash
-docker ps --format 'table {{.Names}}\t{{.Status}}' | rg 'npm-app-1|n8n|homarr|chatwoot-chatwoot-1|personal-shopper|NAMES'
+/usr/local/bin/docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'npm-app-1|n8n|homarr|chatwoot|personal-shopper|NAMES'
 ```
 
-Y revisar por dominio:
+And verify domains:
 
 ```bash
-curl -I --resolve home.servidorfs.com:443:127.0.0.1 https://home.servidorfs.com/
-curl -I --resolve n8n.servidorfs.com:443:127.0.0.1 https://n8n.servidorfs.com/
-curl -I --resolve chat.servidorfs.com:443:127.0.0.1 https://chat.servidorfs.com/
+curl -sI --resolve home.servidorfs.com:443:127.0.0.1 https://home.servidorfs.com/ | head -1
+curl -sI --resolve n8n.servidorfs.com:443:127.0.0.1 https://n8n.servidorfs.com/ | head -1
+curl -sI --resolve chat.servidorfs.com:443:127.0.0.1 https://chat.servidorfs.com/ | head -1
 ```
 
-Si alguno falla, detenerse antes de seguir.
+If any of these checks fail, stop and report the issue.
 
-## Cambios de NPM
+## SSH and Docker notes
 
-### Para `personal-shopper`
+### Windows -> Mac Mini access
 
-Estado correcto:
+Use the Cloudflare Access SSH proxy flow documented in [deploy.md](C:/Users/luis_/Desktop/personal_shopper/.agents/workflows/deploy.md).
 
-- `forward_host = ps-frontend`
-- `forward_port = 80`
-- `allow_websocket_upgrade = true`
+Do not hardcode passwords or tokens into repo files.
 
-No hacer:
+### Docker credential helper note
 
-- no apuntar a `192.168.3.100`
-- no apuntar a `172.18.x.x` fija
+The current remote Docker config does not expose a `credsStore`, so SSH-based Docker builds work normally.
 
-### Para servicios legacy ya existentes
+If a future change reintroduces a credential helper and remote `docker compose` starts failing, use this temporary workaround:
 
-En este servidor varios proxy hosts de NPM ya dependen de:
+1. backup `~/.docker/config.json`
+2. remove the `credsStore` entry
+3. run the required build command
+4. restore the original config if it was needed for another workflow
 
-- `forward_host = host.docker.internal`
+Do not copy Docker auth material into this repo.
 
-No revertirlos a `192.168.3.100` sin probar antes desde `npm-app-1`:
+## Rollback
 
-```bash
-docker exec npm-app-1 node -e "const http=require('http');const req=http.request({host:'host.docker.internal',port:5678,path:'/',method:'HEAD',timeout:4000},res=>{console.log(res.statusCode);res.resume();});req.on('error',e=>{console.error(e.code||e.message)});req.end();"
-```
+Preferred rollback:
 
-## DNS y Cloudflare
+1. inspect recent commits
+2. revert the bad commit
+3. rebuild only the affected services or both app services
+4. re-run the full validation set
 
-El subdominio `ps.servidorfs.com` ya existe en Cloudflare.
-
-Regla importante:
-
-- No imprimir ni copiar tokens en respuestas.
-- Si una tarea requiere tocar DNS, usar el token ya configurado localmente por el usuario y mantener el cambio minimo.
-
-Ubicacion de referencia del stack de Cloudflare:
-
-- [/Users/homeserver/docker/cloudflare/docker-compose.yml](/Users/homeserver/docker/cloudflare/docker-compose.yml)
-
-## Rollback rapido
-
-### Rollback de codigo del proyecto
-
-Si un cambio de `personal-shopper` rompe solo este stack:
+Example:
 
 ```bash
 cd /Users/homeserver/Documents/personal-shopper
-docker compose down
-git status
-git diff
+git log --oneline -5
+git revert HEAD
+/usr/local/bin/docker compose up -d --build backend frontend
 ```
 
-Luego restaurar el cambio correcto y reconstruir.
+Do not use `docker compose down` as the default rollback path.
 
-### Rollback de NPM
+## Do not do this
 
-Existe un respaldo de la base de NPM creado durante esta intervencion:
-
-- [/Users/homeserver/docker/npm/data/database.sqlite.bak.20260311192411](/Users/homeserver/docker/npm/data/database.sqlite.bak.20260311192411)
-
-No restaurarlo a ciegas.
-
-Si NPM se rompe:
-
-1. confirmar `nginx -t` dentro de `npm-app-1`
-2. revisar logs de `npm-app-1`
-3. revertir solo el proxy host afectado si es posible
-4. usar el backup de SQLite solo como ultimo recurso
-
-## No hacer
-
-- No ejecutar comandos globales sobre todos los stacks Docker.
-- No usar `docker system prune`.
-- No hacer `docker compose down` fuera de [/Users/homeserver/Documents/personal-shopper](/Users/homeserver/Documents/personal-shopper) salvo que el usuario lo pida.
-- No mover volumenes a otro disco dentro de una tarea de codigo o de proxy.
-- No modificar `personal-shopper` y al mismo tiempo reestructurar `NPM`, `Cloudflare` y almacenamiento si no es estrictamente necesario.
-
-## Resumen operativo
-
-Si un agente solo necesita cambiar codigo y volver a subir:
-
-1. editar codigo en el repo
-2. `docker compose up -d --build frontend` o `backend`
-3. validar `docker compose ps`
-4. validar `ps-frontend` desde `npm-app-1`
-5. validar `https://ps.servidorfs.com/`
-6. validar que `home`, `n8n` y `chat` sigan respondiendo
-
-Si una tarea requiere tocar proxy o DNS:
-
-1. confirmar que el cambio es realmente necesario
-2. preferir agregar antes que reemplazar
-3. no tocar hosts existentes salvo necesidad real
-4. validar los servicios legacy despues del cambio
+- do not run global Docker cleanup commands
+- do not run `docker system prune`
+- do not use `docker compose down` as the normal deploy path
+- do not move data volumes during a normal code deploy
+- do not change `personal-shopper`, NPM, Cloudflare, and storage architecture in one step unless the user explicitly asked for that
