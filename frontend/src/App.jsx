@@ -19,6 +19,35 @@ const getStoredPercent = (key, fallbackPercent) => {
   return parsed;
 };
 
+const DEFAULT_PRODUCT_FORM = {
+  name: "",
+  real_price: "",
+  charged_price: "",
+  tags: "",
+  store: "",
+  status: "ANNOTATED",
+};
+
+const createEmptyProductForm = (overrides = {}) => ({
+  ...DEFAULT_PRODUCT_FORM,
+  ...overrides,
+});
+
+const getDraftProductFlowState = (galleryState, role) =>
+  galleryState === "REVIEW" || galleryState === "REJECTED" || galleryState === "ANNOTATED"
+    ? galleryState
+    : role === "AV"
+      ? "REVIEW"
+      : "ANNOTATED";
+
+const normalizeProductModalStatus = (statusValue) => {
+  const normalized = String(statusValue || "").trim().toUpperCase();
+  if (!normalized) return "ANNOTATED";
+  return normalized === "REVIEW" || normalized === "PS_REVIEW" || normalized === "AV_REVIEW"
+    ? "IN_REVIEW"
+    : normalized;
+};
+
 // <-------- seccion 8: API base configurable por entorno (evita URLs de tunnel vencidas)
 const ENV_API_URL = (import.meta.env.VITE_API_URL || "").trim();
 const Zs = ENV_API_URL
@@ -136,14 +165,9 @@ function nh() {
     [va, we] = V.useState(null),
     [ct, ke] = V.useState([]),
     [he, Ke] = V.useState(null),
-    [st, Gt] = V.useState({
-      name: "",
-      real_price: "",
-      charged_price: "",
-      tags: "",
-      store: "",
-      status: "ANNOTATED",
-    }),
+    [st, Gt] = V.useState(() => createEmptyProductForm()),
+    [productModalMode, setProductModalMode] = V.useState("edit"),
+    [pendingProductFile, setPendingProductFile] = V.useState(null),
     [Je, We] = V.useState(null),
     [ji, sn] = V.useState(!1),
     [Ol, $e] = V.useState({
@@ -608,8 +632,8 @@ function nh() {
         return;
       }
       if (me && he) {
-        ut(!1);
-        Ke(null);
+        if (newProductUploading) return;
+        closeProductModal();
         return;
       }
       if (K) {
@@ -1379,70 +1403,67 @@ function nh() {
         Ke(null);
       }
     },
+    openProductModal = (o, N = "edit", A = {}) => {
+      const vl = String(o && o.tags ? o.tags : "")
+          .split(",")
+          .map((Se) => Se.trim())
+          .filter((Se) => Se.length > 0),
+        El = (o && o.store) || ((w && w.store) || ""),
+        Se =
+          typeof A.formStatus === "string" && A.formStatus.trim()
+            ? A.formStatus
+            : getProductReviewState(
+              o,
+              o && o.id ? latestReviewsByProduct[o.id] || null : null,
+            );
+      (Ke(o),
+        Gt(
+          createEmptyProductForm({
+            name: (o && o.name) || "",
+            real_price: (o && o.real_price) || "",
+            charged_price: (o && o.charged_price) || "",
+            tags: (o && o.tags) || "",
+            store: El,
+            status: Se,
+          }),
+        ),
+        setModalTags(vl),
+        setNewModalTag(""),
+        setStoreSearch(""),
+        setShowAddStoreInput(!1),
+        setNewStoreName(""),
+        setPendingProductFile(A.file || null),
+        setProductModalMode(N),
+        ut(!0));
+    },
+    closeProductModal = (o = !1) => {
+      if (newProductUploading && !o) return;
+      (ut(!1),
+        Ke(null),
+        Gt(createEmptyProductForm()),
+        setProductModalMode("edit"),
+        setPendingProductFile(null),
+        setModalTags([]),
+        setNewModalTag(""),
+        setStoreSearch(""),
+        setShowAddStoreInput(!1),
+        setNewStoreName(""));
+    },
     lt = async (o) => {
       const N = o.target.files;
       if (!N || N.length === 0) return;
-      const A = await openInputDialog({
-        title: "Nuevo producto",
-        message: "Escribe el nombre para la imagen seleccionada.",
-        confirmLabel: "Continuar",
-        fields: [
-          {
-            name: "name",
-            label: "Nombre del producto",
-            type: "text",
-            value: "",
-            placeholder: "Ej. Tenis Nike",
-            required: !0,
-            requiredMessage:
-              "Debes capturar el nombre del producto antes de subir la imagen.",
-          },
-        ],
-      });
-      const El = String((A && A.name) || "").trim();
-      if (!El) {
-        (o.target.value = "");
-        return;
-      }
-      const Se =
-        wl === "REVIEW" || wl === "REJECTED" || wl === "ANNOTATED"
-          ? wl
-          : X === "AV"
-            ? "REVIEW"
-            : "ANNOTATED";
-      const eaStatus =
-        Se === "REVIEW"
-          ? "IN_REVIEW"
-          : Se === "REJECTED"
-            ? "REJECTED"
-            : "ANNOTATED";
-      const ea = new Date().toISOString().slice(0, 10);
-      const originalFile = N[0];
-      const compressedFile = await compressImage(originalFile).catch(() => originalFile);
-
-      const gl = new FormData();
-      (gl.append("image", compressedFile),
-        gl.append("client", W.id),
-        gl.append("name", El),
-        gl.append("status", eaStatus),
-        gl.append("purchase_date", ea),
-        w && gl.append("shopping", w.id));
-      setNewProductUploading(!0);
-      try {
-        const ae = await I("/products/", { method: "POST", body: gl });
-        Se !== "ANNOTATED" &&
-          (await syncProductReviewState(
-            { ...ae, status: eaStatus },
-            null,
-            Se,
-          ));
-        await Qt();
-      } catch {
-        notifyError("Error adding product");
-      } finally {
-        setNewProductUploading(!1);
-        o.target.value = "";
-      }
+      const A = N[0],
+        vl = getDraftProductFlowState(wl, X),
+        El = (w && w.store) || "";
+      openProductModal(
+        createEmptyProductForm({
+          store: El,
+          status: normalizeProductModalStatus(vl),
+        }),
+        "create",
+        { file: A, formStatus: vl },
+      );
+      o.target.value = "";
     },
     xe = async (o) => {
       if (
@@ -1472,41 +1493,16 @@ function nh() {
       }
     },
     hn = (o) => {
-      const N = (o.tags || "")
-        .split(",")
-        .map((A) => A.trim())
-        .filter((A) => A.length > 0);
-      const A =
-        o.store ||
-        ((w && w.store) || "");
-      (Ke(o),
-        Gt({
-          name: o.name || "",
-          real_price: o.real_price || "",
-          charged_price: o.charged_price || "",
-          tags: o.tags || "",
-          store: A,
-          status: getProductReviewState(
-            o,
-            latestReviewsByProduct[o.id] || null,
-          ),
-        }),
-        setModalTags(N),
-        setNewModalTag(""),
-        setStoreSearch(""),
-        setShowAddStoreInput(!1),
-        setNewStoreName(""),
-        ut(!0));
+      openProductModal(o, "edit");
     },
-    zi = async (o) => {
-      o.preventDefault();
-      const N = parseFloat(st.real_price);
-      const discountMult = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
-      const A = Number.isFinite(N)
+    buildProductModalPayload = () => {
+      const o = parseFloat(st.real_price);
+      const N = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
+      const A = Number.isFinite(o)
           ? calcMode === "FACTOR"
-            ? N * calcFactor * discountMult
-            : N *
-              discountMult *
+            ? o * calcFactor * N
+            : o *
+              N *
               (1 + calcCommission / 100) *
               (1 + calcTaxes / 100) *
               calcExchangeRate
@@ -1516,33 +1512,75 @@ function nh() {
             return null;
           const ae = parseFloat(gl);
           return Number.isFinite(ae) ? ae.toFixed(2) : null;
-        },
-        vl = {
+        };
+      return {
+        payload: {
           ...st,
+          name: String(st.name || "").trim(),
           tags: modalTags.join(", "),
           store: w ? null : st.store ? Number(st.store) : null,
-          status:
-            st.status === "PS_REVIEW" || st.status === "AV_REVIEW"
-              ? "IN_REVIEW"
-              : st.status,
+          status: normalizeProductModalStatus(st.status),
           real_price: normalizeNullableNumber(st.real_price),
           charged_price: Number.isFinite(A)
             ? A.toFixed(2)
             : normalizeNullableNumber(st.charged_price),
-        };
+        },
+        reviewState: st.status,
+      };
+    },
+    zi = async (o) => {
+      o.preventDefault();
+      if (!he) return;
+      const { payload: N, reviewState: A } = buildProductModalPayload(),
+        vl = productModalMode === "create";
+      if (!N.name) {
+        notifyError("Debes capturar el nombre del producto.");
+        return;
+      }
+      if (vl && !pendingProductFile) {
+        notifyError("Selecciona una imagen para crear el producto.");
+        return;
+      }
       try {
-        await I(`/products/${he.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify(vl),
-        });
-        await syncProductReviewState(
-          { ...he, status: vl.status },
-          latestReviewsByProduct[he.id] || null,
-          st.status,
-        );
-        (ut(!1), Ke(null), await refreshProductReviews(W && W.id), Qt());
-      } catch {
-        notifyError("Error updating item");
+        if (vl) {
+          const El = new FormData();
+          setNewProductUploading(!0);
+          const Se = await compressImage(pendingProductFile).catch(() => pendingProductFile);
+          El.append("image", Se);
+          El.append("client", W.id);
+          El.append("name", N.name);
+          El.append("status", N.status);
+          El.append("purchase_date", new Date().toISOString().slice(0, 10));
+          N.real_price !== null && El.append("real_price", N.real_price);
+          N.charged_price !== null && El.append("charged_price", N.charged_price);
+          N.tags && El.append("tags", N.tags);
+          w && w.id
+            ? El.append("shopping", w.id)
+            : N.store !== null && El.append("store", String(N.store));
+          const ea = await I("/products/", { method: "POST", body: El });
+          A !== "ANNOTATED" &&
+            (await syncProductReviewState(
+              { ...ea, status: N.status },
+              null,
+              A,
+            ));
+        } else {
+          await I(`/products/${he.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify(N),
+          });
+          await syncProductReviewState(
+            { ...he, status: N.status },
+            latestReviewsByProduct[he.id] || null,
+            A,
+          );
+        }
+        (closeProductModal(!0), await refreshProductReviews(W && W.id), Qt());
+      } catch (El) {
+        console.error(vl ? "Failed creating product" : "Failed updating product", El);
+        notifyError(vl ? "Error adding product" : "Error updating item");
+      } finally {
+        vl && setNewProductUploading(!1);
       }
     },
     _i = async (o) => {
@@ -8366,18 +8404,24 @@ function nh() {
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto ui-sheet",
+            `bg-surface-light dark:bg-surface-dark w-full ${isDesktopLayout ? "sm:max-w-5xl rounded-3xl overflow-visible" : "sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"} p-6 shadow-2xl ui-sheet`,
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
               className: "text-xl font-bold mb-4",
-              children: "Edit Product Info",
+              children:
+                productModalMode === "create"
+                  ? "Agregar producto"
+                  : "Edit Product Info",
             }),
             c.jsxs("form", {
               onSubmit: zi,
-              className: "space-y-4",
+              className: isDesktopLayout
+                ? "grid grid-cols-2 gap-5 items-start"
+                : "space-y-4",
               children: [
                 c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-2" : "",
                   children: [
                     c.jsx("label", {
                       className:
@@ -8395,7 +8439,9 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-4",
+                  className: isDesktopLayout
+                    ? "col-span-2 grid grid-cols-2 gap-4"
+                    : "grid grid-cols-2 gap-4",
                   children: [
                     c.jsxs("div", {
                       children: [
@@ -8437,6 +8483,7 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-1" : "",
                   children: [
                     c.jsx("label", {
                       className:
@@ -8465,6 +8512,7 @@ function nh() {
                 }),
                 calcMode === "FACTOR"
                   ? c.jsxs("div", {
+                    className: isDesktopLayout ? "col-span-1" : "",
                     children: [
                       c.jsx("label", {
                         className:
@@ -8506,7 +8554,9 @@ function nh() {
                     ],
                   })
                   : c.jsxs("div", {
-                    className: "grid grid-cols-2 gap-2",
+                    className: isDesktopLayout
+                      ? "col-span-1 grid grid-cols-2 gap-2"
+                      : "grid grid-cols-2 gap-2",
                     children: [
                       c.jsxs("div", {
                         children: [
@@ -8591,6 +8641,7 @@ function nh() {
                     ],
                   }),
                 c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-1" : "",
                   children: [
                     c.jsx("label", {
                       className:
@@ -8649,6 +8700,7 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-1" : "",
                   children: [
                     c.jsx("label", {
                       className:
@@ -8736,6 +8788,7 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-1" : "",
                   children: [
                     c.jsx("label", {
                       className:
@@ -8743,7 +8796,9 @@ function nh() {
                       children: "Status",
                     }),
                     c.jsxs("div", {
-                      className: "grid grid-cols-2 gap-2",
+                      className: isDesktopLayout
+                        ? "grid grid-cols-3 gap-2"
+                        : "grid grid-cols-2 gap-2",
                       children: [
                         ["ANNOTATED", "Anotado"],
                         ["REVIEW", "Revision"],
@@ -8764,22 +8819,27 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
-                  className: "flex gap-3 pt-4",
+                  className: `${isDesktopLayout ? "col-span-2" : ""} flex gap-3 pt-4`,
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => {
-                        (ut(!1), Ke(null));
-                      },
+                      onClick: () => closeProductModal(),
+                      disabled: newProductUploading,
                       className:
-                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
+                        `flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`,
                       children: "Cancel",
                     }),
                     c.jsx("button", {
                       type: "submit",
+                      disabled: productModalMode === "create" && newProductUploading,
                       className:
-                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
-                      children: "Save Changes",
+                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) ? "opacity-75 cursor-wait" : ""}`,
+                      children:
+                        productModalMode === "create"
+                          ? newProductUploading
+                            ? "Creando..."
+                            : "Crear producto"
+                          : "Save Changes",
                     }),
                   ],
                 }),
