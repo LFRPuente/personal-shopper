@@ -688,6 +688,16 @@ function nh() {
     return () => window.removeEventListener("popstate", o);
   }, []);
   V.useEffect(() => {
+    const o = (N) => {
+      if (N.key !== "Escape" || N.defaultPrevented) return;
+      if (!activeOverlayKeyRef.current) return;
+      N.preventDefault();
+      dismissActiveOverlayRef.current(!0);
+    };
+    window.addEventListener("keydown", o);
+    return () => window.removeEventListener("keydown", o);
+  }, []);
+  V.useEffect(() => {
     C && Ti();
   }, [C]);
   V.useEffect(() => {
