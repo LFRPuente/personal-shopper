@@ -573,6 +573,8 @@ function nh() {
                   ? "edit-product"
                   : K
                     ? "edit-client"
+                    : W
+                      ? "client-home"
                     : Il
                       ? "add-client"
                       : missionSummaryOpen
@@ -642,6 +644,10 @@ function nh() {
         Y(null);
         return;
       }
+      if (W) {
+        Aa();
+        return;
+      }
       if (Il) {
         k(!1);
         return;
@@ -667,6 +673,7 @@ function nh() {
     me,
     he,
     K,
+    W,
     Il,
     missionSummaryOpen,
     showMissionStartModal,
