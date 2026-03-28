@@ -8400,7 +8400,7 @@ function nh() {
       he &&
       c.jsx("div", {
         className:
-          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
+          "fixed inset-0 z-[95] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className:
