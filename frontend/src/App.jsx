@@ -689,13 +689,15 @@ function nh() {
   }, []);
   V.useEffect(() => {
     const o = (N) => {
-      if (N.key !== "Escape" || N.defaultPrevented) return;
+      const A = String(N.key || "");
+      if (A !== "Escape" && A !== "Esc" && N.keyCode !== 27) return;
       if (!activeOverlayKeyRef.current) return;
       N.preventDefault();
+      N.stopPropagation();
       dismissActiveOverlayRef.current(!0);
     };
-    window.addEventListener("keydown", o);
-    return () => window.removeEventListener("keydown", o);
+    document.addEventListener("keydown", o, !0);
+    return () => document.removeEventListener("keydown", o, !0);
   }, []);
   V.useEffect(() => {
     C && Ti();
