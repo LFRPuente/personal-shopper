@@ -3246,12 +3246,22 @@ function nh() {
           new Date(vl.updated_at || vl.created_at || 0).getTime() -
           new Date(A.updated_at || A.created_at || 0).getTime(),
       ),
+    getClientShoppingPaymentProducts = (o, N) => {
+      const A = new Map();
+      getClientShoppingPayments(o, N).forEach((vl) => {
+        getPaymentRecordProducts(vl).forEach((El) => {
+          const Se = Number(El && El.id);
+          Number.isFinite(Se) && !A.has(Se) && A.set(Se, El);
+        });
+      });
+      return Array.from(A.values());
+    },
     getClientShoppingPaymentSummary = (o, N) => {
       const A = getClientShoppingPayments(o, N).reduce(
           (vl, El) => vl + getPaymentRecordAmount(El),
           0,
         ),
-        vl = getPaymentProductsTotal(getClientShoppingProducts(o, N));
+        vl = getPaymentProductsTotal(getClientShoppingPaymentProducts(o, N));
       return {
         amount: A,
         productsTotal: vl,
