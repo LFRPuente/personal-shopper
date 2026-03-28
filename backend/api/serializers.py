@@ -193,6 +193,11 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
         products = attrs.get('products') if 'products' in attrs else (
             self.instance.products.all() if self.instance else []
         )
+        existing_product_ids = set()
+        if self.instance:
+            existing_product_ids = set(
+                self.instance.products.values_list('id', flat=True)
+            )
         if mission is None:
             raise serializers.ValidationError({'shopping': 'Shopping is required.'})
         if client is None:
@@ -202,6 +207,13 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'products': 'All selected products must belong to the client.'})
             if product.mission_id != mission.id:
                 raise serializers.ValidationError({'products': 'All selected products must belong to the selected shopping.'})
+            if (
+                str(product.status or '').upper() != 'ANNOTATED'
+                and product.id not in existing_product_ids
+            ):
+                raise serializers.ValidationError(
+                    {'products': 'Only annotated products can be added to a payment.'}
+                )
         return attrs
 
     class Meta:

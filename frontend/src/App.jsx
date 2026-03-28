@@ -249,6 +249,7 @@ function nh() {
     [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
     [paymentSaving, setPaymentSaving] = V.useState(!1),
     [paymentProductSearch, setPaymentProductSearch] = V.useState(""),
+    [paymentAmountManual, setPaymentAmountManual] = V.useState(!1),
     [paymentForm, setPaymentForm] = V.useState({
       id: null,
       client: "",
@@ -608,6 +609,7 @@ function nh() {
       }
       if (paymentModalOpen) {
         setPaymentModalOpen(!1);
+        setPaymentAmountManual(!1);
         setPaymentProductSearch("");
         return;
       }
@@ -766,6 +768,22 @@ function nh() {
     calcCommission,
     calcExchangeRate,
     productFinalPriceManual,
+  ]);
+  V.useEffect(() => {
+    if (!paymentModalOpen || paymentAmountManual) return;
+    const o = (paymentForm.product_ids || []).length > 0
+      ? paymentSelectedProductsTotal.toFixed(2)
+      : "";
+    setPaymentForm((N) =>
+      String((N && N.amount) || "") === o
+        ? N
+        : { ...N, amount: o },
+    );
+  }, [
+    paymentModalOpen,
+    paymentAmountManual,
+    paymentSelectedProductsTotal,
+    paymentForm.product_ids,
   ]);
   V.useEffect(() => {
     C && Ti();
@@ -2391,18 +2409,30 @@ function nh() {
     },
     paymentLocalHasValue = (o) =>
       o !== null && typeof o !== "undefined" && o !== "",
+    paymentLocalFormatAmountField = (o) => {
+      if (!paymentLocalHasValue(o)) return "";
+      const N = paymentLocalToNumber(o, Number.NaN);
+      return Number.isFinite(N) ? N.toFixed(2) : String(o);
+    },
     paymentLocalProductAmount = (o) => {
       const N = paymentLocalToNumber(o && o.charged_price, Number.NaN);
       if (Number.isFinite(N)) return N;
       const A = paymentLocalToNumber(o && o.real_price, Number.NaN);
       return Number.isFinite(A) ? A : 0;
     },
-    paymentLocalShoppingProducts = (o, N) =>
-      ((o && o.products) || []).filter(
-        (A) =>
-          Number(A && A.shopping) === Number(N) &&
-          String((A && A.status) || "").toUpperCase() !== "REJECTED",
-      ),
+    paymentLocalShoppingProducts = (o, N, A = []) => {
+      const vl = A instanceof Set
+        ? A
+        : new Set((A || []).map((Se) => Number(Se)));
+      return ((o && o.products) || []).filter(
+        (Se) =>
+          Number(Se && Se.shopping) === Number(N) &&
+          (
+            String((Se && Se.status) || "").toUpperCase() === "ANNOTATED" ||
+            vl.has(Number(Se && Se.id))
+          ),
+      );
+    },
     paymentLocalProductsTotal = (o = []) =>
       (o || []).reduce((N, A) => N + paymentLocalProductAmount(A), 0),
     paymentLocalRecordProducts = (o = null) =>
@@ -2485,14 +2515,24 @@ function nh() {
       const El = A
         ? paymentLocalRecordProducts(A).map((Se) => Number(Se.id))
         : getDefaultPaymentProductIds(o, vl);
+      const Se = new Set(El);
+      const ea = paymentLocalProductsTotal(
+        paymentLocalShoppingProducts(o, vl, Se).filter((gl) =>
+          Se.has(Number(gl.id)),
+        ),
+      );
+      const gl = ea > 0 ? ea.toFixed(2) : "";
+      const ae = paymentLocalFormatAmountField(A && A.amount);
+      const oi = ae !== "" && ae !== gl;
       setPaymentForm({
         id: (A && A.id) || null,
         client: String(o.id),
         shopping: String(vl),
-        amount: A && hasValue(A.amount) ? String(A.amount) : "",
+        amount: oi ? ae : (ae || gl),
         note: (A && A.note) || "",
         product_ids: El,
       });
+      setPaymentAmountManual(oi);
       setPaymentProductSearch("");
       setPaymentModalOpen(!0);
     },
@@ -2535,6 +2575,7 @@ function nh() {
           },
         );
         setPaymentModalOpen(!1);
+        setPaymentAmountManual(!1);
         setPaymentProductSearch("");
         await refreshCoreData();
         await refreshSelectedClient();
@@ -3191,14 +3232,18 @@ function nh() {
           new Date(vl.updated_at || vl.created_at || 0).getTime() -
           new Date(A.updated_at || A.created_at || 0).getTime(),
       ),
-    getClientShoppingPaymentSummary = (o, N) =>
-      getClientShoppingPayments(o, N).reduce(
-        (A, vl) => ({
-          amount: A.amount + getPaymentRecordAmount(vl),
-          balance: A.balance + getPaymentRecordBalance(vl),
-        }),
-        { amount: 0, balance: 0 },
-      ),
+    getClientShoppingPaymentSummary = (o, N) => {
+      const A = getClientShoppingPayments(o, N).reduce(
+          (vl, El) => vl + getPaymentRecordAmount(El),
+          0,
+        ),
+        vl = getPaymentProductsTotal(getClientShoppingProducts(o, N));
+      return {
+        amount: A,
+        productsTotal: vl,
+        balance: vl - A,
+      };
+    },
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
@@ -5110,8 +5155,11 @@ function nh() {
               className: isDesktopLayout
                 ? "pr-0 max-h-[calc(100vh-18rem)] overflow-y-auto overscroll-contain ios-scroll"
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
-              children: filteredHomeClientsInMission.map((o) =>
-                c.jsxs(
+              children: filteredHomeClientsInMission.map((o) => {
+                const N = getHomeClientMissionTotals(o.products || [], w.id),
+                  A = getClientShoppingPaymentSummary(o, w.id),
+                  vl = A.balance;
+                return c.jsxs(
                   "div",
                   {
                     className:
@@ -5166,12 +5214,17 @@ function nh() {
                             className: "flex gap-2 mt-1",
                             children: [
                               c.jsxs("span", {
-                                className: "px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold",
-                                children: ["USD: $", formatAmount(getHomeClientMissionTotals(o.products || [], w.id).usd)]
+                                className:
+                                  `px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
+                                children: [
+                                  "Saldo: ",
+                                  vl < 0 ? "-$" : "$",
+                                  formatAmount(Math.abs(vl)),
+                                ],
                               }),
                               c.jsxs("span", {
                                 className: "px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold",
-                                children: ["Venta: $", formatAmount(getHomeClientMissionTotals(o.products || [], w.id).sale)]
+                                children: ["Venta: $", formatAmount(N.sale)]
                               })
                             ]
                           })
@@ -5235,8 +5288,8 @@ function nh() {
                     ],
                   },
                   o.id,
-                ),
-              ),
+                );
+              }),
             }),
           ],
         }),
@@ -10394,7 +10447,7 @@ function nh() {
                     c.jsx("p", {
                       className: "text-[11px] text-text-sub mt-0.5",
                       children:
-                        "Selecciona productos de la shopping y registra el monto pagado.",
+                        "Selecciona productos anotados de la shopping y registra el monto pagado.",
                     }),
                   ],
                 }),
@@ -10691,14 +10744,47 @@ function nh() {
                                       step: "0.01",
                                       inputMode: "decimal",
                                       value: paymentForm.amount,
-                                      onChange: (o) =>
+                                      onChange: (o) => {
+                                        setPaymentAmountManual(!0);
                                         setPaymentForm((N) => ({
                                           ...N,
                                           amount: o.target.value,
-                                        })),
+                                        }));
+                                      },
                                       placeholder: "0.00",
                                       className:
                                         "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                    c.jsxs("div", {
+                                      className:
+                                        "mt-1 flex items-center justify-between gap-2",
+                                      children: [
+                                        c.jsxs("span", {
+                                          className:
+                                            "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
+                                          children: [
+                                            "Suma productos: $",
+                                            formatAmount(paymentSelectedProductsTotal),
+                                          ],
+                                        }),
+                                        paymentAmountManual &&
+                                        c.jsx("button", {
+                                          type: "button",
+                                          onClick: () => {
+                                            setPaymentAmountManual(!1);
+                                            setPaymentForm((N) => ({
+                                              ...N,
+                                              amount:
+                                                (paymentForm.product_ids || []).length > 0
+                                                  ? paymentSelectedProductsTotal.toFixed(2)
+                                                  : "",
+                                            }));
+                                          },
+                                          className:
+                                            "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
+                                          children: "Usar suma",
+                                        }),
+                                      ],
                                     }),
                                   ],
                                 }),
