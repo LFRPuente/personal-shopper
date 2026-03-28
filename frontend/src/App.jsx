@@ -168,6 +168,7 @@ function nh() {
     [st, Gt] = V.useState(() => createEmptyProductForm()),
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
+    [productFinalPriceManual, setProductFinalPriceManual] = V.useState(!1),
     [Je, We] = V.useState(null),
     [ji, sn] = V.useState(!1),
     [Ol, $e] = V.useState({
@@ -699,6 +700,27 @@ function nh() {
     document.addEventListener("keydown", o, !0);
     return () => document.removeEventListener("keydown", o, !0);
   }, []);
+  V.useEffect(() => {
+    if (!me || !he || productFinalPriceManual) return;
+    const o = computeProductModalFinalPrice(st.real_price);
+    const N = Number.isFinite(o) ? o.toFixed(2) : "";
+    Gt((A) =>
+      String((A && A.charged_price) || "") === N
+        ? A
+        : { ...A, charged_price: N },
+    );
+  }, [
+    me,
+    he,
+    st.real_price,
+    calcMode,
+    calcFactor,
+    calcDiscount,
+    calcTaxes,
+    calcCommission,
+    calcExchangeRate,
+    productFinalPriceManual,
+  ]);
   V.useEffect(() => {
     C && Ti();
   }, [C]);
@@ -1415,25 +1437,62 @@ function nh() {
         Ke(null);
       }
     },
+    formatProductPriceField = (o) => {
+      if (o === null || typeof o === "undefined" || String(o).trim() === "") return "";
+      const N = parseFloat(o);
+      return Number.isFinite(N) ? N.toFixed(2) : String(o);
+    },
+    computeProductModalFinalPrice = (o) => {
+      const N = parseFloat(o);
+      const A = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
+      return Number.isFinite(N)
+        ? calcMode === "FACTOR"
+          ? N * calcFactor * A
+          : N *
+            A *
+            (1 + calcCommission / 100) *
+            (1 + calcTaxes / 100) *
+            calcExchangeRate
+        : Number.NaN;
+    },
+    getProductModalPriceError = (o = null) => {
+      const N = o || st;
+      const A = String(N.real_price || "").trim();
+      const vl = String(N.charged_price || "").trim();
+      if (!A || !Number.isFinite(parseFloat(A)))
+        return "Debes capturar un Store Price (USD) valido antes de cerrar o guardar.";
+      if (!vl || !Number.isFinite(parseFloat(vl)))
+        return "Debes capturar un Final Price (MXN) valido antes de cerrar o guardar.";
+      return "";
+    },
     openProductModal = (o, N = "edit", A = {}) => {
       const vl = String(o && o.tags ? o.tags : "")
           .split(",")
           .map((Se) => Se.trim())
           .filter((Se) => Se.length > 0),
         El = (o && o.store) || ((w && w.store) || ""),
+        SeRealPrice = formatProductPriceField((o && o.real_price) || ""),
+        SeChargedPrice = formatProductPriceField((o && o.charged_price) || ""),
+        computedFinalPrice = computeProductModalFinalPrice(SeRealPrice),
+        computedFinalPriceText = Number.isFinite(computedFinalPrice)
+          ? computedFinalPrice.toFixed(2)
+          : "",
         Se =
           typeof A.formStatus === "string" && A.formStatus.trim()
             ? A.formStatus
             : getProductReviewState(
               o,
               o && o.id ? latestReviewsByProduct[o.id] || null : null,
-            );
+            ),
+        ea =
+          !!SeChargedPrice &&
+          (!computedFinalPriceText || SeChargedPrice !== computedFinalPriceText);
       (Ke(o),
         Gt(
           createEmptyProductForm({
             name: (o && o.name) || "",
-            real_price: (o && o.real_price) || "",
-            charged_price: (o && o.charged_price) || "",
+            real_price: SeRealPrice,
+            charged_price: ea ? SeChargedPrice : (SeChargedPrice || computedFinalPriceText),
             tags: (o && o.tags) || "",
             store: El,
             status: Se,
@@ -1445,16 +1504,25 @@ function nh() {
         setShowAddStoreInput(!1),
         setNewStoreName(""),
         setPendingProductFile(A.file || null),
+        setProductFinalPriceManual(ea),
         setProductModalMode(N),
         ut(!0));
     },
     closeProductModal = (o = !1) => {
       if (newProductUploading && !o) return;
+      if (!o) {
+        const N = getProductModalPriceError();
+        if (N) {
+          notifyInfo(N);
+          return;
+        }
+      }
       (ut(!1),
         Ke(null),
         Gt(createEmptyProductForm()),
         setProductModalMode("edit"),
         setPendingProductFile(null),
+        setProductFinalPriceManual(!1),
         setModalTags([]),
         setNewModalTag(""),
         setStoreSearch(""),
@@ -1508,18 +1576,9 @@ function nh() {
       openProductModal(o, "edit");
     },
     buildProductModalPayload = () => {
-      const o = parseFloat(st.real_price);
-      const N = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
-      const A = Number.isFinite(o)
-          ? calcMode === "FACTOR"
-            ? o * calcFactor * N
-            : o *
-              N *
-              (1 + calcCommission / 100) *
-              (1 + calcTaxes / 100) *
-              calcExchangeRate
-          : Number.NaN,
-        normalizeNullableNumber = (gl) => {
+      const o = computeProductModalFinalPrice(st.real_price),
+        N = Number.isFinite(o) ? o.toFixed(2) : "",
+        A = (gl) => {
           if (gl === null || typeof gl === "undefined" || String(gl).trim() === "")
             return null;
           const ae = parseFloat(gl);
@@ -1532,10 +1591,10 @@ function nh() {
           tags: modalTags.join(", "),
           store: w ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
-          real_price: normalizeNullableNumber(st.real_price),
-          charged_price: Number.isFinite(A)
-            ? A.toFixed(2)
-            : normalizeNullableNumber(st.charged_price),
+          real_price: A(st.real_price),
+          charged_price: productFinalPriceManual
+            ? A(st.charged_price)
+            : (N || A(st.charged_price)),
         },
         reviewState: st.status,
       };
@@ -1549,30 +1608,35 @@ function nh() {
         notifyError("Debes capturar el nombre del producto.");
         return;
       }
+      const El = getProductModalPriceError(N);
+      if (El) {
+        notifyError(El);
+        return;
+      }
       if (vl && !pendingProductFile) {
         notifyError("Selecciona una imagen para crear el producto.");
         return;
       }
       try {
         if (vl) {
-          const El = new FormData();
+          const Se = new FormData();
           setNewProductUploading(!0);
-          const Se = await compressImage(pendingProductFile).catch(() => pendingProductFile);
-          El.append("image", Se);
-          El.append("client", W.id);
-          El.append("name", N.name);
-          El.append("status", N.status);
-          El.append("purchase_date", new Date().toISOString().slice(0, 10));
-          N.real_price !== null && El.append("real_price", N.real_price);
-          N.charged_price !== null && El.append("charged_price", N.charged_price);
-          N.tags && El.append("tags", N.tags);
+          const ea = await compressImage(pendingProductFile).catch(() => pendingProductFile);
+          Se.append("image", ea);
+          Se.append("client", W.id);
+          Se.append("name", N.name);
+          Se.append("status", N.status);
+          Se.append("purchase_date", new Date().toISOString().slice(0, 10));
+          N.real_price !== null && Se.append("real_price", N.real_price);
+          N.charged_price !== null && Se.append("charged_price", N.charged_price);
+          N.tags && Se.append("tags", N.tags);
           w && w.id
-            ? El.append("shopping", w.id)
-            : N.store !== null && El.append("store", String(N.store));
-          const ea = await I("/products/", { method: "POST", body: El });
+            ? Se.append("shopping", w.id)
+            : N.store !== null && Se.append("store", String(N.store));
+          const gl = await I("/products/", { method: "POST", body: Se });
           A !== "ANNOTATED" &&
             (await syncProductReviewState(
-              { ...ea, status: N.status },
+              { ...gl, status: N.status },
               null,
               A,
             ));
@@ -3286,17 +3350,16 @@ function nh() {
         });
       }
     },
-    discountMultiplier = Math.max(0, 1 - toNumber(calcDiscount, 0) / 100),
-    modalStorePrice = parseFloat(st.real_price),
-    modalFinalPrice = Number.isFinite(modalStorePrice)
-      ? calcMode === "FACTOR"
-        ? modalStorePrice * toNumber(calcFactor, 1) * discountMultiplier
-        : modalStorePrice *
-        discountMultiplier *
-        (1 + toNumber(calcCommission, 0) / 100) *
-        (1 + toNumber(calcTaxes, 0) / 100) *
-        toNumber(calcExchangeRate, 1)
-      : Number.NaN,
+    modalComputedFinalPrice = computeProductModalFinalPrice(st.real_price),
+    modalHasRequiredPrices = !getProductModalPriceError(st),
+    productStoreInputClass =
+      "w-full px-3 py-2 border rounded-xl border-sky-200 bg-sky-50/80 dark:bg-sky-950/20 dark:border-sky-800 text-sky-900 dark:text-sky-100 font-semibold caret-sky-900 dark:caret-sky-100 focus:ring-2 focus:ring-sky-300 outline-none",
+    productFinalInputClass =
+      "w-full px-3 py-2 border rounded-xl border-emerald-200 bg-emerald-50/85 dark:bg-emerald-950/20 dark:border-emerald-800 text-emerald-800 dark:text-emerald-100 font-bold caret-emerald-800 dark:caret-emerald-100 focus:ring-2 focus:ring-emerald-300 outline-none",
+    productCalcInputClass =
+      "calc-input w-full border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
+    productCalcCompactInputClass =
+      "calc-input w-full border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
     filteredStores = stores
       .filter((o) =>
         o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
@@ -8468,8 +8531,8 @@ function nh() {
                           value: st.real_price,
                           onChange: (o) =>
                             Gt({ ...st, real_price: o.target.value }),
-                          className:
-                            "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700",
+                          className: productStoreInputClass,
+                          required: !0,
                         }),
                       ],
                     }),
@@ -8483,12 +8546,41 @@ function nh() {
                         c.jsx("input", {
                           type: "number",
                           step: "0.01",
-                          value: Number.isFinite(modalFinalPrice)
-                            ? modalFinalPrice.toFixed(2)
-                            : "",
-                          readOnly: !0,
-                          className:
-                            "w-full px-3 py-2 border rounded-xl bg-gray-100 dark:bg-gray-700 dark:border-gray-700 text-gray-600",
+                          value: st.charged_price,
+                          onChange: (o) => {
+                            setProductFinalPriceManual(!0);
+                            Gt({ ...st, charged_price: o.target.value });
+                          },
+                          className: productFinalInputClass,
+                          required: !0,
+                        }),
+                        Number.isFinite(modalComputedFinalPrice) &&
+                        c.jsxs("div", {
+                          className: "mt-1 flex items-center justify-between gap-2",
+                          children: [
+                            c.jsxs("span", {
+                              className:
+                                "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
+                              children: [
+                                "Calculado: $",
+                                modalComputedFinalPrice.toFixed(2),
+                              ],
+                            }),
+                            productFinalPriceManual &&
+                            c.jsx("button", {
+                              type: "button",
+                              onClick: () => {
+                                setProductFinalPriceManual(!1);
+                                Gt({
+                                  ...st,
+                                  charged_price: modalComputedFinalPrice.toFixed(2),
+                                });
+                              },
+                              className:
+                                "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
+                              children: "Usar calculo",
+                            }),
+                          ],
                         }),
                       ],
                     }),
@@ -8540,7 +8632,7 @@ function nh() {
                           setCalcFactor(Number.isFinite(N) ? N : 0);
                         },
                         className:
-                          "calc-input w-full px-4 py-2 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                          `${productCalcInputClass} px-4 py-2`,
                       }),
                       c.jsxs("div", {
                         className: "mt-2",
@@ -8559,7 +8651,7 @@ function nh() {
                               setCalcDiscount(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "calc-input w-full px-4 py-2 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                              `${productCalcInputClass} px-4 py-2`,
                           }),
                         ],
                       }),
@@ -8586,7 +8678,7 @@ function nh() {
                               setCalcDiscount(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                              `${productCalcCompactInputClass} px-2 py-2`,
                           }),
                         ],
                       }),
@@ -8606,7 +8698,7 @@ function nh() {
                               setCalcTaxes(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                              `${productCalcCompactInputClass} px-2 py-2`,
                           }),
                         ],
                       }),
@@ -8626,7 +8718,7 @@ function nh() {
                               setCalcCommission(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                              `${productCalcCompactInputClass} px-2 py-2`,
                           }),
                         ],
                       }),
@@ -8646,7 +8738,7 @@ function nh() {
                               setCalcExchangeRate(Number.isFinite(N) ? N : 0);
                             },
                             className:
-                              "calc-input w-full px-2 py-2 border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white caret-gray-900 dark:caret-white focus:ring-2 focus:ring-primary outline-none",
+                              `${productCalcCompactInputClass} px-2 py-2`,
                           }),
                         ],
                       }),
@@ -8843,9 +8935,11 @@ function nh() {
                     }),
                     c.jsx("button", {
                       type: "submit",
-                      disabled: productModalMode === "create" && newProductUploading,
+                      disabled:
+                        (productModalMode === "create" && newProductUploading) ||
+                        !modalHasRequiredPrices,
                       className:
-                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) ? "opacity-75 cursor-wait" : ""}`,
+                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) || !modalHasRequiredPrices ? "opacity-75 cursor-not-allowed" : ""}`,
                       children:
                         productModalMode === "create"
                           ? newProductUploading
@@ -8854,6 +8948,12 @@ function nh() {
                           : "Save Changes",
                     }),
                   ],
+                }),
+                !modalHasRequiredPrices &&
+                c.jsx("p", {
+                  className: `${isDesktopLayout ? "col-span-2" : ""} text-xs font-medium text-rose-600 dark:text-rose-300`,
+                  children:
+                    "Debes capturar Store Price (USD) y Final Price (MXN) para poder cerrar o guardar este producto.",
                 }),
               ],
             }),
