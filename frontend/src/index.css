@@ -208,6 +208,15 @@
   }
 }
 
+@keyframes uiFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes uiSheetIn {
   from {
     opacity: 0;
@@ -216,6 +225,17 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes uiSheetOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
   }
 }
 
@@ -236,15 +256,78 @@
   will-change: opacity;
 }
 
+.ui-backdrop-out {
+  animation: uiFadeOut 0.18s ease-in both;
+  pointer-events: none;
+}
+
 .ui-sheet {
   animation: uiSheetIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform, opacity;
+}
+
+.ui-sheet-out {
+  animation: uiSheetOut 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
 }
 
 .ui-pop {
   transform-origin: top right;
   animation: uiPopIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform, opacity;
+}
+
+@keyframes uiSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes uiSectionOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.992);
+  }
+}
+
+.ui-section-stage {
+  will-change: transform, opacity;
+}
+
+.ui-section-stage-in {
+  animation: uiSectionIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ui-section-stage-out {
+  animation: uiSectionOut 0.12s ease-in both;
+}
+
+.ui-nav-item {
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
+  will-change: transform;
+}
+
+.ui-nav-item-active {
+  transform: translateY(-1px) scale(1.01);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-nav-item:hover {
+    transform: translateY(-1px);
+  }
 }
 
 @media (max-width: 640px) {
@@ -435,8 +518,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ui-backdrop,
+  .ui-backdrop-out,
   .ui-sheet,
+  .ui-sheet-out,
   .ui-pop,
+  .ui-section-stage,
+  .ui-section-stage-in,
+  .ui-section-stage-out,
+  .ui-nav-item,
   .review-pending,
   .review-item-alert,
   .ui-card-quiet,

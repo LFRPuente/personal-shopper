@@ -138,6 +138,7 @@ function nh() {
       typeof window !== "undefined" ? window.innerWidth >= 1024 : !1,
     ),
     [nl, Ll] = V.useState("HOME"),
+    [sectionTransitionStage, setSectionTransitionStage] = V.useState("idle"),
     [Al, zl] = V.useState([]),
     [w, Dl] = V.useState(null),
     [Kl, _l] = V.useState([]),
@@ -169,6 +170,7 @@ function nh() {
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
     [productFinalPriceManual, setProductFinalPriceManual] = V.useState(!1),
+    [closingOverlayKey, setClosingOverlayKey] = V.useState(""),
     [Je, We] = V.useState(null),
     [ji, sn] = V.useState(!1),
     [Ol, $e] = V.useState({
@@ -583,15 +585,19 @@ function nh() {
                           ? "shopping-start"
                           : "",
     overlayHistorySkipRef = V.useRef(!1),
+    closingOverlayKeyRef = V.useRef(""),
+    overlayDismissTimerRef = V.useRef(null),
+    sectionSwitchTimerRef = V.useRef(null),
+    sectionSettleTimerRef = V.useRef(null),
     activeOverlayKeyRef = V.useRef(""),
     dismissActiveOverlayRef = V.useRef(() => {});
   V.useEffect(() => {
+    closingOverlayKeyRef.current = closingOverlayKey;
+  }, [closingOverlayKey]);
+  V.useEffect(() => {
     activeOverlayKeyRef.current = activeOverlayKey;
-    dismissActiveOverlayRef.current = (o = !1) => {
-      !o &&
-        window.history.state &&
-        window.history.state.__ps_overlay &&
-        ((overlayHistorySkipRef.current = !0), window.history.back());
+    const o = () => {
+      setClosingOverlayKey("");
       if (confirmDialog) {
         closeConfirmDialog(!1);
         return;
@@ -635,7 +641,6 @@ function nh() {
         return;
       }
       if (me && he) {
-        if (newProductUploading) return;
         closeProductModal();
         return;
       }
@@ -658,8 +663,40 @@ function nh() {
       }
       showMissionStartModal && setShowMissionStartModal(!1);
     };
+    dismissActiveOverlayRef.current = (N = !1, A = !1) => {
+      const vl = activeOverlayKeyRef.current;
+      if (!vl) return;
+      if (me && he) {
+        if (newProductUploading) return;
+        const El = getProductModalPriceError();
+        if (El) {
+          notifyInfo(El);
+          return;
+        }
+      }
+      !N &&
+        window.history.state &&
+        window.history.state.__ps_overlay &&
+        ((overlayHistorySkipRef.current = !0), window.history.back());
+      if (A) {
+        overlayDismissTimerRef.current &&
+          clearTimeout(overlayDismissTimerRef.current);
+        overlayDismissTimerRef.current = null;
+        o();
+        return;
+      }
+      if (closingOverlayKeyRef.current === vl) return;
+      setClosingOverlayKey(vl);
+      overlayDismissTimerRef.current &&
+        clearTimeout(overlayDismissTimerRef.current);
+      overlayDismissTimerRef.current = setTimeout(() => {
+        overlayDismissTimerRef.current = null;
+        o();
+      }, 170);
+    };
   }, [
     activeOverlayKey,
+    closingOverlayKey,
     confirmDialog,
     inputDialog,
     paymentModalOpen,
@@ -672,11 +709,13 @@ function nh() {
     Je,
     me,
     he,
+    newProductUploading,
     K,
     W,
     Il,
     missionSummaryOpen,
     showMissionStartModal,
+    st,
   ]);
   V.useEffect(() => {
     if (!activeOverlayKey) return;
@@ -738,6 +777,12 @@ function nh() {
     () => () => {
       toastTimeoutsRef.current.forEach((o) => clearTimeout(o));
       toastTimeoutsRef.current.clear();
+      overlayDismissTimerRef.current &&
+        clearTimeout(overlayDismissTimerRef.current);
+      sectionSwitchTimerRef.current &&
+        clearTimeout(sectionSwitchTimerRef.current);
+      sectionSettleTimerRef.current &&
+        clearTimeout(sectionSettleTimerRef.current);
     },
     [],
   );
@@ -1319,6 +1364,25 @@ function nh() {
         setFullscreenImage(null),
         setClientGalleryMissionScopeId(null));
     },
+    navigateSection = (o) => {
+      if (o === nl) return;
+      sectionSwitchTimerRef.current && clearTimeout(sectionSwitchTimerRef.current);
+      sectionSettleTimerRef.current && clearTimeout(sectionSettleTimerRef.current);
+      setSectionTransitionStage("out");
+      sectionSwitchTimerRef.current = setTimeout(() => {
+        Ll(o);
+        setSectionTransitionStage("in");
+        sectionSwitchTimerRef.current = null;
+        sectionSettleTimerRef.current = setTimeout(() => {
+          setSectionTransitionStage("idle");
+          sectionSettleTimerRef.current = null;
+        }, 220);
+      }, 110);
+    },
+    overlayBackdropClass = (o, N) =>
+      `${o}${closingOverlayKey === N ? " ui-backdrop-out" : ""}`,
+    overlaySheetClass = (o, N) =>
+      `${o}${closingOverlayKey === N ? " ui-sheet-out" : ""}`,
     // <-------- seccion 8: selector de imagen robusto (evita fallas de input hidden en algunos entornos Windows)
     openSingleImagePicker = (o) => {
       try {
@@ -3359,6 +3423,12 @@ function nh() {
     },
     modalComputedFinalPrice = computeProductModalFinalPrice(st.real_price),
     modalHasRequiredPrices = !getProductModalPriceError(st),
+    sectionStageClass =
+      sectionTransitionStage === "out"
+        ? "ui-section-stage ui-section-stage-out"
+        : sectionTransitionStage === "in"
+          ? "ui-section-stage ui-section-stage-in"
+          : "ui-section-stage",
     productStoreInputClass =
       "w-full px-3 py-2 border rounded-xl border-sky-200 bg-sky-50/80 dark:bg-sky-950/20 dark:border-sky-800 text-sky-900 dark:text-sky-100 font-semibold caret-sky-900 dark:caret-sky-100 focus:ring-2 focus:ring-sky-300 outline-none",
     productFinalInputClass =
@@ -7718,12 +7788,23 @@ function nh() {
           ? "flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark ml-80"
           : "flex-1 overflow-y-auto p-5 bg-background-light dark:bg-background-dark",
         children: [
-          nl === "HOME" && ta(),
-          nl === "MISSIONS" && pe(),
-          nl === "CLIENTS" && Hl(),
-          nl === "SHIPMENTS" && xu(),
-          nl === "CALCULATOR" && hu(),
-          nl === "PROFILE" && du(),
+          c.jsx("div", {
+            className: sectionStageClass,
+            children:
+              nl === "HOME"
+                ? ta()
+                : nl === "MISSIONS"
+                  ? pe()
+                  : nl === "CLIENTS"
+                    ? Hl()
+                    : nl === "SHIPMENTS"
+                      ? xu()
+                      : nl === "CALCULATOR"
+                        ? hu()
+                        : nl === "PROFILE"
+                          ? du()
+                          : null,
+          }, nl),
           c.jsx("div", {
             className: "shrink-0",
             style: isDesktopLayout
@@ -7734,12 +7815,16 @@ function nh() {
       }),
       showMissionStartModal &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "absolute inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+          "shopping-start",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-5 rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet",
+            "shopping-start",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
@@ -7965,7 +8050,7 @@ function nh() {
               className: "mt-4 grid grid-cols-2 gap-2",
               children: [
                 c.jsx("button", {
-                  onClick: () => setShowMissionStartModal(!1),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold",
                   children: "Cancelar",
@@ -7983,12 +8068,16 @@ function nh() {
       }),
       missionSummaryOpen &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "absolute inset-0 z-[66] bg-black/50 flex items-center justify-center ui-backdrop p-3 sm:p-4",
+          "shopping-summary",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-lg p-5 rounded-2xl border border-border-light dark:border-border-dark shadow-2xl max-h-[85vh] overflow-y-auto ui-sheet",
+            "shopping-summary",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -7999,7 +8088,7 @@ function nh() {
                   children: "Productos de la Tienda",
                 }),
                 c.jsx("button", {
-                  onClick: () => setMissionSummaryOpen(!1),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-8 h-8 rounded-full ui-icon-button flex items-center justify-center",
                   children: c.jsx("span", {
@@ -8201,12 +8290,16 @@ function nh() {
       }),
       Il &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+          "add-client",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+            "add-client",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
@@ -8313,7 +8406,7 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => k(!1),
+                      onClick: () => dismissActiveOverlayRef.current(),
                       className:
                         "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
@@ -8333,12 +8426,16 @@ function nh() {
       }),
       K &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "absolute inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+          "edit-client",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+            "edit-client",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
@@ -8443,9 +8540,7 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => {
-                        (tl(!1), Y(null));
-                      },
+                      onClick: () => dismissActiveOverlayRef.current(),
                       className:
                         "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
@@ -8481,12 +8576,16 @@ function nh() {
       me &&
       he &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[95] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
+          "edit-product",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             `bg-surface-light dark:bg-surface-dark w-full ${isDesktopLayout ? "sm:max-w-5xl rounded-3xl overflow-visible" : "sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"} p-6 shadow-2xl ui-sheet`,
+            "edit-product",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("h3", {
@@ -8934,7 +9033,7 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => closeProductModal(),
+                      onClick: () => dismissActiveOverlayRef.current(),
                       disabled: newProductUploading,
                       className:
                         `flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`,
@@ -8970,12 +9069,16 @@ function nh() {
       ji &&
       Je &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
+          "edit-ticket",
+        ),
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
+            "edit-ticket",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("h3", {
@@ -9077,9 +9180,7 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => {
-                        (sn(!1), We(null));
-                      },
+                      onClick: () => dismissActiveOverlayRef.current(),
                       className:
                         "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
                       children: "Cancel",
@@ -9100,14 +9201,14 @@ function nh() {
       W &&
       c.jsxs("div", {
         className:
-          isDesktopLayout
+          `${isDesktopLayout
             ? "fixed inset-0 z-[72] bg-slate-950/45 backdrop-blur-sm p-5 lg:p-6 flex items-stretch justify-center"
-            : "absolute inset-0 z-50 bg-background-light dark:bg-background-dark flex flex-col overflow-x-hidden animate-in slide-in-from-bottom duration-300",
-        onClick: isDesktopLayout ? Aa : void 0,
+            : "absolute inset-0 z-50 bg-background-light dark:bg-background-dark flex flex-col overflow-x-hidden animate-in slide-in-from-bottom duration-300"} ui-backdrop${closingOverlayKey === "client-home" ? " ui-backdrop-out" : ""}`,
+        onClick: isDesktopLayout ? () => dismissActiveOverlayRef.current() : void 0,
         children: c.jsxs("div", {
-          className: isDesktopLayout
+          className: `${isDesktopLayout
             ? "w-full max-w-[1500px] rounded-[32px] border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark shadow-[0_32px_80px_rgba(15,23,42,0.38)] flex flex-col overflow-hidden animate-in fade-in zoom-in-[0.98] duration-200"
-            : "flex flex-col h-full",
+            : "flex flex-col h-full"} ui-sheet${closingOverlayKey === "client-home" ? " ui-sheet-out" : ""}`,
           onClick: isDesktopLayout ? (o) => o.stopPropagation() : void 0,
           children: [
           c.jsxs("div", {
@@ -9120,7 +9221,7 @@ function nh() {
                   : "p-4 flex items-center justify-between",
                 children: [
                   c.jsx("button", {
-                    onClick: Aa,
+                    onClick: () => dismissActiveOverlayRef.current(),
                     className:
                       "w-10 h-10 flex items-center justify-center rounded-full ui-icon-button",
                     children: c.jsx("span", {
@@ -9900,16 +10001,20 @@ function nh() {
               ],
             }),
           }),
-          Pl &&
+      Pl &&
+      c.jsxs("div", {
+        className: overlayBackdropClass(
+          "absolute inset-0 z-[60] bg-black/50 flex items-end ui-backdrop",
+          "group-ticket",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
+        children: [
           c.jsxs("div", {
-            className:
-              "absolute inset-0 z-[60] bg-black/50 flex items-end ui-backdrop",
-            onClick: () => dismissActiveOverlayRef.current(),
-            children: [
-              c.jsxs("div", {
-                className:
-                  "bg-background-light dark:bg-background-dark flex flex-col animate-in slide-in-from-bottom duration-300 h-[85vh] w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-border-light dark:border-border-dark overflow-hidden",
-                onClick: (o) => o.stopPropagation(),
+            className: overlaySheetClass(
+              "bg-background-light dark:bg-background-dark flex flex-col animate-in slide-in-from-bottom duration-300 h-[85vh] w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-border-light dark:border-border-dark overflow-hidden ui-sheet",
+              "group-ticket",
+            ),
+            onClick: (o) => o.stopPropagation(),
                 children: [
                   c.jsxs("div", {
                     className:
@@ -9920,9 +10025,7 @@ function nh() {
                         children: "Group Products into Ticket",
                       }),
                       c.jsx("button", {
-                        onClick: () => {
-                          (at(!1), we(null), Kt(null));
-                        },
+                        onClick: () => dismissActiveOverlayRef.current(),
                         className:
                           "w-8 h-8 flex items-center justify-center rounded-full ui-icon-button",
                         children: c.jsx("span", {
@@ -10104,12 +10207,16 @@ function nh() {
       }),
       confirmDialog &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
-        onClick: () => closeConfirmDialog(!1),
+          "confirm",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet",
+            "confirm",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -10143,7 +10250,7 @@ function nh() {
               className: "mt-5 grid grid-cols-2 gap-2",
               children: [
                 c.jsx("button", {
-                  onClick: () => closeConfirmDialog(!1),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
                   children: confirmDialog.cancelLabel,
@@ -10161,12 +10268,16 @@ function nh() {
       }),
       inputDialog &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
-        onClick: () => closeInputDialog(null),
+          "input",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet flex flex-col",
+            "input",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsx("div", {
@@ -10239,7 +10350,7 @@ function nh() {
               className: "mt-5 grid grid-cols-2 gap-2 pt-3 border-t border-border-light dark:border-border-dark",
               children: [
                 c.jsx("button", {
-                  onClick: () => closeInputDialog(null),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
                   children: inputDialog.cancelLabel,
@@ -10257,14 +10368,16 @@ function nh() {
       }),
       paymentModalOpen &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-        onClick: () => {
-          setPaymentModalOpen(!1), setPaymentProductSearch("");
-        },
+          "payment-modal",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-5xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+            "payment-modal",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -10286,9 +10399,7 @@ function nh() {
                   ],
                 }),
                 c.jsx("button", {
-                  onClick: () => {
-                    setPaymentModalOpen(!1), setPaymentProductSearch("");
-                  },
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
                   children: c.jsx("span", {
@@ -10760,9 +10871,7 @@ function nh() {
                 "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
               children: [
                 c.jsx("button", {
-                  onClick: () => {
-                    setPaymentModalOpen(!1), setPaymentProductSearch("");
-                  },
+                  onClick: () => dismissActiveOverlayRef.current(),
                   disabled: paymentSaving,
                   className:
                     "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
@@ -10786,14 +10895,16 @@ function nh() {
       }),
       shipmentModalOpen &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-        onClick: () => {
-          setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
-        },
+          "shipment-modal",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+            "shipment-modal",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -10814,9 +10925,7 @@ function nh() {
                   ],
                 }),
                 c.jsx("button", {
-                  onClick: () => {
-                    setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
-                  },
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
                   children: c.jsx("span", {
@@ -11112,9 +11221,7 @@ function nh() {
                 "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
               children: [
                 c.jsx("button", {
-                  onClick: () => {
-                    setShipmentProductPickerOpen(!1), setShipmentModalOpen(!1);
-                  },
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
                   children: "Cancelar",
@@ -11132,12 +11239,16 @@ function nh() {
       }),
       shipmentProductPickerOpen &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[90] bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-        onClick: () => setShipmentProductPickerOpen(!1),
+          "shipment-product-picker",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "bg-surface-light dark:bg-surface-dark w-full sm:max-w-4xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+            "shipment-product-picker",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -11159,7 +11270,7 @@ function nh() {
                   ],
                 }),
                 c.jsx("button", {
-                  onClick: () => setShipmentProductPickerOpen(!1),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
                   children: c.jsx("span", {
@@ -11279,7 +11390,7 @@ function nh() {
                 "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
               children: [
                 c.jsx("button", {
-                  onClick: () => setShipmentProductPickerOpen(!1),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
                   children: "Cerrar",
@@ -11297,14 +11408,16 @@ function nh() {
       }),
       reviewConversationEntry &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[79] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-        onClick: () => {
-          setReviewConversationEntry(null), closeAlternativeUploadModal();
-        },
+          "review-conversation",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className:
+          className: overlaySheetClass(
             "w-full sm:max-w-lg max-h-[82vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
+            "review-conversation",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -11319,9 +11432,7 @@ function nh() {
                     "Producto",
                 }),
                 c.jsx("button", {
-                  onClick: () => {
-                    setReviewConversationEntry(null), closeAlternativeUploadModal();
-                  },
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
                   children: c.jsx("span", {
@@ -11538,9 +11649,7 @@ function nh() {
                   className: "grid grid-cols-2 gap-2",
                   children: [
                     c.jsx("button", {
-                      onClick: () => {
-                        setReviewConversationEntry(null), closeAlternativeUploadModal();
-                      },
+                      onClick: () => dismissActiveOverlayRef.current(),
                       className:
                         "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 text-xs font-semibold",
                       children: "Cerrar",
@@ -11560,11 +11669,16 @@ function nh() {
       }),
       getFullscreenImageUrl(fullscreenImage) &&
       c.jsx("div", {
-        className:
+        className: overlayBackdropClass(
           "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
-        onClick: () => setFullscreenImage(null),
+          "fullscreen-image",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
-          className: "relative max-w-[95vw] max-h-[90vh] ui-sheet",
+          className: overlaySheetClass(
+            "relative max-w-[95vw] max-h-[90vh] ui-sheet",
+            "fullscreen-image",
+          ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
@@ -11579,7 +11693,7 @@ function nh() {
                   children: "Abrir enlace",
                 }),
                 c.jsx("button", {
-                  onClick: () => setFullscreenImage(null),
+                  onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "w-9 h-9 rounded-full bg-white text-gray-700 border border-gray-200 flex items-center justify-center shadow",
                   children: c.jsx("span", {
@@ -11638,10 +11752,10 @@ function nh() {
               ],
             }),
             c.jsx("button", {
-              onClick: () => Ll("HOME"),
+              onClick: () => navigateSection("HOME"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "HOME" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "HOME" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "HOME" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "HOME" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
@@ -11703,10 +11817,10 @@ function nh() {
                   }),
             }),
             c.jsx("button", {
-              onClick: () => Ll("MISSIONS"),
+              onClick: () => navigateSection("MISSIONS"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "MISSIONS" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "MISSIONS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "MISSIONS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "MISSIONS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
@@ -11748,10 +11862,10 @@ function nh() {
                   }),
             }),
             c.jsx("button", {
-              onClick: () => Ll("CLIENTS"),
+              onClick: () => navigateSection("CLIENTS"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CLIENTS" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "CLIENTS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CLIENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "CLIENTS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
@@ -11778,10 +11892,10 @@ function nh() {
                   }),
             }),
             c.jsx("button", {
-              onClick: () => Ll("SHIPMENTS"),
+              onClick: () => navigateSection("SHIPMENTS"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "SHIPMENTS" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "SHIPMENTS" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "SHIPMENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "SHIPMENTS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
@@ -11805,10 +11919,10 @@ function nh() {
                   }),
             }),
             c.jsx("button", {
-              onClick: () => Ll("CALCULATOR"),
+              onClick: () => navigateSection("CALCULATOR"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CALCULATOR" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "CALCULATOR" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CALCULATOR" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "CALCULATOR" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
@@ -11832,10 +11946,10 @@ function nh() {
                   }),
             }),
             c.jsx("button", {
-              onClick: () => Ll("PROFILE"),
+              onClick: () => navigateSection("PROFILE"),
               className: isDesktopLayout
-                ? `w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "PROFILE" ? "bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
-                : `relative p-1.5 transition-colors ${nl === "PROFILE" ? "text-primary" : "text-text-sub dark:text-slate-400"}`,
+                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "PROFILE" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                : `ui-nav-item relative p-1.5 transition-colors ${nl === "PROFILE" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
                     className: "flex items-center gap-3",
