@@ -771,19 +771,33 @@ function nh() {
   ]);
   V.useEffect(() => {
     if (!paymentModalOpen || paymentAmountManual) return;
-    const o = (paymentForm.product_ids || []).length > 0
-      ? paymentSelectedProductsTotal.toFixed(2)
-      : "";
+    const o = Kl.find(
+        (A) => String(A.id) === String(paymentForm.client || ""),
+      ) || null,
+      N = paymentForm.shopping
+        ? new Set((paymentForm.product_ids || []).map((A) => Number(A)))
+        : new Set(),
+      A =
+        o && paymentForm.shopping
+          ? paymentLocalProductsTotal(
+            paymentLocalShoppingProducts(o, paymentForm.shopping, N).filter((vl) =>
+              N.has(Number(vl.id)),
+            ),
+          )
+          : 0,
+      vl = N.size > 0 ? A.toFixed(2) : "";
     setPaymentForm((N) =>
-      String((N && N.amount) || "") === o
+      String((N && N.amount) || "") === vl
         ? N
-        : { ...N, amount: o },
+        : { ...N, amount: vl },
     );
   }, [
     paymentModalOpen,
     paymentAmountManual,
-    paymentSelectedProductsTotal,
+    paymentForm.client,
+    paymentForm.shopping,
     paymentForm.product_ids,
+    Kl,
   ]);
   V.useEffect(() => {
     C && Ti();
