@@ -2562,12 +2562,16 @@ function nh() {
           : Al.find((A) => Number(A && A.id) === Number(o)) || null;
       return Math.max(paymentLocalToNumber(N && N.discount_percentage, 0), 0);
     },
-    paymentLocalProductAmount = (o, N = 0) => {
-      const A = Math.max(0, 1 - paymentLocalToNumber(N, 0) / 100),
-        vl = paymentLocalToNumber(o && o.charged_price, Number.NaN);
-      if (Number.isFinite(vl)) return vl * A;
-      const El = paymentLocalToNumber(o && o.real_price, Number.NaN);
-      return Number.isFinite(El) ? El : 0;
+    paymentLocalProductAmount = (o, N = null) => {
+      const A =
+          N === null
+            ? paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
+            : N,
+        vl = Math.max(0, 1 - paymentLocalToNumber(A, 0) / 100),
+        El = paymentLocalToNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(El)) return El * vl;
+      const Se = paymentLocalToNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(Se) ? Se : 0;
     },
     paymentLocalShoppingProducts = (o, N, A = []) => {
       const vl = A instanceof Set
@@ -3477,7 +3481,7 @@ function nh() {
       o.reduce(
         (N, A) => ({
           usd: N.usd + toNumber(A.real_price, 0),
-          sale: N.sale + toNumber(A.charged_price, 0),
+          sale: N.sale + getProductPaymentAmount(A),
         }),
         { usd: 0, sale: 0 },
       ),
@@ -3485,7 +3489,7 @@ function nh() {
       (o || []).filter(A => A.shopping === missionId).reduce(
         (N, A) => ({
           usd: N.usd + toNumber(A.real_price, 0),
-          sale: N.sale + toNumber(A.charged_price, 0),
+          sale: N.sale + getProductPaymentAmount(A),
         }),
         { usd: 0, sale: 0 },
       ),
@@ -3499,21 +3503,24 @@ function nh() {
         .reduce(
           (N, A) => ({
             usd: N.usd + toNumber(A.real_price, 0),
-            sale: N.sale + toNumber(A.charged_price, 0),
+            sale: N.sale + getProductPaymentAmount(A),
           }),
           { usd: 0, sale: 0 },
         ),
-    getProductPaymentAmount = (o, N = 0) => {
-      const A = Math.max(0, 1 - toNumber(N, 0) / 100),
-        vl = toNumber(o && o.charged_price, Number.NaN);
-      if (Number.isFinite(vl)) return vl * A;
-      const El = toNumber(o && o.real_price, Number.NaN);
-      return Number.isFinite(El) ? El : 0;
+    getProductPaymentAmount = (o, N = null) => {
+      const A =
+          N === null
+            ? paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
+            : N,
+        vl = Math.max(0, 1 - toNumber(A, 0) / 100),
+        El = toNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(El)) return El * vl;
+      const Se = toNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(Se) ? Se : 0;
     },
     getProductQuickFinalPrice = (o) => {
-      const N = toNumber(o && o.charged_price, Number.NaN);
-      if (!Number.isFinite(N)) return Number.NaN;
-      return N * Math.max(0, 1 - toNumber(calcDiscount, 0) / 100);
+      const N = getProductPaymentAmount(o);
+      return Number.isFinite(N) ? N : Number.NaN;
     },
     formatProductQuickFinalPrice = (o) => {
       const N = getProductQuickFinalPrice(o);
