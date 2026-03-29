@@ -3493,6 +3493,15 @@ function nh() {
       const A = toNumber(o && o.real_price, Number.NaN);
       return Number.isFinite(A) ? A : 0;
     },
+    getProductQuickFinalPrice = (o) => {
+      const N = toNumber(o && o.charged_price, Number.NaN);
+      if (!Number.isFinite(N)) return Number.NaN;
+      return N * Math.max(0, 1 - toNumber(calcDiscount, 0) / 100);
+    },
+    formatProductQuickFinalPrice = (o) => {
+      const N = getProductQuickFinalPrice(o);
+      return Number.isFinite(N) ? formatAmount(N) : "";
+    },
     getClientShoppingProducts = (o, N) =>
       ((o && o.products) || []).filter(
         (A) =>
@@ -3532,15 +3541,17 @@ function nh() {
       return Array.from(A.values());
     },
     getClientShoppingPaymentSummary = (o, N) => {
-      const A = getClientShoppingPayments(o, N).reduce(
-          (vl, El) => vl + getPaymentRecordAmount(El),
-          0,
-        ),
-        vl = getPaymentProductsTotal(getClientShoppingPaymentProducts(o, N));
+      const A = getClientShoppingPayments(o, N),
+        vl = A[0] || null,
+        El = vl
+          ? getPaymentRecordProducts(vl).map((Se) => Number(Se && Se.id))
+          : [],
+        Se = getPaymentProductsTotal(paymentLocalShoppingProducts(o, N, El)),
+        ea = vl ? getPaymentRecordAmount(vl) : 0;
       return {
-        amount: A,
-        productsTotal: vl,
-        balance: vl - A,
+        amount: ea,
+        productsTotal: Se,
+        balance: Se - ea,
       };
     },
     parseVisualTag = (o) => {
@@ -5539,7 +5550,7 @@ function nh() {
                             children: [
                               c.jsxs("span", {
                                 className:
-                                  `px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
+                                  `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
                                   "Saldo: ",
                                   vl < 0 ? "-$" : "$",
@@ -5547,7 +5558,8 @@ function nh() {
                                 ],
                               }),
                               c.jsxs("span", {
-                                className: "px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold",
+                                className:
+                                  "inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold",
                                 children: ["Venta: $", formatAmount(N.sale)]
                               })
                             ]
@@ -6533,11 +6545,14 @@ function nh() {
                                                       children:
                                                         gl.client_name || `Cliente #${gl.client}`,
                                                     }),
-                                                    hasValue(gl.charged_price) &&
+                                                    Number.isFinite(getProductQuickFinalPrice(gl)) &&
                                                       c.jsxs("span", {
                                                         className:
                                                           "shrink-0 rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm",
-                                                        children: ["$", gl.charged_price],
+                                                        children: [
+                                                          "$",
+                                                          formatProductQuickFinalPrice(gl),
+                                                        ],
                                                       }),
                                                   ],
                                                 }),
@@ -7044,7 +7059,7 @@ function nh() {
                                                   children: [
                                                     c.jsxs("span", {
                                                       className:
-                                                        "inline-flex rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                        "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
                                                       children: [
                                                         "Venta: $",
                                                         formatAmount(ea.productsTotal),
@@ -7052,7 +7067,7 @@ function nh() {
                                                     }),
                                                     c.jsxs("span", {
                                                       className:
-                                                        "inline-flex rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
+                                                        "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
                                                       children: [
                                                         "Pagado: $",
                                                         formatAmount(ea.paymentsTotal),
@@ -7060,7 +7075,7 @@ function nh() {
                                                     }),
                                                     c.jsxs("span", {
                                                       className:
-                                                        `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                                        `inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
                                                           ea.balance < 0
                                                             ? "bg-emerald-50 text-emerald-700"
                                                             : "bg-slate-100 text-slate-700"
@@ -7250,7 +7265,7 @@ function nh() {
                                                             }),
                                                             c.jsxs("span", {
                                                               className:
-                                                                "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                                "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
                                                               children: [
                                                                 "Venta: $",
                                                                 formatAmount(Pi),
@@ -7258,7 +7273,7 @@ function nh() {
                                                             }),
                                                             c.jsxs("span", {
                                                               className:
-                                                                `inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                                                `inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
                                                                   bi < 0
                                                                     ? "bg-emerald-100 text-emerald-700"
                                                                     : bi > 0
@@ -8617,11 +8632,14 @@ function nh() {
                                         "inline-flex max-w-[70%] truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm",
                                       children: o.client_name || `Cliente #${o.client}`,
                                     }),
-                                    hasValue(o.charged_price) &&
+                                    Number.isFinite(getProductQuickFinalPrice(o)) &&
                                       c.jsxs("span", {
                                         className:
                                           "shrink-0 rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm",
-                                        children: ["$", o.charged_price],
+                                        children: [
+                                          "$",
+                                          formatProductQuickFinalPrice(o),
+                                        ],
                                       }),
                                   ],
                                 }),
@@ -9176,40 +9194,48 @@ function nh() {
                   ? c.jsxs("div", {
                     className: isDesktopLayout ? "col-span-1" : "",
                     children: [
-                      c.jsx("label", {
-                        className:
-                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                        children: "Factor",
-                      }),
-                      c.jsx("input", {
-                        type: "number",
-                        step: "0.01",
-                        value: calcFactor,
-                        onChange: (o) => {
-                          const N = parseFloat(o.target.value);
-                          setCalcFactor(Number.isFinite(N) ? N : 0);
-                        },
-                        className:
-                          `${productCalcInputClass} px-4 py-2`,
-                      }),
                       c.jsxs("div", {
-                        className: "mt-2",
+                        className: "grid grid-cols-2 gap-3",
                         children: [
-                          c.jsx("label", {
-                            className:
-                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Descuento (%)",
+                          c.jsxs("div", {
+                            children: [
+                              c.jsx("label", {
+                                className:
+                                  "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                children: "Factor",
+                              }),
+                              c.jsx("input", {
+                                type: "number",
+                                step: "0.01",
+                                value: calcFactor,
+                                onChange: (o) => {
+                                  const N = parseFloat(o.target.value);
+                                  setCalcFactor(Number.isFinite(N) ? N : 0);
+                                },
+                                className:
+                                  `${productCalcInputClass} px-4 py-2`,
+                              }),
+                            ],
                           }),
-                          c.jsx("input", {
-                            type: "number",
-                            step: "0.01",
-                            value: calcDiscount,
-                            onChange: (o) => {
-                              const N = parseFloat(o.target.value);
-                              setCalcDiscount(Number.isFinite(N) ? N : 0);
-                            },
-                            className:
-                              `${productCalcInputClass} px-4 py-2`,
+                          c.jsxs("div", {
+                            children: [
+                              c.jsx("label", {
+                                className:
+                                  "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                children: "Descuento (%)",
+                              }),
+                              c.jsx("input", {
+                                type: "number",
+                                step: "0.01",
+                                value: calcDiscount,
+                                onChange: (o) => {
+                                  const N = parseFloat(o.target.value);
+                                  setCalcDiscount(Number.isFinite(N) ? N : 0);
+                                },
+                                className:
+                                  `${productCalcInputClass} px-4 py-2`,
+                              }),
+                            ],
                           }),
                         ],
                       }),
@@ -9458,9 +9484,7 @@ function nh() {
                       children: "Status",
                     }),
                     c.jsxs("div", {
-                      className: isDesktopLayout
-                        ? "grid grid-cols-3 gap-2"
-                        : "grid grid-cols-2 gap-2",
+                      className: "grid grid-cols-3 gap-2",
                       children: [
                         ["ANNOTATED", "Anotado"],
                         ["REVIEW", "Revision"],
@@ -9471,7 +9495,7 @@ function nh() {
                           {
                             type: "button",
                             onClick: () => Gt({ ...st, status: o }),
-                            className: `px-3 py-2 rounded-xl text-xs font-bold border transition ${st.status === o ? "bg-primary text-white border-primary" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
+                            className: `px-2 py-2 rounded-xl text-[11px] leading-tight font-bold border transition ${st.status === o ? "bg-primary text-white border-primary" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
                             children: N,
                           },
                           o,
@@ -9761,7 +9785,7 @@ function nh() {
                             children: [
                               c.jsxs("p", {
                                 className:
-                                  `text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
+                                  `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
                                   "Saldo: ",
                                   selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
@@ -9770,7 +9794,7 @@ function nh() {
                               }),
                               c.jsxs("p", {
                                 className:
-                                  "text-[11px] font-bold text-blue-700 dark:text-blue-300",
+                                  "inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-blue-700 dark:text-blue-300",
                                 children: [
                                   "Venta: $",
                                   formatAmount(selectedClientHomeAnnotatedTotals.sale),
@@ -9787,20 +9811,20 @@ function nh() {
                     children: [
                       c.jsxs("span", {
                         className:
-                          `flex-1 rounded-lg border px-2 py-1.5 shadow-sm text-center ${selectedClientHomePaymentSummary.balance < 0 ? "border-emerald-200 bg-emerald-50/90" : selectedClientHomePaymentSummary.balance > 0 ? "border-rose-200 bg-rose-50/95" : "border-slate-200 bg-slate-50/95"}`,
+                          `flex-1 rounded-lg border px-2 py-1.5 shadow-sm text-center flex flex-col items-center justify-center gap-0.5 ${selectedClientHomePaymentSummary.balance < 0 ? "border-emerald-200 bg-emerald-50/90" : selectedClientHomePaymentSummary.balance > 0 ? "border-rose-200 bg-rose-50/95" : "border-slate-200 bg-slate-50/95"}`,
                         children: [
                           c.jsx("span", {
                             className:
-                              `text-[9px] font-black uppercase mr-1 ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
+                              `text-[9px] font-black uppercase ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
                             children: "Saldo",
                           }),
                           c.jsxs("span", {
                             className:
                               selectedClientHomePaymentSummary.balance < 0
-                                ? "text-sm font-bold text-emerald-800"
+                                ? "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-emerald-800"
                                 : selectedClientHomePaymentSummary.balance > 0
-                                  ? "text-sm font-bold text-rose-800"
-                                  : "text-sm font-bold text-slate-800",
+                                  ? "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-rose-800"
+                                  : "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-slate-800",
                             children: [
                               selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
                               formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
@@ -9810,16 +9834,16 @@ function nh() {
                       }),
                       c.jsxs("span", {
                         className:
-                          "flex-1 rounded-lg border border-blue-200 bg-blue-50/95 px-2 py-1.5 shadow-sm text-center",
+                          "flex-1 rounded-lg border border-blue-200 bg-blue-50/95 px-2 py-1.5 shadow-sm text-center flex flex-col items-center justify-center gap-0.5",
                         children: [
                           c.jsx("span", {
                             className:
-                              "text-[9px] font-black uppercase text-blue-700/75 mr-1",
+                              "text-[9px] font-black uppercase text-blue-700/75",
                             children: "Venta",
                           }),
                           c.jsxs("span", {
                             className:
-                              "text-sm font-bold text-blue-800",
+                              "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-blue-800",
                             children: ["$", formatAmount(selectedClientHomeAnnotatedTotals.sale)],
                           }),
                         ],
