@@ -777,7 +777,7 @@ function nh() {
     productFinalPriceManual,
   ]);
   V.useEffect(() => {
-    if (!paymentModalOpen || paymentAmountManual) return;
+    if (!paymentModalOpen || paymentAmountManual || paymentForm.id) return;
     const o = Kl.find(
         (A) => String(A.id) === String(paymentForm.client || ""),
       ) || null,
@@ -2554,8 +2554,15 @@ function nh() {
       (paymentForm.product_ids || []).includes(Number(o.id)),
     ),
     paymentSelectedProductsTotal = paymentLocalProductsTotal(paymentSelectedProducts),
-    paymentFormAmountValue = paymentLocalToNumber(paymentForm.amount, 0),
-    paymentFormBalance = paymentSelectedProductsTotal - paymentFormAmountValue,
+    paymentCurrentAmountValue = paymentLocalRecordAmount(paymentCurrentRecord),
+    paymentDraftAmountValue = paymentLocalToNumber(paymentForm.amount, 0),
+    paymentPreviewAmountValue = paymentForm.id
+      ? paymentCurrentAmountValue + paymentDraftAmountValue
+      : paymentDraftAmountValue,
+    paymentSuggestedEntryAmount = paymentForm.id
+      ? Math.max(paymentSelectedProductsTotal - paymentCurrentAmountValue, 0)
+      : paymentSelectedProductsTotal,
+    paymentFormBalance = paymentSelectedProductsTotal - paymentPreviewAmountValue,
     getDefaultPaymentProductIds = (o, N) =>
       paymentLocalShoppingProducts(o, N)
         .filter((A) => !paymentLocalShoppingPayments(o, N).some((vl) =>
@@ -2583,14 +2590,23 @@ function nh() {
         Pi = oi > 0 ? oi.toFixed(2) : "",
         bi = paymentLocalFormatAmountField(Se && Se.amount),
         xa = bi !== "" && bi !== Pi;
-      setPaymentForm({
-        id: (Se && Se.id) || null,
-        client: String(o.id),
-        shopping: String(vl),
-        amount: xa ? bi : (bi || Pi),
-        product_ids: ae,
-      });
-      setPaymentAmountManual(xa);
+      Se
+        ? (setPaymentForm({
+          id: (Se && Se.id) || null,
+          client: String(o.id),
+          shopping: String(vl),
+          amount: "",
+          product_ids: ae,
+        }),
+          setPaymentAmountManual(!0))
+        : (setPaymentForm({
+          id: null,
+          client: String(o.id),
+          shopping: String(vl),
+          amount: xa ? bi : (bi || Pi),
+          product_ids: ae,
+        }),
+          setPaymentAmountManual(xa));
       setPaymentProductSearch("");
       setPaymentEntryEditingId(null);
       setPaymentEntryDraftAmount("");
@@ -2634,7 +2650,7 @@ function nh() {
         });
         setPaymentForm((vl) => ({
           ...vl,
-          amount: paymentLocalFormatAmountField(A && A.amount),
+          amount: "",
         }));
         setPaymentAmountManual(!0);
         setPaymentEntryEditingId(null);
@@ -2667,7 +2683,7 @@ function nh() {
         });
         setPaymentForm((A) => ({
           ...A,
-          amount: paymentLocalFormatAmountField(N && N.amount),
+          amount: "",
         }));
         setPaymentAmountManual(!0);
         Number(paymentEntryEditingId) === Number(o.id) &&
@@ -2686,16 +2702,23 @@ function nh() {
       const o = Kl.find((A) => String(A.id) === String(paymentForm.client || ""));
       const N = Al.find((A) => String(A.id) === String(paymentForm.shopping || ""));
       const A = String(paymentForm.amount || "").trim();
+      const vl =
+        A === ""
+          ? 0
+          : paymentLocalToNumber(A, Number.NaN);
       if (!o || !N) {
         notifyInfo("Selecciona cliente y shopping.");
         return;
       }
-      if (A === "" || !Number.isFinite(parseFloat(A))) {
+      if ((!paymentForm.id && A === "") || !Number.isFinite(vl)) {
         notifyInfo("Captura un monto valido.");
         return;
       }
       setPaymentSaving(!0);
       try {
+        const El = paymentForm.id
+          ? paymentCurrentAmountValue + vl
+          : vl;
         await I(
           paymentForm.id ? `/payments/${paymentForm.id}/` : "/payments/",
           {
@@ -2703,7 +2726,7 @@ function nh() {
             body: JSON.stringify({
               client: o.id,
               shopping: N.id,
-              amount: paymentLocalToNumber(A, 0).toFixed(2),
+              amount: El.toFixed(2),
               products: (paymentForm.product_ids || []).map((vl) => Number(vl)),
             }),
           },
@@ -2716,7 +2739,13 @@ function nh() {
         setPaymentEntrySavingId(null);
         await refreshCoreData();
         await refreshSelectedClient();
-        notifySuccess(paymentForm.id ? "Pago actualizado." : "Pago guardado.");
+        notifySuccess(
+          paymentForm.id
+            ? vl > 0
+              ? "Abono guardado."
+              : "Pago actualizado."
+            : "Pago guardado.",
+        );
       } catch (vl) {
         console.error("Failed saving payment", vl);
         notifyError((vl && vl.message) || "No se pudo guardar el pago.");
@@ -11012,7 +11041,9 @@ function nh() {
                                     c.jsx("span", {
                                       className:
                                         "text-[11px] font-semibold text-text-sub",
-                                      children: "Monto del pago",
+                                      children: paymentForm.id
+                                        ? "Nuevo abono"
+                                        : "Monto del pago",
                                     }),
                                     c.jsx("input", {
                                       type: "number",
@@ -11034,30 +11065,54 @@ function nh() {
                                       className:
                                         "mt-1 flex items-center justify-between gap-2",
                                       children: [
-                                        c.jsxs("span", {
-                                          className:
-                                            "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
+                                        c.jsxs("div", {
+                                          className: "flex flex-col gap-0.5",
                                           children: [
-                                            "Suma productos: $",
-                                            formatAmount(paymentSelectedProductsTotal),
+                                            paymentForm.id &&
+                                            c.jsxs("span", {
+                                              className:
+                                                "text-[11px] font-medium text-sky-700/80 dark:text-sky-300/80",
+                                              children: [
+                                                "Abonado actual: $",
+                                                formatAmount(paymentCurrentAmountValue),
+                                              ],
+                                            }),
+                                            c.jsxs("span", {
+                                              className:
+                                                "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
+                                              children: [
+                                                "Suma productos: $",
+                                                formatAmount(paymentSelectedProductsTotal),
+                                              ],
+                                            }),
                                           ],
                                         }),
-                                        paymentAmountManual &&
+                                        (paymentAmountManual || paymentForm.id) &&
                                         c.jsx("button", {
                                           type: "button",
                                           onClick: () => {
-                                            setPaymentAmountManual(!1);
+                                            setPaymentAmountManual(
+                                              paymentForm.id ? !0 : !1,
+                                            );
                                             setPaymentForm((N) => ({
                                               ...N,
                                               amount:
                                                 (paymentForm.product_ids || []).length > 0
-                                                  ? paymentSelectedProductsTotal.toFixed(2)
-                                                  : "",
+                                                  ? paymentForm.id
+                                                    ? paymentSuggestedEntryAmount > 0
+                                                      ? paymentSuggestedEntryAmount.toFixed(2)
+                                                      : "0.00"
+                                                    : paymentSelectedProductsTotal.toFixed(2)
+                                                  : paymentForm.id
+                                                    ? "0.00"
+                                                    : "",
                                             }));
                                           },
                                           className:
                                             "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
-                                          children: "Usar suma",
+                                          children: paymentForm.id
+                                            ? "Usar saldo"
+                                            : "Usar suma",
                                         }),
                                       ],
                                     }),
@@ -11329,14 +11384,14 @@ function nh() {
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                      children: "Pago",
+                                      children: paymentForm.id ? "Pagado" : "Pago",
                                     }),
                                     c.jsxs("p", {
                                       className:
                                         "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
                                       children: [
                                         "$",
-                                        formatAmount(paymentFormAmountValue),
+                                        formatAmount(paymentPreviewAmountValue),
                                       ],
                                     }),
                                   ],
@@ -11391,7 +11446,11 @@ function nh() {
                               className:
                                 "text-[11px] leading-5 text-text-sub",
                               children:
-                                paymentFormBalance < 0
+                                paymentForm.id
+                                  ? paymentDraftAmountValue > 0
+                                    ? "Este monto se agregara como un abono nuevo al historial."
+                                    : "Puedes capturar un nuevo abono o dejarlo en 0 para solo ajustar los productos."
+                                  : paymentFormBalance < 0
                                   ? "Credito a favor: el cliente pago mas de lo seleccionado."
                                   : "Puedes quitar o agregar productos para ajustar lo que cubre este pago.",
                             }),
