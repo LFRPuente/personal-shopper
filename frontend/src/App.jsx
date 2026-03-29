@@ -19,6 +19,44 @@ const getStoredPercent = (key, fallbackPercent) => {
   return parsed;
 };
 
+const clampNumber = (value, min, max) =>
+  Math.min(max, Math.max(min, value));
+
+const HOME_DESKTOP_LAYOUT_DEFAULTS = Object.freeze({
+  left_width_percent: 62,
+  top_height: 232,
+});
+
+const normalizeHomeDesktopLayout = (layout) => {
+  const source = layout && typeof layout === "object" ? layout : {};
+  const leftWidth = parseFloat(
+    source.left_width_percent ?? HOME_DESKTOP_LAYOUT_DEFAULTS.left_width_percent,
+  );
+  const topHeight = parseFloat(
+    source.top_height ?? HOME_DESKTOP_LAYOUT_DEFAULTS.top_height,
+  );
+  return {
+    left_width_percent: Math.round(
+      clampNumber(
+        Number.isFinite(leftWidth)
+          ? leftWidth
+          : HOME_DESKTOP_LAYOUT_DEFAULTS.left_width_percent,
+        44,
+        72,
+      ),
+    ),
+    top_height: Math.round(
+      clampNumber(
+        Number.isFinite(topHeight)
+          ? topHeight
+          : HOME_DESKTOP_LAYOUT_DEFAULTS.top_height,
+        188,
+        360,
+      ),
+    ),
+  };
+};
+
 const DEFAULT_PRODUCT_FORM = {
   name: "",
   real_price: "",
@@ -134,6 +172,9 @@ function nh() {
     [U, T] = V.useState(""),
     [X, H] = V.useState("AV"),
     [layoutMode, setLayoutMode] = V.useState("MOBILE"),
+    [homeDesktopLayout, setHomeDesktopLayout] = V.useState(() =>
+      normalizeHomeDesktopLayout(null),
+    ),
     [isWideViewport, setIsWideViewport] = V.useState(() =>
       typeof window !== "undefined" ? window.innerWidth >= 1024 : !1,
     ),
@@ -325,6 +366,9 @@ function nh() {
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    homeDesktopGridRef = V.useRef(null),
+    homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
+    homeDesktopResizeRef = V.useRef(null),
     toastTimeoutsRef = V.useRef(new Map()),
     toastIdRef = V.useRef(0),
     shoppingCalcPersistTimerRef = V.useRef(null),
@@ -2427,6 +2471,85 @@ function nh() {
         notifyError("No se pudo guardar la vista en tu perfil.");
       }
     },
+    saveHomeDesktopLayout = async (o) => {
+      if (!J) return;
+      const N = normalizeHomeDesktopLayout(o),
+        A = normalizeHomeDesktopLayout(J && J.profile && J.profile.home_layout);
+      if (
+        N.left_width_percent === A.left_width_percent &&
+        N.top_height === A.top_height
+      )
+        return;
+      try {
+        const vl = await I("/auth/me/", {
+          method: "PATCH",
+          body: JSON.stringify({ home_layout: N }),
+        });
+        vl &&
+          (b(vl),
+            setHomeDesktopLayout(
+              normalizeHomeDesktopLayout(vl.profile && vl.profile.home_layout),
+            ));
+      } catch (vl) {
+        console.error("Failed saving home desktop layout", vl);
+        setHomeDesktopLayout(A);
+        notifyError("No se pudo guardar el tamano de Home en tu perfil.");
+      }
+    },
+    stopHomeDesktopResize = (o = !0) => {
+      const N = homeDesktopResizeRef.current;
+      if (!N) return;
+      document.removeEventListener("mousemove", N.handleMove);
+      document.removeEventListener("mouseup", N.handleUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      homeDesktopResizeRef.current = null;
+      o && saveHomeDesktopLayout(homeDesktopLayoutRef.current);
+    },
+    startHomeDesktopResize = (o) => (N) => {
+      if (!isDesktopLayout) return;
+      const A = homeDesktopGridRef.current;
+      if (!A) return;
+      N.preventDefault();
+      const vl = A.getBoundingClientRect(),
+        El = {
+          type: o,
+          rect: vl,
+        },
+        Se = (ea) => {
+          if (El.type === "column") {
+            const gl = ((ea.clientX - El.rect.left) / El.rect.width) * 100;
+            setHomeDesktopLayout((ae) => {
+              const yl = {
+                ...ae,
+                left_width_percent: Math.round(clampNumber(gl, 44, 72)),
+              };
+              homeDesktopLayoutRef.current = yl;
+              return yl;
+            });
+            return;
+          }
+          const gl = ea.clientY - El.rect.top;
+          setHomeDesktopLayout((ae) => {
+            const yl = {
+              ...ae,
+              top_height: Math.round(clampNumber(gl, 188, 360)),
+            };
+            homeDesktopLayoutRef.current = yl;
+            return yl;
+          });
+        },
+        ea = () => stopHomeDesktopResize();
+      homeDesktopResizeRef.current = {
+        ...El,
+        handleMove: Se,
+        handleUp: ea,
+      };
+      document.addEventListener("mousemove", Se);
+      document.addEventListener("mouseup", ea);
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = o === "column" ? "col-resize" : "row-resize";
+    },
     getShipmentAssignableProducts = (o = null) =>
       Kl.flatMap((N) =>
         ((N && N.products) || [])
@@ -4245,6 +4368,20 @@ function nh() {
     missionReviewAlertCount = missionReviewAlerts.length,
     isDesktopLayout = layoutMode === "WEB" && isWideViewport;
   V.useEffect(() => {
+    homeDesktopLayoutRef.current = homeDesktopLayout;
+  }, [homeDesktopLayout]);
+  V.useEffect(() => {
+    setHomeDesktopLayout(
+      normalizeHomeDesktopLayout(J && J.profile && J.profile.home_layout),
+    );
+  }, [J]);
+  V.useEffect(
+    () => () => {
+      stopHomeDesktopResize(!1);
+    },
+    [],
+  );
+  V.useEffect(() => {
     if (!publicClientShareToken) return;
     let o = !0;
     setPublicClientShareLoading(!0);
@@ -5043,9 +5180,21 @@ function nh() {
     });
   const ta = () =>
     c.jsxs("div", {
+      ref: isDesktopLayout ? homeDesktopGridRef : null,
       className: isDesktopLayout
-        ? "grid gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(340px,380px)] xl:grid-rows-[auto_minmax(0,1fr)] items-stretch"
+        ? "grid gap-0 items-stretch min-h-[720px]"
         : "flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark",
+      style: isDesktopLayout
+        ? w
+          ? {
+              gridTemplateColumns: `minmax(0, ${homeDesktopLayout.left_width_percent}%) 10px minmax(340px, 1fr)`,
+              gridTemplateRows: `${homeDesktopLayout.top_height}px 10px minmax(420px, 1fr)`,
+            }
+          : {
+              gridTemplateColumns: "minmax(0, 1fr)",
+              gridTemplateRows: `${homeDesktopLayout.top_height}px 10px minmax(420px, 1fr)`,
+            }
+        : void 0,
       children: [
         false && c.jsxs("div", {
           className:
@@ -5128,11 +5277,44 @@ function nh() {
             }),
           ],
         }),
+        isDesktopLayout &&
+        c.jsx("div", {
+          className:
+            "col-start-1 row-start-2 flex items-center justify-center select-none",
+          children: c.jsx("button", {
+            type: "button",
+            onMouseDown: startHomeDesktopResize("row"),
+            className:
+              "group flex h-[10px] w-full items-center justify-center cursor-row-resize",
+            title: "Ajustar altura de secciones",
+            children: c.jsx("span", {
+              className:
+                "block h-1.5 w-16 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
+            }),
+          }),
+        }),
+        isDesktopLayout &&
+        w &&
+        c.jsx("div", {
+          className:
+            "col-start-2 row-start-1 row-span-3 flex items-center justify-center select-none",
+          children: c.jsx("button", {
+            type: "button",
+            onMouseDown: startHomeDesktopResize("column"),
+            className:
+              "group flex h-full w-[10px] items-center justify-center cursor-col-resize",
+            title: "Ajustar ancho de secciones",
+            children: c.jsx("span", {
+              className:
+                "block h-20 w-1.5 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
+            }),
+          }),
+        }),
         c.jsxs("div", {
           className: isDesktopLayout
             ? w
-              ? "xl:order-2 xl:col-start-1 xl:row-start-2 bg-surface-light dark:bg-surface-dark p-5 border border-border-light dark:border-border-dark shadow-card min-h-[420px] xl:rounded-t-none xl:rounded-br-none xl:rounded-bl-3xl xl:border-t-0 xl:-mt-px"
-              : "xl:order-2 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-5 rounded-b-3xl border border-border-light dark:border-border-dark shadow-card min-h-[420px] xl:border-t-0 xl:-mt-px"
+              ? "col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col"
+              : "col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col"
             : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
@@ -5144,7 +5326,7 @@ function nh() {
                 }),
                 c.jsx("div", {
                   className: isDesktopLayout
-                    ? "space-y-2 pr-1 max-h-[520px] overflow-y-auto ios-scroll"
+                    ? "space-y-2 pr-1 flex-1 min-h-0 overflow-y-auto ios-scroll"
                     : "space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll",
                   children:
                     requests.length === 0
@@ -5606,7 +5788,7 @@ function nh() {
         Rt.length > 0 &&
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-3 xl:col-start-2 xl:row-span-2 bg-surface-light dark:bg-surface-dark p-4 border border-border-light dark:border-border-dark shadow-card min-h-[640px] flex flex-col xl:rounded-l-none xl:rounded-tr-3xl xl:rounded-br-3xl xl:-ml-px"
+            ? "col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col"
             : "bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark",
           children: [
             c.jsxs("div", {
@@ -5629,7 +5811,7 @@ function nh() {
             }),
             c.jsx("div", {
               className: isDesktopLayout
-                ? "pr-0 max-h-[calc(100vh-18rem)] overflow-y-auto overscroll-contain ios-scroll"
+                ? "pr-0 flex-1 min-h-0 overflow-y-auto overscroll-contain ios-scroll"
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) => {
                 const N = getHomeClientMissionAnnotatedTotals(o.products || [], w.id),
@@ -5774,7 +5956,7 @@ function nh() {
         Rt.length === 0 &&
         c.jsxs("div", {
           className: isDesktopLayout
-            ? "xl:order-3 xl:col-start-2 xl:row-span-2 text-center py-12 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-card min-h-[420px] flex flex-col items-center justify-center xl:rounded-l-none xl:rounded-tr-3xl xl:rounded-br-3xl xl:-ml-px"
+            ? "col-start-3 row-start-1 row-span-3 text-center py-12 bg-surface-light dark:bg-surface-dark rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col items-center justify-center"
             : "text-center py-8 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark",
           children: [
             c.jsx("p", {
@@ -6039,8 +6221,8 @@ function nh() {
         c.jsxs("div", {
           className: isDesktopLayout
             ? w
-              ? "xl:order-1 xl:col-start-1 xl:row-start-1 bg-surface-light dark:bg-surface-dark p-4 border border-border-light dark:border-border-dark shadow-card xl:rounded-tl-3xl xl:rounded-tr-none xl:rounded-br-none xl:rounded-bl-none"
-              : "xl:order-1 xl:col-span-2 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card"
+              ? "col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto"
+              : "col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto"
             : "bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4",
           children: [
             c.jsxs("div", {

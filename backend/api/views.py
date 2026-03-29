@@ -252,11 +252,16 @@ def me(request):
     """
     Devuelve los datos del usuario actual.
     """
+    default_home_layout = {
+        'left_width_percent': 62,
+        'top_height': 232,
+    }
     profile, _ = UserProfile.objects.get_or_create(
         user=request.user,
         defaults={'role': 'AV'},
     )
     if request.method == 'PATCH':
+        update_fields = []
         layout_mode = request.data.get('layout_mode')
         if layout_mode is not None:
             normalized_layout_mode = str(layout_mode).strip().upper()
@@ -268,7 +273,62 @@ def me(request):
                 )
             if profile.layout_mode != normalized_layout_mode:
                 profile.layout_mode = normalized_layout_mode
-                profile.save(update_fields=['layout_mode'])
+                update_fields.append('layout_mode')
+        home_layout = request.data.get('home_layout')
+        if home_layout is not None:
+            if not isinstance(home_layout, dict):
+                return Response(
+                    {'error': 'Invalid home layout.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            base_home_layout = profile.home_layout or {}
+            try:
+                normalized_home_layout = {
+                    'left_width_percent': int(
+                        max(
+                            44,
+                            min(
+                                72,
+                                float(
+                                    home_layout.get(
+                                        'left_width_percent',
+                                        base_home_layout.get(
+                                            'left_width_percent',
+                                            default_home_layout['left_width_percent'],
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    'top_height': int(
+                        max(
+                            188,
+                            min(
+                                360,
+                                float(
+                                    home_layout.get(
+                                        'top_height',
+                                        base_home_layout.get(
+                                            'top_height',
+                                            default_home_layout['top_height'],
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                }
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'Invalid home layout.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if profile.home_layout != normalized_home_layout:
+                profile.home_layout = normalized_home_layout
+                update_fields.append('home_layout')
+        if update_fields:
+            profile.save(update_fields=update_fields)
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 

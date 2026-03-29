@@ -21,6 +21,7 @@ class UserProfile(models.Model):
         choices=LayoutMode.choices,
         default=LayoutMode.MOBILE,
     )
+    home_layout = models.JSONField(default=dict, blank=True)
     last_active = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
