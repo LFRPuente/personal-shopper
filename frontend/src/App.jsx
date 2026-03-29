@@ -5187,12 +5187,12 @@ function nh() {
       style: isDesktopLayout
         ? w
           ? {
-              gridTemplateColumns: `minmax(0, ${homeDesktopLayout.left_width_percent}%) 10px minmax(340px, 1fr)`,
-              gridTemplateRows: `${homeDesktopLayout.top_height}px 10px minmax(420px, 1fr)`,
+              gridTemplateColumns: `minmax(0, ${homeDesktopLayout.left_width_percent}%) 6px minmax(340px, 1fr)`,
+              gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(420px, 1fr)`,
             }
           : {
               gridTemplateColumns: "minmax(0, 1fr)",
-              gridTemplateRows: `${homeDesktopLayout.top_height}px 10px minmax(420px, 1fr)`,
+              gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(420px, 1fr)`,
             }
         : void 0,
       children: [
@@ -5285,11 +5285,11 @@ function nh() {
             type: "button",
             onMouseDown: startHomeDesktopResize("row"),
             className:
-              "group flex h-[10px] w-full items-center justify-center cursor-row-resize",
+              "group flex h-[6px] w-full items-center justify-center cursor-row-resize",
             title: "Ajustar altura de secciones",
             children: c.jsx("span", {
               className:
-                "block h-1.5 w-16 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
+                "block h-1 w-12 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
             }),
           }),
         }),
@@ -5302,11 +5302,11 @@ function nh() {
             type: "button",
             onMouseDown: startHomeDesktopResize("column"),
             className:
-              "group flex h-full w-[10px] items-center justify-center cursor-col-resize",
+              "group flex h-full w-[6px] items-center justify-center cursor-col-resize",
             title: "Ajustar ancho de secciones",
             children: c.jsx("span", {
               className:
-                "block h-20 w-1.5 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
+                "block h-16 w-1 rounded-full bg-gray-300 transition group-hover:bg-primary/60 dark:bg-gray-700 dark:group-hover:bg-primary/70",
             }),
           }),
         }),
