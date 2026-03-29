@@ -1665,11 +1665,11 @@ function nh() {
         ? N / A
         : Number.NaN;
     },
-    computeProductModalDiscountAmount = (o) => {
+    computeProductModalDiscountedPrice = (o) => {
       const N = parseFloat(o);
       const A = parseFloat(calcDiscount);
       return Number.isFinite(N) && Number.isFinite(A) && A > 0
-        ? N * (A / 100)
+        ? N * (1 - A / 100)
         : Number.NaN;
     },
     getProductModalPriceError = (o = null) => {
@@ -3771,11 +3771,11 @@ function nh() {
       Number.isFinite(productDiscountPercent) &&
       productDiscountPercent > 0 &&
       Number.isInteger(productDiscountPercent),
-    productStoreDiscountAmount = showProductDiscountFields
-      ? computeProductModalDiscountAmount(st.real_price)
+    productStoreDiscountedPrice = showProductDiscountFields
+      ? computeProductModalDiscountedPrice(st.real_price)
       : Number.NaN,
-    productFinalDiscountAmount = showProductDiscountFields
-      ? computeProductModalDiscountAmount(st.charged_price)
+    productFinalDiscountedPrice = showProductDiscountFields
+      ? computeProductModalDiscountedPrice(st.charged_price)
       : Number.NaN,
     sectionStageClass =
       sectionTransitionStage === "out"
@@ -9111,13 +9111,13 @@ function nh() {
                         c.jsx("label", {
                           className:
                             "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
-                          children: "Descuento Store Price (USD)",
+                          children: "Store Price con descuento (USD)",
                         }),
                         c.jsx("input", {
                           type: "text",
                           readOnly: !0,
-                          value: Number.isFinite(productStoreDiscountAmount)
-                            ? productStoreDiscountAmount.toFixed(2)
+                          value: Number.isFinite(productStoreDiscountedPrice)
+                            ? productStoreDiscountedPrice.toFixed(2)
                             : "",
                           className:
                             "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
@@ -9129,13 +9129,13 @@ function nh() {
                         c.jsx("label", {
                           className:
                             "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
-                          children: "Descuento Final Price (MXN)",
+                          children: "Final Price con descuento (MXN)",
                         }),
                         c.jsx("input", {
                           type: "text",
                           readOnly: !0,
-                          value: Number.isFinite(productFinalDiscountAmount)
-                            ? productFinalDiscountAmount.toFixed(2)
+                          value: Number.isFinite(productFinalDiscountedPrice)
+                            ? productFinalDiscountedPrice.toFixed(2)
                             : "",
                           className:
                             "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
