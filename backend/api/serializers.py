@@ -17,6 +17,7 @@ from .models import (
     ProductReviewReadState,
     ClientHistoryShareLink,
     ShoppingPayment,
+    ShoppingPaymentEntry,
     Shipment,
     ShipmentShareLink,
 )
@@ -160,6 +161,24 @@ class ShoppingPaymentProductSerializer(serializers.ModelSerializer):
         ]
 
 
+class ShoppingPaymentEntrySerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(
+        source='created_by.username', read_only=True, default=None
+    )
+
+    class Meta:
+        model = ShoppingPaymentEntry
+        fields = [
+            'id',
+            'amount',
+            'total_after',
+            'created_by',
+            'created_by_username',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+
 class ShoppingPaymentSerializer(serializers.ModelSerializer):
     shopping = serializers.PrimaryKeyRelatedField(
         source='mission',
@@ -171,6 +190,7 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source='client.name', read_only=True, default=None)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
     products_detail = ShoppingPaymentProductSerializer(source='products', many=True, read_only=True)
+    entries = ShoppingPaymentEntrySerializer(many=True, read_only=True)
     products_total = serializers.SerializerMethodField()
     balance = serializers.SerializerMethodField()
 

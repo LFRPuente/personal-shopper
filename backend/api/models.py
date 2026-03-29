@@ -376,6 +376,30 @@ class ShoppingPayment(models.Model):
         return f"Payment {self.id} - client {self.client_id}"
 
 
+class ShoppingPaymentEntry(models.Model):
+    payment = models.ForeignKey(
+        ShoppingPayment,
+        on_delete=models.CASCADE,
+        related_name='entries',
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_after = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shopping_payment_entries_created',
+    )
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f"Payment entry {self.id} - payment {self.payment_id}"
+
+
 class ClientHistoryShareLink(models.Model):
     client = models.ForeignKey(
         Client,

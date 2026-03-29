@@ -255,7 +255,6 @@ function nh() {
       client: "",
       shopping: "",
       amount: "",
-      note: "",
       product_ids: [],
     }),
     [newRequestText, setNewRequestText] = V.useState(""),
@@ -2455,6 +2454,12 @@ function nh() {
       Number((o && (o.shopping || o.mission)) || 0),
     paymentLocalRecordAmount = (o = null) =>
       paymentLocalToNumber(o && o.amount, 0),
+    paymentLocalRecordEntries = (o = null) =>
+      [...((o && o.entries) || [])].sort(
+        (N, A) =>
+          new Date(A.created_at || 0).getTime() -
+          new Date(N.created_at || 0).getTime(),
+      ),
     paymentLocalRecordProductsTotal = (o = null) =>
       paymentLocalHasValue(o && o.products_total)
         ? paymentLocalToNumber(o.products_total, 0)
@@ -2496,6 +2501,12 @@ function nh() {
         new Set(),
       )
       : new Set(),
+    paymentCurrentRecord = paymentModalClient && paymentForm.shopping
+      ? paymentLocalShoppingPayments(paymentModalClient, paymentForm.shopping).find(
+        (o) => Number(o.id) === Number(paymentForm.id || 0),
+      ) || null
+      : null,
+    paymentHistoryEntries = paymentLocalRecordEntries(paymentCurrentRecord),
     paymentFilteredProducts = paymentModalProducts.filter((o) => {
       const N = String(paymentProductSearch || "").trim().toLowerCase();
       if (!N) return !0;
@@ -2549,7 +2560,6 @@ function nh() {
         client: String(o.id),
         shopping: String(vl),
         amount: bi ? Pi : (Pi || oi),
-        note: (Se && Se.note) || "",
         product_ids: ea,
       });
       setPaymentAmountManual(bi);
@@ -2589,7 +2599,6 @@ function nh() {
               client: o.id,
               shopping: N.id,
               amount: paymentLocalToNumber(A, 0).toFixed(2),
-              note: String(paymentForm.note || "").trim(),
               products: (paymentForm.product_ids || []).map((vl) => Number(vl)),
             }),
           },
@@ -6865,7 +6874,7 @@ function nh() {
                                                 c.jsx("p", {
                                                   className:
                                                     "text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-300",
-                                                  children: "Pagos",
+                                                  children: "Historial de abonos",
                                                 }),
                                                 ea.payments.map((gl) => {
                                                   const ae = getPaymentRecordProducts(gl),
@@ -6898,10 +6907,13 @@ function nh() {
                                                                     gl.created_by_username ||
                                                                     "Usuario",
                                                                     " - ",
-                                                                    getRelativeTime(
-                                                                      gl.updated_at ||
-                                                                        gl.created_at,
-                                                                    ),
+                                                                    gl.updated_at ||
+                                                                    gl.created_at
+                                                                      ? new Date(
+                                                                        gl.updated_at ||
+                                                                          gl.created_at,
+                                                                      ).toLocaleString()
+                                                                      : "Sin fecha",
                                                                   ],
                                                                 }),
                                                               ],
@@ -6994,12 +7006,6 @@ function nh() {
                                                               ],
                                                             }),
                                                           ],
-                                                        }),
-                                                        gl.note &&
-                                                        c.jsx("p", {
-                                                          className:
-                                                            "text-[10px] text-text-sub rounded-md bg-white/80 dark:bg-slate-900/50 px-2 py-1 border border-violet-100 dark:border-violet-900/50",
-                                                          children: gl.note,
                                                         }),
                                                         ae.length > 0
                                                           ? c.jsx("div", {
@@ -10832,29 +10838,132 @@ function nh() {
                                     }),
                                   ],
                                 }),
-                                c.jsxs("label", {
-                                  className: "block",
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className:
+                                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-3 py-3 space-y-2",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "flex items-center justify-between gap-2",
                                   children: [
-                                    c.jsx("span", {
+                                    c.jsx("p", {
                                       className:
-                                        "text-[11px] font-semibold text-text-sub",
-                                      children: "Nota",
+                                        "text-[11px] font-bold uppercase tracking-wide text-text-sub",
+                                      children: "Historial de abonos",
                                     }),
-                                    c.jsx("textarea", {
-                                      rows: 4,
-                                      value: paymentForm.note,
-                                      onChange: (o) =>
-                                        setPaymentForm((N) => ({
-                                          ...N,
-                                          note: o.target.value,
-                                        })),
-                                      placeholder:
-                                        "Opcional: referencia, metodo de pago, comentario...",
+                                    c.jsxs("span", {
                                       className:
-                                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                        "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
+                                      children: [
+                                        paymentHistoryEntries.length,
+                                        " movimiento(s)",
+                                      ],
                                     }),
                                   ],
                                 }),
+                                paymentHistoryEntries.length === 0
+                                  ? c.jsx("p", {
+                                    className:
+                                      "text-[11px] leading-5 text-text-sub",
+                                    children:
+                                      "Aun no hay abonos guardados en esta shopping.",
+                                  })
+                                  : c.jsx("div", {
+                                    className:
+                                      "max-h-44 overflow-y-auto ios-scroll space-y-2 pr-1",
+                                    children: paymentHistoryEntries.map((o) =>
+                                      c.jsxs(
+                                        "div",
+                                        {
+                                          className:
+                                            "rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 px-3 py-2.5",
+                                          children: [
+                                            c.jsxs("div", {
+                                              className:
+                                                "flex items-start justify-between gap-3",
+                                              children: [
+                                                c.jsxs("div", {
+                                                  className: "min-w-0",
+                                                  children: [
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        `text-sm font-bold ${
+                                                          paymentLocalToNumber(
+                                                            o.amount,
+                                                            0,
+                                                          ) < 0
+                                                            ? "text-rose-600 dark:text-rose-300"
+                                                            : "text-emerald-700 dark:text-emerald-300"
+                                                        }`,
+                                                      children: [
+                                                        paymentLocalToNumber(
+                                                          o.amount,
+                                                          0,
+                                                        ) < 0
+                                                          ? "-$"
+                                                          : "+$",
+                                                        formatAmount(
+                                                          Math.abs(
+                                                            paymentLocalToNumber(
+                                                              o.amount,
+                                                              0,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    }),
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[10px] text-text-sub mt-0.5",
+                                                      children:
+                                                        o.created_at
+                                                          ? new Date(
+                                                            o.created_at,
+                                                          ).toLocaleString()
+                                                          : "Sin fecha",
+                                                    }),
+                                                  ],
+                                                }),
+                                                c.jsxs("div", {
+                                                  className:
+                                                    "text-right shrink-0",
+                                                  children: [
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-300",
+                                                      children: "Total",
+                                                    }),
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        "text-sm font-bold text-violet-700 dark:text-violet-200 mt-0.5",
+                                                      children: [
+                                                        "$",
+                                                        formatAmount(
+                                                          paymentLocalToNumber(
+                                                            o.total_after,
+                                                            0,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    }),
+                                                  ],
+                                                }),
+                                              ],
+                                            }),
+                                            o.created_by_username &&
+                                            c.jsx("p", {
+                                              className:
+                                                "text-[10px] text-text-sub mt-2",
+                                              children: o.created_by_username,
+                                            }),
+                                          ],
+                                        },
+                                        `payment-history-entry-${o.id}`,
+                                      ),
+                                    ),
+                                  }),
                               ],
                             }),
                             c.jsxs("div", {

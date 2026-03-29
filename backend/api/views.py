@@ -12,6 +12,7 @@ from django.http import Http404
 from collections import defaultdict
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from decimal import Decimal
 import hashlib
 import secrets
 from .models import (
@@ -32,6 +33,7 @@ from .models import (
     ProductReviewReadState,
     ClientHistoryShareLink,
     ShoppingPayment,
+    ShoppingPaymentEntry,
     Shipment,
     ShipmentShareLink,
 )
@@ -72,6 +74,18 @@ def broadcast_update(model, action='changed', object_id=None):
             'action': action,
             'id': object_id,
         },
+    )
+
+
+def create_payment_entry(payment, amount, total_after, user=None):
+    amount_decimal = Decimal(amount or 0)
+    if amount_decimal == Decimal('0'):
+        return None
+    return ShoppingPaymentEntry.objects.create(
+        payment=payment,
+        amount=amount_decimal,
+        total_after=Decimal(total_after or 0),
+        created_by=user,
     )
 
 
@@ -1305,7 +1319,7 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = ShoppingPayment.objects.select_related(
             'client', 'mission', 'created_by'
-        ).prefetch_related('products').all().order_by('-created_at', '-id')
+        ).prefetch_related('products', 'entries', 'entries__created_by').all().order_by('-created_at', '-id')
         client_id = self.request.query_params.get('client')
         shopping_id = get_shopping_query_param(self.request)
         if client_id:
@@ -1316,11 +1330,24 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         payment = serializer.save(created_by=self.request.user)
+        create_payment_entry(
+            payment,
+            payment.amount,
+            payment.amount,
+            self.request.user,
+        )
         broadcast_update('payments', action='created', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
 
     def perform_update(self, serializer):
+        previous_amount = Decimal(serializer.instance.amount or 0)
         payment = serializer.save()
+        create_payment_entry(
+            payment,
+            Decimal(payment.amount or 0) - previous_amount,
+            payment.amount,
+            self.request.user,
+        )
         broadcast_update('payments', action='updated', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
 
