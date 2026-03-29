@@ -169,6 +169,7 @@ function nh() {
     [st, Gt] = V.useState(() => createEmptyProductForm()),
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
+    [productPriceAutoInfoOpen, setProductPriceAutoInfoOpen] = V.useState(!1),
     [productPriceAutoSync, setProductPriceAutoSync] = V.useState(!0),
     [productPriceSyncSource, setProductPriceSyncSource] = V.useState("real"),
     [closingOverlayKey, setClosingOverlayKey] = V.useState(""),
@@ -1726,6 +1727,7 @@ function nh() {
         setShowAddStoreInput(!1),
         setNewStoreName(""),
         setPendingProductFile(A.file || null),
+        setProductPriceAutoInfoOpen(!1),
         setProductPriceAutoSync(!ea),
         setProductPriceSyncSource(ea ? "charged" : "real"),
         setProductModalMode(N),
@@ -1738,6 +1740,7 @@ function nh() {
         Gt(createEmptyProductForm()),
         setProductModalMode("edit"),
         setPendingProductFile(null),
+        setProductPriceAutoInfoOpen(!1),
         setProductPriceAutoSync(!0),
         setProductPriceSyncSource("real"),
         setModalTags([]),
@@ -9049,19 +9052,38 @@ function nh() {
                             "text-xs font-semibold text-text-sub dark:text-slate-300 truncate",
                           children: "Calculo automatico",
                         }),
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: () =>
-                            notifyInfo(
-                              "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
-                            ),
-                          className:
-                            "w-5 h-5 rounded-full border border-fuchsia-200 text-fuchsia-700 dark:border-fuchsia-800 dark:text-fuchsia-300 inline-flex items-center justify-center hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 transition shrink-0",
-                          "aria-label": "Info de calculo automatico",
-                          children: c.jsx("span", {
-                            className: "material-symbols-outlined text-[12px] leading-none",
-                            children: "info",
-                          }),
+                        c.jsxs("div", {
+                          className: "relative shrink-0",
+                          onMouseEnter: () => setProductPriceAutoInfoOpen(!0),
+                          onMouseLeave: () => setProductPriceAutoInfoOpen(!1),
+                          children: [
+                            c.jsx("button", {
+                              type: "button",
+                              onClick: () =>
+                                setProductPriceAutoInfoOpen((o) => !o),
+                              onFocus: () => setProductPriceAutoInfoOpen(!0),
+                              onBlur: () => setProductPriceAutoInfoOpen(!1),
+                              title:
+                                "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
+                              className:
+                                "w-5 h-5 rounded-full border border-fuchsia-200 text-fuchsia-700 dark:border-fuchsia-800 dark:text-fuchsia-300 inline-flex items-center justify-center hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 transition",
+                              "aria-label": "Info de calculo automatico",
+                              "aria-expanded": productPriceAutoInfoOpen,
+                              "aria-describedby": "product-price-auto-info",
+                              children: c.jsx("span", {
+                                className: "material-symbols-outlined text-[12px] leading-none",
+                                children: "info",
+                              }),
+                            }),
+                            productPriceAutoInfoOpen &&
+                            c.jsx("div", {
+                              id: "product-price-auto-info",
+                              className:
+                                "absolute left-1/2 top-full z-10 mt-2 w-64 -translate-x-1/2 rounded-2xl border border-fuchsia-200 bg-white/98 px-3 py-2 text-[11px] leading-5 text-fuchsia-900 shadow-xl dark:border-fuchsia-900 dark:bg-slate-950 dark:text-fuchsia-100",
+                              children:
+                                "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
+                            }),
+                          ],
                         }),
                       ],
                     }),
