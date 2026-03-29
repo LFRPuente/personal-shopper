@@ -9703,7 +9703,7 @@ function nh() {
                                   "absolute top-1.5 left-1.5 z-20 w-2.5 h-2.5 rounded-full bg-red-500 border border-white dark:border-slate-900",
                               }),
                               c.jsxs("div", {
-                                className: "absolute top-1.5 right-1.5 z-20",
+                                className: "absolute top-1.5 right-1.5 z-30",
                                 "data-product-menu": "1",
                                 children: [
                                   c.jsx("button", {
@@ -9727,7 +9727,7 @@ function nh() {
                                   openProductMenuId === o.id &&
                                   c.jsxs("div", {
                                     className:
-                                      "absolute right-0 top-9 w-36 rounded-xl border border-gray-200 bg-white shadow-lg p-1 ui-pop",
+                                      "absolute right-0 top-9 z-40 w-36 rounded-xl border border-gray-200 bg-white shadow-lg p-1 ui-pop",
                                     children: [
                                       c.jsxs("button", {
                                         onClick: (N) => {
