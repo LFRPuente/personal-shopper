@@ -169,7 +169,7 @@ function nh() {
     [st, Gt] = V.useState(() => createEmptyProductForm()),
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
-    [productFinalPriceManual, setProductFinalPriceManual] = V.useState(!1),
+    [productPriceSyncSource, setProductPriceSyncSource] = V.useState("real"),
     [closingOverlayKey, setClosingOverlayKey] = V.useState(""),
     [Je, We] = V.useState(null),
     [ji, sn] = V.useState(!1),
@@ -755,7 +755,15 @@ function nh() {
     return () => document.removeEventListener("keydown", o, !0);
   }, []);
   V.useEffect(() => {
-    if (!me || !he || productFinalPriceManual) return;
+    if (!me || !he) return;
+    if (productPriceSyncSource === "charged") {
+      const o = computeProductModalStorePrice(st.charged_price);
+      const N = Number.isFinite(o) ? o.toFixed(2) : "";
+      Gt((A) =>
+        String((A && A.real_price) || "") === N ? A : { ...A, real_price: N },
+      );
+      return;
+    }
     const o = computeProductModalFinalPrice(st.real_price);
     const N = Number.isFinite(o) ? o.toFixed(2) : "";
     Gt((A) =>
@@ -767,13 +775,14 @@ function nh() {
     me,
     he,
     st.real_price,
+    st.charged_price,
     calcMode,
     calcFactor,
     calcDiscount,
     calcTaxes,
     calcCommission,
     calcExchangeRate,
-    productFinalPriceManual,
+    productPriceSyncSource,
   ]);
   V.useEffect(() => {
     if (!paymentModalOpen || paymentAmountManual || paymentForm.id) return;
@@ -1630,17 +1639,27 @@ function nh() {
       const N = parseFloat(o);
       return Number.isFinite(N) ? N.toFixed(2) : String(o);
     },
+    getProductModalPriceMultiplier = () => {
+      const o = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
+      if (String(calcMode).toUpperCase() === "FACTOR")
+        return (parseFloat(calcFactor) || 0) * o;
+      return (
+        o *
+        (1 + (parseFloat(calcCommission) || 0) / 100) *
+        (1 + (parseFloat(calcTaxes) || 0) / 100) *
+        (parseFloat(calcExchangeRate) || 0)
+      );
+    },
     computeProductModalFinalPrice = (o) => {
       const N = parseFloat(o);
-      const A = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
-      return Number.isFinite(N)
-        ? calcMode === "FACTOR"
-          ? N * calcFactor * A
-          : N *
-            A *
-            (1 + calcCommission / 100) *
-            (1 + calcTaxes / 100) *
-            calcExchangeRate
+      const A = getProductModalPriceMultiplier();
+      return Number.isFinite(N) && Number.isFinite(A) ? N * A : Number.NaN;
+    },
+    computeProductModalStorePrice = (o) => {
+      const N = parseFloat(o);
+      const A = getProductModalPriceMultiplier();
+      return Number.isFinite(N) && Number.isFinite(A) && A > 0
+        ? N / A
         : Number.NaN;
     },
     getProductModalPriceError = (o = null) => {
@@ -1698,7 +1717,7 @@ function nh() {
         setShowAddStoreInput(!1),
         setNewStoreName(""),
         setPendingProductFile(A.file || null),
-        setProductFinalPriceManual(ea),
+        setProductPriceSyncSource(ea ? "charged" : "real"),
         setProductModalMode(N),
         ut(!0));
     },
@@ -1709,7 +1728,7 @@ function nh() {
         Gt(createEmptyProductForm()),
         setProductModalMode("edit"),
         setPendingProductFile(null),
-        setProductFinalPriceManual(!1),
+        setProductPriceSyncSource("real"),
         setModalTags([]),
         setNewModalTag(""),
         setStoreSearch(""),
@@ -1794,9 +1813,7 @@ function nh() {
           store: w ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
           real_price: A(st.real_price),
-          charged_price: productFinalPriceManual
-            ? A(st.charged_price)
-            : (N || A(st.charged_price)),
+          charged_price: A(st.charged_price) || N,
         },
         reviewState: st.status,
       };
@@ -3734,7 +3751,6 @@ function nh() {
         });
       }
     },
-    modalComputedFinalPrice = computeProductModalFinalPrice(st.real_price),
     modalHasRequiredProductFields = !getProductModalRequiredError(st),
     sectionStageClass =
       sectionTransitionStage === "out"
@@ -8968,8 +8984,10 @@ function nh() {
                           type: "number",
                           step: "0.01",
                           value: st.real_price,
-                          onChange: (o) =>
-                            Gt({ ...st, real_price: o.target.value }),
+                          onChange: (o) => {
+                            setProductPriceSyncSource("real");
+                            Gt({ ...st, real_price: o.target.value });
+                          },
                           className: productStoreInputClass,
                           required: !0,
                         }),
@@ -8987,39 +9005,11 @@ function nh() {
                           step: "0.01",
                           value: st.charged_price,
                           onChange: (o) => {
-                            setProductFinalPriceManual(!0);
+                            setProductPriceSyncSource("charged");
                             Gt({ ...st, charged_price: o.target.value });
                           },
                           className: productFinalInputClass,
                           required: !0,
-                        }),
-                        Number.isFinite(modalComputedFinalPrice) &&
-                        c.jsxs("div", {
-                          className: "mt-1 flex items-center justify-between gap-2",
-                          children: [
-                            c.jsxs("span", {
-                              className:
-                                "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
-                              children: [
-                                "Calculado: $",
-                                modalComputedFinalPrice.toFixed(2),
-                              ],
-                            }),
-                            productFinalPriceManual &&
-                            c.jsx("button", {
-                              type: "button",
-                              onClick: () => {
-                                setProductFinalPriceManual(!1);
-                                Gt({
-                                  ...st,
-                                  charged_price: modalComputedFinalPrice.toFixed(2),
-                                });
-                              },
-                              className:
-                                "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
-                              children: "Usar calculo",
-                            }),
-                          ],
                         }),
                       ],
                     }),
