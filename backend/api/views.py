@@ -1371,8 +1371,12 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
         broadcast_update('payments', action='deleted', object_id=payment_id)
         broadcast_update('clients', action='updated', object_id=client_id)
 
-    @action(detail=True, methods=['patch'], url_path=r'entries/(?P<entry_id>[^/.]+)')
-    def update_entry(self, request, pk=None, entry_id=None):
+    @action(
+        detail=True,
+        methods=['patch', 'delete'],
+        url_path=r'entries/(?P<entry_id>[^/.]+)',
+    )
+    def manage_entry(self, request, pk=None, entry_id=None):
         payment = self.get_object()
         entry = payment.entries.filter(id=entry_id).first()
         if not entry:
@@ -1380,32 +1384,19 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
                 {'error': 'Payment entry not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        raw_amount = request.data.get('amount')
-        try:
-            amount = Decimal(str(raw_amount))
-        except Exception:
-            return Response(
-                {'error': 'A valid amount is required.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        entry.amount = amount
-        entry.save(update_fields=['amount'])
-        payment = recalculate_payment_entry_totals(payment)
-        payment.refresh_from_db()
-        broadcast_update('payments', action='updated', object_id=payment.id)
-        broadcast_update('clients', action='updated', object_id=payment.client_id)
-        return Response(self.get_serializer(payment).data)
-
-    @action(detail=True, methods=['delete'], url_path=r'entries/(?P<entry_id>[^/.]+)')
-    def delete_entry(self, request, pk=None, entry_id=None):
-        payment = self.get_object()
-        entry = payment.entries.filter(id=entry_id).first()
-        if not entry:
-            return Response(
-                {'error': 'Payment entry not found.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        entry.delete()
+        if request.method.lower() == 'patch':
+            raw_amount = request.data.get('amount')
+            try:
+                amount = Decimal(str(raw_amount))
+            except Exception:
+                return Response(
+                    {'error': 'A valid amount is required.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            entry.amount = amount
+            entry.save(update_fields=['amount'])
+        else:
+            entry.delete()
         payment = recalculate_payment_entry_totals(payment)
         payment.refresh_from_db()
         broadcast_update('payments', action='updated', object_id=payment.id)
