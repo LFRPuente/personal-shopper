@@ -10186,6 +10186,19 @@ function nh() {
                                       }),
                                     ],
                                   }),
+                                  Number.isFinite(getProductQuickFinalPrice(o)) &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-0.5 z-20 flex justify-center pointer-events-none",
+                                    children: c.jsxs("span", {
+                                      className:
+                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                      children: [
+                                        "$",
+                                        formatProductQuickFinalPrice(o),
+                                      ],
+                                    }),
+                                  }),
                                   c.jsx("div", {
                                     className: "absolute right-0.5 bottom-0.5 z-20",
                                     children: c.jsxs("button", {
