@@ -372,6 +372,7 @@ function nh() {
     toastTimeoutsRef = V.useRef(new Map()),
     toastIdRef = V.useRef(0),
     shoppingCalcPersistTimerRef = V.useRef(null),
+    breakdownTemplateTextareaRef = V.useRef(null),
     I = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       (C && (A.Authorization = `Bearer ${C}`),
@@ -8247,6 +8248,173 @@ function nh() {
         ],
       });
     },
+    persistDefaultBreakdownTemplate = (o) => {
+      setDefaultBreakdownTemplate(o);
+      localStorage.setItem("default_breakdown_template", o);
+    },
+    insertBreakdownTemplateSnippet = (o, N = {}) => {
+      const A = breakdownTemplateTextareaRef.current,
+        vl = defaultBreakdownTemplate || "",
+        El =
+          typeof N.start == "number"
+            ? N.start
+            : A && typeof A.selectionStart == "number"
+              ? A.selectionStart
+              : vl.length,
+        Se =
+          typeof N.end == "number"
+            ? N.end
+            : A && typeof A.selectionEnd == "number"
+              ? A.selectionEnd
+              : El,
+        ea = `${vl.slice(0, El)}${o}${vl.slice(Se)}`;
+      persistDefaultBreakdownTemplate(ea);
+      window.requestAnimationFrame(() => {
+        const gl = breakdownTemplateTextareaRef.current;
+        if (!gl) return;
+        const ae = El + o.length;
+        gl.focus();
+        gl.setSelectionRange(ae, ae);
+      });
+    },
+    handleBreakdownTemplateDrop = (o) => {
+      o.preventDefault();
+      const N = o.dataTransfer.getData("text/plain");
+      if (!N) return;
+      const A = o.currentTarget,
+        vl = typeof A.selectionStart == "number" ? A.selectionStart : void 0,
+        El = typeof A.selectionEnd == "number" ? A.selectionEnd : void 0;
+      insertBreakdownTemplateSnippet(N, { start: vl, end: El });
+    },
+    breakdownTemplateVariableBlocks = [
+      {
+        id: "title",
+        label: "Titulo",
+        description: "Encabezado del desglose",
+        snippet: "{title}",
+      },
+      {
+        id: "items",
+        label: "Items",
+        description: "Lista de productos",
+        snippet: "{items}",
+      },
+      {
+        id: "total",
+        label: "Total",
+        description: "Total final",
+        snippet: "{total}",
+      },
+      {
+        id: "subtotal",
+        label: "Subtotal",
+        description: "Total antes del descuento",
+        snippet: "{subtotal}",
+      },
+      {
+        id: "discountPercentage",
+        label: "Descuento %",
+        description: "Porcentaje de descuento",
+        snippet: "{discount_percentage}",
+      },
+      {
+        id: "discountAmount",
+        label: "Monto descuento",
+        description: "Monto descontado",
+        snippet: "{discount_amount}",
+      },
+      {
+        id: "clientName",
+        label: "Cliente",
+        description: "Nombre del cliente",
+        snippet: "{client_name}",
+      },
+      {
+        id: "shoppingName",
+        label: "Shopping",
+        description: "Nombre del shopping",
+        snippet: "{shopping_name}",
+      },
+    ],
+    breakdownTemplateConditionalBlocks = [
+      {
+        id: "discountLine",
+        label: "Si hay descuento",
+        description: "Agrega la linea de descuento solo cuando exista",
+        snippet:
+          "{{if discount_percentage}}Descuento: {discount_percentage}% (-${discount_amount}){{/if}}",
+      },
+      {
+        id: "subtotalLine",
+        label: "Si hay descuento: subtotal",
+        description: "Muestra subtotal solo cuando haya descuento",
+        snippet:
+          "{{if discount_percentage}}Subtotal: ${subtotal}{{/if}}",
+      },
+      {
+        id: "clientLine",
+        label: "Si hay cliente",
+        description: "Muestra el nombre del cliente cuando exista",
+        snippet:
+          "{{if client_name}}Cliente: {client_name}{{/if}}",
+      },
+      {
+        id: "shoppingLine",
+        label: "Si hay shopping",
+        description: "Muestra el nombre del shopping cuando exista",
+        snippet:
+          "{{if shopping_name}}Shopping: {shopping_name}{{/if}}",
+      },
+    ],
+    renderBreakdownTemplateBlock = (o, N = "variable") =>
+      c.jsxs(
+        "button",
+        {
+          type: "button",
+          draggable: !0,
+          onClick: () => insertBreakdownTemplateSnippet(o.snippet),
+          onDragStart: (A) => {
+            A.dataTransfer.effectAllowed = "copy";
+            A.dataTransfer.setData("text/plain", o.snippet);
+          },
+          className:
+            N === "conditional"
+              ? "text-left rounded-2xl border border-emerald-200/80 bg-emerald-50/80 dark:border-emerald-900/70 dark:bg-emerald-950/20 px-3 py-2 transition hover:border-emerald-300 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/30"
+              : "text-left rounded-2xl border border-sky-200/80 bg-sky-50/80 dark:border-sky-900/70 dark:bg-sky-950/20 px-3 py-2 transition hover:border-sky-300 hover:bg-sky-100/80 dark:hover:bg-sky-950/30",
+          children: [
+            c.jsxs("div", {
+              className: "flex items-start justify-between gap-2",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("p", {
+                      className:
+                        "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
+                      children: N === "conditional" ? "Bloque" : "Variable",
+                    }),
+                    c.jsx("p", {
+                      className:
+                        "mt-1 text-xs font-bold text-text-main dark:text-white",
+                      children: o.label,
+                    }),
+                  ],
+                }),
+                c.jsx("span", {
+                  className:
+                    "material-symbols-outlined text-base text-text-sub/70",
+                  children: "drag_indicator",
+                }),
+              ],
+            }),
+            c.jsx("p", {
+              className: "mt-1 text-[11px] leading-4 text-text-sub",
+              children: o.description,
+            }),
+          ],
+        },
+        o.id,
+      ),
     du = () =>
       c.jsxs("div", {
         className: isDesktopLayout
@@ -8330,24 +8498,63 @@ function nh() {
                       c.jsx("p", {
                         className: "text-xs text-text-sub",
                         children:
-                          "Variables: {title}, {items}, {total}, {subtotal}, {discount_percentage}, {discount_amount}, {items_count}, {shopping_name}, {client_name}, {store_name}, {factor_value}, {calc_mode}, {exchange_rate}, {tax_percentage}, {commission_percentage}",
+                          "Arrastra bloques al editor o tocalos para insertarlos donde esta el cursor.",
                       }),
                       c.jsx("p", {
                         className: "text-[11px] text-text-sub/80",
                         children:
-                          "Condicional: {{if discount_percentage}}Descuento: {discount_percentage}% (-${discount_amount}){{/if}}",
+                          "Los bloques inteligentes solo escriben esa linea cuando el dato exista, por ejemplo descuento o cliente.",
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className: "space-y-3",
+                children: [
+                  c.jsxs("div", {
+                    children: [
+                      c.jsx("p", {
+                        className:
+                          "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
+                        children: "Variables",
+                      }),
+                      c.jsx("div", {
+                        className: "mt-2 grid grid-cols-2 gap-2",
+                        children: breakdownTemplateVariableBlocks.map((o) =>
+                          renderBreakdownTemplateBlock(o, "variable"),
+                        ),
+                      }),
+                    ],
+                  }),
+                  c.jsxs("div", {
+                    children: [
+                      c.jsx("p", {
+                        className:
+                          "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
+                        children: "Bloques inteligentes",
+                      }),
+                      c.jsx("div", {
+                        className: "mt-2 grid gap-2",
+                        children: breakdownTemplateConditionalBlocks.map((o) =>
+                          renderBreakdownTemplateBlock(o, "conditional"),
+                        ),
                       }),
                     ],
                   }),
                 ],
               }),
               c.jsx("textarea", {
+                ref: breakdownTemplateTextareaRef,
                 value: defaultBreakdownTemplate,
                 onChange: (o) => {
-                  const N = o.target.value;
-                  setDefaultBreakdownTemplate(N);
-                  localStorage.setItem("default_breakdown_template", N);
+                  persistDefaultBreakdownTemplate(o.target.value);
                 },
+                onDragOver: (o) => {
+                  o.preventDefault();
+                  o.dataTransfer.dropEffect = "copy";
+                },
+                onDrop: handleBreakdownTemplateDrop,
                 rows: 8,
                 className:
                   "w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 px-3 py-2 text-xs text-text-main dark:text-white outline-none focus:ring-2 focus:ring-primary/40 whitespace-pre-wrap",
@@ -8357,13 +8564,10 @@ function nh() {
                 children: [
                   c.jsx("button", {
                     type: "button",
-                    onClick: () => {
-                      setDefaultBreakdownTemplate(DEFAULT_BREAKDOWN_TEMPLATE);
-                      localStorage.setItem(
-                        "default_breakdown_template",
+                    onClick: () =>
+                      persistDefaultBreakdownTemplate(
                         DEFAULT_BREAKDOWN_TEMPLATE,
-                      );
-                    },
+                      ),
                     className:
                       "px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-bold",
                     children: "Reset",
@@ -8371,7 +8575,7 @@ function nh() {
                   c.jsx("p", {
                     className: "text-[11px] text-text-sub",
                     children:
-                      "Se usa para los copiados de desglose en general.",
+                      "Tambien puedes editar el texto manualmente si quieres un formato mas libre.",
                   }),
                 ],
               }),
