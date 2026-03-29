@@ -678,14 +678,14 @@ function nh() {
       }
       showMissionStartModal && setShowMissionStartModal(!1);
     };
-    dismissActiveOverlayRef.current = (N = !1, A = !1) => {
+    dismissActiveOverlayRef.current = (N = !1, A = !1, El = !1) => {
       const vl = activeOverlayKeyRef.current;
       if (!vl) return;
-      if (me && he) {
+      if (me && he && !El) {
         if (newProductUploading) return;
-        const El = getProductModalPriceError();
-        if (El) {
-          notifyInfo(El);
+        const Se = getProductModalRequiredError(null, "dismiss");
+        if (Se) {
+          notifyInfo(Se);
           return;
         }
       }
@@ -1651,15 +1651,24 @@ function nh() {
             calcExchangeRate
         : Number.NaN;
     },
-    getProductModalPriceError = (o = null) => {
-      const N = o || st;
-      const A = String(N.real_price || "").trim();
-      const vl = String(N.charged_price || "").trim();
-      if (!A || !Number.isFinite(parseFloat(A)))
-        return "Debes capturar un Store Price (USD) valido antes de cerrar o guardar.";
-      if (!vl || !Number.isFinite(parseFloat(vl)))
-        return "Debes capturar un Final Price (MXN) valido antes de cerrar o guardar.";
+    getProductModalPriceError = (o = null, N = "save") => {
+      const A = N === "dismiss" ? "antes de cerrar o guardar" : "para guardar";
+      const vl = o || st;
+      const El = String(vl.real_price || "").trim();
+      const Se = String(vl.charged_price || "").trim();
+      if (!El || !Number.isFinite(parseFloat(El)))
+        return `Debes capturar un Store Price (USD) valido ${A}.`;
+      if (!Se || !Number.isFinite(parseFloat(Se)))
+        return `Debes capturar un Final Price (MXN) valido ${A}.`;
       return "";
+    },
+    getProductModalRequiredError = (o = null, N = "save") => {
+      const A = o || st;
+      if (!String(A.name || "").trim())
+        return N === "dismiss"
+          ? "Debes capturar el nombre del producto antes de cerrar o guardar."
+          : "Debes capturar el nombre del producto para guardar.";
+      return getProductModalPriceError(A, N);
     },
     openProductModal = (o, N = "edit", A = {}) => {
       const vl = String(o && o.tags ? o.tags : "")
@@ -1707,7 +1716,7 @@ function nh() {
     closeProductModal = (o = !1) => {
       if (newProductUploading && !o) return;
       if (!o) {
-        const N = getProductModalPriceError();
+        const N = getProductModalRequiredError(null, "dismiss");
         if (N) {
           notifyInfo(N);
           return;
@@ -1815,11 +1824,7 @@ function nh() {
       if (!he) return;
       const { payload: N, reviewState: A } = buildProductModalPayload(),
         vl = productModalMode === "create";
-      if (!N.name) {
-        notifyError("Debes capturar el nombre del producto.");
-        return;
-      }
-      const El = getProductModalPriceError(N);
+      const El = getProductModalRequiredError(N);
       if (El) {
         notifyError(El);
         return;
@@ -3748,7 +3753,7 @@ function nh() {
       }
     },
     modalComputedFinalPrice = computeProductModalFinalPrice(st.real_price),
-    modalHasRequiredPrices = !getProductModalPriceError(st),
+    modalHasRequiredProductFields = !getProductModalRequiredError(st),
     sectionStageClass =
       sectionTransitionStage === "out"
         ? "ui-section-stage ui-section-stage-out"
@@ -9379,7 +9384,8 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () => dismissActiveOverlayRef.current(),
+                      onClick: () =>
+                        dismissActiveOverlayRef.current(!1, !1, !0),
                       disabled: newProductUploading,
                       className:
                         `flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`,
@@ -9389,9 +9395,9 @@ function nh() {
                       type: "submit",
                       disabled:
                         (productModalMode === "create" && newProductUploading) ||
-                        !modalHasRequiredPrices,
+                        !modalHasRequiredProductFields,
                       className:
-                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) || !modalHasRequiredPrices ? "opacity-75 cursor-not-allowed" : ""}`,
+                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) || !modalHasRequiredProductFields ? "opacity-75 cursor-not-allowed" : ""}`,
                       children:
                         productModalMode === "create"
                           ? newProductUploading
@@ -9401,11 +9407,11 @@ function nh() {
                     }),
                   ],
                 }),
-                !modalHasRequiredPrices &&
+                !modalHasRequiredProductFields &&
                 c.jsx("p", {
                   className: `${isDesktopLayout ? "col-span-2" : ""} text-xs font-medium text-rose-600 dark:text-rose-300`,
                   children:
-                    "Debes capturar Store Price (USD) y Final Price (MXN) para poder cerrar o guardar este producto.",
+                    "Debes capturar el nombre, Store Price (USD) y Final Price (MXN) para guardar este producto. Cancelar sigue disponible.",
                 }),
               ],
             }),
