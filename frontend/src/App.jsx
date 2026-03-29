@@ -327,6 +327,7 @@ function nh() {
     activeMissionIdRef = V.useRef(null),
     toastTimeoutsRef = V.useRef(new Map()),
     toastIdRef = V.useRef(0),
+    shoppingCalcPersistTimerRef = V.useRef(null),
     I = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       (C && (A.Authorization = `Bearer ${C}`),
@@ -1142,6 +1143,118 @@ function nh() {
     const Se = parseFloat(w.discount_percentage);
     Number.isFinite(Se) && setCalcDiscount(Se);
   }, [w && w.id]);
+  V.useEffect(
+    () => () => {
+      shoppingCalcPersistTimerRef.current &&
+        clearTimeout(shoppingCalcPersistTimerRef.current);
+    },
+    [],
+  );
+  const getShoppingCalcPayload = (o = w, N = {}) => {
+      const A = (vl, El, Se) =>
+        Object.prototype.hasOwnProperty.call(N, vl)
+          ? N[vl]
+          : o && typeof o[vl] != "undefined" && o[vl] !== null && `${o[vl]}`.trim() !== ""
+            ? o[vl]
+            : El ?? Se;
+      return {
+        calc_mode:
+          String(A("calc_mode", calcMode, "FACTOR")).toUpperCase() === "PERCENTAGE"
+            ? "PERCENTAGE"
+            : "FACTOR",
+        factor_value: toNumber(A("factor_value", calcFactor, 1.5), 1.5).toFixed(4),
+        tax_percentage: toNumber(A("tax_percentage", calcTaxes, 8), 8).toFixed(2),
+        commission_percentage: toNumber(
+          A("commission_percentage", calcCommission, 10),
+          10,
+        ).toFixed(2),
+        exchange_rate: toNumber(
+          A("exchange_rate", calcExchangeRate, 17.5),
+          17.5,
+        ).toFixed(4),
+        discount_percentage: toNumber(
+          A("discount_percentage", calcDiscount, 0),
+          0,
+        ).toFixed(2),
+      };
+    },
+    mergeShoppingIntoState = (o, N) => {
+      (zl((A) => A.map((vl) => (vl.id === o ? { ...vl, ...N } : vl))),
+        Dl((A) => (A && A.id === o ? { ...A, ...N } : A)));
+    },
+    syncCalcStateFromShopping = (o) => {
+      if (!o) return;
+      const N = String(o.calc_mode || "FACTOR").toUpperCase();
+      (N === "FACTOR" || N === "PERCENTAGE") && setCalcMode(N);
+      setCalcFactor(toNumber(o.factor_value, 1.5));
+      setCalcTaxes(toNumber(o.tax_percentage, 8));
+      setCalcCommission(toNumber(o.commission_percentage, 10));
+      setCalcExchangeRate(toNumber(o.exchange_rate, 17.5));
+      setCalcDiscount(toNumber(o.discount_percentage, 0));
+    },
+    queueCurrentShoppingCalcPersist = (o = {}) => {
+      if (!w || !w.id) return;
+      const N = w.id,
+        A = getShoppingCalcPayload(w),
+        vl = getShoppingCalcPayload(w, o);
+      if (JSON.stringify(A) === JSON.stringify(vl)) return;
+      (mergeShoppingIntoState(N, vl),
+        shoppingCalcPersistTimerRef.current &&
+          clearTimeout(shoppingCalcPersistTimerRef.current),
+        shoppingCalcPersistTimerRef.current = setTimeout(async () => {
+          shoppingCalcPersistTimerRef.current = null;
+          try {
+            const El = await I(`/shoppings/${N}/`, {
+              method: "PATCH",
+              body: JSON.stringify(vl),
+            });
+            El && mergeShoppingIntoState(N, El);
+          } catch (El) {
+            console.error("Failed saving shopping calc settings", El);
+            notifyError("No se pudo guardar la configuracion del shopping.");
+            try {
+              const Se = await I(`/shoppings/${N}/`);
+              Se &&
+                (mergeShoppingIntoState(N, Se),
+                  activeMissionIdRef.current === N && syncCalcStateFromShopping(Se));
+            } catch (Se) {
+              console.error("Failed reloading shopping after calc save error", Se);
+            }
+          }
+        }, 500));
+    },
+    applyCalcModeChange = (o) => {
+      const N = String(o || "FACTOR").toUpperCase() === "PERCENTAGE"
+        ? "PERCENTAGE"
+        : "FACTOR";
+      (setCalcMode(N), queueCurrentShoppingCalcPersist({ calc_mode: N }));
+    },
+    applyCalcFactorChange = (o) => {
+      const N = parseFloat(o),
+        A = Number.isFinite(N) ? N : 0;
+      (setCalcFactor(A), queueCurrentShoppingCalcPersist({ factor_value: A }));
+    },
+    applyCalcDiscountChange = (o) => {
+      const N = parseFloat(o),
+        A = Number.isFinite(N) ? N : 0;
+      (setCalcDiscount(A), queueCurrentShoppingCalcPersist({ discount_percentage: A }));
+    },
+    applyCalcTaxesChange = (o) => {
+      const N = parseFloat(o),
+        A = Number.isFinite(N) ? N : 0;
+      (setCalcTaxes(A), queueCurrentShoppingCalcPersist({ tax_percentage: A }));
+    },
+    applyCalcCommissionChange = (o) => {
+      const N = parseFloat(o),
+        A = Number.isFinite(N) ? N : 0;
+      (setCalcCommission(A),
+        queueCurrentShoppingCalcPersist({ commission_percentage: A }));
+    },
+    applyCalcExchangeRateChange = (o) => {
+      const N = parseFloat(o),
+        A = Number.isFinite(N) ? N : 0;
+      (setCalcExchangeRate(A), queueCurrentShoppingCalcPersist({ exchange_rate: A }));
+    };
   const Ai = async (o) => {
     (o.preventDefault(), T(""));
     try {
@@ -7983,13 +8096,13 @@ function nh() {
           </p>
           <div className="mt-4 grid grid-cols-2 rounded-xl p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setCalcMode("FACTOR")}
+              onClick={() => applyCalcModeChange("FACTOR")}
               className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
             >
               Factor
             </button>
             <button
-              onClick={() => setCalcMode("PERCENTAGE")}
+              onClick={() => applyCalcModeChange("PERCENTAGE")}
               className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
             >
               Porcentaje
@@ -8016,10 +8129,7 @@ function nh() {
                 type="number"
                 step="0.01"
                 value={calcFactor}
-                onChange={(e) => {
-                  const t = parseFloat(e.target.value);
-                  setCalcFactor(Number.isFinite(t) ? t : 0);
-                }}
+                onChange={(e) => applyCalcFactorChange(e.target.value)}
                 className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
               />
             </div>
@@ -8029,10 +8139,7 @@ function nh() {
                 type="number"
                 step="0.01"
                 value={calcDiscount}
-                onChange={(e) => {
-                  const t = parseFloat(e.target.value);
-                  setCalcDiscount(Number.isFinite(t) ? t : 0);
-                }}
+                onChange={(e) => applyCalcDiscountChange(e.target.value)}
                 className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
               />
             </div>
@@ -8057,10 +8164,7 @@ function nh() {
                   type="number"
                   step="0.01"
                   value={calcDiscount}
-                  onChange={(e) => {
-                    const t = parseFloat(e.target.value);
-                    setCalcDiscount(Number.isFinite(t) ? t : 0);
-                  }}
+                  onChange={(e) => applyCalcDiscountChange(e.target.value)}
                   className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
@@ -8070,10 +8174,7 @@ function nh() {
                   type="number"
                   step="0.01"
                   value={calcTaxes}
-                  onChange={(e) => {
-                    const t = parseFloat(e.target.value);
-                    setCalcTaxes(Number.isFinite(t) ? t : 0);
-                  }}
+                  onChange={(e) => applyCalcTaxesChange(e.target.value)}
                   className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
@@ -8085,10 +8186,7 @@ function nh() {
                   type="number"
                   step="0.01"
                   value={calcCommission}
-                  onChange={(e) => {
-                    const t = parseFloat(e.target.value);
-                    setCalcCommission(Number.isFinite(t) ? t : 0);
-                  }}
+                  onChange={(e) => applyCalcCommissionChange(e.target.value)}
                   className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
@@ -8098,10 +8196,7 @@ function nh() {
                   type="number"
                   step="0.01"
                   value={calcExchangeRate}
-                  onChange={(e) => {
-                    const t = parseFloat(e.target.value);
-                    setCalcExchangeRate(Number.isFinite(t) ? t : 0);
-                  }}
+                  onChange={(e) => applyCalcExchangeRateChange(e.target.value)}
                   className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
                 />
               </div>
@@ -9208,13 +9303,13 @@ function nh() {
                       children: [
                         c.jsx("button", {
                           type: "button",
-                          onClick: () => setCalcMode("FACTOR"),
+                          onClick: () => applyCalcModeChange("FACTOR"),
                           className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                           children: "Factor",
                         }),
                         c.jsx("button", {
                           type: "button",
-                          onClick: () => setCalcMode("PERCENTAGE"),
+                          onClick: () => applyCalcModeChange("PERCENTAGE"),
                           className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                           children: "Porcentaje",
                         }),
@@ -9240,10 +9335,7 @@ function nh() {
                                 type: "number",
                                 step: "0.01",
                                 value: calcFactor,
-                                onChange: (o) => {
-                                  const N = parseFloat(o.target.value);
-                                  setCalcFactor(Number.isFinite(N) ? N : 0);
-                                },
+                                onChange: (o) => applyCalcFactorChange(o.target.value),
                                 className:
                                   `${productCalcInputClass} px-4 py-2`,
                               }),
@@ -9260,10 +9352,7 @@ function nh() {
                                 type: "number",
                                 step: "0.01",
                                 value: calcDiscount,
-                                onChange: (o) => {
-                                  const N = parseFloat(o.target.value);
-                                  setCalcDiscount(Number.isFinite(N) ? N : 0);
-                                },
+                                onChange: (o) => applyCalcDiscountChange(o.target.value),
                                 className:
                                   `${productCalcInputClass} px-4 py-2`,
                               }),
@@ -9289,10 +9378,7 @@ function nh() {
                             type: "number",
                             step: "0.01",
                             value: calcDiscount,
-                            onChange: (o) => {
-                              const N = parseFloat(o.target.value);
-                              setCalcDiscount(Number.isFinite(N) ? N : 0);
-                            },
+                            onChange: (o) => applyCalcDiscountChange(o.target.value),
                             className:
                               `${productCalcCompactInputClass} px-2 py-2`,
                           }),
@@ -9309,10 +9395,7 @@ function nh() {
                             type: "number",
                             step: "0.01",
                             value: calcTaxes,
-                            onChange: (o) => {
-                              const N = parseFloat(o.target.value);
-                              setCalcTaxes(Number.isFinite(N) ? N : 0);
-                            },
+                            onChange: (o) => applyCalcTaxesChange(o.target.value),
                             className:
                               `${productCalcCompactInputClass} px-2 py-2`,
                           }),
@@ -9329,10 +9412,7 @@ function nh() {
                             type: "number",
                             step: "0.01",
                             value: calcCommission,
-                            onChange: (o) => {
-                              const N = parseFloat(o.target.value);
-                              setCalcCommission(Number.isFinite(N) ? N : 0);
-                            },
+                            onChange: (o) => applyCalcCommissionChange(o.target.value),
                             className:
                               `${productCalcCompactInputClass} px-2 py-2`,
                           }),
@@ -9349,10 +9429,7 @@ function nh() {
                             type: "number",
                             step: "0.01",
                             value: calcExchangeRate,
-                            onChange: (o) => {
-                              const N = parseFloat(o.target.value);
-                              setCalcExchangeRate(Number.isFinite(N) ? N : 0);
-                            },
+                            onChange: (o) => applyCalcExchangeRateChange(o.target.value),
                             className:
                               `${productCalcCompactInputClass} px-2 py-2`,
                           }),
