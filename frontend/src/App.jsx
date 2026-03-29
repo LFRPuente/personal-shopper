@@ -1664,6 +1664,13 @@ function nh() {
         ? N / A
         : Number.NaN;
     },
+    computeProductModalDiscountAmount = (o) => {
+      const N = parseFloat(o);
+      const A = parseFloat(calcDiscount);
+      return Number.isFinite(N) && Number.isFinite(A) && A > 0
+        ? N * (A / 100)
+        : Number.NaN;
+    },
     getProductModalPriceError = (o = null) => {
       const N = o || st;
       const A = String(N.real_price || "").trim();
@@ -3756,6 +3763,17 @@ function nh() {
       }
     },
     modalHasRequiredProductFields = !getProductModalRequiredError(st),
+    productDiscountPercent = parseFloat(calcDiscount),
+    showProductDiscountFields =
+      Number.isFinite(productDiscountPercent) &&
+      productDiscountPercent > 0 &&
+      Number.isInteger(productDiscountPercent),
+    productStoreDiscountAmount = showProductDiscountFields
+      ? computeProductModalDiscountAmount(st.real_price)
+      : Number.NaN,
+    productFinalDiscountAmount = showProductDiscountFields
+      ? computeProductModalDiscountAmount(st.charged_price)
+      : Number.NaN,
     sectionStageClass =
       sectionTransitionStage === "out"
         ? "ui-section-stage ui-section-stage-out"
@@ -9019,30 +9037,86 @@ function nh() {
                     }),
                   ],
                 }),
-                c.jsxs("label", {
+                c.jsxs("div", {
                   className:
-                    `${isDesktopLayout ? "col-span-2 " : ""}flex items-start gap-3 rounded-2xl border border-fuchsia-200/80 bg-fuchsia-50/70 px-4 py-3 dark:border-fuchsia-900/60 dark:bg-fuchsia-950/20`,
+                    `${isDesktopLayout ? "col-span-2 " : ""}flex items-center justify-between gap-3 rounded-xl px-1 py-1`,
                   children: [
-                    c.jsx("input", {
-                      type: "checkbox",
-                      checked: productPriceAutoSync,
-                      onChange: (o) => setProductPriceAutoSync(o.target.checked),
-                      className:
-                        "mt-0.5 h-4 w-4 rounded border-fuchsia-300 text-primary focus:ring-primary",
-                    }),
-                    c.jsxs("span", {
-                      className: "min-w-0",
+                    c.jsxs("div", {
+                      className: "flex items-center gap-2 min-w-0",
                       children: [
                         c.jsx("span", {
                           className:
-                            "block text-sm font-semibold text-fuchsia-900 dark:text-fuchsia-100",
-                          children: "Calcular precios automaticamente",
+                            "text-xs font-semibold text-text-sub dark:text-slate-300 truncate",
+                          children: "Calculo automatico",
                         }),
-                        c.jsx("span", {
+                        c.jsx("button", {
+                          type: "button",
+                          onClick: () =>
+                            notifyInfo(
+                              "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
+                            ),
                           className:
-                            "mt-1 block text-xs leading-5 text-fuchsia-700/80 dark:text-fuchsia-200/80",
-                          children:
-                            "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
+                            "w-5 h-5 rounded-full border border-fuchsia-200 text-fuchsia-700 dark:border-fuchsia-800 dark:text-fuchsia-300 inline-flex items-center justify-center hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 transition shrink-0",
+                          "aria-label": "Info de calculo automatico",
+                          children: c.jsx("span", {
+                            className: "material-symbols-outlined text-[12px] leading-none",
+                            children: "info",
+                          }),
+                        }),
+                      ],
+                    }),
+                    c.jsx("button", {
+                      type: "button",
+                      role: "switch",
+                      "aria-checked": productPriceAutoSync,
+                      onClick: () => setProductPriceAutoSync((o) => !o),
+                      className:
+                        `relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${productPriceAutoSync ? "bg-primary border-primary" : "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700"}`,
+                      children: c.jsx("span", {
+                        className:
+                          `inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${productPriceAutoSync ? "translate-x-6" : "translate-x-1"}`,
+                      }),
+                    }),
+                  ],
+                }),
+                showProductDiscountFields &&
+                c.jsxs("div", {
+                  className:
+                    `${isDesktopLayout ? "col-span-2 " : ""}grid grid-cols-2 gap-4`,
+                  children: [
+                    c.jsxs("div", {
+                      children: [
+                        c.jsx("label", {
+                          className:
+                            "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
+                          children: "Descuento Store Price (USD)",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          readOnly: !0,
+                          value: Number.isFinite(productStoreDiscountAmount)
+                            ? productStoreDiscountAmount.toFixed(2)
+                            : "",
+                          className:
+                            "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      children: [
+                        c.jsx("label", {
+                          className:
+                            "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
+                          children: "Descuento Final Price (MXN)",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          readOnly: !0,
+                          value: Number.isFinite(productFinalDiscountAmount)
+                            ? productFinalDiscountAmount.toFixed(2)
+                            : "",
+                          className:
+                            "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
                         }),
                       ],
                     }),
