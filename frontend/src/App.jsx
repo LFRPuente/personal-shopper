@@ -3218,6 +3218,20 @@ function nh() {
         }),
         { usd: 0, sale: 0 },
       ),
+    getHomeClientMissionAnnotatedTotals = (o, missionId) =>
+      (o || [])
+        .filter(
+          (A) =>
+            Number(A && A.shopping) === Number(missionId) &&
+            String((A && A.status) || "").toUpperCase() === "ANNOTATED",
+        )
+        .reduce(
+          (N, A) => ({
+            usd: N.usd + toNumber(A.real_price, 0),
+            sale: N.sale + toNumber(A.charged_price, 0),
+          }),
+          { usd: 0, sale: 0 },
+        ),
     getProductPaymentAmount = (o) => {
       const N = toNumber(o && o.charged_price, Number.NaN);
       if (Number.isFinite(N)) return N;
@@ -5186,7 +5200,7 @@ function nh() {
                 ? "pr-0 max-h-[calc(100vh-18rem)] overflow-y-auto overscroll-contain ios-scroll"
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) => {
-                const N = getHomeClientMissionTotals(o.products || [], w.id),
+                const N = getHomeClientMissionAnnotatedTotals(o.products || [], w.id),
                   A = getClientShoppingPaymentSummary(o, w.id),
                   vl = A.balance;
                 return c.jsxs(
