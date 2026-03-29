@@ -300,6 +300,7 @@ function nh() {
     [receiptUploading, setReceiptUploading] = V.useState(!1),
     [newProductUploading, setNewProductUploading] = V.useState(!1),
     [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
+    [productStatusUpdatingId, setProductStatusUpdatingId] = V.useState(null),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
@@ -1672,6 +1673,22 @@ function nh() {
           Qt());
       } catch (A) {
         console.error("Failed updating product status", A);
+      }
+    },
+    cycleGalleryProductStatus = async (o, N = null) => {
+      if (!o || productStatusUpdatingId === o.id) return;
+      const A = getUnifiedReviewState(getProductReviewState(o, N)),
+        vl = A === "REVIEW" ? "REJECTED" : A === "REJECTED" ? "ANNOTATED" : "REVIEW";
+      setProductStatusUpdatingId(o.id);
+      try {
+        (await syncProductReviewState(o, N, vl),
+          await refreshProductReviews(W && W.id),
+          await Qt());
+      } catch (El) {
+        (console.error("Failed cycling gallery product status", El),
+          notifyError("No se pudo cambiar el status."));
+      } finally {
+        setProductStatusUpdatingId(null);
       }
     },
     hn = (o) => {
@@ -3749,7 +3766,22 @@ function nh() {
       currentConversationProductState,
     ),
     selectedClientHomeProducts = W ? getHomeVisibleProducts(W) : [],
-    selectedClientHomeTotals = w ? getHomeClientMissionTotals(selectedClientHomeProducts, w.id) : getHomeClientTotals(selectedClientHomeProducts),
+    selectedClientHomeScopeId =
+      Number(clientGalleryMissionScopeId || (w && w.id) || 0) || null,
+    selectedClientHomeAnnotatedProducts = W
+      ? ((W.products || []).filter(
+        (o) =>
+          (!selectedClientHomeScopeId ||
+            Number(o.shopping) === Number(selectedClientHomeScopeId)) &&
+          String((o.status || "")).toUpperCase() === "ANNOTATED",
+      ))
+      : [],
+    selectedClientHomeAnnotatedTotals = selectedClientHomeScopeId
+      ? getHomeClientMissionAnnotatedTotals((W && W.products) || [], selectedClientHomeScopeId)
+      : getHomeClientTotals(selectedClientHomeAnnotatedProducts),
+    selectedClientHomePaymentSummary = selectedClientHomeScopeId && W
+      ? getClientShoppingPaymentSummary(W, selectedClientHomeScopeId)
+      : { amount: 0, productsTotal: 0, balance: 0 },
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryMissionScopeId
         ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
@@ -9412,18 +9444,19 @@ function nh() {
                             children: [
                               c.jsxs("p", {
                                 className:
-                                  "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                  `text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
-                                  "Total USD: $",
-                                  formatAmount(selectedClientHomeTotals.usd),
+                                  "Saldo: ",
+                                  selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
+                                  formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
                                 ],
                               }),
                               c.jsxs("p", {
                                 className:
                                   "text-[11px] font-bold text-blue-700 dark:text-blue-300",
                                 children: [
-                                  "Total Venta: $",
-                                  formatAmount(selectedClientHomeTotals.sale),
+                                  "Venta: $",
+                                  formatAmount(selectedClientHomeAnnotatedTotals.sale),
                                 ],
                               }),
                             ],
@@ -9437,17 +9470,24 @@ function nh() {
                     children: [
                       c.jsxs("span", {
                         className:
-                          "flex-1 rounded-lg border border-emerald-200 bg-emerald-50/90 px-2 py-1.5 shadow-sm text-center",
+                          `flex-1 rounded-lg border px-2 py-1.5 shadow-sm text-center ${selectedClientHomePaymentSummary.balance < 0 ? "border-emerald-200 bg-emerald-50/90" : selectedClientHomePaymentSummary.balance > 0 ? "border-rose-200 bg-rose-50/95" : "border-slate-200 bg-slate-50/95"}`,
                         children: [
                           c.jsx("span", {
                             className:
-                              "text-[9px] font-black uppercase text-emerald-700/75 mr-1",
-                            children: "USD",
+                              `text-[9px] font-black uppercase mr-1 ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
+                            children: "Saldo",
                           }),
                           c.jsxs("span", {
                             className:
-                              "text-sm font-bold text-emerald-800",
-                            children: ["$", formatAmount(selectedClientHomeTotals.usd)],
+                              selectedClientHomePaymentSummary.balance < 0
+                                ? "text-sm font-bold text-emerald-800"
+                                : selectedClientHomePaymentSummary.balance > 0
+                                  ? "text-sm font-bold text-rose-800"
+                                  : "text-sm font-bold text-slate-800",
+                            children: [
+                              selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
+                              formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
+                            ],
                           }),
                         ],
                       }),
@@ -9463,7 +9503,7 @@ function nh() {
                           c.jsxs("span", {
                             className:
                               "text-sm font-bold text-blue-800",
-                            children: ["$", formatAmount(selectedClientHomeTotals.sale)],
+                            children: ["$", formatAmount(selectedClientHomeAnnotatedTotals.sale)],
                           }),
                         ],
                       }),
@@ -9515,6 +9555,15 @@ function nh() {
                           hasPulse = !!(
                             effectiveHomeClientReviewUnreadMap[W && W.id] || {}
                           )[o.id],
+                          currentGalleryStatus = getUnifiedReviewState(
+                            getProductReviewState(o, reviewEntry || null),
+                          ),
+                          nextGalleryStatus =
+                            currentGalleryStatus === "REVIEW"
+                              ? "REJECTED"
+                              : currentGalleryStatus === "REJECTED"
+                                ? "ANNOTATED"
+                                : "REVIEW",
                           isPendingReview =
                             reviewEntry && reviewEntry.status === "PENDING",
                           isAltReady =
@@ -9674,6 +9723,41 @@ function nh() {
                                           }),
                                         ],
                                       }),
+                                  }),
+                                  c.jsx("div", {
+                                    className: "absolute left-0.5 bottom-0.5 z-20",
+                                    children: c.jsxs("button", {
+                                      onClick: (N) => {
+                                        (N.stopPropagation(),
+                                          setOpenProductInfoId(null),
+                                          setOpenProductMenuId(null),
+                                          cycleGalleryProductStatus(
+                                            o,
+                                            reviewEntry || null,
+                                          ));
+                                      },
+                                      disabled: productStatusUpdatingId === o.id,
+                                      className:
+                                        `px-1.5 py-[1px] rounded-full bg-white/34 text-slate-700 hover:bg-white/50 border border-white/30 shadow-sm backdrop-blur-[2px] inline-flex items-center gap-1 ${productStatusUpdatingId === o.id ? "opacity-70 cursor-wait" : ""}`,
+                                      title: `Cambiar a ${getReviewFlowLabel(nextGalleryStatus)}`,
+                                      children: [
+                                        c.jsx("span", {
+                                          className:
+                                            `material-symbols-outlined text-[10px] ${productStatusUpdatingId === o.id ? "animate-spin" : ""}`,
+                                          children:
+                                            productStatusUpdatingId === o.id
+                                              ? "progress_activity"
+                                              : "sync_alt",
+                                        }),
+                                        c.jsx("span", {
+                                          className:
+                                            "text-[9px] font-bold",
+                                          children: getReviewFlowLabel(
+                                            nextGalleryStatus,
+                                          ),
+                                        }),
+                                      ],
+                                    }),
                                   }),
                                   c.jsx("div", {
                                     className: "absolute right-0.5 bottom-0.5 z-20",
