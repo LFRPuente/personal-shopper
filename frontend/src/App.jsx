@@ -169,6 +169,7 @@ function nh() {
     [st, Gt] = V.useState(() => createEmptyProductForm()),
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
+    [productPriceAutoSync, setProductPriceAutoSync] = V.useState(!0),
     [productPriceSyncSource, setProductPriceSyncSource] = V.useState("real"),
     [closingOverlayKey, setClosingOverlayKey] = V.useState(""),
     [Je, We] = V.useState(null),
@@ -755,7 +756,7 @@ function nh() {
     return () => document.removeEventListener("keydown", o, !0);
   }, []);
   V.useEffect(() => {
-    if (!me || !he) return;
+    if (!me || !he || !productPriceAutoSync) return;
     if (productPriceSyncSource === "charged") {
       const o = computeProductModalStorePrice(st.charged_price);
       const N = Number.isFinite(o) ? o.toFixed(2) : "";
@@ -782,6 +783,7 @@ function nh() {
     calcTaxes,
     calcCommission,
     calcExchangeRate,
+    productPriceAutoSync,
     productPriceSyncSource,
   ]);
   V.useEffect(() => {
@@ -1717,6 +1719,7 @@ function nh() {
         setShowAddStoreInput(!1),
         setNewStoreName(""),
         setPendingProductFile(A.file || null),
+        setProductPriceAutoSync(!ea),
         setProductPriceSyncSource(ea ? "charged" : "real"),
         setProductModalMode(N),
         ut(!0));
@@ -1728,6 +1731,7 @@ function nh() {
         Gt(createEmptyProductForm()),
         setProductModalMode("edit"),
         setPendingProductFile(null),
+        setProductPriceAutoSync(!0),
         setProductPriceSyncSource("real"),
         setModalTags([]),
         setNewModalTag(""),
@@ -9010,6 +9014,35 @@ function nh() {
                           },
                           className: productFinalInputClass,
                           required: !0,
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("label", {
+                  className:
+                    `${isDesktopLayout ? "col-span-2 " : ""}flex items-start gap-3 rounded-2xl border border-fuchsia-200/80 bg-fuchsia-50/70 px-4 py-3 dark:border-fuchsia-900/60 dark:bg-fuchsia-950/20`,
+                  children: [
+                    c.jsx("input", {
+                      type: "checkbox",
+                      checked: productPriceAutoSync,
+                      onChange: (o) => setProductPriceAutoSync(o.target.checked),
+                      className:
+                        "mt-0.5 h-4 w-4 rounded border-fuchsia-300 text-primary focus:ring-primary",
+                    }),
+                    c.jsxs("span", {
+                      className: "min-w-0",
+                      children: [
+                        c.jsx("span", {
+                          className:
+                            "block text-sm font-semibold text-fuchsia-900 dark:text-fuchsia-100",
+                          children: "Calcular precios automaticamente",
+                        }),
+                        c.jsx("span", {
+                          className:
+                            "mt-1 block text-xs leading-5 text-fuchsia-700/80 dark:text-fuchsia-200/80",
+                          children:
+                            "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
                         }),
                       ],
                     }),
