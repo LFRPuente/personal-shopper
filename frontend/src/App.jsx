@@ -10536,7 +10536,7 @@ function nh() {
       confirmDialog &&
       c.jsx("div", {
         className: overlayBackdropClass(
-          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
+          "fixed inset-0 z-[96] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
           "confirm",
         ),
         onClick: () => dismissActiveOverlayRef.current(),
