@@ -2286,12 +2286,57 @@ function nh() {
     },
     getFullscreenImageUrl = (o) =>
       !o ? "" : typeof o == "string" ? o : o.url || "",
+    getBreakdownBaseAmount = (o) => {
+      const N = toNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(N)) return N;
+      const A = toNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(A) ? A : 0;
+    },
+    resolveBreakdownShopping = (o = null) =>
+      o && typeof o === "object"
+        ? o
+        : Al.find((N) => Number(N && N.id) === Number(o)) || null,
+    formatBreakdownPercent = (o) => {
+      const N = toNumber(o, Number.NaN);
+      return Number.isFinite(N) ? `${N}` : "";
+    },
+    isBreakdownTemplateTruthy = (o) => {
+      if (typeof o == "number") return Number.isFinite(o) && Math.abs(o) > 1e-9;
+      if (typeof o == "boolean") return o;
+      if (Array.isArray(o)) return o.length > 0;
+      return !!String(o || "").trim();
+    },
+    renderBreakdownTemplate = (o, N = {}, A = {}) => {
+      let vl = String(o || "");
+      return (
+        (vl = vl.replace(
+          /\{\{if\s+([a-zA-Z0-9_]+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
+          (El, Se, ea) => (isBreakdownTemplateTruthy(A[Se]) ? ea : ""),
+        )),
+        Object.entries(N).forEach(([El, Se]) => {
+          vl = vl.replaceAll(`{${El}}`, Se == null ? "" : String(Se));
+        }),
+        vl
+      );
+    },
     buildBreakdownMessage = ({
       title = "DESGLOSE DE TU CUENTA:",
       items = [],
       itemsText = "",
       total = 0,
+      subtotal = null,
+      discountPercentage = 0,
+      discountAmount = null,
       itemBullet = "*",
+      shoppingName = "",
+      clientName = "",
+      storeName = "",
+      factorValue = "",
+      calcMode = "",
+      exchangeRate = "",
+      taxPercentage = "",
+      commissionPercentage = "",
+      itemsCount = null,
     }) => {
       const o = new Intl.NumberFormat("es-MX"),
         N =
@@ -2301,11 +2346,42 @@ function nh() {
                 .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
-        A = (defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE)
-          .replaceAll("{title}", title)
-          .replaceAll("{items}", N)
-          .replaceAll("{total}", o.format(total));
-      return A;
+        A = Number.isFinite(itemsCount) ? itemsCount : items.length,
+        vl = {
+          title,
+          items: N,
+          total: o.format(total),
+          subtotal: o.format(Number.isFinite(subtotal) ? subtotal : total),
+          discount_percentage: formatBreakdownPercent(discountPercentage),
+          discount_amount: o.format(
+            Number.isFinite(discountAmount) ? discountAmount : 0,
+          ),
+          items_count: String(A),
+          shopping_name: shoppingName || "",
+          client_name: clientName || "",
+          store_name: storeName || "",
+          factor_value: factorValue == null ? "" : String(factorValue),
+          calc_mode: calcMode || "",
+          exchange_rate: exchangeRate == null ? "" : String(exchangeRate),
+          tax_percentage:
+            taxPercentage == null ? "" : String(taxPercentage),
+          commission_percentage:
+            commissionPercentage == null ? "" : String(commissionPercentage),
+        },
+        El = {
+          ...vl,
+          items: items.length > 0 ? items : N,
+          total,
+          subtotal: Number.isFinite(subtotal) ? subtotal : total,
+          discount_percentage: toNumber(discountPercentage, 0),
+          discount_amount: Number.isFinite(discountAmount) ? discountAmount : 0,
+          items_count: A,
+        };
+      return renderBreakdownTemplate(
+        defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE,
+        vl,
+        El,
+      );
     },
     handleFullscreenImageCopy = async () => {
       if (
@@ -2318,88 +2394,140 @@ function nh() {
       o && (await copyImageUrlToClipboard(o, fullscreenImage.copyMessage || "Imagen copiada."));
     },
     copyMissionBreakdown = async (o, N) => {
-      const A = (N.products || []).filter((vl) => vl.shopping === o.id),
-        vl = A.map((Se) => {
-          const ea = parseFloat(Se.charged_price || 0);
-          return { name: Se.name, finalPrice: Number.isFinite(ea) ? ea : 0 };
-        }),
-        El = vl.reduce((ea, gl) => ea + gl.finalPrice, 0),
-        Se = buildBreakdownMessage({
-          items: vl,
-          total: El,
+      const A = resolveBreakdownShopping(o),
+        vl = paymentLocalShoppingDiscount(A || o),
+        El = ((N && N.products) || []).filter(
+          (ea) => Number(ea && ea.shopping) === Number(A && A.id || o && o.id),
+        ),
+        Se = El.map((ea) => ({
+          name: ea.name,
+          basePrice: getBreakdownBaseAmount(ea),
+          finalPrice: getProductPaymentAmount(ea, vl),
+        })),
+        gl = Se.reduce((ea, oi) => ea + oi.basePrice, 0),
+        ae = Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
+        oi = buildBreakdownMessage({
+          items: Se,
+          total: ae,
+          subtotal: gl,
+          discountPercentage: vl,
+          discountAmount: Math.max(0, gl - ae),
+          shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
+          clientName: String((N && N.name) || "").trim(),
+          storeName: String((A && (A.store_name || A.name)) || "").trim(),
+          factorValue: A && A.factor_value,
+          calcMode: A && A.calc_mode,
+          exchangeRate: A && A.exchange_rate,
+          taxPercentage: A && A.tax_percentage,
+          commissionPercentage: A && A.commission_percentage,
+          itemsCount: Se.length,
         });
       try {
-        await navigator.clipboard.writeText(Se);
-      } catch (gl) {
-        console.error("Failed to copy shopping breakdown", gl);
+        await navigator.clipboard.writeText(oi);
+      } catch (Nn) {
+        console.error("Failed to copy shopping breakdown", Nn);
       }
     },
     copyAnnotatedMissionBreakdown = async (o, N) => {
-      const A = ((N && N.products) || []).filter((vl) => {
-          const El = String(vl.status || "").toUpperCase();
-          return Number(vl.shopping) === Number(o && o.id) && El === "ANNOTATED";
+      const A = resolveBreakdownShopping(o),
+        vl = paymentLocalShoppingDiscount(A || o),
+        El = ((N && N.products) || []).filter((ea) => {
+          const gl = String(ea.status || "").toUpperCase();
+          return Number(ea.shopping) === Number(A && A.id || o && o.id) && gl === "ANNOTATED";
         }),
-        vl = A.map((Se) => {
-          const ea = parseFloat(Se.charged_price || 0);
-          return { name: Se.name, finalPrice: Number.isFinite(ea) ? ea : 0 };
-        }),
-        El = vl.reduce((ea, gl) => ea + gl.finalPrice, 0),
-        Se = buildBreakdownMessage({
-          items: vl,
-          total: El,
+        Se = El.map((ea) => ({
+          name: ea.name,
+          basePrice: getBreakdownBaseAmount(ea),
+          finalPrice: getProductPaymentAmount(ea, vl),
+        })),
+        gl = Se.reduce((ea, oi) => ea + oi.basePrice, 0),
+        ae = Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
+        oi = buildBreakdownMessage({
+          items: Se,
+          total: ae,
+          subtotal: gl,
+          discountPercentage: vl,
+          discountAmount: Math.max(0, gl - ae),
+          shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
+          clientName: String((N && N.name) || "").trim(),
+          storeName: String((A && (A.store_name || A.name)) || "").trim(),
+          factorValue: A && A.factor_value,
+          calcMode: A && A.calc_mode,
+          exchangeRate: A && A.exchange_rate,
+          taxPercentage: A && A.tax_percentage,
+          commissionPercentage: A && A.commission_percentage,
+          itemsCount: Se.length,
         });
       try {
-        await navigator.clipboard.writeText(Se);
-        const gl = `home-${o.id}-${N.id}`;
+        await navigator.clipboard.writeText(oi);
+        const Nn = `home-${o.id}-${N.id}`;
         setCopiedMissionClients((ae) =>
-          ae.includes(gl) ? ae : [...ae, gl],
+          ae.includes(Nn) ? ae : [...ae, Nn],
         );
-      } catch (gl) {
-        console.error("Failed to copy annotated shopping breakdown", gl);
+      } catch (Nn) {
+        console.error("Failed to copy annotated shopping breakdown", Nn);
       }
     },
     copyMissionClientsBreakdown = async (o, N = []) => {
       if (!o) return;
-      const A = new Intl.NumberFormat("es-MX"),
-        vl = N.map((El) => {
-          const Se = ((El && El.products) || []).filter((ea) => {
-              const gl = String(ea.status || "").toUpperCase();
-              return Number(ea.shopping) === Number(o.id) && gl === "ANNOTATED";
+      const A = resolveBreakdownShopping(o),
+        vl = paymentLocalShoppingDiscount(A || o),
+        El = new Intl.NumberFormat("es-MX"),
+        Se = N.map((ea) => {
+          const gl = ((ea && ea.products) || []).filter((oi) => {
+              const Nn = String(oi.status || "").toUpperCase();
+              return Number(oi.shopping) === Number(A && A.id || o.id) && Nn === "ANNOTATED";
             }),
-            ea = Se.map((gl) => {
-              const ae = parseFloat(gl.charged_price || 0);
-              return { name: gl.name, finalPrice: Number.isFinite(ae) ? ae : 0 };
-            }),
-            gl = ea.reduce((ae, oi) => ae + oi.finalPrice, 0);
+            oi = gl.map((Nn) => ({
+              name: Nn.name,
+              basePrice: getBreakdownBaseAmount(Nn),
+              finalPrice: getProductPaymentAmount(Nn, vl),
+            })),
+            Nn = oi.reduce((Ta, qa) => Ta + qa.basePrice, 0),
+            Ta = oi.reduce((qa, za) => qa + za.finalPrice, 0);
           return {
-            name: El.name,
-            items: ea,
-            total: gl,
+            name: ea.name,
+            items: oi,
+            subtotal: Nn,
+            total: Ta,
           };
-        }).filter((El) => El.items.length > 0);
-      if (vl.length === 0) {
+        }).filter((ea) => ea.items.length > 0);
+      if (Se.length === 0) {
         notifyInfo("No hay productos anotados para copiar en esta misión.");
         return;
       }
-      const El = vl.reduce((Se, ea) => Se + ea.total, 0),
-        Se = buildBreakdownMessage({
+      const gl = Se.reduce((ea, oi) => ea + oi.subtotal, 0),
+        ae = Se.reduce((ea, oi) => ea + oi.total, 0),
+        oi = Se.reduce((ea, Nn) => ea + Nn.items.length, 0),
+        Nn = buildBreakdownMessage({
           title: "DESGLOSE DE LA MISION:",
-          itemsText: vl
+          itemsText: Se
             .map(
-              (ea) =>
-                `${ea.name}:\n` +
-                ea.items
-                  .map((gl) => `* ${gl.name} – $${A.format(gl.finalPrice)}`)
+              (Ta) =>
+                `${Ta.name}:\n` +
+                Ta.items
+                  .map((qa) => `* ${qa.name} – $${El.format(qa.finalPrice)}`)
                   .join("\n") +
-                `\nTOTAL CLIENTE: $${A.format(ea.total)}`,
+                `\nTOTAL CLIENTE: $${El.format(Ta.total)}`,
             )
             .join("\n\n"),
-          total: El,
+          total: ae,
+          subtotal: gl,
+          discountPercentage: vl,
+          discountAmount: Math.max(0, gl - ae),
+          shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
+          storeName: String((A && (A.store_name || A.name)) || "").trim(),
+          factorValue: A && A.factor_value,
+          calcMode: A && A.calc_mode,
+          exchangeRate: A && A.exchange_rate,
+          taxPercentage: A && A.tax_percentage,
+          commissionPercentage: A && A.commission_percentage,
+          itemsCount: oi,
         });
       try {
-        await navigator.clipboard.writeText(Se);
-      } catch (ea) {
-        console.error("Failed to copy clients shopping breakdown", ea);
+        await navigator.clipboard.writeText(Nn);
+      } catch (Ta) {
+        console.error("Failed to copy clients shopping breakdown", Ta);
       }
     },
     generateClientHistoryShareLink = async (o) => {
@@ -8196,10 +8324,20 @@ function nh() {
                     className: "text-sm font-bold text-text-main",
                     children: "Desglose Default",
                   }),
-                  c.jsx("p", {
-                    className: "text-xs text-text-sub mt-1",
-                    children:
-                      "Variables disponibles: {title}, {items}, {total}",
+                  c.jsxs("div", {
+                    className: "mt-1 space-y-1",
+                    children: [
+                      c.jsx("p", {
+                        className: "text-xs text-text-sub",
+                        children:
+                          "Variables: {title}, {items}, {total}, {subtotal}, {discount_percentage}, {discount_amount}, {items_count}, {shopping_name}, {client_name}, {store_name}, {factor_value}, {calc_mode}, {exchange_rate}, {tax_percentage}, {commission_percentage}",
+                      }),
+                      c.jsx("p", {
+                        className: "text-[11px] text-text-sub/80",
+                        children:
+                          "Condicional: {{if discount_percentage}}Descuento: {discount_percentage}% (-${discount_amount}){{/if}}",
+                      }),
+                    ],
                   }),
                 ],
               }),
