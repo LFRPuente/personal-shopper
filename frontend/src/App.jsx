@@ -801,6 +801,7 @@ function nh() {
             paymentLocalShoppingProducts(o, paymentForm.shopping, N).filter((vl) =>
               N.has(Number(vl.id)),
             ),
+            paymentLocalShoppingDiscount(paymentForm.shopping),
           )
           : 0,
       vl = N.size > 0 ? A.toFixed(2) : "";
@@ -2554,11 +2555,19 @@ function nh() {
       const N = paymentLocalToNumber(o, Number.NaN);
       return Number.isFinite(N) ? N.toFixed(2) : String(o);
     },
-    paymentLocalProductAmount = (o) => {
-      const N = paymentLocalToNumber(o && o.charged_price, Number.NaN);
-      if (Number.isFinite(N)) return N;
-      const A = paymentLocalToNumber(o && o.real_price, Number.NaN);
-      return Number.isFinite(A) ? A : 0;
+    paymentLocalShoppingDiscount = (o = null) => {
+      const N =
+        o && typeof o === "object"
+          ? o
+          : Al.find((A) => Number(A && A.id) === Number(o)) || null;
+      return Math.max(paymentLocalToNumber(N && N.discount_percentage, 0), 0);
+    },
+    paymentLocalProductAmount = (o, N = 0) => {
+      const A = Math.max(0, 1 - paymentLocalToNumber(N, 0) / 100),
+        vl = paymentLocalToNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(vl)) return vl * A;
+      const El = paymentLocalToNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(El) ? El : 0;
     },
     paymentLocalShoppingProducts = (o, N, A = []) => {
       const vl = A instanceof Set
@@ -2573,8 +2582,8 @@ function nh() {
           ),
       );
     },
-    paymentLocalProductsTotal = (o = []) =>
-      (o || []).reduce((N, A) => N + paymentLocalProductAmount(A), 0),
+    paymentLocalProductsTotal = (o = [], N = 0) =>
+      (o || []).reduce((A, vl) => A + paymentLocalProductAmount(vl, N), 0),
     paymentLocalRecordProducts = (o = null) =>
       (o && (o.products_detail || [])) || [],
     paymentLocalRecordShoppingId = (o = null) =>
@@ -2588,9 +2597,10 @@ function nh() {
           new Date(N.created_at || 0).getTime(),
       ),
     paymentLocalRecordProductsTotal = (o = null) =>
-      paymentLocalHasValue(o && o.products_total)
-        ? paymentLocalToNumber(o.products_total, 0)
-        : paymentLocalProductsTotal(paymentLocalRecordProducts(o)),
+      paymentLocalProductsTotal(
+        paymentLocalRecordProducts(o),
+        paymentLocalShoppingDiscount(paymentLocalRecordShoppingId(o)),
+      ),
     paymentLocalRecordBalance = (o = null) =>
       paymentLocalHasValue(o && o.balance)
         ? paymentLocalToNumber(o.balance, 0)
@@ -2609,6 +2619,9 @@ function nh() {
     paymentModalShopping = Al.find(
       (o) => String(o.id) === String(paymentForm.shopping || ""),
     ) || null,
+    paymentModalDiscountPercent = paymentLocalShoppingDiscount(
+      paymentModalShopping || paymentForm.shopping,
+    ),
     paymentModalProducts = paymentModalClient && paymentForm.shopping
       ? paymentLocalShoppingProducts(
         paymentModalClient,
@@ -2649,7 +2662,10 @@ function nh() {
     paymentSelectedProducts = paymentModalProducts.filter((o) =>
       (paymentForm.product_ids || []).includes(Number(o.id)),
     ),
-    paymentSelectedProductsTotal = paymentLocalProductsTotal(paymentSelectedProducts),
+    paymentSelectedProductsTotal = paymentLocalProductsTotal(
+      paymentSelectedProducts,
+      paymentModalDiscountPercent,
+    ),
     paymentCurrentAmountValue = paymentLocalRecordAmount(paymentCurrentRecord),
     paymentDraftAmountValue = paymentLocalToNumber(paymentForm.amount, 0),
     paymentPreviewAmountValue = paymentForm.id
@@ -2682,7 +2698,7 @@ function nh() {
           : [],
         gl = paymentLocalShoppingProducts(o, vl, ea),
         ae = gl.map((oi) => Number(oi.id)),
-        oi = paymentLocalProductsTotal(gl),
+        oi = paymentLocalProductsTotal(gl, paymentLocalShoppingDiscount(vl)),
         Pi = oi > 0 ? oi.toFixed(2) : "",
         bi = paymentLocalFormatAmountField(Se && Se.amount),
         xa = bi !== "" && bi !== Pi;
@@ -3487,11 +3503,12 @@ function nh() {
           }),
           { usd: 0, sale: 0 },
         ),
-    getProductPaymentAmount = (o) => {
-      const N = toNumber(o && o.charged_price, Number.NaN);
-      if (Number.isFinite(N)) return N;
-      const A = toNumber(o && o.real_price, Number.NaN);
-      return Number.isFinite(A) ? A : 0;
+    getProductPaymentAmount = (o, N = 0) => {
+      const A = Math.max(0, 1 - toNumber(N, 0) / 100),
+        vl = toNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(vl)) return vl * A;
+      const El = toNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(El) ? El : 0;
     },
     getProductQuickFinalPrice = (o) => {
       const N = toNumber(o && o.charged_price, Number.NaN);
@@ -3508,16 +3525,17 @@ function nh() {
           Number(A && A.shopping) === Number(N) &&
           String(A && A.status || "").toUpperCase() !== "REJECTED",
       ),
-    getPaymentProductsTotal = (o = []) =>
-      (o || []).reduce((N, A) => N + getProductPaymentAmount(A), 0),
+    getPaymentProductsTotal = (o = [], N = 0) =>
+      (o || []).reduce((A, vl) => A + getProductPaymentAmount(vl, N), 0),
     getPaymentRecordProducts = (o = null) => (o && (o.products_detail || [])) || [],
     getPaymentRecordShoppingId = (o = null) =>
       Number((o && (o.shopping || o.mission)) || 0),
     getPaymentRecordAmount = (o = null) => toNumber(o && o.amount, 0),
     getPaymentRecordProductsTotal = (o = null) =>
-      hasValue(o && o.products_total)
-        ? toNumber(o.products_total, 0)
-        : getPaymentProductsTotal(getPaymentRecordProducts(o)),
+      getPaymentProductsTotal(
+        getPaymentRecordProducts(o),
+        paymentLocalShoppingDiscount(getPaymentRecordShoppingId(o)),
+      ),
     getPaymentRecordBalance = (o = null) =>
       hasValue(o && o.balance)
         ? toNumber(o.balance, 0)
@@ -3546,7 +3564,10 @@ function nh() {
         El = vl
           ? getPaymentRecordProducts(vl).map((Se) => Number(Se && Se.id))
           : [],
-        Se = getPaymentProductsTotal(paymentLocalShoppingProducts(o, N, El)),
+        Se = getPaymentProductsTotal(
+          paymentLocalShoppingProducts(o, N, El),
+          paymentLocalShoppingDiscount(N),
+        ),
         ea = vl ? getPaymentRecordAmount(vl) : 0;
       return {
         amount: ea,
@@ -6786,7 +6807,10 @@ function nh() {
                       date: Ri,
                       items: ae,
                       payments: Pi,
-                      productsTotal: getPaymentProductsTotal(ae),
+                      productsTotal: getPaymentProductsTotal(
+                        ae,
+                        paymentLocalShoppingDiscount(gl),
+                      ),
                       paymentsTotal: pa.amount,
                       balance: pa.balance,
                     };
@@ -7313,6 +7337,7 @@ function nh() {
                                                                         formatAmount(
                                                                           getProductPaymentAmount(
                                                                             oiProduct,
+                                                                            paymentLocalShoppingDiscount(gl),
                                                                           ),
                                                                         ),
                                                                       ],
@@ -11348,6 +11373,7 @@ function nh() {
                                                           formatAmount(
                                                             getProductPaymentAmount(
                                                               o,
+                                                              paymentModalDiscountPercent,
                                                             ),
                                                           ),
                                                         ],
