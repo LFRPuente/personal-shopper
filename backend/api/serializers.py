@@ -202,6 +202,18 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'shopping': 'Shopping is required.'})
         if client is None:
             raise serializers.ValidationError({'client': 'Client is required.'})
+        conflicting_payment_queryset = ShoppingPayment.objects.filter(
+            client=client,
+            mission=mission,
+        )
+        if self.instance:
+            conflicting_payment_queryset = conflicting_payment_queryset.exclude(
+                id=self.instance.id
+            )
+        elif conflicting_payment_queryset.exists():
+            raise serializers.ValidationError(
+                {'shopping': 'This shopping already has a payment. Update the existing payment.'}
+            )
         for product in products:
             if product.client_id != client.id:
                 raise serializers.ValidationError({'products': 'All selected products must belong to the client.'})
@@ -214,6 +226,22 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'products': 'Only annotated products can be added to a payment.'}
                 )
+        conflicting_product_names = []
+        for payment in conflicting_payment_queryset.prefetch_related('products'):
+            conflicting_product_names.extend(
+                product.name
+                for product in payment.products.all()
+                if product.id in [selected_product.id for selected_product in products]
+            )
+        if conflicting_product_names:
+            raise serializers.ValidationError(
+                {
+                    'products': (
+                        'These products are already linked to another payment in this shopping: '
+                        + ', '.join(sorted(set(conflicting_product_names)))
+                    )
+                }
+            )
         return attrs
 
     class Meta:

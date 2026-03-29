@@ -2478,7 +2478,11 @@ function nh() {
       (o) => String(o.id) === String(paymentForm.shopping || ""),
     ) || null,
     paymentModalProducts = paymentModalClient && paymentForm.shopping
-      ? paymentLocalShoppingProducts(paymentModalClient, paymentForm.shopping)
+      ? paymentLocalShoppingProducts(
+        paymentModalClient,
+        paymentForm.shopping,
+        paymentForm.product_ids || [],
+      )
       : [],
     paymentReservedProductIds = paymentModalClient && paymentForm.shopping
       ? paymentLocalShoppingPayments(paymentModalClient, paymentForm.shopping).reduce(
@@ -2526,27 +2530,29 @@ function nh() {
         notifyInfo("Selecciona cliente y shopping.");
         return;
       }
-      const El = A
-        ? paymentLocalRecordProducts(A).map((Se) => Number(Se.id))
-        : getDefaultPaymentProductIds(o, vl);
-      const Se = new Set(El);
-      const ea = paymentLocalProductsTotal(
-        paymentLocalShoppingProducts(o, vl, Se).filter((gl) =>
-          Se.has(Number(gl.id)),
+      const El = paymentLocalShoppingPayments(o, vl),
+        Se = A || El[0] || null,
+        ea = Se
+          ? paymentLocalRecordProducts(Se).map((gl) => Number(gl.id))
+          : getDefaultPaymentProductIds(o, vl),
+        gl = new Set(ea),
+        ae = paymentLocalProductsTotal(
+          paymentLocalShoppingProducts(o, vl, gl).filter((oi) =>
+            gl.has(Number(oi.id)),
+          ),
         ),
-      );
-      const gl = ea > 0 ? ea.toFixed(2) : "";
-      const ae = paymentLocalFormatAmountField(A && A.amount);
-      const oi = ae !== "" && ae !== gl;
+        oi = ae > 0 ? ae.toFixed(2) : "",
+        Pi = paymentLocalFormatAmountField(Se && Se.amount),
+        bi = Pi !== "" && Pi !== oi;
       setPaymentForm({
-        id: (A && A.id) || null,
+        id: (Se && Se.id) || null,
         client: String(o.id),
         shopping: String(vl),
-        amount: oi ? ae : (ae || gl),
-        note: (A && A.note) || "",
-        product_ids: El,
+        amount: bi ? Pi : (Pi || oi),
+        note: (Se && Se.note) || "",
+        product_ids: ea,
       });
-      setPaymentAmountManual(oi);
+      setPaymentAmountManual(bi);
       setPaymentProductSearch("");
       setPaymentModalOpen(!0);
     },
