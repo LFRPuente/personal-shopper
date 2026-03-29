@@ -8410,7 +8410,7 @@ function nh() {
       J.profile.role === "BOTH" &&
       c.jsxs("div", {
         className: isDesktopLayout
-          ? "bg-emerald-600 text-white text-xs p-2 flex justify-center gap-4 z-50 relative shadow-md ml-80"
+          ? "bg-emerald-600 text-white text-xs p-2 flex justify-center gap-4 z-50 relative shadow-md ml-20"
           : "bg-emerald-600 text-white text-xs p-2 flex justify-center gap-4 z-50 relative shadow-md",
         children: [
           c.jsx("span", {
@@ -8451,7 +8451,7 @@ function nh() {
       }),
       c.jsx("header", {
         className: isDesktopLayout
-          ? "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200 ml-80"
+          ? "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200 ml-20"
           : "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200",
         children: c.jsx("div", {
           className: "px-5 py-4 flex items-center gap-3",
@@ -8483,7 +8483,7 @@ function nh() {
       }),
       c.jsxs("main", {
         className: isDesktopLayout
-          ? "flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark ml-80"
+          ? "flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark ml-20"
           : "flex-1 overflow-y-auto p-5 bg-background-light dark:bg-background-dark",
         children: [
           c.jsx("div", {
@@ -12984,69 +12984,45 @@ function nh() {
       }),
       c.jsx("nav", {
         className: isDesktopLayout
-          ? "fixed inset-y-0 left-0 w-80 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-r border-border-light dark:border-border-dark pt-4 px-4 z-[55] overflow-y-auto"
+          ? "fixed inset-y-0 left-0 w-20 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-r border-border-light dark:border-border-dark py-3 px-2 z-[55] overflow-y-auto"
           : "fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-lg border-t border-border-light dark:border-border-dark pt-1 px-3 z-[55]",
         style: isDesktopLayout
           ? undefined
           : { paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)" },
         children: c.jsxs("div", {
           className: isDesktopLayout
-            ? "flex h-full flex-col gap-2"
+            ? "flex h-full flex-col items-center gap-3"
             : "flex justify-around items-center",
           children: [
-            isDesktopLayout &&
-            c.jsxs("div", {
-              className:
-                "px-2 pb-3 mb-2 border-b border-border-light dark:border-border-dark",
-              children: [
-                c.jsx("p", {
-                  className:
-                    "text-[10px] font-black uppercase tracking-[0.24em] text-text-sub",
-                  children: "Modules",
-                }),
-                c.jsx("p", {
-                  className: "mt-1 text-sm font-bold text-text-main dark:text-white",
-                  children: "Personal Shopper",
-                }),
-              ],
-            }),
             c.jsx("button", {
               onClick: () => navigateSection("HOME"),
+              title: "Home",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "HOME" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "HOME" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "HOME" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
+                    className: "relative",
                     children: [
-                      c.jsxs("div", {
-                        className: "relative shrink-0",
+                      c.jsx("span", {
+                        className:
+                          "material-symbols-outlined font-variation-settings-fill text-[22px]",
+                        children: "dashboard",
+                      }),
+                      homeNeedsAttention &&
+                      c.jsxs("span", {
+                        className:
+                          "absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5",
                         children: [
                           c.jsx("span", {
                             className:
-                              "material-symbols-outlined font-variation-settings-fill text-[22px]",
-                            children: "dashboard",
+                              "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75",
                           }),
-                          homeNeedsAttention &&
-                          c.jsxs("span", {
+                          c.jsx("span", {
                             className:
-                              "absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5",
-                            children: [
-                              c.jsx("span", {
-                                className:
-                                  "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75",
-                              }),
-                              c.jsx("span", {
-                                className:
-                                  "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border border-white dark:border-gray-900",
-                              }),
-                            ],
+                              "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border border-white dark:border-gray-900",
                           }),
                         ],
-                      }),
-                      c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Home",
                       }),
                     ],
                   })
@@ -13077,31 +13053,23 @@ function nh() {
             }),
             c.jsx("button", {
               onClick: () => navigateSection("MISSIONS"),
+              title: "Shoppings",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "MISSIONS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "MISSIONS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "MISSIONS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
                 ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
+                    className: "relative",
                     children: [
-                      c.jsxs("div", {
-                        className: "relative shrink-0",
-                        children: [
-                          c.jsx("span", {
-                            className:
-                              "material-symbols-outlined text-[22px]",
-                            children: "shopping_bag",
-                          }),
-                          w &&
-                          c.jsx("span", {
-                            className:
-                              "absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900",
-                          }),
-                        ],
-                      }),
                       c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Shoppings",
+                        className:
+                          "material-symbols-outlined text-[22px]",
+                        children: "shopping_bag",
+                      }),
+                      w &&
+                      c.jsx("span", {
+                        className:
+                          "absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900",
                       }),
                     ],
                   })
@@ -13122,25 +13090,17 @@ function nh() {
             }),
             c.jsx("button", {
               onClick: () => navigateSection("CLIENTS"),
+              title: "Clients",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CLIENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "CLIENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "CLIENTS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
-                ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
-                    children: [
-                      c.jsx("div", {
-                        className: "relative shrink-0",
-                        children: c.jsx("span", {
-                          className: "material-symbols-outlined text-[22px]",
-                          children: "group",
-                        }),
-                      }),
-                      c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Clients",
-                      }),
-                    ],
+                ? c.jsx("div", {
+                    className: "relative",
+                    children: c.jsx("span", {
+                      className: "material-symbols-outlined text-[22px]",
+                      children: "group",
+                    }),
                   })
                 : c.jsx("div", {
                     className: "relative",
@@ -13152,25 +13112,17 @@ function nh() {
             }),
             c.jsx("button", {
               onClick: () => navigateSection("SHIPMENTS"),
+              title: "Shipments",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "SHIPMENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "SHIPMENTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "SHIPMENTS" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
-                ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
-                    children: [
-                      c.jsx("div", {
-                        className: "relative shrink-0",
-                        children: c.jsx("span", {
-                          className: "material-symbols-outlined text-[22px]",
-                          children: "local_shipping",
-                        }),
-                      }),
-                      c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Shipments",
-                      }),
-                    ],
+                ? c.jsx("div", {
+                    className: "relative",
+                    children: c.jsx("span", {
+                      className: "material-symbols-outlined text-[22px]",
+                      children: "local_shipping",
+                    }),
                   })
                 : c.jsx("span", {
                     className: "material-symbols-outlined text-[20px]",
@@ -13179,25 +13131,17 @@ function nh() {
             }),
             c.jsx("button", {
               onClick: () => navigateSection("CALCULATOR"),
+              title: "Calc",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "CALCULATOR" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "CALCULATOR" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "CALCULATOR" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
-                ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
-                    children: [
-                      c.jsx("div", {
-                        className: "relative shrink-0",
-                        children: c.jsx("span", {
-                          className: "material-symbols-outlined text-[22px]",
-                          children: "calculate",
-                        }),
-                      }),
-                      c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Calc",
-                      }),
-                    ],
+                ? c.jsx("div", {
+                    className: "relative",
+                    children: c.jsx("span", {
+                      className: "material-symbols-outlined text-[22px]",
+                      children: "calculate",
+                    }),
                   })
                 : c.jsx("span", {
                     className: "material-symbols-outlined text-[20px]",
@@ -13206,25 +13150,17 @@ function nh() {
             }),
             c.jsx("button", {
               onClick: () => navigateSection("PROFILE"),
+              title: "Profile",
               className: isDesktopLayout
-                ? `ui-nav-item w-full px-4 py-4 rounded-3xl transition-colors flex items-center gap-3 text-left ${nl === "PROFILE" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
+                ? `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "PROFILE" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`
                 : `ui-nav-item relative p-1.5 transition-colors ${nl === "PROFILE" ? "ui-nav-item-active text-primary" : "text-text-sub dark:text-slate-400"}`,
               children: isDesktopLayout
-                ? c.jsxs("div", {
-                    className: "flex items-center gap-3",
-                    children: [
-                      c.jsx("div", {
-                        className: "relative shrink-0",
-                        children: c.jsx("span", {
-                          className: "material-symbols-outlined text-[22px]",
-                          children: "person",
-                        }),
-                      }),
-                      c.jsx("span", {
-                        className: "text-sm font-semibold",
-                        children: "Profile",
-                      }),
-                    ],
+                ? c.jsx("div", {
+                    className: "relative",
+                    children: c.jsx("span", {
+                      className: "material-symbols-outlined text-[22px]",
+                      children: "person",
+                    }),
                   })
                 : c.jsx("span", {
                     className: "material-symbols-outlined text-[20px]",
