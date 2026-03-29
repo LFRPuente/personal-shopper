@@ -11614,7 +11614,7 @@ function nh() {
                             }),
                             c.jsxs("div", {
                               className:
-                                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-3 py-2.5 space-y-2",
+                                "rounded-3xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-4 py-3.5 space-y-3",
                               children: [
                                 c.jsxs("div", {
                                   className:
@@ -11622,12 +11622,12 @@ function nh() {
                                   children: [
                                     c.jsx("p", {
                                       className:
-                                        "text-[11px] font-bold uppercase tracking-wide text-text-sub",
+                                        "text-xs font-bold uppercase tracking-wide text-text-sub",
                                       children: "Historial de abonos",
                                     }),
                                     c.jsxs("span", {
                                       className:
-                                        "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
+                                        "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
                                       children: [
                                         paymentHistoryEntries.length,
                                         " movimiento(s)",
@@ -11644,13 +11644,13 @@ function nh() {
                                   })
                                   : c.jsx("div", {
                                     className:
-                                      "max-h-32 overflow-y-auto ios-scroll space-y-1.5 pr-1",
+                                      "max-h-48 overflow-y-auto ios-scroll space-y-2 pr-1.5",
                                     children: paymentHistoryEntries.map((o) =>
                                       c.jsxs(
                                         "div",
                                         {
                                           className:
-                                            "rounded-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 px-2.5 py-2",
+                                            "rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 px-3 py-2.5",
                                           children: [
                                             c.jsxs("div", {
                                               className:
@@ -11676,7 +11676,7 @@ function nh() {
                                                                 N.target.value,
                                                               ),
                                                             className:
-                                                              "w-24 px-2 py-1 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                                              "w-28 px-2.5 py-1.5 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
                                                           }),
                                                           c.jsx("button", {
                                                             type: "button",
@@ -11686,12 +11686,12 @@ function nh() {
                                                               paymentEntrySavingId ===
                                                               Number(o.id),
                                                             className:
-                                                              "w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
+                                                              "w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
                                                             children: c.jsx(
                                                               "span",
                                                               {
                                                                 className:
-                                                                  `material-symbols-outlined text-[12px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                                  `material-symbols-outlined text-[14px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
                                                                 children:
                                                                   paymentEntrySavingId ===
                                                                   Number(o.id)
@@ -11708,12 +11708,12 @@ function nh() {
                                                               paymentEntrySavingId ===
                                                               Number(o.id),
                                                             className:
-                                                              "w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
+                                                              "w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
                                                             children: c.jsx(
                                                               "span",
                                                               {
                                                                 className:
-                                                                  "material-symbols-outlined text-[12px]",
+                                                                  "material-symbols-outlined text-[14px]",
                                                                 children:
                                                                   "close",
                                                               },
@@ -11723,7 +11723,7 @@ function nh() {
                                                       })
                                                       : c.jsxs("p", {
                                                         className:
-                                                          `text-[12px] font-bold ${
+                                                          `text-[13px] font-bold ${
                                                             paymentLocalToNumber(
                                                               o.amount,
                                                               0,
@@ -11750,7 +11750,7 @@ function nh() {
                                                       }),
                                                     c.jsxs("p", {
                                                       className:
-                                                        "text-[9px] text-text-sub mt-0.5",
+                                                        "text-[10px] text-text-sub mt-0.5",
                                                       children: [
                                                         o.created_at
                                                           ? new Date(
@@ -11770,7 +11770,7 @@ function nh() {
                                                   children: [
                                                     c.jsxs("p", {
                                                       className:
-                                                        "text-[9px] font-bold text-violet-700 dark:text-violet-200",
+                                                        "text-[10px] font-bold text-violet-700 dark:text-violet-200",
                                                       children: [
                                                         "Total ",
                                                         "$",
@@ -11798,12 +11798,12 @@ function nh() {
                                                             paymentEntrySavingId ===
                                                             Number(o.id),
                                                           className:
-                                                            "w-6 h-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
+                                                            "w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
                                                           children: c.jsx(
                                                             "span",
                                                             {
                                                               className:
-                                                                "material-symbols-outlined text-[12px]",
+                                                                "material-symbols-outlined text-[14px]",
                                                               children:
                                                                 "edit",
                                                             },
@@ -11819,12 +11819,12 @@ function nh() {
                                                             paymentEntrySavingId ===
                                                             Number(o.id),
                                                           className:
-                                                            "w-6 h-6 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
+                                                            "w-7 h-7 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
                                                           children: c.jsx(
                                                             "span",
                                                             {
                                                               className:
-                                                                `material-symbols-outlined text-[12px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                                `material-symbols-outlined text-[14px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
                                                               children:
                                                                 paymentEntrySavingId ===
                                                                 Number(o.id)
@@ -11945,42 +11945,6 @@ function nh() {
                                   : paymentFormBalance < 0
                                   ? "Credito a favor: el cliente pago mas de lo seleccionado."
                                   : "Puedes quitar o agregar productos para ajustar lo que cubre este pago.",
-                            }),
-                          ],
-                        }),
-                        paymentSelectedProducts.length > 0 &&
-                        c.jsxs("div", {
-                          className:
-                            "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 p-4 space-y-2",
-                          children: [
-                            c.jsx("p", {
-                              className:
-                                "text-[11px] font-bold uppercase tracking-wide text-text-sub",
-                              children: "Incluye",
-                            }),
-                            c.jsx("div", {
-                              className: "flex flex-wrap gap-1.5",
-                              children: paymentSelectedProducts.map((o) =>
-                                c.jsxs(
-                                  "button",
-                                  {
-                                    type: "button",
-                                    onClick: () =>
-                                      togglePaymentProductSelection(o),
-                                    className:
-                                      "inline-flex items-center gap-1 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 text-[10px] font-medium text-violet-700 dark:text-violet-200",
-                                    children: [
-                                      o.name,
-                                      c.jsx("span", {
-                                        className:
-                                          "material-symbols-outlined text-[12px]",
-                                        children: "close",
-                                      }),
-                                    ],
-                                  },
-                                  `payment-selected-${o.id}`,
-                                ),
-                              ),
                             }),
                           ],
                         }),
