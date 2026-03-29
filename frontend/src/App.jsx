@@ -10662,31 +10662,39 @@ function nh() {
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet",
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 sm:p-6 ui-sheet overflow-hidden",
             "image-source",
           ),
           onClick: (o) => o.stopPropagation(),
           children: [
             c.jsxs("div", {
-              className: "flex items-start gap-3",
+              className:
+                "relative overflow-hidden rounded-3xl border border-sky-200/70 dark:border-sky-500/20 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.16),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,248,252,0.96))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_46%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(10,15,29,0.98))] p-4 sm:p-5 flex items-start gap-3",
               children: [
                 c.jsx("div", {
                   className:
-                    "w-10 h-10 rounded-2xl flex items-center justify-center bg-sky-100 text-sky-700",
+                    "w-11 h-11 rounded-2xl flex items-center justify-center bg-white/90 dark:bg-sky-500/14 text-sky-700 dark:text-sky-300 shadow-sm",
                   children: c.jsx("span", {
-                    className: "material-symbols-outlined",
+                    className: "material-symbols-outlined text-[22px]",
                     children: "imagesmode",
                   }),
                 }),
                 c.jsxs("div", {
                   className: "flex-1",
                   children: [
+                    c.jsx("p", {
+                      className:
+                        "text-[10px] font-black uppercase tracking-[0.18em] text-sky-700/75 dark:text-sky-300/75",
+                      children: "Fuente de imagen",
+                    }),
                     c.jsx("h3", {
-                      className: "text-base font-bold text-text-main",
+                      className:
+                        "mt-1 text-lg font-black text-text-main dark:text-white leading-tight",
                       children: imageSourceDialog.title || "Seleccionar imagen",
                     }),
                     c.jsx("p", {
-                      className: "text-sm text-text-sub mt-1",
+                      className:
+                        "text-sm text-text-sub dark:text-slate-300/90 mt-1.5 leading-6",
                       children:
                         "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
                     }),
@@ -10695,34 +10703,41 @@ function nh() {
               ],
             }),
             c.jsxs("div", {
-              className: "mt-5 grid grid-cols-1 gap-2",
+              className: "mt-5 grid grid-cols-1 gap-3",
               children: [
                 c.jsxs("button", {
                   type: "button",
                   onClick: pickImageFromDevice,
                   className:
-                    "w-full rounded-2xl border border-border-light dark:border-border-dark px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900/70 transition flex items-center gap-3",
+                    "group w-full rounded-3xl border border-border-light dark:border-border-dark px-4 py-4 text-left bg-white/88 dark:bg-slate-900/75 hover:bg-white dark:hover:bg-slate-900 transition flex items-center gap-3 shadow-sm hover:shadow-md",
                   children: [
                     c.jsx("span", {
                       className:
-                        "w-10 h-10 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center material-symbols-outlined",
+                        "shrink-0 w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-500/14 text-violet-700 dark:text-violet-300 flex items-center justify-center material-symbols-outlined text-[24px]",
                       children: "folder_open",
                     }),
                     c.jsxs("span", {
-                      className: "flex flex-col",
+                      className: "flex-1 flex flex-col min-w-0",
                       children: [
                         c.jsx("span", {
-                          className: "text-sm font-semibold text-text-main",
-                          children: "Almacenamiento del dispositivo",
+                          className:
+                            "text-sm font-bold text-text-main dark:text-white",
+                          children: "Elegir del dispositivo",
                         }),
                         c.jsx("span", {
-                          className: "text-[11px] text-text-sub",
+                          className:
+                            "text-[11px] text-text-sub dark:text-slate-300/85 mt-0.5 leading-5",
                           children:
                             imageSourceDialog.multiple
-                              ? "Selecciona una o varias imágenes guardadas."
-                              : "Selecciona una imagen guardada.",
+                              ? "Abre tu galería o archivos y selecciona una o varias imágenes."
+                              : "Abre tu galería o archivos y selecciona una imagen.",
                         }),
                       ],
+                    }),
+                    c.jsx("span", {
+                      className:
+                        "material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500 transition-transform group-hover:translate-x-0.5",
+                      children: "arrow_forward_ios",
                     }),
                   ],
                 }),
@@ -10730,26 +10745,33 @@ function nh() {
                   type: "button",
                   onClick: pickImageFromClipboard,
                   className:
-                    "w-full rounded-2xl border border-border-light dark:border-border-dark px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900/70 transition flex items-center gap-3",
+                    "group w-full rounded-3xl border border-border-light dark:border-border-dark px-4 py-4 text-left bg-white/88 dark:bg-slate-900/75 hover:bg-white dark:hover:bg-slate-900 transition flex items-center gap-3 shadow-sm hover:shadow-md",
                   children: [
                     c.jsx("span", {
                       className:
-                        "w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center material-symbols-outlined",
+                        "shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 flex items-center justify-center material-symbols-outlined text-[24px]",
                       children: "content_paste",
                     }),
                     c.jsxs("span", {
-                      className: "flex flex-col",
+                      className: "flex-1 flex flex-col min-w-0",
                       children: [
                         c.jsx("span", {
-                          className: "text-sm font-semibold text-text-main",
-                          children: "Portapapeles",
+                          className:
+                            "text-sm font-bold text-text-main dark:text-white",
+                          children: "Usar portapapeles",
                         }),
                         c.jsx("span", {
-                          className: "text-[11px] text-text-sub",
+                          className:
+                            "text-[11px] text-text-sub dark:text-slate-300/85 mt-0.5 leading-5",
                           children:
-                            "Usa la imagen que tengas copiada en este momento.",
+                            "Pega la imagen que ya copiaste y úsala al instante sin buscar archivos.",
                         }),
                       ],
+                    }),
+                    c.jsx("span", {
+                      className:
+                        "material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500 transition-transform group-hover:translate-x-0.5",
+                      children: "arrow_forward_ios",
                     }),
                   ],
                 }),
@@ -10759,8 +10781,8 @@ function nh() {
               type: "button",
               onClick: () => dismissActiveOverlayRef.current(),
               className:
-                "mt-4 w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
-              children: "Cancelar",
+                "mt-4 w-full py-2.5 rounded-2xl border border-border-light dark:border-border-dark bg-white/75 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-sm font-semibold text-text-main dark:text-white transition",
+              children: "Cerrar",
             }),
           ],
         }),
