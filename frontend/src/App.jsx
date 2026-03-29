@@ -678,17 +678,9 @@ function nh() {
       }
       showMissionStartModal && setShowMissionStartModal(!1);
     };
-    dismissActiveOverlayRef.current = (N = !1, A = !1, El = !1) => {
+    dismissActiveOverlayRef.current = (N = !1, A = !1) => {
       const vl = activeOverlayKeyRef.current;
       if (!vl) return;
-      if (me && he && !El) {
-        if (newProductUploading) return;
-        const Se = getProductModalRequiredError(null, "dismiss");
-        if (Se) {
-          notifyInfo(Se);
-          return;
-        }
-      }
       !N &&
         window.history.state &&
         window.history.state.__ps_overlay &&
@@ -1651,24 +1643,21 @@ function nh() {
             calcExchangeRate
         : Number.NaN;
     },
-    getProductModalPriceError = (o = null, N = "save") => {
-      const A = N === "dismiss" ? "antes de cerrar o guardar" : "para guardar";
-      const vl = o || st;
-      const El = String(vl.real_price || "").trim();
-      const Se = String(vl.charged_price || "").trim();
-      if (!El || !Number.isFinite(parseFloat(El)))
-        return `Debes capturar un Store Price (USD) valido ${A}.`;
-      if (!Se || !Number.isFinite(parseFloat(Se)))
-        return `Debes capturar un Final Price (MXN) valido ${A}.`;
+    getProductModalPriceError = (o = null) => {
+      const N = o || st;
+      const A = String(N.real_price || "").trim();
+      const vl = String(N.charged_price || "").trim();
+      if (!A || !Number.isFinite(parseFloat(A)))
+        return "Debes capturar un Store Price (USD) valido para guardar.";
+      if (!vl || !Number.isFinite(parseFloat(vl)))
+        return "Debes capturar un Final Price (MXN) valido para guardar.";
       return "";
     },
-    getProductModalRequiredError = (o = null, N = "save") => {
-      const A = o || st;
-      if (!String(A.name || "").trim())
-        return N === "dismiss"
-          ? "Debes capturar el nombre del producto antes de cerrar o guardar."
-          : "Debes capturar el nombre del producto para guardar.";
-      return getProductModalPriceError(A, N);
+    getProductModalRequiredError = (o = null) => {
+      const N = o || st;
+      if (!String(N.name || "").trim())
+        return "Debes capturar el nombre del producto para guardar.";
+      return getProductModalPriceError(N);
     },
     openProductModal = (o, N = "edit", A = {}) => {
       const vl = String(o && o.tags ? o.tags : "")
@@ -1715,13 +1704,6 @@ function nh() {
     },
     closeProductModal = (o = !1) => {
       if (newProductUploading && !o) return;
-      if (!o) {
-        const N = getProductModalRequiredError(null, "dismiss");
-        if (N) {
-          notifyInfo(N);
-          return;
-        }
-      }
       (ut(!1),
         Ke(null),
         Gt(createEmptyProductForm()),
@@ -9384,8 +9366,7 @@ function nh() {
                   children: [
                     c.jsx("button", {
                       type: "button",
-                      onClick: () =>
-                        dismissActiveOverlayRef.current(!1, !1, !0),
+                      onClick: () => dismissActiveOverlayRef.current(),
                       disabled: newProductUploading,
                       className:
                         `flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`,
