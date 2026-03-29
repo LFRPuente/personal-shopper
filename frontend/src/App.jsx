@@ -279,6 +279,7 @@ function nh() {
     [inputDialog, setInputDialog] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
+    [openProductStatusId, setOpenProductStatusId] = V.useState(null),
     [reviewConversationEntry, setReviewConversationEntry] = V.useState(null),
     [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
     [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
@@ -1005,23 +1006,31 @@ function nh() {
     localStorage.setItem("calc_exchange_rate", String(calcExchangeRate));
   }, [calcExchangeRate]);
   V.useEffect(() => {
-    if (openProductMenuId === null && openProductInfoId === null)
+    if (
+      openProductMenuId === null &&
+      openProductInfoId === null &&
+      openProductStatusId === null
+    )
       return;
     const closeMenuOnOutsideClick = (o) => {
       const N = o.target;
       if (
         N &&
         N.closest &&
-        (N.closest("[data-product-menu]") || N.closest("[data-product-info]"))
+        (N.closest("[data-product-menu]") ||
+          N.closest("[data-product-info]") ||
+          N.closest("[data-product-status]"))
       )
         return;
-      setOpenProductMenuId(null), setOpenProductInfoId(null);
+      (setOpenProductMenuId(null),
+        setOpenProductInfoId(null),
+        setOpenProductStatusId(null));
     };
     document.addEventListener("click", closeMenuOnOutsideClick);
     return () => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
     };
-  }, [openProductMenuId, openProductInfoId]);
+  }, [openProductMenuId, openProductInfoId, openProductStatusId]);
   V.useEffect(() => {
     if (!C) {
       setRequests([]);
@@ -1681,17 +1690,16 @@ function nh() {
         console.error("Failed updating product status", A);
       }
     },
-    cycleGalleryProductStatus = async (o, N = null) => {
-      if (!o || productStatusUpdatingId === o.id) return;
-      const A = getUnifiedReviewState(getProductReviewState(o, N)),
-        vl = A === "REVIEW" ? "REJECTED" : A === "REJECTED" ? "ANNOTATED" : "REVIEW";
+    setGalleryProductStatus = async (o, N = null, A) => {
+      if (!o || !A || productStatusUpdatingId === o.id) return;
       setProductStatusUpdatingId(o.id);
       try {
-        (await syncProductReviewState(o, N, vl),
+        (await syncProductReviewState(o, N, A),
           await refreshProductReviews(W && W.id),
-          await Qt());
+          await Qt(),
+          setOpenProductStatusId(null));
       } catch (El) {
-        (console.error("Failed cycling gallery product status", El),
+        (console.error("Failed updating gallery product status", El),
           notifyError("No se pudo cambiar el status."));
       } finally {
         setProductStatusUpdatingId(null);
@@ -9641,12 +9649,15 @@ function nh() {
                           currentGalleryStatus = getUnifiedReviewState(
                             getProductReviewState(o, reviewEntry || null),
                           ),
-                          nextGalleryStatus =
+                          galleryStatusActions = getChatStatusActionOptions(
+                            currentGalleryStatus,
+                          ),
+                          galleryStatusButtonTone =
                             currentGalleryStatus === "REVIEW"
-                              ? "REJECTED"
+                              ? "bg-amber-100/88 text-amber-800 border-amber-200/80 hover:bg-amber-100"
                               : currentGalleryStatus === "REJECTED"
-                                ? "ANNOTATED"
-                                : "REVIEW",
+                                ? "bg-rose-100/88 text-rose-800 border-rose-200/80 hover:bg-rose-100"
+                                : "bg-emerald-100/88 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100",
                           isPendingReview =
                             reviewEntry && reviewEntry.status === "PENDING",
                           isAltReady =
@@ -9670,6 +9681,7 @@ function nh() {
                                     onClick: (N) => {
                                       (N.stopPropagation(),
                                         setOpenProductInfoId(null),
+                                        setOpenProductStatusId(null),
                                         setOpenProductMenuId((A) =>
                                           A === o.id ? null : o.id,
                                         ));
@@ -9756,6 +9768,7 @@ function nh() {
                                   onClick: (N) => {
                                     (N.stopPropagation(),
                                       setOpenProductMenuId(null),
+                                      setOpenProductStatusId(null),
                                       setOpenProductInfoId((A) =>
                                         A === o.id ? null : o.id,
                                       ));
@@ -9807,40 +9820,84 @@ function nh() {
                                         ],
                                       }),
                                   }),
-                                  c.jsx("div", {
+                                  c.jsxs("div", {
                                     className: "absolute left-0.5 bottom-0.5 z-20",
-                                    children: c.jsxs("button", {
-                                      onClick: (N) => {
-                                        (N.stopPropagation(),
-                                          setOpenProductInfoId(null),
-                                          setOpenProductMenuId(null),
-                                          cycleGalleryProductStatus(
-                                            o,
-                                            reviewEntry || null,
-                                          ));
-                                      },
-                                      disabled: productStatusUpdatingId === o.id,
-                                      className:
-                                        `px-1.5 py-[1px] rounded-full bg-white/34 text-slate-700 hover:bg-white/50 border border-white/30 shadow-sm backdrop-blur-[2px] inline-flex items-center gap-1 ${productStatusUpdatingId === o.id ? "opacity-70 cursor-wait" : ""}`,
-                                      title: `Cambiar a ${getReviewFlowLabel(nextGalleryStatus)}`,
-                                      children: [
-                                        c.jsx("span", {
+                                    "data-product-status": "1",
+                                    children: [
+                                      c.jsx("button", {
+                                        onClick: (N) => {
+                                          (N.stopPropagation(),
+                                            setOpenProductInfoId(null),
+                                            setOpenProductMenuId(null),
+                                            setOpenProductStatusId((A) =>
+                                              A === o.id ? null : o.id,
+                                            ));
+                                        },
+                                        disabled: productStatusUpdatingId === o.id,
+                                        className:
+                                          `w-6 h-6 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${galleryStatusButtonTone} ${productStatusUpdatingId === o.id ? "opacity-70 cursor-wait" : ""}`,
+                                        title: `Cambiar status (${getReviewFlowLabel(currentGalleryStatus)})`,
+                                        children: c.jsx("span", {
                                           className:
-                                            `material-symbols-outlined text-[10px] ${productStatusUpdatingId === o.id ? "animate-spin" : ""}`,
+                                            `material-symbols-outlined text-[12px] ${productStatusUpdatingId === o.id ? "animate-spin" : ""}`,
                                           children:
                                             productStatusUpdatingId === o.id
                                               ? "progress_activity"
-                                              : "sync_alt",
+                                              : currentGalleryStatus === "REVIEW"
+                                                ? "pending_actions"
+                                                : currentGalleryStatus === "REJECTED"
+                                                  ? "cancel"
+                                                  : "task_alt",
                                         }),
-                                        c.jsx("span", {
-                                          className:
-                                            "text-[9px] font-bold",
-                                          children: getReviewFlowLabel(
-                                            nextGalleryStatus,
+                                      }),
+                                      openProductStatusId === o.id &&
+                                      c.jsxs("div", {
+                                        className:
+                                          "absolute left-0 bottom-7 min-w-[116px] rounded-xl border border-slate-200/90 bg-white/96 p-1 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/96",
+                                        children: [
+                                          c.jsx("div", {
+                                            className:
+                                              "px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400",
+                                            children: "Cambiar status",
+                                          }),
+                                          galleryStatusActions.map((N) =>
+                                            c.jsxs(
+                                              "button",
+                                              {
+                                                onClick: (A) => {
+                                                  (A.stopPropagation(),
+                                                    setGalleryProductStatus(
+                                                      o,
+                                                      reviewEntry || null,
+                                                      N.value,
+                                                    ));
+                                                },
+                                                disabled:
+                                                  productStatusUpdatingId === o.id,
+                                                className:
+                                                  "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[11px] text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80 disabled:opacity-60 disabled:cursor-wait",
+                                                children: [
+                                                  c.jsx("span", {
+                                                    children: N.label,
+                                                  }),
+                                                  c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-[13px]",
+                                                    children:
+                                                      N.value === "REVIEW"
+                                                        ? "pending_actions"
+                                                        : N.value === "REJECTED"
+                                                          ? "cancel"
+                                                          : "task_alt",
+                                                  }),
+                                                ],
+                                              },
+                                              N.value,
+                                            ),
                                           ),
-                                        }),
-                                      ],
-                                    }),
+                                        ],
+                                      }),
+                                    ],
                                   }),
                                   c.jsx("div", {
                                     className: "absolute right-0.5 bottom-0.5 z-20",
@@ -9849,6 +9906,7 @@ function nh() {
                                         (N.stopPropagation(),
                                           setOpenProductInfoId(null),
                                           setOpenProductMenuId(null),
+                                          setOpenProductStatusId(null),
                                           openProductConversation(
                                             o,
                                             reviewEntry || null,
