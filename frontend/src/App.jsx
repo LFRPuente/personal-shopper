@@ -10660,9 +10660,10 @@ function nh() {
               children: [
                 c.jsx("div", {
                   className:
-                    "w-11 h-11 rounded-2xl flex items-center justify-center bg-white/90 dark:bg-sky-500/14 text-sky-700 dark:text-sky-300 shadow-sm",
+                    "w-11 h-11 rounded-2xl grid place-items-center bg-white/90 dark:bg-sky-500/14 text-sky-700 dark:text-sky-300 shadow-sm",
                   children: c.jsx("span", {
-                    className: "material-symbols-outlined text-[22px]",
+                    className:
+                      "material-symbols-outlined inline-flex items-center justify-center leading-none text-[22px]",
                     children: "imagesmode",
                   }),
                 }),
@@ -10700,8 +10701,12 @@ function nh() {
                   children: [
                     c.jsx("span", {
                       className:
-                        "shrink-0 w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-500/14 text-violet-700 dark:text-violet-300 flex items-center justify-center material-symbols-outlined text-[24px]",
-                      children: "folder_open",
+                        "shrink-0 w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-500/14 text-violet-700 dark:text-violet-300 grid place-items-center",
+                      children: c.jsx("span", {
+                        className:
+                          "material-symbols-outlined inline-flex items-center justify-center leading-none text-[24px]",
+                        children: "folder_open",
+                      }),
                     }),
                     c.jsxs("span", {
                       className: "flex-1 flex flex-col min-w-0",
@@ -10736,8 +10741,12 @@ function nh() {
                   children: [
                     c.jsx("span", {
                       className:
-                        "shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 flex items-center justify-center material-symbols-outlined text-[24px]",
-                      children: "content_paste",
+                        "shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 grid place-items-center",
+                      children: c.jsx("span", {
+                        className:
+                          "material-symbols-outlined inline-flex items-center justify-center leading-none text-[24px]",
+                        children: "content_paste",
+                      }),
                     }),
                     c.jsxs("span", {
                       className: "flex-1 flex flex-col min-w-0",
