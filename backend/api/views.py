@@ -89,6 +89,19 @@ def create_payment_entry(payment, amount, total_after, user=None):
     )
 
 
+def recalculate_payment_entry_totals(payment):
+    running_total = Decimal('0')
+    for entry in payment.entries.order_by('created_at', 'id'):
+        running_total += Decimal(entry.amount or 0)
+        if Decimal(entry.total_after or 0) != running_total:
+            entry.total_after = running_total
+            entry.save(update_fields=['total_after'])
+    if Decimal(payment.amount or 0) != running_total:
+        payment.amount = running_total
+        payment.save(update_fields=['amount', 'updated_at'])
+    return payment
+
+
 def broadcast_shopping_update(action='changed', object_id=None):
     broadcast_update('shoppings', action=action, object_id=object_id)
     broadcast_update('missions', action=action, object_id=object_id)
@@ -1357,6 +1370,47 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
         broadcast_update('payments', action='deleted', object_id=payment_id)
         broadcast_update('clients', action='updated', object_id=client_id)
+
+    @action(detail=True, methods=['patch'], url_path=r'entries/(?P<entry_id>[^/.]+)')
+    def update_entry(self, request, pk=None, entry_id=None):
+        payment = self.get_object()
+        entry = payment.entries.filter(id=entry_id).first()
+        if not entry:
+            return Response(
+                {'error': 'Payment entry not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        raw_amount = request.data.get('amount')
+        try:
+            amount = Decimal(str(raw_amount))
+        except Exception:
+            return Response(
+                {'error': 'A valid amount is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        entry.amount = amount
+        entry.save(update_fields=['amount'])
+        payment = recalculate_payment_entry_totals(payment)
+        payment.refresh_from_db()
+        broadcast_update('payments', action='updated', object_id=payment.id)
+        broadcast_update('clients', action='updated', object_id=payment.client_id)
+        return Response(self.get_serializer(payment).data)
+
+    @action(detail=True, methods=['delete'], url_path=r'entries/(?P<entry_id>[^/.]+)')
+    def delete_entry(self, request, pk=None, entry_id=None):
+        payment = self.get_object()
+        entry = payment.entries.filter(id=entry_id).first()
+        if not entry:
+            return Response(
+                {'error': 'Payment entry not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        entry.delete()
+        payment = recalculate_payment_entry_totals(payment)
+        payment.refresh_from_db()
+        broadcast_update('payments', action='updated', object_id=payment.id)
+        broadcast_update('clients', action='updated', object_id=payment.client_id)
+        return Response(self.get_serializer(payment).data)
 
 
 class ShipmentViewSet(viewsets.ModelViewSet):

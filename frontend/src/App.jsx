@@ -257,6 +257,9 @@ function nh() {
       amount: "",
       product_ids: [],
     }),
+    [paymentEntryEditingId, setPaymentEntryEditingId] = V.useState(null),
+    [paymentEntryDraftAmount, setPaymentEntryDraftAmount] = V.useState(""),
+    [paymentEntrySavingId, setPaymentEntrySavingId] = V.useState(null),
     [newRequestText, setNewRequestText] = V.useState(""),
     [newRequestClientId, setNewRequestClientId] = V.useState(""),
     [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
@@ -611,6 +614,9 @@ function nh() {
         setPaymentModalOpen(!1);
         setPaymentAmountManual(!1);
         setPaymentProductSearch("");
+        setPaymentEntryEditingId(null);
+        setPaymentEntryDraftAmount("");
+        setPaymentEntrySavingId(null);
         return;
       }
       if (shipmentProductPickerOpen) {
@@ -2562,25 +2568,25 @@ function nh() {
         Se = A || El[0] || null,
         ea = Se
           ? paymentLocalRecordProducts(Se).map((gl) => Number(gl.id))
-          : getDefaultPaymentProductIds(o, vl),
-        gl = new Set(ea),
-        ae = paymentLocalProductsTotal(
-          paymentLocalShoppingProducts(o, vl, gl).filter((oi) =>
-            gl.has(Number(oi.id)),
-          ),
-        ),
-        oi = ae > 0 ? ae.toFixed(2) : "",
-        Pi = paymentLocalFormatAmountField(Se && Se.amount),
-        bi = Pi !== "" && Pi !== oi;
+          : [],
+        gl = paymentLocalShoppingProducts(o, vl, ea),
+        ae = gl.map((oi) => Number(oi.id)),
+        oi = paymentLocalProductsTotal(gl),
+        Pi = oi > 0 ? oi.toFixed(2) : "",
+        bi = paymentLocalFormatAmountField(Se && Se.amount),
+        xa = bi !== "" && bi !== Pi;
       setPaymentForm({
         id: (Se && Se.id) || null,
         client: String(o.id),
         shopping: String(vl),
-        amount: bi ? Pi : (Pi || oi),
-        product_ids: ea,
+        amount: xa ? bi : (bi || Pi),
+        product_ids: ae,
       });
-      setPaymentAmountManual(bi);
+      setPaymentAmountManual(xa);
       setPaymentProductSearch("");
+      setPaymentEntryEditingId(null);
+      setPaymentEntryDraftAmount("");
+      setPaymentEntrySavingId(null);
       setPaymentModalOpen(!0);
     },
     togglePaymentProductSelection = (o) => {
@@ -2593,6 +2599,80 @@ function nh() {
           : [...(N.product_ids || []), A];
         return { ...N, product_ids: vl };
       });
+    },
+    startEditingPaymentEntry = (o) => {
+      if (!o) return;
+      setPaymentEntryEditingId(Number(o.id));
+      setPaymentEntryDraftAmount(paymentLocalFormatAmountField(o.amount));
+    },
+    cancelEditingPaymentEntry = () => {
+      setPaymentEntryEditingId(null);
+      setPaymentEntryDraftAmount("");
+    },
+    savePaymentEntry = async (o) => {
+      if (!paymentForm.id || !o) return;
+      const N = String(paymentEntryDraftAmount || "").trim();
+      if (N === "" || !Number.isFinite(parseFloat(N))) {
+        notifyInfo("Captura un monto valido para el abono.");
+        return;
+      }
+      setPaymentEntrySavingId(Number(o.id));
+      try {
+        const A = await I(`/payments/${paymentForm.id}/entries/${o.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            amount: paymentLocalToNumber(N, 0).toFixed(2),
+          }),
+        });
+        setPaymentForm((vl) => ({
+          ...vl,
+          amount: paymentLocalFormatAmountField(A && A.amount),
+        }));
+        setPaymentAmountManual(!0);
+        setPaymentEntryEditingId(null);
+        setPaymentEntryDraftAmount("");
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Abono actualizado.");
+      } catch (A) {
+        console.error("Failed updating payment entry", A);
+        notifyError((A && A.message) || "No se pudo actualizar el abono.");
+      } finally {
+        setPaymentEntrySavingId(null);
+      }
+    },
+    deletePaymentEntry = async (o) => {
+      if (!paymentForm.id || !o) return;
+      if (
+        !(await confirmAction({
+          title: "Eliminar abono",
+          message: "Se eliminara este abono del historial y se recalculara el total del pago.",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
+      )
+        return;
+      setPaymentEntrySavingId(Number(o.id));
+      try {
+        const N = await I(`/payments/${paymentForm.id}/entries/${o.id}/`, {
+          method: "DELETE",
+        });
+        setPaymentForm((A) => ({
+          ...A,
+          amount: paymentLocalFormatAmountField(N && N.amount),
+        }));
+        setPaymentAmountManual(!0);
+        Number(paymentEntryEditingId) === Number(o.id) &&
+          (setPaymentEntryEditingId(null), setPaymentEntryDraftAmount(""));
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Abono eliminado.");
+      } catch (N) {
+        console.error("Failed deleting payment entry", N);
+        notifyError((N && N.message) || "No se pudo eliminar el abono.");
+      } finally {
+        setPaymentEntrySavingId(null);
+      }
     },
     savePayment = async () => {
       const o = Kl.find((A) => String(A.id) === String(paymentForm.client || ""));
@@ -2623,6 +2703,9 @@ function nh() {
         setPaymentModalOpen(!1);
         setPaymentAmountManual(!1);
         setPaymentProductSearch("");
+        setPaymentEntryEditingId(null);
+        setPaymentEntryDraftAmount("");
+        setPaymentEntrySavingId(null);
         await refreshCoreData();
         await refreshSelectedClient();
         notifySuccess(paymentForm.id ? "Pago actualizado." : "Pago guardado.");
@@ -10926,7 +11009,7 @@ function nh() {
                             }),
                             c.jsxs("div", {
                               className:
-                                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-3 py-3 space-y-2",
+                                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-3 py-2.5 space-y-2",
                               children: [
                                 c.jsxs("div", {
                                   className:
@@ -10956,73 +11039,135 @@ function nh() {
                                   })
                                   : c.jsx("div", {
                                     className:
-                                      "max-h-44 overflow-y-auto ios-scroll space-y-2 pr-1",
+                                      "max-h-32 overflow-y-auto ios-scroll space-y-1.5 pr-1",
                                     children: paymentHistoryEntries.map((o) =>
                                       c.jsxs(
                                         "div",
                                         {
                                           className:
-                                            "rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 px-3 py-2.5",
+                                            "rounded-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 px-2.5 py-2",
                                           children: [
                                             c.jsxs("div", {
                                               className:
-                                                "flex items-start justify-between gap-3",
+                                                "flex items-start justify-between gap-2",
                                               children: [
                                                 c.jsxs("div", {
                                                   className: "min-w-0",
                                                   children: [
-                                                    c.jsxs("p", {
-                                                      className:
-                                                        `text-sm font-bold ${
+                                                    paymentEntryEditingId ===
+                                                    Number(o.id)
+                                                      ? c.jsxs("div", {
+                                                        className:
+                                                          "flex items-center gap-1.5",
+                                                        children: [
+                                                          c.jsx("input", {
+                                                            type: "number",
+                                                            step: "0.01",
+                                                            inputMode: "decimal",
+                                                            value:
+                                                              paymentEntryDraftAmount,
+                                                            onChange: (N) =>
+                                                              setPaymentEntryDraftAmount(
+                                                                N.target.value,
+                                                              ),
+                                                            className:
+                                                              "w-24 px-2 py-1 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                                          }),
+                                                          c.jsx("button", {
+                                                            type: "button",
+                                                            onClick: () =>
+                                                              savePaymentEntry(o),
+                                                            disabled:
+                                                              paymentEntrySavingId ===
+                                                              Number(o.id),
+                                                            className:
+                                                              "w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
+                                                            children: c.jsx(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  `material-symbols-outlined text-[12px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                                children:
+                                                                  paymentEntrySavingId ===
+                                                                  Number(o.id)
+                                                                    ? "progress_activity"
+                                                                    : "check",
+                                                              },
+                                                            ),
+                                                          }),
+                                                          c.jsx("button", {
+                                                            type: "button",
+                                                            onClick:
+                                                              cancelEditingPaymentEntry,
+                                                            disabled:
+                                                              paymentEntrySavingId ===
+                                                              Number(o.id),
+                                                            className:
+                                                              "w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
+                                                            children: c.jsx(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  "material-symbols-outlined text-[12px]",
+                                                                children:
+                                                                  "close",
+                                                              },
+                                                            ),
+                                                          }),
+                                                        ],
+                                                      })
+                                                      : c.jsxs("p", {
+                                                        className:
+                                                          `text-[12px] font-bold ${
+                                                            paymentLocalToNumber(
+                                                              o.amount,
+                                                              0,
+                                                            ) < 0
+                                                              ? "text-rose-600 dark:text-rose-300"
+                                                              : "text-emerald-700 dark:text-emerald-300"
+                                                          }`,
+                                                        children: [
                                                           paymentLocalToNumber(
                                                             o.amount,
                                                             0,
                                                           ) < 0
-                                                            ? "text-rose-600 dark:text-rose-300"
-                                                            : "text-emerald-700 dark:text-emerald-300"
-                                                        }`,
-                                                      children: [
-                                                        paymentLocalToNumber(
-                                                          o.amount,
-                                                          0,
-                                                        ) < 0
-                                                          ? "-$"
-                                                          : "+$",
-                                                        formatAmount(
-                                                          Math.abs(
-                                                            paymentLocalToNumber(
-                                                              o.amount,
-                                                              0,
+                                                            ? "-$"
+                                                            : "+$",
+                                                          formatAmount(
+                                                            Math.abs(
+                                                              paymentLocalToNumber(
+                                                                o.amount,
+                                                                0,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    }),
-                                                    c.jsx("p", {
+                                                        ],
+                                                      }),
+                                                    c.jsxs("p", {
                                                       className:
-                                                        "text-[10px] text-text-sub mt-0.5",
-                                                      children:
+                                                        "text-[9px] text-text-sub mt-0.5",
+                                                      children: [
                                                         o.created_at
                                                           ? new Date(
                                                             o.created_at,
                                                           ).toLocaleString()
                                                           : "Sin fecha",
+                                                        o.created_by_username
+                                                          ? ` - ${o.created_by_username}`
+                                                          : "",
+                                                      ],
                                                     }),
                                                   ],
                                                 }),
                                                 c.jsxs("div", {
                                                   className:
-                                                    "text-right shrink-0",
+                                                    "text-right shrink-0 space-y-1",
                                                   children: [
-                                                    c.jsx("p", {
-                                                      className:
-                                                        "text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-300",
-                                                      children: "Total",
-                                                    }),
                                                     c.jsxs("p", {
                                                       className:
-                                                        "text-sm font-bold text-violet-700 dark:text-violet-200 mt-0.5",
+                                                        "text-[9px] font-bold text-violet-700 dark:text-violet-200",
                                                       children: [
+                                                        "Total ",
                                                         "$",
                                                         formatAmount(
                                                           paymentLocalToNumber(
@@ -11032,15 +11177,62 @@ function nh() {
                                                         ),
                                                       ],
                                                     }),
+                                                    paymentEntryEditingId !==
+                                                    Number(o.id) &&
+                                                    c.jsxs("div", {
+                                                      className:
+                                                        "flex items-center justify-end gap-1",
+                                                      children: [
+                                                        c.jsx("button", {
+                                                          type: "button",
+                                                          onClick: () =>
+                                                            startEditingPaymentEntry(
+                                                              o,
+                                                            ),
+                                                          disabled:
+                                                            paymentEntrySavingId ===
+                                                            Number(o.id),
+                                                          className:
+                                                            "w-6 h-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
+                                                          children: c.jsx(
+                                                            "span",
+                                                            {
+                                                              className:
+                                                                "material-symbols-outlined text-[12px]",
+                                                              children:
+                                                                "edit",
+                                                            },
+                                                          ),
+                                                        }),
+                                                        c.jsx("button", {
+                                                          type: "button",
+                                                          onClick: () =>
+                                                            deletePaymentEntry(
+                                                              o,
+                                                            ),
+                                                          disabled:
+                                                            paymentEntrySavingId ===
+                                                            Number(o.id),
+                                                          className:
+                                                            "w-6 h-6 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
+                                                          children: c.jsx(
+                                                            "span",
+                                                            {
+                                                              className:
+                                                                `material-symbols-outlined text-[12px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                              children:
+                                                                paymentEntrySavingId ===
+                                                                Number(o.id)
+                                                                  ? "progress_activity"
+                                                                  : "delete",
+                                                            },
+                                                          ),
+                                                        }),
+                                                      ],
+                                                    }),
                                                   ],
                                                 }),
                                               ],
-                                            }),
-                                            o.created_by_username &&
-                                            c.jsx("p", {
-                                              className:
-                                                "text-[10px] text-text-sub mt-2",
-                                              children: o.created_by_username,
                                             }),
                                           ],
                                         },
