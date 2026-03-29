@@ -5552,7 +5552,7 @@ function nh() {
                                 className:
                                   `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
-                                  "Saldo: ",
+                                  vl < 0 ? "Credito: " : "Deuda: ",
                                   vl < 0 ? "-$" : "$",
                                   formatAmount(Math.abs(vl)),
                                 ],
@@ -7083,7 +7083,7 @@ function nh() {
                                                       children: [
                                                         ea.balance < 0
                                                           ? "Credito: $"
-                                                          : "Saldo: $",
+                                                          : "Deuda: $",
                                                         formatAmount(
                                                           ea.balance < 0
                                                             ? Math.abs(ea.balance)
@@ -7283,7 +7283,7 @@ function nh() {
                                                               children: [
                                                                 bi < 0
                                                                   ? "Credito: $"
-                                                                  : "Saldo: $",
+                                                                  : "Deuda: $",
                                                                 formatAmount(
                                                                   bi < 0
                                                                     ? Math.abs(bi)
@@ -9787,7 +9787,9 @@ function nh() {
                                 className:
                                   `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
-                                  "Saldo: ",
+                                  selectedClientHomePaymentSummary.balance < 0
+                                    ? "Credito: "
+                                    : "Deuda: ",
                                   selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
                                   formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
                                 ],
@@ -9816,7 +9818,10 @@ function nh() {
                           c.jsx("span", {
                             className:
                               `text-[9px] font-black uppercase ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
-                            children: "Saldo",
+                            children:
+                              selectedClientHomePaymentSummary.balance < 0
+                                ? "Credito"
+                                : "Deuda",
                           }),
                           c.jsxs("span", {
                             className:
@@ -11782,7 +11787,7 @@ function nh() {
                                       children:
                                         paymentFormBalance < 0
                                           ? "Credito"
-                                          : "Saldo",
+                                          : "Deuda",
                                     }),
                                     c.jsxs("p", {
                                       className:
