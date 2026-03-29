@@ -5553,7 +5553,7 @@ function nh() {
                                   `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
                                   vl < 0 ? "Credito: " : "Deuda: ",
-                                  vl < 0 ? "-$" : "$",
+                                  "$",
                                   formatAmount(Math.abs(vl)),
                                 ],
                               }),
@@ -9790,7 +9790,7 @@ function nh() {
                                   selectedClientHomePaymentSummary.balance < 0
                                     ? "Credito: "
                                     : "Deuda: ",
-                                  selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
+                                  "$",
                                   formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
                                 ],
                               }),
@@ -9831,7 +9831,7 @@ function nh() {
                                   ? "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-rose-800"
                                   : "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-slate-800",
                             children: [
-                              selectedClientHomePaymentSummary.balance < 0 ? "-$" : "$",
+                              "$",
                               formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
                             ],
                           }),
