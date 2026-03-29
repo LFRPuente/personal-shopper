@@ -277,6 +277,7 @@ function nh() {
     [toasts, setToasts] = V.useState([]),
     [confirmDialog, setConfirmDialog] = V.useState(null),
     [inputDialog, setInputDialog] = V.useState(null),
+    [imageSourceDialog, setImageSourceDialog] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
     [openProductStatusId, setOpenProductStatusId] = V.useState(null),
@@ -317,7 +318,6 @@ function nh() {
     wsRef = V.useRef(null),
     wsReconnectTimerRef = V.useRef(null),
     wsStoppedRef = V.useRef(!1),
-    altUploadFileInputRef = V.useRef(null),
     reviewConversationScrollRef = V.useRef(null),
     reviewConversationStateRef = V.useRef(""),
     currentTabRef = V.useRef("HOME"),
@@ -560,6 +560,8 @@ function nh() {
     },
     activeOverlayKey = confirmDialog
       ? "confirm"
+      : imageSourceDialog
+        ? "image-source"
       : inputDialog
         ? "input"
         : paymentModalOpen
@@ -605,6 +607,10 @@ function nh() {
       setClosingOverlayKey("");
       if (confirmDialog) {
         closeConfirmDialog(!1);
+        return;
+      }
+      if (imageSourceDialog) {
+        closeImageSourceDialog();
         return;
       }
       if (inputDialog) {
@@ -707,6 +713,7 @@ function nh() {
     activeOverlayKey,
     closingOverlayKey,
     confirmDialog,
+    imageSourceDialog,
     inputDialog,
     paymentModalOpen,
     shipmentProductPickerOpen,
@@ -1430,41 +1437,112 @@ function nh() {
       `${o}${closingOverlayKey === N ? " ui-backdrop-out" : ""}`,
     overlaySheetClass = (o, N) =>
       `${o}${closingOverlayKey === N ? " ui-sheet-out" : ""}`,
-    // <-------- seccion 8: selector de imagen robusto (evita fallas de input hidden en algunos entornos Windows)
-    openSingleImagePicker = (o) => {
+    // <-------- seccion 8: selector de imagen robusto y unificado para dispositivo/portapapeles
+    dispatchImageSelection = (o, N = []) => {
+      const A = Array.isArray(N) ? N.filter(Boolean) : [];
+      A.length > 0 &&
+        o &&
+        o({ target: { files: A, value: "" } });
+    },
+    openDeviceImagePicker = (o, N = {}) => {
+      const A = !!N.multiple;
       try {
-        const N = document.createElement("input");
-        (N.type = "file",
-          N.accept = "image/*",
-          N.style.position = "fixed",
-          N.style.left = "-9999px",
-          N.style.top = "-9999px",
-          N.onchange = () => {
-            const A = Array.from(N.files || []);
-            if (A.length > 0) {
+        const vl = document.createElement("input");
+        (vl.type = "file",
+          vl.accept = "image/*",
+          vl.multiple = A,
+          vl.style.position = "fixed",
+          vl.style.left = "-9999px",
+          vl.style.top = "-9999px",
+          vl.onchange = () => {
+            const El = Array.from(vl.files || []);
+            if (El.length > 0) {
               // Use a stable File[] copy before removing the temporary input.
-              o({ target: { files: A, value: "" } });
+              dispatchImageSelection(o, El);
             }
-            N.remove();
+            vl.remove();
           },
-          document.body.appendChild(N),
-          N.click());
-      } catch (N) {
-        (console.error("Failed opening image picker", N),
+          document.body.appendChild(vl),
+          vl.click());
+      } catch (vl) {
+        (console.error("Failed opening image picker", vl),
           notifyError("No se pudo abrir el selector de imagen."));
+      }
+    },
+    readClipboardImages = async (o = {}) => {
+      if (
+        !navigator.clipboard ||
+        typeof navigator.clipboard.read != "function"
+      )
+        throw new Error("Clipboard image read is not supported in this browser.");
+      const N = !!o.multiple,
+        A = await navigator.clipboard.read(),
+        vl = [];
+      for (const El of A) {
+        for (const Se of El.types || []) {
+          if (!String(Se || "").startsWith("image/")) continue;
+          const ea = await El.getType(Se),
+            gl = Se.split("/")[1] || "png";
+          vl.push(
+            new File([ea], `clipboard-image-${Date.now()}-${vl.length + 1}.${gl}`, {
+              type: Se,
+              lastModified: Date.now(),
+            }),
+          );
+          if (!N) return vl;
+        }
+      }
+      return vl;
+    },
+    openImageSourcePicker = (o, N = {}) => {
+      const A = N.title || "Seleccionar imagen",
+        vl = !!N.multiple;
+      setImageSourceDialog({
+        title: A,
+        multiple: vl,
+        onSelect: o,
+      });
+    },
+    closeImageSourceDialog = () => {
+      setImageSourceDialog(null);
+    },
+    pickImageFromDevice = () => {
+      const o = imageSourceDialog;
+      if (!o || !o.onSelect) return;
+      setImageSourceDialog(null);
+      openDeviceImagePicker(o.onSelect, { multiple: o.multiple });
+    },
+    pickImageFromClipboard = async () => {
+      const o = imageSourceDialog;
+      if (!o || !o.onSelect) return;
+      setImageSourceDialog(null);
+      try {
+        const N = await readClipboardImages({ multiple: o.multiple });
+        if (!N.length) {
+          notifyInfo("No se encontró ninguna imagen en el portapapeles.");
+          return;
+        }
+        dispatchImageSelection(o.onSelect, N);
+      } catch (N) {
+        (console.error("Failed reading clipboard image", N),
+          notifyError(
+            "No se pudo leer una imagen del portapapeles. Verifica permisos o copia una imagen primero.",
+          ));
       }
     },
     su = () => {
       if (receiptUploading) return;
-      openSingleImagePicker(ru);
+      openImageSourcePicker(ru, { title: "Subir ticket" });
     },
     openMissionTicketPicker = () => {
       if (!w || missionTicketUploading) return;
-      openSingleImagePicker(uploadMissionTicket);
+      openImageSourcePicker(uploadMissionTicket, {
+        title: "Subir ticket de shopping",
+      });
     },
     fu = () => {
       if (newProductUploading) return;
-      openSingleImagePicker(lt);
+      openImageSourcePicker(lt, { title: "Agregar producto" });
     },
     uploadMissionTicket = async (o) => {
       if (!w) return;
@@ -1491,7 +1569,7 @@ function nh() {
     },
     Xt = (o) => {
       if (productImageUploadingId) return;
-      (Ke(o), openSingleImagePicker(Xl));
+      (Ke(o), openImageSourcePicker(Xl, { title: "Cambiar foto" }));
     },
     // <-------- seccion 8: comprimir imagen antes de subir para no saturar 3G/4G
     compressImage = (file, maxWidth = 1200, quality = 0.8) => {
@@ -2939,11 +3017,24 @@ function nh() {
       (setEditingRequestImageFile(null), setEditingRequestImagePreview(""));
     },
     pickRequestImage = () => {
-      openSingleImagePicker(handleRequestImageSelection);
+      openImageSourcePicker(handleRequestImageSelection, {
+        title: "Agregar imagen a petición",
+      });
     },
     pickEditingRequestImage = () => {
       if (editingRequestSaving) return;
-      openSingleImagePicker(handleEditingRequestImageSelection);
+      openImageSourcePicker(handleEditingRequestImageSelection, {
+        title: "Cambiar imagen de petición",
+      });
+    },
+    pickAlternativeUploadImages = () => {
+      openImageSourcePicker(
+        (o) => setAltUploadFiles(Array.from(o.target.files || [])),
+        {
+          title: "Adjuntar imágenes",
+          multiple: !0,
+        },
+      );
     },
     handleRequestImageSelection = (o) => {
       const N = o.target.files;
@@ -10562,6 +10653,118 @@ function nh() {
           ),
         ),
       }),
+      imageSourceDialog &&
+      c.jsx("div", {
+        className: overlayBackdropClass(
+          "fixed inset-0 z-[99] bg-black/50 flex items-end sm:items-center justify-center p-4 ui-backdrop",
+          "image-source",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
+        children: c.jsxs("div", {
+          className: overlaySheetClass(
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet",
+            "image-source",
+          ),
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className: "flex items-start gap-3",
+              children: [
+                c.jsx("div", {
+                  className:
+                    "w-10 h-10 rounded-2xl flex items-center justify-center bg-sky-100 text-sky-700",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined",
+                    children: "imagesmode",
+                  }),
+                }),
+                c.jsxs("div", {
+                  className: "flex-1",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: imageSourceDialog.title || "Seleccionar imagen",
+                    }),
+                    c.jsx("p", {
+                      className: "text-sm text-text-sub mt-1",
+                      children:
+                        "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "mt-5 grid grid-cols-1 gap-2",
+              children: [
+                c.jsxs("button", {
+                  type: "button",
+                  onClick: pickImageFromDevice,
+                  className:
+                    "w-full rounded-2xl border border-border-light dark:border-border-dark px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900/70 transition flex items-center gap-3",
+                  children: [
+                    c.jsx("span", {
+                      className:
+                        "w-10 h-10 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center material-symbols-outlined",
+                      children: "folder_open",
+                    }),
+                    c.jsxs("span", {
+                      className: "flex flex-col",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-sm font-semibold text-text-main",
+                          children: "Almacenamiento del dispositivo",
+                        }),
+                        c.jsx("span", {
+                          className: "text-[11px] text-text-sub",
+                          children:
+                            imageSourceDialog.multiple
+                              ? "Selecciona una o varias imágenes guardadas."
+                              : "Selecciona una imagen guardada.",
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("button", {
+                  type: "button",
+                  onClick: pickImageFromClipboard,
+                  className:
+                    "w-full rounded-2xl border border-border-light dark:border-border-dark px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900/70 transition flex items-center gap-3",
+                  children: [
+                    c.jsx("span", {
+                      className:
+                        "w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center material-symbols-outlined",
+                      children: "content_paste",
+                    }),
+                    c.jsxs("span", {
+                      className: "flex flex-col",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-sm font-semibold text-text-main",
+                          children: "Portapapeles",
+                        }),
+                        c.jsx("span", {
+                          className: "text-[11px] text-text-sub",
+                          children:
+                            "Usa la imagen que tengas copiada en este momento.",
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsx("button", {
+              type: "button",
+              onClick: () => dismissActiveOverlayRef.current(),
+              className:
+                "mt-4 w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
+              children: "Cancelar",
+            }),
+          ],
+        }),
+      }),
       confirmDialog &&
       c.jsx("div", {
         className: overlayBackdropClass(
@@ -12226,9 +12429,7 @@ function nh() {
                     }),
                     c.jsxs("button", {
                       type: "button",
-                      onClick: () =>
-                        altUploadFileInputRef.current &&
-                        altUploadFileInputRef.current.click(),
+                      onClick: pickAlternativeUploadImages,
                       className:
                         "shrink-0 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/92 dark:bg-slate-900/92 text-[11px] font-medium text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
                       children: [
@@ -12237,15 +12438,6 @@ function nh() {
                       ],
                     }),
                   ],
-                }),
-                c.jsx("input", {
-                  ref: altUploadFileInputRef,
-                  type: "file",
-                  accept: "image/*",
-                  multiple: !0,
-                  onChange: (o) =>
-                    setAltUploadFiles(Array.from(o.target.files || [])),
-                  className: "hidden",
                 }),
                 c.jsx("textarea", {
                   rows: 1,
