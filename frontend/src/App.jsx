@@ -330,6 +330,7 @@ function nh() {
     [confirmDialog, setConfirmDialog] = V.useState(null),
     [inputDialog, setInputDialog] = V.useState(null),
     [imageSourceDialog, setImageSourceDialog] = V.useState(null),
+    [imageSourceInfoOpen, setImageSourceInfoOpen] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
     [openProductStatusId, setOpenProductStatusId] = V.useState(null),
@@ -1645,6 +1646,7 @@ function nh() {
     openImageSourcePicker = (o, N = {}) => {
       const A = N.title || "Seleccionar imagen",
         vl = !!N.multiple;
+      setImageSourceInfoOpen(null);
       setImageSourceDialog({
         title: A,
         description:
@@ -1692,12 +1694,12 @@ function nh() {
       return vl;
     },
     closeImageSourceDialog = () => {
-      setImageSourceDialog(null);
+      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
     },
     pickImageFromDevice = () => {
       const o = imageSourceDialog;
       if (!o || !o.onSelect) return;
-      setImageSourceDialog(null);
+      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
       openDeviceImagePicker(o.onSelect, {
         multiple: o.multiple,
         accept: o.accept,
@@ -1706,7 +1708,7 @@ function nh() {
     pickImageFromClipboard = async () => {
       const o = imageSourceDialog;
       if (!o || !o.onSelect) return;
-      setImageSourceDialog(null);
+      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
       try {
         const N = await readClipboardImages({ multiple: o.multiple });
         if (!N.length) {
@@ -12353,14 +12355,39 @@ function nh() {
                         "text-[10px] font-black uppercase tracking-[0.18em] text-sky-700/75 dark:text-sky-300/75",
                       children: imageSourceDialog.eyebrow || "Fuente de imagen",
                     }),
-                    c.jsx("h3", {
-                      className:
-                        "mt-1 text-lg font-black text-text-main dark:text-white leading-tight",
-                      children: imageSourceDialog.title || "Seleccionar imagen",
+                    c.jsxs("div", {
+                      className: "mt-1 flex items-center gap-2",
+                      children: [
+                        c.jsx("h3", {
+                          className:
+                            "text-lg font-black text-text-main dark:text-white leading-tight",
+                          children: imageSourceDialog.title || "Seleccionar imagen",
+                        }),
+                        c.jsx("button", {
+                          type: "button",
+                          onClick: () =>
+                            setImageSourceInfoOpen((o) =>
+                              o === "header" ? null : "header",
+                            ),
+                          title:
+                            imageSourceDialog.description ||
+                            "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
+                          className:
+                            "shrink-0 w-5 h-5 rounded-full border border-sky-200 text-sky-700 dark:border-sky-700 dark:text-sky-300 inline-flex items-center justify-center hover:bg-sky-50 dark:hover:bg-sky-950/40 transition",
+                          "aria-label": "Informacion del selector",
+                          "aria-expanded": imageSourceInfoOpen === "header",
+                          children: c.jsx("span", {
+                            className:
+                              "material-symbols-outlined text-[12px] leading-none",
+                            children: "info",
+                          }),
+                        }),
+                      ],
                     }),
-                    c.jsx("p", {
+                    imageSourceInfoOpen === "header" &&
+                    c.jsx("div", {
                       className:
-                        "text-sm text-text-sub dark:text-slate-300/90 mt-1.5 leading-6",
+                        "mt-2 rounded-2xl border border-sky-200/80 bg-white/92 px-3 py-2 text-[11px] leading-5 text-sky-900 shadow-sm dark:border-sky-800 dark:bg-slate-950/80 dark:text-sky-100",
                       children:
                         imageSourceDialog.description ||
                         "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
@@ -12390,20 +12417,64 @@ function nh() {
                     c.jsxs("span", {
                       className: "flex-1 flex flex-col min-w-0",
                       children: [
-                        c.jsx("span", {
-                          className:
-                            "text-sm font-bold text-text-main dark:text-white",
-                          children:
-                            imageSourceDialog.deviceLabel ||
-                            "Elegir del dispositivo",
+                        c.jsxs("span", {
+                          className: "flex items-center gap-2 min-w-0",
+                          children: [
+                            c.jsx("span", {
+                              className:
+                                "text-sm font-bold text-text-main dark:text-white truncate",
+                              children:
+                                imageSourceDialog.deviceLabel ||
+                                "Elegir del dispositivo",
+                            }),
+                            c.jsx("span", {
+                              role: "button",
+                              tabIndex: 0,
+                              onClick: (o) => {
+                                o.stopPropagation(),
+                                  setImageSourceInfoOpen((N) =>
+                                    N === "device" ? null : "device",
+                                  );
+                              },
+                              onKeyDown: (o) => {
+                                (o.key === "Enter" || o.key === " ") &&
+                                  (o.preventDefault(),
+                                  setImageSourceInfoOpen((N) =>
+                                    N === "device" ? null : "device",
+                                  ));
+                              },
+                              title:
+                                imageSourceDialog.deviceDescription ||
+                                (imageSourceDialog.multiple
+                                  ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
+                                  : "Abre tu galeria o archivos y selecciona una imagen."),
+                              className:
+                                "shrink-0 w-5 h-5 rounded-full border border-violet-200 text-violet-700 dark:border-violet-800 dark:text-violet-300 inline-flex items-center justify-center hover:bg-violet-50 dark:hover:bg-violet-950/40 transition cursor-pointer",
+                              children: c.jsx("span", {
+                                className:
+                                  "material-symbols-outlined text-[12px] leading-none",
+                                children: "info",
+                              }),
+                            }),
+                          ],
                         }),
                         c.jsx("span", {
                           className:
-                            "text-[11px] text-text-sub dark:text-slate-300/85 mt-0.5 leading-5",
+                            "hidden",
                           children:
                             imageSourceDialog.multiple
-                              ? "Abre tu galería o archivos y selecciona una o varias imágenes."
-                              : "Abre tu galería o archivos y selecciona una imagen.",
+                              ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
+                              : "Abre tu galeria o archivos y selecciona una imagen.",
+                        }),
+                        imageSourceInfoOpen === "device" &&
+                        c.jsx("span", {
+                          className:
+                            "mt-2 rounded-2xl border border-violet-200 bg-white/92 px-3 py-2 text-[11px] leading-5 text-violet-900 shadow-sm dark:border-violet-900 dark:bg-slate-950/80 dark:text-violet-100",
+                          children:
+                            imageSourceDialog.deviceDescription ||
+                            (imageSourceDialog.multiple
+                              ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
+                              : "Abre tu galeria o archivos y selecciona una imagen."),
                         }),
                       ],
                     }),
@@ -12432,16 +12503,58 @@ function nh() {
                     c.jsxs("span", {
                       className: "flex-1 flex flex-col min-w-0",
                       children: [
-                        c.jsx("span", {
-                          className:
-                            "text-sm font-bold text-text-main dark:text-white",
-                          children: "Usar portapapeles",
+                        c.jsxs("span", {
+                          className: "flex items-center gap-2 min-w-0",
+                          children: [
+                            c.jsx("span", {
+                              className:
+                                "text-sm font-bold text-text-main dark:text-white truncate",
+                              children:
+                                imageSourceDialog.clipboardLabel ||
+                                "Usar portapapeles",
+                            }),
+                            c.jsx("span", {
+                              role: "button",
+                              tabIndex: 0,
+                              onClick: (o) => {
+                                o.stopPropagation(),
+                                  setImageSourceInfoOpen((N) =>
+                                    N === "clipboard" ? null : "clipboard",
+                                  );
+                              },
+                              onKeyDown: (o) => {
+                                (o.key === "Enter" || o.key === " ") &&
+                                  (o.preventDefault(),
+                                  setImageSourceInfoOpen((N) =>
+                                    N === "clipboard" ? null : "clipboard",
+                                  ));
+                              },
+                              title:
+                                imageSourceDialog.clipboardDescription ||
+                                "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
+                              className:
+                                "shrink-0 w-5 h-5 rounded-full border border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300 inline-flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition cursor-pointer",
+                              children: c.jsx("span", {
+                                className:
+                                  "material-symbols-outlined text-[12px] leading-none",
+                                children: "info",
+                              }),
+                            }),
+                          ],
                         }),
                         c.jsx("span", {
                           className:
-                            "text-[11px] text-text-sub dark:text-slate-300/85 mt-0.5 leading-5",
+                            "hidden",
                           children:
-                            "Pega la imagen que ya copiaste y úsala al instante sin buscar archivos.",
+                            "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
+                        }),
+                        imageSourceInfoOpen === "clipboard" &&
+                        c.jsx("span", {
+                          className:
+                            "mt-2 rounded-2xl border border-emerald-200 bg-white/92 px-3 py-2 text-[11px] leading-5 text-emerald-900 shadow-sm dark:border-emerald-900 dark:bg-slate-950/80 dark:text-emerald-100",
+                          children:
+                            imageSourceDialog.clipboardDescription ||
+                            "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
                         }),
                       ],
                     }),
@@ -14404,3 +14517,4 @@ function nh() {
 }
 
 export default nh;
+
