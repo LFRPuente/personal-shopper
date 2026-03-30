@@ -375,7 +375,6 @@ function nh() {
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
-    shipmentEvidenceInputRefs = V.useRef({}),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
@@ -1618,29 +1617,54 @@ function nh() {
         o({ target: { files: A, value: "" } });
     },
     openDeviceImagePicker = (o, N = {}) => {
-      const A = !!N.multiple;
+      const A = !!N.multiple,
+        vl = String(N.accept || "image/*").trim() || "image/*";
       try {
-        const vl = document.createElement("input");
-        (vl.type = "file",
-          vl.accept = "image/*",
-          vl.multiple = A,
-          vl.style.position = "fixed",
-          vl.style.left = "-9999px",
-          vl.style.top = "-9999px",
-          vl.onchange = () => {
-            const El = Array.from(vl.files || []);
-            if (El.length > 0) {
+        const El = document.createElement("input");
+        (El.type = "file",
+          El.accept = vl,
+          El.multiple = A,
+          El.style.position = "fixed",
+          El.style.left = "-9999px",
+          El.style.top = "-9999px",
+          El.onchange = () => {
+            const Se = Array.from(El.files || []);
+            if (Se.length > 0) {
               // Use a stable File[] copy before removing the temporary input.
-              dispatchImageSelection(o, El);
+              dispatchImageSelection(o, Se);
             }
-            vl.remove();
+            El.remove();
           },
-          document.body.appendChild(vl),
-          vl.click());
-      } catch (vl) {
-        (console.error("Failed opening image picker", vl),
+          document.body.appendChild(El),
+          El.click());
+      } catch (El) {
+        (console.error("Failed opening image picker", El),
           notifyError("No se pudo abrir el selector de imagen."));
       }
+    },
+    openImageSourcePicker = (o, N = {}) => {
+      const A = N.title || "Seleccionar imagen",
+        vl = !!N.multiple;
+      setImageSourceDialog({
+        title: A,
+        description:
+          N.description ||
+          "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
+        multiple: vl,
+        accept: String(N.accept || "image/*").trim() || "image/*",
+        eyebrow: N.eyebrow || "Fuente de imagen",
+        deviceLabel: N.deviceLabel || "Elegir del dispositivo",
+        deviceDescription:
+          N.deviceDescription ||
+          (vl
+            ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
+            : "Abre tu galeria o archivos y selecciona una imagen."),
+        clipboardLabel: N.clipboardLabel || "Usar portapapeles",
+        clipboardDescription:
+          N.clipboardDescription ||
+          "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
+        onSelect: o,
+      });
     },
     readClipboardImages = async (o = {}) => {
       if (
@@ -1667,15 +1691,6 @@ function nh() {
       }
       return vl;
     },
-    openImageSourcePicker = (o, N = {}) => {
-      const A = N.title || "Seleccionar imagen",
-        vl = !!N.multiple;
-      setImageSourceDialog({
-        title: A,
-        multiple: vl,
-        onSelect: o,
-      });
-    },
     closeImageSourceDialog = () => {
       setImageSourceDialog(null);
     },
@@ -1683,7 +1698,10 @@ function nh() {
       const o = imageSourceDialog;
       if (!o || !o.onSelect) return;
       setImageSourceDialog(null);
-      openDeviceImagePicker(o.onSelect, { multiple: o.multiple });
+      openDeviceImagePicker(o.onSelect, {
+        multiple: o.multiple,
+        accept: o.accept,
+      });
     },
     pickImageFromClipboard = async () => {
       const o = imageSourceDialog;
@@ -2915,8 +2933,25 @@ function nh() {
     },
     openShipmentEvidencePicker = (o) => {
       if (!o || !o.id) return;
-      const N = shipmentEvidenceInputRefs.current[o.id];
-      N && N.click();
+      openImageSourcePicker(
+        (N) => {
+          const A = N && N.target && N.target.files;
+          A && A.length > 0 && uploadShipmentEvidence(o, A);
+        },
+        {
+          title: "Agregar evidencia",
+          eyebrow: "Evidencia del envio",
+          description:
+            "Elige si quieres tomar la evidencia del dispositivo o pegar una imagen desde el portapapeles.",
+          multiple: !0,
+          accept: "image/*,video/*",
+          deviceDescription:
+            "Abre tu galeria o archivos y selecciona imagenes o videos para este envio.",
+          clipboardLabel: "Pegar desde portapapeles",
+          clipboardDescription:
+            "Pega una imagen que ya copiaste para agregarla rapido a la evidencia del envio.",
+        },
+      );
     },
     uploadShipmentEvidence = async (o, N) => {
       if (!o || !o.id || !N || !N.length) return;
@@ -8804,20 +8839,6 @@ function nh() {
                             c.jsxs("div", {
                               className: "flex items-center gap-1",
                               children: [
-                                c.jsx("input", {
-                                  type: "file",
-                                  accept: "image/*,video/*",
-                                  multiple: !0,
-                                  ref: (A) => {
-                                    shipmentEvidenceInputRefs.current[N.id] = A;
-                                  },
-                                  onChange: (A) => {
-                                    const vl = A.target.files;
-                                    vl && vl.length > 0 && uploadShipmentEvidence(N, vl);
-                                    A.target.value = "";
-                                  },
-                                  className: "hidden",
-                                }),
                                 c.jsx("button", {
                                   type: "button",
                                   onClick: () =>
@@ -12330,7 +12351,7 @@ function nh() {
                     c.jsx("p", {
                       className:
                         "text-[10px] font-black uppercase tracking-[0.18em] text-sky-700/75 dark:text-sky-300/75",
-                      children: "Fuente de imagen",
+                      children: imageSourceDialog.eyebrow || "Fuente de imagen",
                     }),
                     c.jsx("h3", {
                       className:
@@ -12341,6 +12362,7 @@ function nh() {
                       className:
                         "text-sm text-text-sub dark:text-slate-300/90 mt-1.5 leading-6",
                       children:
+                        imageSourceDialog.description ||
                         "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
                     }),
                   ],
@@ -12371,7 +12393,9 @@ function nh() {
                         c.jsx("span", {
                           className:
                             "text-sm font-bold text-text-main dark:text-white",
-                          children: "Elegir del dispositivo",
+                          children:
+                            imageSourceDialog.deviceLabel ||
+                            "Elegir del dispositivo",
                         }),
                         c.jsx("span", {
                           className:
