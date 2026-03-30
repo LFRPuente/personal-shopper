@@ -499,15 +499,6 @@ def create_client_mission_share_link(request):
             {'error': 'Client not found.'},
             status=status.HTTP_404_NOT_FOUND,
         )
-    if not (
-        ProductItem.objects.filter(client=client).exists()
-        or Receipt.objects.filter(client=client).exists()
-        or Shipment.objects.filter(client=client).exists()
-    ):
-        return Response(
-            {'error': 'This client has no public history to share.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
     ClientHistoryShareLink.objects.filter(
         client=client,
         is_active=True,
@@ -596,10 +587,6 @@ def public_client_mission_share_view(request, token):
     shipments = Shipment.objects.filter(
         client=share_link.client,
     ).prefetch_related('products').order_by('-updated_at', '-id')
-    if not products.exists() and not shipments.exists():
-        share_link.is_active = False
-        share_link.save(update_fields=['is_active'])
-        raise Http404('Shared link not found.')
     share_link.last_accessed_at = timezone.now()
     share_link.save(update_fields=['last_accessed_at'])
     serializer = ClientMissionShareProductSerializer(products, many=True)
