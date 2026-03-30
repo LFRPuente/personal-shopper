@@ -504,6 +504,38 @@ class Shipment(models.Model):
         return f"Shipment {self.id} - client {self.client_id}"
 
 
+class ShipmentEvidence(models.Model):
+    class MediaType(models.TextChoices):
+        IMAGE = 'IMAGE', 'Imagen'
+        VIDEO = 'VIDEO', 'Video'
+
+    shipment = models.ForeignKey(
+        Shipment,
+        on_delete=models.CASCADE,
+        related_name='evidence',
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shipment_evidence_uploaded',
+    )
+    file = models.FileField(upload_to='shipment_evidence/')
+    media_type = models.CharField(
+        max_length=10,
+        choices=MediaType.choices,
+        default=MediaType.IMAGE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def __str__(self):
+        return f"Shipment evidence {self.id} for shipment {self.shipment_id}"
+
+
 class ShipmentShareLink(models.Model):
     shipment = models.ForeignKey(
         Shipment,

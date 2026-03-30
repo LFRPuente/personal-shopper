@@ -19,10 +19,21 @@ from .models import (
     ShoppingPayment,
     ShoppingPaymentEntry,
     Shipment,
+    ShipmentEvidence,
     ShipmentShareLink,
 )
 
 class RelativeImageField(serializers.ImageField):
+    def to_representation(self, value):
+        if not value:
+            return None
+        try:
+            return value.url
+        except Exception:
+            return None
+
+
+class RelativeMediaField(serializers.FileField):
     def to_representation(self, value):
         if not value:
             return None
@@ -505,6 +516,15 @@ class ShipmentShareLinkSerializer(serializers.ModelSerializer):
 
 
 class PublicShipmentSummarySerializer(serializers.ModelSerializer):
+    evidence = serializers.SerializerMethodField()
+
+    def get_evidence(self, obj):
+        return ShipmentEvidenceSerializer(
+            obj.evidence.all(),
+            many=True,
+            context=self.context,
+        ).data
+
     class Meta:
         model = Shipment
         fields = [
@@ -515,6 +535,7 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
             'guide_price',
             'client_price',
             'shipping_address',
+            'evidence',
             'updated_at',
         ]
 
@@ -582,6 +603,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
     shopping_names = serializers.SerializerMethodField()
     mission_names = serializers.SerializerMethodField()
+    evidence = serializers.SerializerMethodField()
 
     def get_product_count(self, obj):
         return obj.products.count()
@@ -604,6 +626,13 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
     def get_shopping_names(self, obj):
         return self.get_mission_names(obj)
+
+    def get_evidence(self, obj):
+        return ShipmentEvidenceSerializer(
+            obj.evidence.all(),
+            many=True,
+            context=self.context,
+        ).data
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -642,3 +671,24 @@ class ShipmentSerializer(serializers.ModelSerializer):
             'shipping_address': {'required': False, 'allow_null': True, 'allow_blank': True},
             'products': {'required': False},
         }
+
+
+class ShipmentEvidenceSerializer(serializers.ModelSerializer):
+    file = RelativeMediaField(required=False, allow_null=True)
+    uploaded_by_username = serializers.CharField(
+        source='uploaded_by.username',
+        read_only=True,
+        default=None,
+    )
+
+    class Meta:
+        model = ShipmentEvidence
+        fields = [
+            'id',
+            'file',
+            'media_type',
+            'created_at',
+            'uploaded_by',
+            'uploaded_by_username',
+        ]
+        read_only_fields = fields

@@ -282,6 +282,8 @@ function nh() {
     [requests, setRequests] = V.useState([]),
     [shipments, setShipments] = V.useState([]),
     [shipmentSearch, setShipmentSearch] = V.useState(""),
+    [shipmentEvidenceUploadingId, setShipmentEvidenceUploadingId] = V.useState(null),
+    [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
     [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
     [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
@@ -373,6 +375,7 @@ function nh() {
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    shipmentEvidenceInputRefs = V.useRef({}),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
@@ -1782,6 +1785,18 @@ function nh() {
         reader.readAsDataURL(file);
       });
     },
+    getShipmentEvidenceKind = (o = null) => {
+      const N = String((o && o.media_type) || "").toUpperCase();
+      if (N === "VIDEO" || N === "IMAGE") return N;
+      const A = String((o && o.file) || "").toLowerCase();
+      return /\.(mp4|mov|m4v|webm|ogg)$/i.test(A) ? "VIDEO" : "IMAGE";
+    },
+    prepareShipmentEvidenceFile = async (o) => {
+      if (!o) return null;
+      return String(o.type || "").toLowerCase().startsWith("image/")
+        ? compressImage(o).catch(() => o)
+        : o;
+    },
     Xl = async (o) => {
       if (!he) return;
       const N = o.target.files;
@@ -2896,6 +2911,61 @@ function nh() {
       } catch (A) {
         console.error("Failed deleting shipment", A);
         notifyError((A && A.message) || "No se pudo eliminar el envio.");
+      }
+    },
+    openShipmentEvidencePicker = (o) => {
+      if (!o || !o.id) return;
+      const N = shipmentEvidenceInputRefs.current[o.id];
+      N && N.click();
+    },
+    uploadShipmentEvidence = async (o, N) => {
+      if (!o || !o.id || !N || !N.length) return;
+      setShipmentEvidenceUploadingId(o.id);
+      try {
+        const A = new FormData();
+        for (const vl of Array.from(N)) {
+          const El = await prepareShipmentEvidenceFile(vl);
+          El && A.append("files", El);
+        }
+        await I(`/shipments/${o.id}/upload-evidence/`, {
+          method: "POST",
+          body: A,
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        publicClientShareToken && (await reloadPublicShareData());
+        notifySuccess("Evidencia agregada.");
+      } catch (A) {
+        console.error("Failed uploading shipment evidence", A);
+        notifyError((A && A.message) || "No se pudo subir la evidencia.");
+      } finally {
+        setShipmentEvidenceUploadingId(null);
+      }
+    },
+    deleteShipmentEvidence = async (o, N) => {
+      if (!o || !o.id || !N) return;
+      const A = await confirmAction({
+        title: "Eliminar evidencia",
+        message: "Este archivo ya no se mostrara al cliente.",
+        confirmLabel: "Eliminar",
+        cancelLabel: "Cancelar",
+        tone: "danger",
+      });
+      if (!A) return;
+      setShipmentEvidenceDeletingId(N);
+      try {
+        await I(`/shipments/${o.id}/evidence/${N}/`, {
+          method: "DELETE",
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        publicClientShareToken && (await reloadPublicShareData());
+        notifySuccess("Evidencia eliminada.");
+      } catch (vl) {
+        console.error("Failed deleting shipment evidence", vl);
+        notifyError((vl && vl.message) || "No se pudo eliminar la evidencia.");
+      } finally {
+        setShipmentEvidenceDeletingId(null);
       }
     },
     shipmentModalClient = Kl.find(
@@ -5375,6 +5445,52 @@ function nh() {
                               className:
                                 "text-xs text-text-main dark:text-slate-200 mt-0.5 whitespace-pre-wrap",
                               children: publicSelectedShipment.shipping_address,
+                            }),
+                          ],
+                        }),
+                        (publicSelectedShipment.evidence || []).length > 0 &&
+                        c.jsxs("div", {
+                          className:
+                            "rounded-xl bg-violet-50 dark:bg-violet-950/20 px-3 py-2 space-y-2",
+                          children: [
+                            c.jsx("p", {
+                              className:
+                                "text-[10px] font-bold uppercase text-violet-700 dark:text-violet-300",
+                              children: "Evidencia del envio",
+                            }),
+                            c.jsx("div", {
+                              className: "grid grid-cols-2 gap-2",
+                              children: (publicSelectedShipment.evidence || []).map(
+                                (o) => {
+                                  const N = getShipmentEvidenceKind(o);
+                                  return c.jsx(
+                                    "div",
+                                    {
+                                      className:
+                                        "overflow-hidden rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80",
+                                      children:
+                                        N === "VIDEO"
+                                          ? c.jsx("video", {
+                                              src: resolveMediaUrl(o.file),
+                                              controls: !0,
+                                              preload: "metadata",
+                                              className:
+                                                "w-full aspect-[4/5] bg-black object-cover",
+                                            })
+                                          : c.jsx("img", {
+                                              src: resolveMediaUrl(o.file),
+                                              onClick: () =>
+                                                setFullscreenImage(
+                                                  resolveMediaUrl(o.file),
+                                                ),
+                                              className:
+                                                "w-full aspect-[4/5] object-cover cursor-zoom-in",
+                                            }),
+                                    },
+                                    `public-shipment-evidence-${o.id}`,
+                                  );
+                                },
+                              ),
                             }),
                           ],
                         }),
@@ -8688,6 +8804,20 @@ function nh() {
                             c.jsxs("div", {
                               className: "flex items-center gap-1",
                               children: [
+                                c.jsx("input", {
+                                  type: "file",
+                                  accept: "image/*,video/*",
+                                  multiple: !0,
+                                  ref: (A) => {
+                                    shipmentEvidenceInputRefs.current[N.id] = A;
+                                  },
+                                  onChange: (A) => {
+                                    const vl = A.target.files;
+                                    vl && vl.length > 0 && uploadShipmentEvidence(N, vl);
+                                    A.target.value = "";
+                                  },
+                                  className: "hidden",
+                                }),
                                 c.jsx("button", {
                                   type: "button",
                                   onClick: () =>
@@ -8703,6 +8833,24 @@ function nh() {
                                       Number(expandedShipmentId) === Number(N.id)
                                         ? "expand_less"
                                         : "expand_more",
+                                  }),
+                                }),
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: () => openShipmentEvidencePicker(N),
+                                  disabled: shipmentEvidenceUploadingId === N.id,
+                                  className:
+                                    "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60",
+                                  title: "Agregar evidencia",
+                                  children: c.jsx("span", {
+                                    className:
+                                      `material-symbols-outlined text-[16px] ${
+                                        shipmentEvidenceUploadingId === N.id ? "animate-spin" : ""
+                                      }`,
+                                    children:
+                                      shipmentEvidenceUploadingId === N.id
+                                        ? "progress_activity"
+                                        : "add",
                                   }),
                                 }),
                                 canEditShipmentBox(N) &&
@@ -8843,6 +8991,113 @@ function nh() {
                                   children:
                                     N.shipping_address || "Sin direccion capturada",
                                 }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className:
+                                "rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-1.5",
+                              children: [
+                                c.jsxs("div", {
+                                  className: "flex items-center justify-between gap-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-violet-700 dark:text-violet-300",
+                                      children: "Evidencia",
+                                    }),
+                                    c.jsxs("button", {
+                                      type: "button",
+                                      onClick: () => openShipmentEvidencePicker(N),
+                                      disabled: shipmentEvidenceUploadingId === N.id,
+                                      className:
+                                        "inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 dark:text-violet-300 disabled:opacity-60",
+                                      children: [
+                                        c.jsx("span", {
+                                          className:
+                                            `material-symbols-outlined text-[13px] ${
+                                              shipmentEvidenceUploadingId === N.id ? "animate-spin" : ""
+                                            }`,
+                                          children:
+                                            shipmentEvidenceUploadingId === N.id
+                                              ? "progress_activity"
+                                              : "add",
+                                        }),
+                                        "Agregar",
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                (N.evidence || []).length > 0
+                                  ? c.jsx("div", {
+                                      className: "mt-2 grid grid-cols-2 gap-2",
+                                      children: (N.evidence || []).map((A) => {
+                                        const vl = getShipmentEvidenceKind(A);
+                                        return c.jsxs(
+                                          "div",
+                                          {
+                                            className:
+                                              "relative overflow-hidden rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80",
+                                            children: [
+                                              vl === "VIDEO"
+                                                ? c.jsx("video", {
+                                                    src: resolveMediaUrl(A.file),
+                                                    controls: !0,
+                                                    preload: "metadata",
+                                                    className: "w-full aspect-[4/5] bg-black object-cover",
+                                                  })
+                                                : c.jsx("img", {
+                                                    src: resolveMediaUrl(A.file),
+                                                    onClick: () =>
+                                                      setFullscreenImage({
+                                                        url: resolveMediaUrl(A.file),
+                                                        copyOnClick: !0,
+                                                        copyMessage: "Evidencia copiada.",
+                                                      }),
+                                                    className:
+                                                      "w-full aspect-[4/5] object-cover cursor-zoom-in",
+                                                  }),
+                                              c.jsxs("div", {
+                                                className:
+                                                  "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-2 py-1.5 flex items-end justify-between gap-2",
+                                                children: [
+                                                  c.jsx("span", {
+                                                    className:
+                                                      "text-[10px] font-bold uppercase text-white/90",
+                                                    children:
+                                                      vl === "VIDEO" ? "Video" : "Imagen",
+                                                  }),
+                                                  c.jsx("button", {
+                                                    type: "button",
+                                                    onClick: () =>
+                                                      deleteShipmentEvidence(N, A.id),
+                                                    disabled:
+                                                      shipmentEvidenceDeletingId === A.id,
+                                                    className:
+                                                      "w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-60",
+                                                    children: c.jsx("span", {
+                                                      className:
+                                                        `material-symbols-outlined text-[14px] ${
+                                                          shipmentEvidenceDeletingId === A.id ? "animate-spin" : ""
+                                                        }`,
+                                                      children:
+                                                        shipmentEvidenceDeletingId === A.id
+                                                          ? "progress_activity"
+                                                          : "delete",
+                                                    }),
+                                                  }),
+                                                ],
+                                              }),
+                                            ],
+                                          },
+                                          `shipment-evidence-${N.id}-${A.id}`,
+                                        );
+                                      }),
+                                    })
+                                  : c.jsx("p", {
+                                      className:
+                                        "mt-1 text-xs text-violet-700/80 dark:text-violet-300/80",
+                                      children: "Sin evidencia cargada.",
+                                    }),
                               ],
                             }),
                           ],

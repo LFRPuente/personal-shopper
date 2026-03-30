@@ -35,6 +35,7 @@ from .models import (
     ShoppingPayment,
     ShoppingPaymentEntry,
     Shipment,
+    ShipmentEvidence,
     ShipmentShareLink,
 )
 from .serializers import (
@@ -53,6 +54,7 @@ from .serializers import (
     ClientMissionShareProductSerializer,
     ShoppingPaymentSerializer,
     ShipmentSerializer,
+    ShipmentEvidenceSerializer,
     ShipmentShareLinkSerializer,
     PublicClientReceiptSerializer,
 )
@@ -586,7 +588,7 @@ def public_client_mission_share_view(request, token):
     ).order_by('-created_at', '-id')
     shipments = Shipment.objects.filter(
         client=share_link.client,
-    ).prefetch_related('products').order_by('-updated_at', '-id')
+    ).prefetch_related('products', 'evidence').order_by('-updated_at', '-id')
     share_link.last_accessed_at = timezone.now()
     share_link.save(update_fields=['last_accessed_at'])
     serializer = ClientMissionShareProductSerializer(products, many=True)
@@ -747,7 +749,7 @@ def public_shipment_share_view(request, token):
     ).order_by('-uploaded_at', '-id')
     shipments = Shipment.objects.filter(
         client=shipment.client,
-    ).prefetch_related('products').order_by('-updated_at', '-id')
+    ).prefetch_related('products', 'evidence').order_by('-updated_at', '-id')
     serializer = ClientMissionShareProductSerializer(products, many=True)
     receipt_serializer = PublicClientReceiptSerializer(receipts, many=True)
     shipment_serializer = ShipmentSerializer(shipments, many=True)
@@ -1556,11 +1558,12 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         queryset = Shipment.objects.select_related(
             'client', 'product', 'mission', 'created_by'
-        ).prefetch_related('products').all().order_by('-updated_at', '-id')
+        ).prefetch_related('products', 'evidence', 'evidence__uploaded_by').all().order_by('-updated_at', '-id')
         client_id = self.request.query_params.get('client')
         mission_id = get_shopping_query_param(self.request)
         product_id = self.request.query_params.get('product')
@@ -1597,8 +1600,17 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         shipment_id = instance.id
         product_ids = list(instance.products.values_list('id', flat=True))
+        evidence_files = list(
+            instance.evidence.exclude(file='').values_list('file', flat=True)
+        )
         ShipmentShareLink.objects.filter(shipment=instance).update(is_active=False)
         super().perform_destroy(instance)
+        for evidence_file in evidence_files:
+            try:
+                default_storage = ShipmentEvidence._meta.get_field('file').storage
+                default_storage.delete(evidence_file)
+            except Exception:
+                pass
         for product_id in product_ids:
             broadcast_update('products', action='updated', object_id=product_id)
         broadcast_update('shipments', action='deleted', object_id=shipment_id)
@@ -1652,5 +1664,73 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         attach_products_to_shipment(shipment, products)
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+        return Response(self.get_serializer(shipment).data)
+
+    @action(detail=True, methods=['post'], url_path='upload-evidence')
+    def upload_evidence(self, request, pk=None):
+        shipment = self.get_object()
+        uploaded_files = request.FILES.getlist('files')
+        if not uploaded_files:
+            single_file = request.FILES.get('file')
+            if single_file:
+                uploaded_files = [single_file]
+        if not uploaded_files:
+            return Response(
+                {'error': 'At least one file is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created_items = []
+        for uploaded_file in uploaded_files:
+            content_type = str(getattr(uploaded_file, 'content_type', '') or '').lower()
+            if content_type.startswith('image/'):
+                media_type = ShipmentEvidence.MediaType.IMAGE
+            elif content_type.startswith('video/'):
+                media_type = ShipmentEvidence.MediaType.VIDEO
+            else:
+                return Response(
+                    {'error': 'Only image or video files are allowed.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            created_items.append(
+                ShipmentEvidence.objects.create(
+                    shipment=shipment,
+                    uploaded_by=request.user,
+                    file=uploaded_file,
+                    media_type=media_type,
+                )
+            )
+        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+        return Response(
+            {
+                'shipment': self.get_serializer(shipment).data,
+                'evidence': ShipmentEvidenceSerializer(
+                    created_items,
+                    many=True,
+                    context={'request': request},
+                ).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['delete'], url_path=r'evidence/(?P<evidence_id>[^/.]+)')
+    def delete_evidence(self, request, pk=None, evidence_id=None):
+        shipment = self.get_object()
+        evidence = shipment.evidence.filter(id=evidence_id).first()
+        if not evidence:
+            return Response(
+                {'error': 'Evidence not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        evidence_file = evidence.file.name
+        evidence.delete()
+        if evidence_file:
+            try:
+                ShipmentEvidence._meta.get_field('file').storage.delete(evidence_file)
+            except Exception:
+                pass
+        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(self.get_serializer(shipment).data)
