@@ -272,6 +272,8 @@ function nh() {
     ),
     [publicClientShareError, setPublicClientShareError] = V.useState(""),
     [publicExpandedShipmentId, setPublicExpandedShipmentId] = V.useState(null),
+    [publicPendingShipmentSelection, setPublicPendingShipmentSelection] = V.useState([]),
+    [publicBuildingShipment, setPublicBuildingShipment] = V.useState(!1),
     [requests, setRequests] = V.useState([]),
     [shipments, setShipments] = V.useState([]),
     [shipmentSearch, setShipmentSearch] = V.useState(""),
@@ -4491,6 +4493,9 @@ function nh() {
             !publicShipmentProductIds.has(Number(o.id)),
         )
       : [],
+    publicPendingShipmentSelectionSet = new Set(
+      publicPendingShipmentSelection.map((o) => Number(o)),
+    ),
     publicClientCreditTotal = publicClientShareData
       ? Math.max(toNumber(publicClientShareData.client_credit, 0), 0)
       : 0,
@@ -4510,16 +4515,74 @@ function nh() {
     },
     [],
   );
+  const getPublicShareDataPath = () =>
+      publicShareType === "shipment"
+        ? `/public/shipment-share/${encodeURIComponent(publicClientShareToken)}/`
+        : `/public/client-share/${encodeURIComponent(publicClientShareToken)}/`,
+    reloadPublicShareData = async ({ showLoading = !1 } = {}) => {
+      if (!publicClientShareToken) return null;
+      showLoading && setPublicClientShareLoading(!0);
+      setPublicClientShareError("");
+      try {
+        const o = await publicApiFetch(getPublicShareDataPath());
+        setPublicClientShareData(o || null);
+        return o || null;
+      } catch (o) {
+        setPublicClientShareError(
+          (o && o.message) || "No se pudo cargar este enlace.",
+        );
+        throw o;
+      } finally {
+        showLoading && setPublicClientShareLoading(!1);
+      }
+    },
+    togglePublicPendingShipmentSelection = (o) => {
+      const N = Number(o);
+      setPublicPendingShipmentSelection((A) =>
+        A.includes(N) ? A.filter((vl) => vl !== N) : [...A, N],
+      );
+    },
+    createPublicShipmentFromSelection = async () => {
+      if (publicShareType === "shipment" || !publicClientShareToken) return;
+      if (publicPendingShipmentSelection.length === 0) {
+        notifyInfo("Selecciona al menos un producto para armar la caja.");
+        return;
+      }
+      setPublicBuildingShipment(!0);
+      try {
+        const o = await publicApiFetch(
+            `/public/client-share/${encodeURIComponent(publicClientShareToken)}/build-shipment/`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                products: publicPendingShipmentSelection,
+              }),
+            },
+          ),
+          N = await reloadPublicShareData();
+        setPublicPendingShipmentSelection([]);
+        o &&
+          o.shipment &&
+          o.shipment.id &&
+          setPublicExpandedShipmentId(Number(o.shipment.id));
+        notifySuccess("Caja armada. El envio ya aparece en el historial.");
+        return N;
+      } catch (o) {
+        console.error("Failed building public shipment", o);
+        notifyError(
+          (o && o.message) || "No se pudo armar la caja.",
+        );
+        return null;
+      } finally {
+        setPublicBuildingShipment(!1);
+      }
+    };
   V.useEffect(() => {
     if (!publicClientShareToken) return;
     let o = !0;
     setPublicClientShareLoading(!0);
     setPublicClientShareError("");
-    publicApiFetch(
-      publicShareType === "shipment"
-        ? `/public/shipment-share/${encodeURIComponent(publicClientShareToken)}/`
-        : `/public/client-share/${encodeURIComponent(publicClientShareToken)}/`,
-    )
+    publicApiFetch(getPublicShareDataPath())
       .then((N) => {
         o && setPublicClientShareData(N || null);
       })
@@ -4553,6 +4616,14 @@ function nh() {
     publicClientShareData &&
     (publicClientShareData.shipments || []).length,
   ]);
+  V.useEffect(() => {
+    const o = new Set(
+      publicPendingShipmentProducts.map((N) => Number(N.id)),
+    );
+    setPublicPendingShipmentSelection((N) =>
+      N.filter((A) => o.has(Number(A))),
+    );
+  }, [publicPendingShipmentProducts]);
   V.useEffect(() => {
     if (!reviewConversationEntry) return;
     const o =
@@ -5081,16 +5152,63 @@ function nh() {
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
                           children: [
-                            c.jsx("h3", {
-                              className: "text-sm font-bold text-amber-900 dark:text-amber-100",
-                              children: "Pendiente",
-                            }),
-                            c.jsxs("span", {
-                              className: "text-[11px] text-amber-700 dark:text-amber-300",
+                            c.jsxs("div", {
+                              className: "min-w-0",
                               children: [
-                                publicPendingShipmentProducts.length,
-                                " item",
-                                publicPendingShipmentProducts.length === 1 ? "" : "s",
+                                c.jsx("h3", {
+                                  className: "text-sm font-bold text-amber-900 dark:text-amber-100",
+                                  children: "Pendiente",
+                                }),
+                                publicShareType !== "shipment" &&
+                                c.jsx("p", {
+                                  className: "mt-1 text-[11px] text-amber-700 dark:text-amber-300",
+                                  children:
+                                    "Selecciona los productos que iran juntos y arma una nueva caja.",
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "flex flex-col items-end gap-1 shrink-0",
+                              children: [
+                                c.jsxs("span", {
+                                  className: "text-[11px] text-amber-700 dark:text-amber-300",
+                                  children: [
+                                    publicPendingShipmentProducts.length,
+                                    " item",
+                                    publicPendingShipmentProducts.length === 1 ? "" : "s",
+                                  ],
+                                }),
+                                publicShareType !== "shipment" &&
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: createPublicShipmentFromSelection,
+                                  disabled:
+                                    publicBuildingShipment ||
+                                    publicPendingShipmentSelection.length === 0,
+                                  className:
+                                    `inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${
+                                      publicBuildingShipment ||
+                                      publicPendingShipmentSelection.length === 0
+                                        ? "bg-amber-200/80 text-amber-800/70 cursor-not-allowed dark:bg-amber-950/40 dark:text-amber-200/60"
+                                        : "bg-amber-600 text-white hover:bg-amber-700"
+                                    }`,
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        `material-symbols-outlined text-[14px] ${
+                                          publicBuildingShipment ? "animate-spin" : ""
+                                        }`,
+                                      children: publicBuildingShipment
+                                        ? "progress_activity"
+                                        : "inventory_2",
+                                    }),
+                                    publicBuildingShipment
+                                      ? "Armando..."
+                                      : publicPendingShipmentSelection.length > 0
+                                        ? `Armar caja (${publicPendingShipmentSelection.length})`
+                                        : "Armar caja",
+                                  ],
+                                }),
                               ],
                             }),
                           ],
@@ -5099,10 +5217,22 @@ function nh() {
                           className: "grid grid-cols-2 gap-1.5",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
-                              "div",
+                              publicShareType !== "shipment" ? "button" : "div",
                               {
+                                ...(publicShareType !== "shipment"
+                                  ? {
+                                      type: "button",
+                                      onClick: () =>
+                                        togglePublicPendingShipmentSelection(o.id),
+                                    }
+                                  : {}),
                                 className:
-                                  "rounded-lg border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-1.5 flex gap-1.5 items-start",
+                                  `rounded-lg border p-1.5 flex gap-1.5 items-start text-left transition ${
+                                    publicShareType !== "shipment" &&
+                                    publicPendingShipmentSelectionSet.has(Number(o.id))
+                                      ? "border-amber-500 bg-amber-100/90 dark:border-amber-500 dark:bg-amber-950/35 ring-2 ring-amber-300/60"
+                                      : "border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900"
+                                  }`,
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
@@ -5127,7 +5257,7 @@ function nh() {
                                       c.jsx("p", {
                                         className:
                                           "text-[10px] leading-4 font-semibold text-text-main dark:text-white line-clamp-2",
-                                        children: o.name,
+                                          children: o.name,
                                       }),
                                       c.jsxs("p", {
                                         className:
@@ -5142,6 +5272,20 @@ function nh() {
                                         ],
                                       }),
                                     ],
+                                  }),
+                                  publicShareType !== "shipment" &&
+                                  c.jsx("div", {
+                                    className:
+                                      `shrink-0 w-5 h-5 rounded-full border flex items-center justify-center ${
+                                        publicPendingShipmentSelectionSet.has(Number(o.id))
+                                          ? "bg-amber-600 border-amber-600 text-white"
+                                          : "bg-white border-amber-300 text-transparent dark:bg-slate-900 dark:border-amber-800"
+                                      }`,
+                                    children: c.jsx("span", {
+                                      className:
+                                        "material-symbols-outlined text-[12px]",
+                                      children: "check",
+                                    }),
                                   }),
                                 ],
                               },

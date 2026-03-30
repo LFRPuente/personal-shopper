@@ -20,6 +20,7 @@ from .views import (
     unread_review_summary,
     create_client_mission_share_link,
     public_client_mission_share_view,
+    public_client_build_shipment_view,
     create_shipment_share_link,
     public_shipment_share_view,
 )
@@ -53,6 +54,8 @@ urlpatterns = [
     path('client-share-links/', create_client_mission_share_link, name='create-client-mission-share-link'),
     path('public/client-shopping-share/<str:token>/', public_client_mission_share_view, name='public-client-shopping-share-view'),
     path('public/client-share/<str:token>/', public_client_mission_share_view, name='public-client-mission-share-view'),
+    path('public/client-shopping-share/<str:token>/build-shipment/', public_client_build_shipment_view, name='public-client-shopping-build-shipment'),
+    path('public/client-share/<str:token>/build-shipment/', public_client_build_shipment_view, name='public-client-build-shipment'),
     path('shipment-share-links/', create_shipment_share_link, name='create-shipment-share-link'),
     path('public/shipment-share/<str:token>/', public_shipment_share_view, name='public-shipment-share-view'),
     path('', include(router.urls)),

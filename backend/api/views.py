@@ -608,6 +608,108 @@ def public_client_mission_share_view(request, token):
     )
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def public_client_build_shipment_view(request, token):
+    token_hash = hash_share_token(token)
+    share_link = (
+        ClientHistoryShareLink.objects.select_related('client', 'created_by')
+        .filter(token_hash=token_hash, is_active=True)
+        .first()
+    )
+    if not share_link or share_link.is_expired:
+        raise Http404('Shared link not found.')
+
+    raw_product_ids = request.data.get('products') or []
+    if not isinstance(raw_product_ids, list):
+        return Response(
+            {'error': 'Products must be provided as a list.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    cleaned_ids = []
+    seen_ids = set()
+    for product_id in raw_product_ids:
+        try:
+            parsed_id = int(product_id)
+        except (TypeError, ValueError):
+            continue
+        if parsed_id in seen_ids:
+            continue
+        seen_ids.add(parsed_id)
+        cleaned_ids.append(parsed_id)
+
+    if not cleaned_ids:
+        return Response(
+            {'error': 'Select at least one product to build a shipment.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    products = list(
+        ProductItem.objects.filter(
+            id__in=cleaned_ids,
+            client=share_link.client,
+        ).select_related('mission', 'client')
+    )
+    product_map = {product.id: product for product in products}
+    ordered_products = [product_map[product_id] for product_id in cleaned_ids if product_id in product_map]
+
+    if len(ordered_products) != len(cleaned_ids):
+        return Response(
+            {'error': 'One or more selected products were not found.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    invalid_status_products = [
+        product.id
+        for product in ordered_products
+        if str(product.status or '').upper() != 'ANNOTATED'
+    ]
+    if invalid_status_products:
+        return Response(
+            {'error': 'Only annotated products can be added to a new shipment.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    already_assigned_products = [
+        product.id
+        for product in ordered_products
+        if product.shipments.exists() or getattr(product, 'shipment_id', None)
+    ]
+    if already_assigned_products:
+        return Response(
+            {'error': 'One or more selected products are already assigned to a shipment.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with transaction.atomic():
+        shipment = Shipment.objects.create(
+            client=share_link.client,
+            mission=None,
+            product=None,
+            carrier='',
+            tracking_number='',
+            shipping_address=share_link.client.shipping_address or '',
+            status=Shipment.Status.PENDING,
+            created_by=share_link.created_by if share_link.created_by_id else None,
+        )
+        attach_products_to_shipment(shipment, ordered_products)
+        shipment.refresh_from_db()
+
+    share_link.last_accessed_at = timezone.now()
+    share_link.save(update_fields=['last_accessed_at'])
+    broadcast_update('shipments', action='created', object_id=shipment.id)
+    broadcast_update('clients', action='updated', object_id=share_link.client_id)
+
+    return Response(
+        {
+            'message': 'Shipment created successfully.',
+            'shipment': ShipmentSerializer(shipment, context={'request': request}).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_shipment_share_view(request, token):
