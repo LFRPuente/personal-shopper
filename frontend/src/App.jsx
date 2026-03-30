@@ -4740,8 +4740,41 @@ function nh() {
     reviewConversationEntry.review &&
     (reviewConversationEntry.review.messages || []).length,
   ]);
-  const publicCanModifySelectedShipment =
-      !!C && !!J && canEditShipmentBox(publicSelectedShipment),
+  const savePublicShipmentProductsOnly = async () => {
+      if (!shipmentForm.id) return;
+      if (!publicCanEditSelectedShipmentProducts) {
+        notifyInfo("Solo puedes modificar la caja mientras el envio siga pendiente.");
+        return;
+      }
+      if (!(shipmentForm.product_ids || []).length) {
+        notifyInfo("Selecciona al menos un producto.");
+        return;
+      }
+      try {
+        await I(`/shipments/${shipmentForm.id}/set-products/`, {
+          method: "POST",
+          body: JSON.stringify({
+            products: (shipmentForm.product_ids || []).map((o) => Number(o)),
+          }),
+        });
+        setShipmentModalOpen(!1);
+        setShipmentProductPickerOpen(!1);
+        await refreshCoreData();
+        await refreshSelectedClient();
+        publicClientShareToken && (await reloadPublicShareData());
+        setPublicExpandedShipmentId(Number(shipmentForm.id));
+        notifySuccess("Caja actualizada.");
+      } catch (o) {
+        console.error("Failed updating public shipment products", o);
+        notifyError((o && o.message) || "No se pudo actualizar la caja.");
+      }
+    },
+    publicCanModifySelectedShipment =
+      !!C && !!J && publicShareType !== "shipment",
+    publicCanEditSelectedShipmentProducts =
+      publicCanModifySelectedShipment &&
+      String((publicSelectedShipment && publicSelectedShipment.status) || "").toUpperCase() ===
+        "PENDING",
     publicShipmentEditorOverlay =
       shipmentModalOpen &&
       c.jsx("div", {
@@ -4766,11 +4799,11 @@ function nh() {
                   children: [
                     c.jsx("h3", {
                       className: "text-base font-bold text-text-main",
-                      children: shipmentForm.id ? "Editar envio" : "Nuevo envio",
+                      children: "Modificar caja",
                     }),
                     c.jsx("p", {
                       className: "text-[11px] text-text-sub mt-0.5",
-                      children: "Selecciona cliente, paqueteria y productos.",
+                      children: "Desde este link solo puedes ajustar los productos.",
                     }),
                   ],
                 }),
@@ -4788,152 +4821,20 @@ function nh() {
             c.jsxs("div", {
               className: "flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-4",
               children: [
-                c.jsxs("label", {
-                  className: "block",
+                shipmentModalClient &&
+                c.jsxs("div", {
+                  className:
+                    "rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2",
                   children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
+                    c.jsx("p", {
+                      className:
+                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
                       children: "Cliente",
                     }),
-                    c.jsx("select", {
-                      value: shipmentForm.client,
-                      onChange: (o) =>
-                        updateShipmentForm("client", o.target.value),
+                    c.jsx("p", {
                       className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                      children: Kl.map((o) =>
-                        c.jsx(
-                          "option",
-                          { value: String(o.id), children: o.name },
-                          `shipment-client-public-${o.id}`,
-                        ),
-                      ),
-                    }),
-                  ],
-                }),
-                c.jsxs("label", {
-                  className: "block",
-                  children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
-                      children: "Paqueteria",
-                    }),
-                    c.jsx("input", {
-                      type: "text",
-                      value: shipmentForm.carrier,
-                      onChange: (o) =>
-                        updateShipmentForm("carrier", o.target.value),
-                      placeholder: "Ej. DHL, FedEx, Estafeta",
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                    }),
-                    c.jsx("div", {
-                      className:
-                        "mt-2 max-h-44 overflow-y-auto ios-scroll rounded-xl border border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm",
-                      children:
-                        filteredShippingCarrierSuggestions.length > 0
-                          ? filteredShippingCarrierSuggestions.map((o) =>
-                              c.jsx(
-                                "button",
-                                {
-                                  type: "button",
-                                  onClick: () =>
-                                    updateShipmentForm("carrier", o.name),
-                                  className:
-                                    "w-full text-left px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800 text-sm hover:text-primary",
-                                  children: c.jsx("span", {
-                                    className: "font-medium",
-                                    children: o.name,
-                                  }),
-                                },
-                                `shipment-carrier-public-${o.recommendation_id || o.id}`,
-                              ),
-                            )
-                          : c.jsx("div", {
-                              className:
-                                "px-3 py-2 text-sm text-gray-400 dark:text-gray-500",
-                              children: "Sin sugerencias",
-                            }),
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: "grid grid-cols-1 sm:grid-cols-4 gap-3",
-                  children: [
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Status de envio",
-                        }),
-                        c.jsx("select", {
-                          value: shipmentForm.status,
-                          onChange: (o) =>
-                            updateShipmentForm("status", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                          children: [
-                            c.jsx("option", { value: "PENDING", children: "Pendiente" }, "shipment-status-public-pending"),
-                            c.jsx("option", { value: "PREPARING", children: "Preparando" }, "shipment-status-public-preparing"),
-                            c.jsx("option", { value: "SHIPPED", children: "Enviado" }, "shipment-status-public-shipped"),
-                            c.jsx("option", { value: "DELIVERED", children: "Entregado" }, "shipment-status-public-delivered"),
-                            c.jsx("option", { value: "CANCELLED", children: "Cancelado" }, "shipment-status-public-cancelled"),
-                          ],
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Guia",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          value: shipmentForm.tracking_number,
-                          onChange: (o) =>
-                            updateShipmentForm("tracking_number", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Precio",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          inputMode: "decimal",
-                          value: shipmentForm.client_price,
-                          onChange: (o) =>
-                            updateShipmentForm("client_price", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("label", {
-                  className: "block",
-                  children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
-                      children: "Direccion de envio",
-                    }),
-                    c.jsx("textarea", {
-                      rows: 3,
-                      value: shipmentForm.shipping_address,
-                      onChange: (o) =>
-                        updateShipmentForm("shipping_address", o.target.value),
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                        "text-xs text-amber-800 dark:text-amber-100 mt-0.5",
+                      children: shipmentModalClient.name,
                     }),
                   ],
                 }),
@@ -4949,7 +4850,7 @@ function nh() {
                           children: [
                             c.jsx("p", {
                               className: "text-xs font-bold text-text-main",
-                              children: "Productos del envio",
+                              children: "Productos de la caja",
                             }),
                             c.jsxs("p", {
                               className: "text-[11px] text-text-sub",
@@ -4971,7 +4872,7 @@ function nh() {
                                 "material-symbols-outlined text-[15px]",
                               children: "photo_library",
                             }),
-                            "Galeria",
+                            "Productos",
                           ],
                         }),
                       ],
@@ -5043,25 +4944,8 @@ function nh() {
                       : c.jsx("p", {
                           className: "text-xs text-text-sub",
                           children:
-                            "Abre la galeria para elegir productos de todas las shoppings de este cliente.",
+                            "Abre la galeria para elegir los productos que iran en esta caja.",
                         }),
-                  ],
-                }),
-                shipmentModalClient &&
-                c.jsxs("div", {
-                  className:
-                    "rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2",
-                  children: [
-                    c.jsx("p", {
-                      className:
-                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
-                      children: "Cliente",
-                    }),
-                    c.jsx("p", {
-                      className:
-                        "text-xs text-amber-800 dark:text-amber-100 mt-0.5",
-                      children: shipmentModalClient.name,
-                    }),
                   ],
                 }),
               ],
@@ -5077,10 +4961,10 @@ function nh() {
                   children: "Cancelar",
                 }),
                 c.jsx("button", {
-                  onClick: saveShipmentEditor,
+                  onClick: savePublicShipmentProductsOnly,
                   className:
                     "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
-                  children: shipmentForm.id ? "Guardar" : "Crear",
+                  children: "Guardar",
                 }),
               ],
             }),
@@ -5453,9 +5337,19 @@ function nh() {
                             publicCanModifySelectedShipment &&
                             c.jsxs("button", {
                               type: "button",
-                              onClick: () => openShipmentEditor(publicSelectedShipment),
+                              onClick: () =>
+                                publicCanEditSelectedShipmentProducts &&
+                                openShipmentEditor(publicSelectedShipment),
+                              disabled: !publicCanEditSelectedShipmentProducts,
+                              title: publicCanEditSelectedShipmentProducts
+                                ? "Modificar los productos de esta caja"
+                                : "Solo se puede modificar mientras el envio esta pendiente",
                               className:
-                                "inline-flex items-center gap-1 rounded-xl border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15",
+                                `inline-flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                                  publicCanEditSelectedShipmentProducts
+                                    ? "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+                                    : "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+                                }`,
                               children: [
                                 c.jsx("span", {
                                   className:
@@ -5463,34 +5357,6 @@ function nh() {
                                   children: "edit",
                                 }),
                                 "Modificar caja",
-                              ],
-                            }),
-                          ],
-                        }),
-                        c.jsxs("div", {
-                          className: "grid grid-cols-1 gap-2",
-                          children: [
-                            c.jsxs("div", {
-                              className:
-                                "rounded-xl bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2",
-                              children: [
-                                c.jsx("p", {
-                                  className:
-                                    "text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300",
-                                  children: "Precio",
-                                }),
-                                c.jsxs("p", {
-                                  className:
-                                    "text-xs font-semibold text-emerald-800 dark:text-emerald-200 mt-0.5",
-                                  children: [
-                                    "$",
-                                    formatAmount(
-                                      parseFloat(
-                                        publicSelectedShipment.client_price || 0,
-                                      ),
-                                    ),
-                                  ],
-                                }),
                               ],
                             }),
                           ],
@@ -5644,13 +5510,6 @@ function nh() {
                                               o.tracking_number ||
                                               o.carrier ||
                                               `Envio #${o.id}`,
-                                          }),
-                                          c.jsxs("p", {
-                                            className: "mt-1 text-[11px] text-text-sub",
-                                            children: [
-                                              "Precio: $",
-                                              formatAmount(parseFloat(o.client_price || 0)),
-                                            ],
                                           }),
                                         ],
                                       }),
