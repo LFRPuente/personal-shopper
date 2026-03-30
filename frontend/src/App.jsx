@@ -7250,7 +7250,15 @@ function nh() {
                     (gl, ae) =>
                       new Date(ae.date || 0).getTime() -
                       new Date(gl.date || 0).getTime(),
-                  );
+                  ),
+                totalClientSale = ea.reduce(
+                  (gl, ae) => gl + ae.productsTotal,
+                  0,
+                ),
+                totalClientBalance = ea.reduce(
+                  (gl, ae) => gl + ae.balance,
+                  0,
+                );
               return c.jsxs(
                 "div",
                 {
@@ -7287,10 +7295,18 @@ function nh() {
                               children: [
                                 c.jsxs("p", {
                                   className:
-                                    "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                    `text-[11px] font-bold ${
+                                      totalClientBalance < 0
+                                        ? "text-emerald-700 dark:text-emerald-300"
+                                        : totalClientBalance > 0
+                                          ? "text-slate-700 dark:text-slate-300"
+                                          : "text-slate-500 dark:text-slate-400"
+                                    }`,
                                   children: [
-                                    "Total USD: $",
-                                    formatAmount(El.usd),
+                                    totalClientBalance < 0
+                                      ? "Credito total: $"
+                                      : "Deuda total: $",
+                                    formatAmount(Math.abs(totalClientBalance)),
                                   ],
                                 }),
                                 c.jsxs("p", {
@@ -7298,7 +7314,7 @@ function nh() {
                                     "text-[11px] font-bold text-blue-700 dark:text-blue-300",
                                   children: [
                                     "Total Venta: $",
-                                    formatAmount(El.sale),
+                                    formatAmount(totalClientSale || El.sale),
                                   ],
                                 }),
                               ],
@@ -7308,17 +7324,39 @@ function nh() {
                               children: [
                                 c.jsxs("div", {
                                   className:
-                                    "rounded-xl border border-emerald-200 bg-emerald-50/90 px-2 py-2 shadow-[0_12px_24px_-22px_rgba(5,150,105,0.45)] min-w-0 overflow-hidden",
+                                    `rounded-xl border px-2 py-2 min-w-0 overflow-hidden ${
+                                      totalClientBalance < 0
+                                        ? "border-emerald-200 bg-emerald-50/90 shadow-[0_12px_24px_-22px_rgba(5,150,105,0.45)]"
+                                        : totalClientBalance > 0
+                                          ? "border-slate-300 bg-slate-100/95 shadow-[0_12px_24px_-22px_rgba(71,85,105,0.35)]"
+                                          : "border-slate-200 bg-slate-50/95 shadow-[0_12px_24px_-22px_rgba(100,116,139,0.22)]"
+                                    }`,
                                   children: [
                                     c.jsx("p", {
                                       className:
-                                        "text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700/75",
-                                      children: "USD",
+                                        `text-[9px] font-black uppercase tracking-[0.08em] ${
+                                          totalClientBalance < 0
+                                            ? "text-emerald-700/75"
+                                            : totalClientBalance > 0
+                                              ? "text-slate-700/75"
+                                              : "text-slate-500/75"
+                                        }`,
+                                      children:
+                                        totalClientBalance < 0 ? "Credito" : "Deuda",
                                     }),
                                     c.jsxs("p", {
                                       className:
-                                        "mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-emerald-800 leading-none truncate tabular-nums",
-                                      children: ["$", formatAmount(El.usd)],
+                                        `mt-0.5 text-[11px] sm:text-[13px] font-extrabold leading-none truncate tabular-nums ${
+                                          totalClientBalance < 0
+                                            ? "text-emerald-800"
+                                            : totalClientBalance > 0
+                                              ? "text-slate-800"
+                                              : "text-slate-600"
+                                        }`,
+                                      children: [
+                                        "$",
+                                        formatAmount(Math.abs(totalClientBalance)),
+                                      ],
                                     }),
                                   ],
                                 }),
@@ -7334,7 +7372,10 @@ function nh() {
                                     c.jsxs("p", {
                                       className:
                                         "mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 leading-none truncate tabular-nums",
-                                      children: ["$", formatAmount(El.sale)],
+                                      children: [
+                                        "$",
+                                        formatAmount(totalClientSale || El.sale),
+                                      ],
                                     }),
                                   ],
                                 }),
