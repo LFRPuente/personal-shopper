@@ -5137,11 +5137,6 @@ function nh() {
                       className: "text-base font-bold text-text-main",
                       children: "Productos del cliente",
                     }),
-                    c.jsx("p", {
-                      className: "text-[11px] text-text-sub mt-0.5",
-                      children:
-                        "Selecciona varios productos aunque sean de distintas shoppings.",
-                    }),
                   ],
                 }),
                 c.jsx("button", {
@@ -5239,6 +5234,13 @@ function nh() {
                                     o.mission_name ||
                                     o.store_name ||
                                     "Sin shopping",
+                                }),
+                                (o.shopping_date || o.mission_date) &&
+                                c.jsx("p", {
+                                  className: "text-[10px] text-white/70 truncate",
+                                  children: new Date(
+                                    o.shopping_date || o.mission_date,
+                                  ).toLocaleDateString(),
                                 }),
                               ],
                             }),
@@ -12290,7 +12292,7 @@ function nh() {
       toasts.length > 0 &&
       c.jsx("div", {
         className:
-          "fixed inset-x-0 top-4 z-[88] flex flex-col items-center gap-2 px-4 pointer-events-none",
+          "fixed inset-x-0 top-4 z-[120] flex flex-col items-center gap-2 px-4 pointer-events-none",
         children: toasts.map((o) =>
           c.jsxs(
             "div",
@@ -13884,11 +13886,6 @@ function nh() {
                       className: "text-base font-bold text-text-main",
                       children: "Productos del cliente",
                     }),
-                    c.jsx("p", {
-                      className: "text-[11px] text-text-sub mt-0.5",
-                      children:
-                        "Selecciona varios productos aunque sean de distintas shoppings.",
-                    }),
                   ],
                 }),
                 c.jsx("button", {
@@ -13986,6 +13983,13 @@ function nh() {
                                     o.mission_name ||
                                     o.store_name ||
                                     "Sin shopping",
+                                }),
+                                (o.shopping_date || o.mission_date) &&
+                                c.jsx("p", {
+                                  className: "text-[10px] text-white/70 truncate",
+                                  children: new Date(
+                                    o.shopping_date || o.mission_date,
+                                  ).toLocaleDateString(),
                                 }),
                               ],
                             }),
