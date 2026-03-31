@@ -9120,8 +9120,9 @@ function nh() {
                                 Se.length > 0
                                   ? c.jsx("div", {
                                       className: "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2",
-                                      children: Se.map((qa) =>
-                                        c.jsxs(
+                                      children: Se.map((qa) => {
+                                        const vl = getProductPaymentAmount(qa);
+                                        return c.jsxs(
                                           El ? "button" : "div",
                                           {
                                             type: El ? "button" : void 0,
@@ -9146,6 +9147,19 @@ function nh() {
                                                       children: "image",
                                                     }),
                                                   }),
+                                              Number.isFinite(vl) &&
+                                              c.jsx("div", {
+                                                className:
+                                                  "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                                                children: c.jsxs("span", {
+                                                  className:
+                                                    "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                                  children: [
+                                                    "$",
+                                                    formatAmount(vl),
+                                                  ],
+                                                }),
+                                              }),
                                               c.jsx("div", {
                                                 className:
                                                   "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
@@ -9182,8 +9196,8 @@ function nh() {
                                             ],
                                           },
                                           `shipment-inline-product-${N.id}-${qa.id}`,
-                                        ),
-                                      ),
+                                        );
+                                      }),
                                     })
                                   : c.jsx("p", {
                                       className:
@@ -14069,8 +14083,9 @@ function nh() {
                     shipmentSelectedProducts.length > 0
                       ? c.jsx("div", {
                           className: "grid grid-cols-2 sm:grid-cols-3 gap-2",
-                          children: shipmentSelectedProducts.map((o) =>
-                            c.jsxs(
+                          children: shipmentSelectedProducts.map((o) => {
+                            const N = getProductPaymentAmount(o);
+                            return c.jsxs(
                               "button",
                               {
                                 type: "button",
@@ -14092,6 +14107,16 @@ function nh() {
                                           children: "image",
                                         }),
                                       }),
+                                  Number.isFinite(N) &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                                    children: c.jsxs("span", {
+                                      className:
+                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                      children: ["$", formatAmount(N)],
+                                    }),
+                                  }),
                                   c.jsx("div", {
                                     className:
                                       "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
@@ -14127,8 +14152,8 @@ function nh() {
                                 ],
                               },
                               `shipment-picked-${o.id}`,
-                            ),
-                          ),
+                            );
+                          }),
                         })
                       : c.jsx("p", {
                           className: "text-xs text-text-sub",
@@ -14263,8 +14288,9 @@ function nh() {
                     "flex-1 overflow-y-auto ios-scroll p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
                   children: shipmentModalFilteredProducts.map((o) => {
                     const N = (shipmentForm.product_ids || []).includes(
-                      Number(o.id),
-                    );
+                        Number(o.id),
+                      ),
+                      A = getProductPaymentAmount(o);
                     return c.jsxs(
                       "button",
                       {
@@ -14287,6 +14313,16 @@ function nh() {
                                   children: "image",
                                 }),
                               }),
+                          Number.isFinite(A) &&
+                          c.jsx("div", {
+                            className:
+                              "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                            children: c.jsxs("span", {
+                              className:
+                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                              children: ["$", formatAmount(A)],
+                            }),
+                          }),
                           c.jsx("div", {
                             className:
                               "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
