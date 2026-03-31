@@ -2842,11 +2842,17 @@ function nh() {
     getShipmentFormState = (o = null, N = null) => {
       const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
       const vl =
-        o && o.client_price !== null && typeof o.client_price != "undefined"
-          ? String(o.client_price)
-          : o && o.guide_price !== null && typeof o.guide_price != "undefined"
+          o && o.guide_price !== null && typeof o.guide_price != "undefined"
             ? String(o.guide_price)
-            : "";
+            : o && o.client_price !== null && typeof o.client_price != "undefined"
+              ? String(o.client_price)
+              : "",
+        El =
+          o && o.client_price !== null && typeof o.client_price != "undefined"
+            ? String(o.client_price)
+            : o && o.guide_price !== null && typeof o.guide_price != "undefined"
+              ? String(o.guide_price)
+              : "";
       return {
         id: (o && o.id) || null,
         client: A,
@@ -2854,7 +2860,7 @@ function nh() {
         status: normalizeShipmentStatusValue((o && o.status) || "PENDING"),
         tracking_number: (o && o.tracking_number) || "",
         guide_price: vl,
-        client_price: vl,
+        client_price: El,
         shipping_address:
           (o && o.shipping_address) ||
           ((N && (N.shipping_address || "")) || ""),
@@ -2920,6 +2926,10 @@ function nh() {
       );
       const N = String(shipmentForm.carrier || "").trim();
       const A =
+        String(shipmentForm.guide_price || "").trim() === ""
+          ? null
+          : String(shipmentForm.guide_price || "").trim();
+      const vl =
         String(shipmentForm.client_price || "").trim() === ""
           ? null
           : String(shipmentForm.client_price || "").trim();
@@ -2949,7 +2959,7 @@ function nh() {
                 shipmentForm.tracking_number || "",
               ).trim(),
               guide_price: A,
-              client_price: A,
+              client_price: vl,
               shipping_address: String(
                 shipmentForm.shipping_address || "",
               ).trim(),
@@ -4068,6 +4078,40 @@ function nh() {
       maximumFractionDigits: 2,
     }),
     formatAmount = (o) => amountFormatter.format(toNumber(o, 0)),
+    getShipmentPurchasePriceAmount = (o) => {
+      const N =
+        o &&
+        o.guide_price !== null &&
+        typeof o.guide_price != "undefined" &&
+        String(o.guide_price).trim() !== ""
+          ? o.guide_price
+          : o &&
+              o.client_price !== null &&
+              typeof o.client_price != "undefined" &&
+              String(o.client_price).trim() !== ""
+            ? o.client_price
+            : 0;
+      return toNumber(N, 0);
+    },
+    getShipmentSalePriceAmount = (o) => {
+      const N =
+        o &&
+        o.client_price !== null &&
+        typeof o.client_price != "undefined" &&
+        String(o.client_price).trim() !== ""
+          ? o.client_price
+          : o &&
+              o.guide_price !== null &&
+              typeof o.guide_price != "undefined" &&
+              String(o.guide_price).trim() !== ""
+            ? o.guide_price
+            : 0;
+      return toNumber(N, 0);
+    },
+    getShipmentSalePriceSummary = (o) => {
+      const N = getShipmentSalePriceAmount(o);
+      return N <= 0 ? "Costo de envio gratis" : `Costo de venta: $${formatAmount(N)}`;
+    },
     getHomeVisibleProducts = (o) =>
       (o.products || []).filter(
         (N) =>
@@ -5583,6 +5627,13 @@ function nh() {
                                 "Rastrear guia",
                               ],
                             }),
+                            c.jsx("p", {
+                              className:
+                                "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                              children: getShipmentSalePriceSummary(
+                                publicSelectedShipment,
+                              ),
+                            }),
                             publicCanModifySelectedShipment &&
                             c.jsxs("button", {
                               type: "button",
@@ -5805,6 +5856,11 @@ function nh() {
                                               o.tracking_number ||
                                               o.carrier ||
                                               `Envio #${o.id}`,
+                                          }),
+                                          c.jsx("p", {
+                                            className:
+                                              "mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                            children: getShipmentSalePriceSummary(o),
                                           }),
                                         ],
                                       }),
@@ -8836,14 +8892,14 @@ function nh() {
                                     }),
                                     c.jsxs("span", {
                                       className: "text-text-sub",
-                                      children: [
-                                        "$",
-                                        formatAmount(
-                                          parseFloat(
-                                            N.client_price || N.guide_price || 0,
-                                          ),
-                                        ),
-                                      ],
+                                      children: getShipmentSalePriceAmount(N) <= 0
+                                        ? "Gratis"
+                                        : [
+                                            "$",
+                                            formatAmount(
+                                              getShipmentSalePriceAmount(N),
+                                            ),
+                                          ],
                                     }),
                                   ],
                                 }),
@@ -8948,7 +9004,7 @@ function nh() {
                               ],
                             }),
                             c.jsxs("div", {
-                              className: "grid grid-cols-1 sm:grid-cols-3 gap-2",
+                              className: "grid grid-cols-1 sm:grid-cols-4 gap-2",
                               children: [
                                 c.jsxs("label", {
                                   className:
@@ -8977,12 +9033,33 @@ function nh() {
                                 }),
                                 c.jsxs("label", {
                                   className:
+                                    "rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
+                                      children: "Costo de compra",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      inputMode: "decimal",
+                                      value: vl.guide_price,
+                                      onChange: (qa) =>
+                                        updateShipmentForm("guide_price", qa.target.value),
+                                      placeholder: "0.00",
+                                      className:
+                                        "mt-1 w-full bg-transparent text-xs font-semibold text-amber-800 dark:text-amber-200 outline-none",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className:
                                     "rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-2",
                                   children: [
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                      children: "Precio",
+                                      children: "Costo de venta",
                                     }),
                                     c.jsx("input", {
                                       type: "text",
@@ -13968,7 +14045,25 @@ function nh() {
                       children: [
                         c.jsx("span", {
                           className: "text-[11px] font-semibold text-text-sub",
-                          children: "Precio",
+                          children: "Costo de compra",
+                        }),
+                        c.jsx("input", {
+                          type: "text",
+                          inputMode: "decimal",
+                          value: shipmentForm.guide_price,
+                          onChange: (o) =>
+                            updateShipmentForm("guide_price", o.target.value),
+                          className:
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                        }),
+                      ],
+                    }),
+                    c.jsxs("label", {
+                      className: "block",
+                      children: [
+                        c.jsx("span", {
+                          className: "text-[11px] font-semibold text-text-sub",
+                          children: "Costo de venta",
                         }),
                         c.jsx("input", {
                           type: "text",
