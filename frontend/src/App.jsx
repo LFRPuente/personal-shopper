@@ -8515,50 +8515,145 @@ function nh() {
                                                 }),
                                               ],
                                             }),
-                                            ea.items.map((gl) =>
-                                            c.jsxs(
-                                              "div",
-                                              {
-                                                className:
-                                                  "flex items-center justify-between bg-white dark:bg-gray-900/30 px-2 py-1.5 rounded-md text-xs border border-gray-100 dark:border-gray-700",
-                                                children: [
-                                                  c.jsxs("div", {
+                                            c.jsx("div", {
+                                              className:
+                                                isDesktopLayout
+                                                  ? "grid grid-cols-2 xl:grid-cols-3 gap-2"
+                                                  : "grid grid-cols-2 gap-2",
+                                              children: ea.items.map((gl) => {
+                                                const ae = paymentLocalShoppingDiscount(
+                                                    ea.shopping || { id: Number(ea.key) },
+                                                  ),
+                                                  oi = getProductPaymentAmount(gl, ae);
+                                                return c.jsxs(
+                                                  "div",
+                                                  {
                                                     className:
-                                                      "flex items-center gap-2 flex-1 min-w-0",
+                                                      "overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-surface-light dark:bg-surface-dark shadow-card ui-card-quiet",
                                                     children: [
-                                                      gl.image
-                                                        ? c.jsx("img", {
-                                                          src: resolveMediaUrl(
-                                                            gl.image,
-                                                          ),
-                                                          className:
-                                                            "ui-media-frame ui-media-xs object-cover",
-                                                        })
-                                                        : c.jsx("div", {
-                                                          className:
-                                                            "ui-media-frame ui-media-xs bg-gray-200 dark:bg-gray-700 flex items-center justify-center",
-                                                          children: c.jsx(
-                                                            "span",
-                                                            {
-                                                              className:
-                                                                "material-symbols-outlined text-gray-400 text-[12px]",
-                                                              children:
-                                                                "image",
-                                                            },
-                                                          ),
-                                                        }),
                                                       c.jsxs("div", {
-                                                        className: "min-w-0",
+                                                        className:
+                                                          `${isDesktopLayout ? "h-44" : "h-36"} relative bg-[radial-gradient(circle_at_top,rgba(19,127,236,0.10),transparent_42%),linear-gradient(180deg,rgba(244,247,251,0.95),rgba(236,242,248,0.95))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_38%),linear-gradient(180deg,rgba(22,31,43,0.96),rgba(15,23,34,0.98))]`,
+                                                        children: [
+                                                          gl.image
+                                                            ? c.jsx("img", {
+                                                              src: resolveMediaUrl(
+                                                                gl.image,
+                                                              ),
+                                                              className:
+                                                                "w-full h-full object-cover cursor-zoom-in",
+                                                              onClick: () =>
+                                                                setFullscreenImage({
+                                                                  url: resolveMediaUrl(
+                                                                    gl.image,
+                                                                  ),
+                                                                  copyOnClick: !0,
+                                                                  copyMessage:
+                                                                    "Imagen copiada.",
+                                                                }),
+                                                              title:
+                                                                "Abrir imagen",
+                                                            })
+                                                            : c.jsxs("div", {
+                                                              className:
+                                                                "w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500",
+                                                              children: [
+                                                                c.jsx("span", {
+                                                                  className:
+                                                                    "material-symbols-outlined text-3xl mb-0.5",
+                                                                  children:
+                                                                    "image",
+                                                                }),
+                                                                c.jsx("span", {
+                                                                  className:
+                                                                    "text-[9px] uppercase font-bold",
+                                                                  children:
+                                                                    "No Image",
+                                                                }),
+                                                              ],
+                                                            }),
+                                                          c.jsx("button", {
+                                                            type: "button",
+                                                            onClick: (Pi) => {
+                                                              Pi.stopPropagation();
+                                                              gl.shipment
+                                                                ? openShipmentEditor(
+                                                                    gl.shipment,
+                                                                    gl,
+                                                                  )
+                                                                : openShipmentAssignmentPicker(
+                                                                    gl,
+                                                                  );
+                                                            },
+                                                            className:
+                                                              `absolute left-1.5 top-1.5 z-20 w-7 h-7 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${
+                                                                gl.shipment
+                                                                  ? "border-sky-200 bg-sky-50/90 text-sky-700 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-200"
+                                                                  : "border-gray-200 bg-white/90 text-gray-500 dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-300"
+                                                              }`,
+                                                            title: gl.shipment
+                                                              ? "Editar envio"
+                                                              : "Asignar envio",
+                                                            children: c.jsx(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  "material-symbols-outlined text-[14px]",
+                                                                children:
+                                                                  "local_shipping",
+                                                              },
+                                                            ),
+                                                          }),
+                                                          c.jsx("span", {
+                                                            className:
+                                                              `absolute right-1.5 top-1.5 z-20 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm ${
+                                                                gl.status === "SHIPPED"
+                                                                  ? "bg-blue-100/92 text-blue-700"
+                                                                  : gl.status === "REJECTED"
+                                                                    ? "bg-red-100/92 text-red-700"
+                                                                    : gl.status === "IN_REVIEW"
+                                                                      ? "bg-orange-100/92 text-orange-700"
+                                                                      : "bg-amber-100/92 text-amber-700"
+                                                              }`,
+                                                            children:
+                                                              gl.status ===
+                                                              "BOUGHT"
+                                                                ? "ANNOTATED"
+                                                                : gl.status,
+                                                          }),
+                                                          Number.isFinite(oi) &&
+                                                          c.jsx("div", {
+                                                            className:
+                                                              "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                                                            children: c.jsxs(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                                                children: [
+                                                                  "$",
+                                                                  formatAmount(
+                                                                    oi,
+                                                                  ),
+                                                                ],
+                                                              },
+                                                            ),
+                                                          }),
+                                                        ],
+                                                      }),
+                                                      c.jsxs("div", {
+                                                        className:
+                                                          "px-2.5 py-2 space-y-1",
                                                         children: [
                                                           c.jsx("p", {
                                                             className:
-                                                              "font-semibold truncate",
+                                                              "text-xs font-bold text-text-main dark:text-white truncate",
                                                             children: gl.name,
                                                           }),
                                                           gl.shipment &&
                                                           c.jsxs("p", {
                                                             className:
-                                                              "text-[9px] text-sky-600 dark:text-sky-300 truncate",
+                                                              "text-[10px] text-sky-600 dark:text-sky-300 truncate",
                                                             children: [
                                                               "Envio: ",
                                                               gl.shipment.carrier ||
@@ -8571,65 +8666,17 @@ function nh() {
                                                           gl.tags &&
                                                           c.jsx("p", {
                                                             className:
-                                                              "text-[9px] text-purple-500 truncate",
+                                                              "text-[10px] text-purple-500 truncate",
                                                             children: gl.tags,
                                                           }),
                                                         ],
                                                       }),
                                                     ],
-                                                  }),
-                                                  c.jsxs("div", {
-                                                    className:
-                                                      "flex items-center gap-2 ml-2",
-                                                    children: [
-                                                      c.jsx("button", {
-                                                        type: "button",
-                                                        onClick: (ae) => {
-                                                          ae.stopPropagation();
-                                                          gl.shipment
-                                                            ? openShipmentEditor(
-                                                                gl.shipment,
-                                                                gl,
-                                                              )
-                                                            : openShipmentAssignmentPicker(
-                                                                gl,
-                                                              );
-                                                        },
-                                                        className:
-                                                          `w-7 h-7 rounded-md border flex items-center justify-center ${
-                                                            gl.shipment
-                                                              ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
-                                                              : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                                                          }`,
-                                                        title: gl.shipment
-                                                          ? "Editar envio"
-                                                          : "Asignar envio",
-                                                        children: c.jsx("span", {
-                                                          className:
-                                                            "material-symbols-outlined text-[14px]",
-                                                          children: "local_shipping",
-                                                        }),
-                                                      }),
-                                                      hasValue(gl.charged_price) &&
-                                                      c.jsxs("span", {
-                                                        className:
-                                                          "text-[10px] font-bold text-blue-600",
-                                                        children: [
-                                                          "$",
-                                                          gl.charged_price,
-                                                        ],
-                                                      }),
-                                                      c.jsx("span", {
-                                                        className: `text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full ${gl.status === "SHIPPED" ? "bg-blue-100 text-blue-700" : gl.status === "REJECTED" ? "bg-red-100 text-red-700" : gl.status === "IN_REVIEW" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}`,
-                                                        children: gl.status === "BOUGHT" ? "ANNOTATED" : gl.status,
-                                                      }),
-                                                    ],
-                                                  }),
-                                                ],
-                                              },
-                                              gl.id,
-                                            ),
-                                          ),
+                                                  },
+                                                  gl.id,
+                                                );
+                                              }),
+                                            }),
                                           ],
                                         }),
                                       ],
