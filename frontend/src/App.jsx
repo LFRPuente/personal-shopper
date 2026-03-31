@@ -61,6 +61,7 @@ const DEFAULT_PRODUCT_FORM = {
   name: "",
   real_price: "",
   charged_price: "",
+  shopping: "",
   payer: "",
   tags: "",
   store: "",
@@ -127,6 +128,10 @@ const resolveMediaUrl = (o) => {
   }
 };
 const toFormUserId = (o) =>
+  o === null || typeof o === "undefined" || o === ""
+    ? ""
+    : String(o);
+const toFormShoppingId = (o) =>
   o === null || typeof o === "undefined" || o === ""
     ? ""
     : String(o);
@@ -1911,6 +1916,15 @@ function nh() {
       const N = o || st;
       if (!String(N.name || "").trim())
         return "Debes capturar el nombre del producto para guardar.";
+      if (
+        productModalMode === "create" &&
+        W &&
+        (clientGalleryMissionScopeId === null ||
+          typeof clientGalleryMissionScopeId === "undefined" ||
+          String(clientGalleryMissionScopeId).trim() === "") &&
+        !String(N.shopping || "").trim()
+      )
+        return "Debes seleccionar la shopping para este producto.";
       if (!Number.isInteger(parseInt(N.payer, 10)) || parseInt(N.payer, 10) <= 0)
         return "Debes seleccionar quien pagara este producto.";
       return getProductModalPriceError(N);
@@ -1927,6 +1941,14 @@ function nh() {
         computedFinalPriceText = Number.isFinite(computedFinalPrice)
           ? computedFinalPrice.toFixed(2)
           : "",
+        SeShopping = toFormShoppingId(
+          (o && o.shopping) ||
+            ((clientGalleryMissionScopeId !== null &&
+              typeof clientGalleryMissionScopeId !== "undefined" &&
+              String(clientGalleryMissionScopeId).trim() !== "")
+              ? clientGalleryMissionScopeId
+              : (w && w.id) || ""),
+        ),
         Se =
           typeof A.formStatus === "string" && A.formStatus.trim()
             ? A.formStatus
@@ -1943,6 +1965,7 @@ function nh() {
             name: (o && o.name) || "",
             real_price: SeRealPrice,
             charged_price: ea ? SeChargedPrice : (SeChargedPrice || computedFinalPriceText),
+            shopping: SeShopping,
             payer: toFormUserId(
               (o && o.payer) || (w && w.payer) || (J && J.id),
             ),
@@ -2054,6 +2077,10 @@ function nh() {
           ...st,
           name: String(st.name || "").trim(),
           tags: modalTags.join(", "),
+          shopping: (() => {
+            const gl = parseInt(st.shopping, 10);
+            return Number.isInteger(gl) && gl > 0 ? gl : null;
+          })(),
           store: w ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
           payer: (() => {
@@ -2090,13 +2117,14 @@ function nh() {
           Se.append("name", N.name);
           Se.append("status", N.status);
           Se.append("purchase_date", new Date().toISOString().slice(0, 10));
+          N.shopping !== null
+            ? Se.append("shopping", String(N.shopping))
+            : w && w.id && Se.append("shopping", w.id);
           N.payer !== null && Se.append("payer", String(N.payer));
           N.real_price !== null && Se.append("real_price", N.real_price);
           N.charged_price !== null && Se.append("charged_price", N.charged_price);
           N.tags && Se.append("tags", N.tags);
-          w && w.id
-            ? Se.append("shopping", w.id)
-            : N.store !== null && Se.append("store", String(N.store));
+          !N.shopping && N.store !== null && Se.append("store", String(N.store));
           const gl = await I("/products/", { method: "POST", body: Se });
           A !== "ANNOTATED" &&
             (await syncProductReviewState(
@@ -4452,8 +4480,22 @@ function nh() {
     filteredEditingRequestClients = requestAssignableClients.filter((o) =>
       normalizeSearchText(o.name || "").includes(normalizeSearchText(editingRequestClientSearch)),
     ),
-    clientGalleryScopeMission = clientGalleryMissionScopeId
+    clientGalleryHasMissionScope =
+      clientGalleryMissionScopeId !== null &&
+      typeof clientGalleryMissionScopeId !== "undefined" &&
+      String(clientGalleryMissionScopeId).trim() !== "",
+    clientGalleryScopeMission = clientGalleryHasMissionScope
       ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId))
+      : null,
+    productModalCanChooseShopping =
+      !!W && productModalMode === "create" && !clientGalleryHasMissionScope,
+    productModalShoppingOptions = [...Al].sort(
+      (o, N) =>
+        new Date(N && N.start_time || 0).getTime() -
+        new Date(o && o.start_time || 0).getTime(),
+    ),
+    productModalSelectedShopping = productModalCanChooseShopping
+      ? Al.find((o) => Number(o && o.id) === Number(st.shopping || 0)) || null
       : null,
     missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
     missionProductsCount = activeMissionProducts.length,
@@ -4582,8 +4624,9 @@ function nh() {
       currentConversationProductState,
     ),
     selectedClientHomeProducts = W ? getHomeVisibleProducts(W) : [],
-    selectedClientHomeScopeId =
-      Number(clientGalleryMissionScopeId || (w && w.id) || 0) || null,
+    selectedClientHomeScopeId = clientGalleryHasMissionScope
+      ? Number(clientGalleryMissionScopeId || 0) || null
+      : null,
     selectedClientHomeAnnotatedProducts = W
       ? ((W.products || []).filter(
         (o) =>
@@ -4599,7 +4642,7 @@ function nh() {
       ? getClientShoppingPaymentSummary(W, selectedClientHomeScopeId)
       : { amount: 0, productsTotal: 0, balance: 0 },
     galleryProducts = (((W && W.products) || []).filter((o) =>
-      clientGalleryMissionScopeId
+      clientGalleryHasMissionScope
         ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
           (clientGalleryScopeMission &&
           clientGalleryScopeMission.status === "COMPLETED"
@@ -8163,6 +8206,24 @@ function nh() {
                           className: "text-[10px] text-gray-500 mb-2",
                           children: ["📦 ", N.shipping_address],
                         }),
+                        c.jsxs("div", {
+                          className: "mb-3 flex justify-end",
+                          children: [
+                            c.jsxs("button", {
+                              onClick: () => Ta(N),
+                              className:
+                                "px-3 py-1.5 text-[11px] font-bold bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition inline-flex items-center justify-center gap-1",
+                              children: [
+                                c.jsx("span", {
+                                  className:
+                                    "material-symbols-outlined text-[13px]",
+                                  children: "open_in_new",
+                                }),
+                                " Open Full Gallery",
+                              ],
+                            }),
+                          ],
+                        }),
                         vl.length === 0 && (N.payments || []).length === 0
                           ? c.jsx("p", {
                             className:
@@ -8687,19 +8748,6 @@ function nh() {
                               }),
                             ],
                           }),
-                        c.jsxs("button", {
-                          onClick: () => Ta(N),
-                          className:
-                            "mt-2 px-3 py-1.5 text-[11px] font-bold bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition inline-flex items-center justify-center gap-1",
-                          children: [
-                            c.jsx("span", {
-                              className:
-                                "material-symbols-outlined text-[13px]",
-                              children: "open_in_new",
-                            }),
-                            " Open Full Gallery",
-                          ],
-                        }),
                       ],
                     }),
                   ],
@@ -10736,6 +10784,41 @@ function nh() {
                     }),
                   ],
                 }),
+                productModalCanChooseShopping &&
+                c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-2" : "",
+                  children: [
+                    c.jsx("label", {
+                      className:
+                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                      children: "Shopping",
+                    }),
+                    c.jsxs("select", {
+                      value: st.shopping || "",
+                      onChange: (o) => Gt({ ...st, shopping: o.target.value }),
+                      className:
+                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                      children: [
+                        c.jsx("option", {
+                          value: "",
+                          children: productModalShoppingOptions.length
+                            ? "Selecciona shopping"
+                            : "Sin shoppings disponibles",
+                        }),
+                        productModalShoppingOptions.map((o) =>
+                          c.jsx(
+                            "option",
+                            {
+                              value: o.id,
+                              children: `${getMissionStoreLabel(o) || o.name || `Shopping #${o.id}`} - ${o.start_time ? new Date(o.start_time).toLocaleDateString() : "Sin fecha"}`,
+                            },
+                            `product-shopping-${o.id}`,
+                          ),
+                        ),
+                      ],
+                    }),
+                  ],
+                }),
                 c.jsxs("div", {
                   className: isDesktopLayout ? "col-span-2" : "",
                   children: [
@@ -11137,7 +11220,29 @@ function nh() {
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                       children: "Store",
                     }),
-                    w
+                    productModalCanChooseShopping
+                      ? c.jsxs("div", {
+                        className:
+                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
+                        children: [
+                          c.jsx("p", {
+                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
+                            children: productModalSelectedShopping
+                              ? getMissionStoreLabel(productModalSelectedShopping) ||
+                                productModalSelectedShopping.name ||
+                                "Sin tienda asignada"
+                              : "Selecciona shopping arriba",
+                          }),
+                          productModalSelectedShopping &&
+                          c.jsx("p", {
+                            className: "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
+                            children: productModalSelectedShopping.start_time
+                              ? new Date(productModalSelectedShopping.start_time).toLocaleDateString()
+                              : "Sin fecha",
+                          }),
+                        ],
+                      })
+                      : w
                       ? c.jsxs("div", {
                         className:
                           "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
