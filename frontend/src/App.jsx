@@ -4684,19 +4684,26 @@ function nh() {
             : !0)
         : !0,
     )),
-    galleryReviewCount = galleryProducts.filter((o) => o.status === "IN_REVIEW").length,
-    galleryAnnotatedCount = galleryProducts.filter((o) =>
-      o.status === "ANNOTATED" || o.status === "BOUGHT",
-    ).length,
-    galleryRejectedCount = galleryProducts.filter((o) => o.status === "REJECTED").length,
+    galleryReviewProducts = clientGalleryHasMissionScope
+      ? []
+      : galleryProducts.filter((o) => o.status === "IN_REVIEW"),
+    galleryAnnotatedProducts = galleryProducts.filter((o) =>
+      clientGalleryHasMissionScope
+        ? o.status === "ANNOTATED"
+        : o.status === "ANNOTATED" || o.status === "BOUGHT",
+    ),
+    galleryRejectedProducts = clientGalleryHasMissionScope
+      ? []
+      : galleryProducts.filter((o) => o.status === "REJECTED"),
+    galleryReviewCount = galleryReviewProducts.length,
+    galleryAnnotatedCount = galleryAnnotatedProducts.length,
+    galleryRejectedCount = galleryRejectedProducts.length,
     visibleGalleryProducts =
       wl === "REVIEW"
-        ? galleryProducts.filter((o) => o.status === "IN_REVIEW")
+        ? galleryReviewProducts
         : wl === "REJECTED"
-            ? galleryProducts.filter((o) => o.status === "REJECTED")
-            : galleryProducts.filter((o) =>
-              o.status === "ANNOTATED" || o.status === "BOUGHT",
-            ),
+            ? galleryRejectedProducts
+            : galleryAnnotatedProducts,
     sortedVisibleGalleryProducts = [...visibleGalleryProducts].sort((o, N) => {
       const A = latestReviewsByProduct[o.id],
         vl = latestReviewsByProduct[N.id],
@@ -7968,6 +7975,11 @@ function nh() {
                 )
                   .map((gl) => {
                     const ae = Se[gl] || [],
+                      qa = ae.filter(
+                        (miProduct) =>
+                          String((miProduct && miProduct.status) || "").toUpperCase() ===
+                          "ANNOTATED",
+                      ),
                       Pi = getClientShoppingPayments(N, gl),
                       pa = getClientShoppingPaymentSummary(N, gl),
                       oiPaymentName =
@@ -7996,6 +8008,8 @@ function nh() {
                       title: mi,
                       date: Ri,
                       items: ae,
+                      annotatedItems: qa,
+                      annotatedCount: qa.length,
                       payments: Pi,
                       productsTotal: getPaymentProductsTotal(
                         ae,
@@ -8298,8 +8312,12 @@ function nh() {
                                                   className:
                                                     "text-[10px] text-gray-500",
                                                   children: [
-                                                    ea.items.length,
-                                                    " item(s)",
+                                                    Number.isFinite(ea.annotatedCount)
+                                                      ? ea.annotatedCount
+                                                      : ea.items.length,
+                                                    Number.isFinite(ea.annotatedCount)
+                                                      ? " anotado(s)"
+                                                      : " item(s)",
                                                     ea.payments.length > 0 &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
