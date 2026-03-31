@@ -297,6 +297,7 @@ function nh() {
     [shipmentEvidenceUploadingId, setShipmentEvidenceUploadingId] = V.useState(null),
     [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
     [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
+    [shipmentSaving, setShipmentSaving] = V.useState(!1),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
     [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
     [shipmentProductSearch, setShipmentProductSearch] = V.useState(""),
@@ -2801,14 +2802,31 @@ function nh() {
           ),
       };
     },
+    loadShipmentForm = (o = null, N = null) => {
+      setShipmentForm(getShipmentFormState(o, N));
+      setShipmentProductSearch("");
+      setShipmentProductPickerOpen(!1);
+    },
+    toggleExpandedShipment = (o) => {
+      if (!o) return;
+      const N = Number(o.id);
+      if (Number(expandedShipmentId) === N) {
+        setExpandedShipmentId(null);
+        return;
+      }
+      loadShipmentForm(o);
+      setExpandedShipmentId(N);
+    },
+    resetExpandedShipmentForm = (o) => {
+      if (!o) return;
+      loadShipmentForm(o);
+    },
     openShipmentEditor = (o = null, N = null) => {
       if (!Kl.length) {
         notifyInfo("Necesitas al menos un cliente para crear envios.");
         return;
       }
-      setShipmentForm(getShipmentFormState(o, N));
-      setShipmentProductSearch("");
-      setShipmentProductPickerOpen(!1);
+      loadShipmentForm(o, N);
       setShipmentModalOpen(!0);
     },
     updateShipmentForm = (o, N) => {
@@ -2855,6 +2873,7 @@ function nh() {
         notifyInfo("Selecciona al menos un producto.");
         return;
       }
+      setShipmentSaving(!0);
       try {
         const El = await I(
           shipmentForm.id ? `/shipments/${shipmentForm.id}/` : "/shipments/",
@@ -2875,7 +2894,7 @@ function nh() {
             }),
           },
         );
-        await I(`/shipments/${El.id}/set-products/`, {
+        const Se = await I(`/shipments/${El.id}/set-products/`, {
           method: "POST",
           body: JSON.stringify({
             products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
@@ -2884,6 +2903,8 @@ function nh() {
         setShipmentModalOpen(!1);
         setShipmentProductPickerOpen(!1);
         setPublicExpandedShipmentId(Number(El.id));
+        setExpandedShipmentId(Number(El.id));
+        setShipmentForm(getShipmentFormState(Se || El));
         await refreshCoreData();
         await refreshSelectedClient();
         publicClientShareToken && (await reloadPublicShareData());
@@ -2891,6 +2912,8 @@ function nh() {
       } catch (El) {
         console.error("Failed saving shipment", El);
         notifyError((El && El.message) || "No se pudo guardar el envio.");
+      } finally {
+        setShipmentSaving(!1);
       }
     },
     openShipmentAssignmentPicker = async (o) => {
@@ -8719,8 +8742,18 @@ function nh() {
                 className: isDesktopLayout
                   ? "grid gap-4 xl:grid-cols-2 2xl:grid-cols-3"
                   : "space-y-2",
-                children: o.map((N) =>
-                  c.jsxs(
+                children: o.map((N) => {
+                  const A = Number(expandedShipmentId) === Number(N.id),
+                    vl =
+                      Number(shipmentForm.id) === Number(N.id)
+                        ? shipmentForm
+                        : getShipmentFormState(N),
+                    El = canEditShipmentBox(N),
+                    Se =
+                      A && Number(shipmentForm.id) === Number(N.id)
+                        ? shipmentSelectedProducts
+                        : N.products_detail || [];
+                  return c.jsxs(
                     "div",
                     {
                       className: `rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm h-full ${isDesktopLayout ? "rounded-2xl" : ""}`,
@@ -8735,24 +8768,21 @@ function nh() {
                               children: [
                                 c.jsx("p", {
                                   className: isDesktopLayout
-                                    ? "text-sm font-bold text-text-main dark:text-white truncate"
-                                    : "text-xs font-bold text-text-main dark:text-white truncate",
-                                  children:
-                                    N.tracking_number ||
-                                    N.carrier ||
-                                    `Envio #${N.id}`,
+                                    ? "text-base font-bold text-text-main dark:text-white truncate"
+                                    : "text-sm font-bold text-text-main dark:text-white truncate",
+                                  children: N.client_name || "Cliente",
                                 }),
                                 c.jsxs("p", {
                                   className: isDesktopLayout
                                     ? "text-[12px] text-text-sub truncate"
                                     : "text-[11px] text-text-sub truncate",
                                   children: [
-                                    N.client_name || "Cliente",
-                                    (N.shopping_names || N.mission_names || []).length > 0
-                                      ? ` • ${(N.shopping_names || N.mission_names || []).slice(0, 2).join(", ")}`
-                                      : N.shopping_name || N.mission_name
-                                        ? ` • ${N.shopping_name || N.mission_name}`
-                                        : "",
+                                    N.carrier || "Paqueteria sin definir",
+                                    " - ",
+                                    N.product_count || 0,
+                                    " items - ",
+                                    N.created_at
+                                      ? new Date(N.created_at).toLocaleDateString() : "Sin fecha",
                                   ],
                                 }),
                                 c.jsxs("div", {
@@ -8783,10 +8813,7 @@ function nh() {
                               children: [
                                 c.jsx("button", {
                                   type: "button",
-                                  onClick: () =>
-                                    setExpandedShipmentId((A) =>
-                                      Number(A) === Number(N.id) ? null : N.id,
-                                    ),
+                                  onClick: () => toggleExpandedShipment(N),
                                   className:
                                     "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
                                   children: c.jsx("span", {
@@ -8816,17 +8843,6 @@ function nh() {
                                         : "add",
                                   }),
                                 }),
-                                canEditShipmentBox(N) &&
-                                c.jsx("button", {
-                                  onClick: () => openShipmentEditor(N),
-                                  className:
-                                    "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
-                                  children: c.jsx("span", {
-                                    className:
-                                      "material-symbols-outlined text-[16px]",
-                                    children: "edit",
-                                  }),
-                                }),
                                 c.jsx("button", {
                                   onClick: () => deleteShipment(N),
                                   className:
@@ -8841,118 +8857,266 @@ function nh() {
                             }),
                           ],
                         }),
-                        Number(expandedShipmentId) === Number(N.id) &&
+                        A &&
                         c.jsxs("div", {
-                          className: "mt-2 space-y-1.5",
+                          className: "mt-3 space-y-2.5",
                           children: [
                             c.jsxs("div", {
-                              className: "grid grid-cols-2 gap-1.5",
+                              className: "grid grid-cols-1 sm:grid-cols-2 gap-2",
                               children: [
-                                c.jsxs("div", {
+                                c.jsxs("label", {
                                   className:
-                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5",
+                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2",
                                   children: [
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-text-sub",
                                       children: "Paqueteria",
                                     }),
-                                    c.jsx("p", {
-                                      className: "text-xs font-semibold mt-0.5",
-                                      children: N.carrier || "Sin definir",
+                                    c.jsx("input", {
+                                      type: "text",
+                                      value: vl.carrier,
+                                      onChange: (qa) =>
+                                        updateShipmentForm("carrier", qa.target.value),
+                                      placeholder: "Ej. DHL, Estafeta",
+                                      className:
+                                        "mt-1 w-full bg-transparent text-xs font-semibold outline-none",
                                     }),
                                   ],
                                 }),
-                                c.jsxs("div", {
+                                c.jsxs("label", {
                                   className:
-                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5",
+                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2",
                                   children: [
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-text-sub",
                                       children: "Guia",
                                     }),
-                                    c.jsx("p", {
+                                    c.jsx("input", {
+                                      type: "text",
+                                      value: vl.tracking_number,
+                                      onChange: (qa) =>
+                                        updateShipmentForm("tracking_number", qa.target.value),
+                                      placeholder: "Numero de rastreo",
                                       className:
-                                        "text-xs font-semibold mt-0.5 break-all",
-                                      children: N.tracking_number || "Sin definir",
+                                        "mt-1 w-full bg-transparent text-xs font-semibold outline-none",
                                     }),
                                   ],
                                 }),
-                                c.jsxs("div", {
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "grid grid-cols-1 sm:grid-cols-3 gap-2",
+                              children: [
+                                c.jsxs("label", {
                                   className:
-                                    "col-span-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1.5",
+                                    "rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-text-sub",
+                                      children: "Status",
+                                    }),
+                                    c.jsx("select", {
+                                      value: vl.status,
+                                      onChange: (qa) =>
+                                        updateShipmentForm("status", qa.target.value),
+                                      className:
+                                        "mt-1 w-full bg-transparent text-xs font-semibold outline-none",
+                                      children: [
+                                        c.jsx("option", { value: "PENDING", children: "Pendiente" }, "shipment-inline-status-pending"),
+                                        c.jsx("option", { value: "PREPARING", children: "Preparando" }, "shipment-inline-status-preparing"),
+                                        c.jsx("option", { value: "SHIPPED", children: "Enviado" }, "shipment-inline-status-shipped"),
+                                        c.jsx("option", { value: "DELIVERED", children: "Entregado" }, "shipment-inline-status-delivered"),
+                                        c.jsx("option", { value: "CANCELLED", children: "Cancelado" }, "shipment-inline-status-cancelled"),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className:
+                                    "rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-2",
                                   children: [
                                     c.jsx("p", {
                                       className:
                                         "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
                                       children: "Precio",
                                     }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      inputMode: "decimal",
+                                      value: vl.client_price,
+                                      onChange: (qa) =>
+                                        updateShipmentForm("client_price", qa.target.value),
+                                      placeholder: "0.00",
+                                      className:
+                                        "mt-1 w-full bg-transparent text-xs font-semibold text-emerald-800 dark:text-emerald-200 outline-none",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300",
+                                      children: "Items",
+                                    }),
                                     c.jsxs("p", {
                                       className:
-                                        "text-xs font-semibold mt-0.5 text-emerald-800 dark:text-emerald-200",
-                                      children: [
-                                        "$",
-                                        formatAmount(
-                                          parseFloat(
-                                            N.client_price || N.guide_price || 0,
-                                          ),
-                                        ),
-                                      ],
+                                        "mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100",
+                                      children: [Se.length || 0, " producto(s)"],
                                     }),
                                   ],
                                 }),
                               ],
                             }),
+                            c.jsxs("label", {
+                              className:
+                                "block rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2.5 py-2",
+                              children: [
+                                c.jsx("p", {
+                                  className:
+                                    "text-[10px] uppercase font-bold text-text-sub",
+                                  children: "Direccion de envio",
+                                }),
+                                c.jsx("textarea", {
+                                  rows: 2,
+                                  value: vl.shipping_address,
+                                  onChange: (qa) =>
+                                    updateShipmentForm("shipping_address", qa.target.value),
+                                  className:
+                                    "mt-1 w-full bg-transparent text-xs text-text-main dark:text-slate-200 outline-none resize-none whitespace-pre-wrap",
+                                  placeholder: "Sin direccion capturada",
+                                }),
+                              ],
+                            }),
                             c.jsxs("div", {
                               className:
-                                "rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-1.5",
+                                "rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2",
                               children: [
-                                c.jsxs("p", {
-                                  className:
-                                    "text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300",
+                                c.jsxs("div", {
+                                  className: "flex items-center justify-between gap-2",
                                   children: [
-                                    "Productos (",
-                                    N.product_count || 0,
-                                    ")",
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300",
+                                      children: ["Productos (", Se.length || 0, ")"],
+                                    }),
+                                    El &&
+                                    c.jsxs("button", {
+                                      type: "button",
+                                      onClick: () => setShipmentProductPickerOpen(!0),
+                                      className:
+                                        "inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 dark:text-sky-300",
+                                      children: [
+                                        c.jsx("span", {
+                                          className:
+                                            "material-symbols-outlined text-[13px]",
+                                          children: "photo_library",
+                                        }),
+                                        "Galeria",
+                                      ],
+                                    }),
                                   ],
                                 }),
-                                (N.products_detail || []).length > 0
+                                Se.length > 0
                                   ? c.jsx("div", {
-                                      className: "mt-1 flex flex-wrap gap-1",
-                                      children: (N.products_detail || []).map((vl) =>
-                                        c.jsx(
-                                          "span",
+                                      className: "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2",
+                                      children: Se.map((qa) =>
+                                        c.jsxs(
+                                          El ? "button" : "div",
                                           {
+                                            type: El ? "button" : void 0,
+                                            onClick: El
+                                              ? () => toggleShipmentProductSelection(qa)
+                                              : void 0,
                                             className:
-                                              "px-1.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/80 text-[9px] font-medium text-sky-800 dark:text-sky-100 border border-sky-100 dark:border-sky-900",
-                                            children: vl.name,
+                                              "relative overflow-hidden rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80 text-left",
+                                            children: [
+                                              qa.image
+                                                ? c.jsx("img", {
+                                                    src: resolveMediaUrl(qa.image),
+                                                    className:
+                                                      "w-full aspect-[4/5] object-cover",
+                                                  })
+                                                : c.jsx("div", {
+                                                    className:
+                                                      "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
+                                                    children: c.jsx("span", {
+                                                      className:
+                                                        "material-symbols-outlined text-[18px]",
+                                                      children: "image",
+                                                    }),
+                                                  }),
+                                              c.jsx("div", {
+                                                className:
+                                                  "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
+                                                children: c.jsxs("div", {
+                                                  className: "space-y-0.5",
+                                                  children: [
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[11px] font-semibold text-white truncate",
+                                                      children: qa.name,
+                                                    }),
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[10px] text-white/80 truncate",
+                                                      children:
+                                                        qa.shopping_name ||
+                                                        qa.mission_name ||
+                                                        qa.store_name ||
+                                                        "Sin shopping",
+                                                    }),
+                                                  ],
+                                                }),
+                                              }),
+                                              El &&
+                                              c.jsx("div", {
+                                                className:
+                                                  "absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center",
+                                                children: c.jsx("span", {
+                                                  className:
+                                                    "material-symbols-outlined text-[14px]",
+                                                  children: "close",
+                                                }),
+                                              }),
+                                            ],
                                           },
-                                          `${N.id}-shipment-product-${vl.id}`,
+                                          `shipment-inline-product-${N.id}-${qa.id}`,
                                         ),
                                       ),
                                     })
                                   : c.jsx("p", {
                                       className:
                                         "mt-1 text-xs text-sky-700/80 dark:text-sky-300/80",
-                                      children: "Sin productos asignados.",
+                                      children: El
+                                        ? "Abre la galeria para elegir productos."
+                                        : "Sin productos asignados.",
                                     }),
                               ],
                             }),
                             c.jsxs("div", {
-                              className:
-                                "rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2.5 py-1.5",
+                              className: "flex items-center gap-2",
                               children: [
-                                c.jsx("p", {
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: () => resetExpandedShipmentForm(N),
+                                  disabled: shipmentSaving,
                                   className:
-                                    "text-[10px] uppercase font-bold text-text-sub",
-                                  children: "Direccion",
+                                    "flex-1 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-60",
+                                  children: "Restablecer",
                                 }),
-                                c.jsx("p", {
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: saveShipmentEditor,
+                                  disabled: shipmentSaving,
                                   className:
-                                    "text-xs mt-0.5 text-text-main dark:text-slate-200 whitespace-pre-wrap",
-                                  children:
-                                    N.shipping_address || "Sin direccion capturada",
+                                    "flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-xs font-semibold disabled:opacity-60",
+                                  children: shipmentSaving ? "Guardando..." : "Guardar cambios",
                                 }),
                               ],
                             }),
@@ -9068,8 +9232,8 @@ function nh() {
                       ],
                     },
                     N.id,
-                  ),
-                ),
+                  );
+                }),
               }),
         ],
       });
@@ -13846,15 +14010,21 @@ function nh() {
               children: [
                 c.jsx("button", {
                   onClick: () => dismissActiveOverlayRef.current(),
+                  disabled: shipmentSaving,
                   className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
                   children: "Cancelar",
                 }),
                 c.jsx("button", {
                   onClick: saveShipmentEditor,
+                  disabled: shipmentSaving,
                   className:
-                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
-                  children: shipmentForm.id ? "Guardar" : "Crear",
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-60",
+                  children: shipmentSaving
+                    ? "Guardando..."
+                    : shipmentForm.id
+                      ? "Guardar"
+                      : "Crear",
                 }),
               ],
             }),

@@ -533,6 +533,16 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
             context=self.context,
         ).data
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        client = getattr(instance, 'client', None)
+        data['shipping_address'] = (
+            (getattr(client, 'shipping_address', '') or '')
+            if client is not None
+            else (getattr(instance, 'shipping_address', '') or '')
+        )
+        return data
+
     class Meta:
         model = Shipment
         fields = [
@@ -641,6 +651,16 @@ class ShipmentSerializer(serializers.ModelSerializer):
             many=True,
             context=self.context,
         ).data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        client = getattr(instance, 'client', None)
+        data['shipping_address'] = (
+            (getattr(client, 'shipping_address', '') or '')
+            if client is not None
+            else (getattr(instance, 'shipping_address', '') or '')
+        )
+        return data
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

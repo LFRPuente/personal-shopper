@@ -384,6 +384,30 @@ def touch_shipping_carrier_recommendation(user, carrier_name):
     return recommendation
 
 
+def sync_shipment_shipping_address(shipment, validated_data=None):
+    if not shipment or not shipment.client_id:
+        return False
+    client = shipment.client
+    explicit_address = (
+        validated_data is not None and 'shipping_address' in validated_data
+    )
+    next_address = (
+        shipment.shipping_address
+        if explicit_address
+        else getattr(client, 'shipping_address', '')
+    )
+    normalized_address = str(next_address or '').strip()
+    client_updated = False
+    if explicit_address and str(client.shipping_address or '').strip() != normalized_address:
+        client.shipping_address = normalized_address
+        client.save(update_fields=['shipping_address'])
+        client_updated = True
+    if str(shipment.shipping_address or '').strip() != normalized_address:
+        shipment.shipping_address = normalized_address
+        shipment.save(update_fields=['shipping_address'])
+    return client_updated
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def store_recommendations(request):
@@ -1599,22 +1623,34 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         if not client:
             raise serializers.ValidationError({'detail': 'Client is required.'})
         shipment = serializer.save(created_by=self.request.user, product=None)
+        client_updated = sync_shipment_shipping_address(
+            shipment,
+            serializer.validated_data,
+        )
         touch_shipping_carrier_recommendation(
             self.request.user,
             shipment.carrier,
         )
         broadcast_update('shipments', action='created', object_id=shipment.id)
+        if client_updated:
+            broadcast_update('clients', action='updated', object_id=client.id)
 
     def perform_update(self, serializer):
         client = serializer.validated_data.get('client', serializer.instance.client)
         if not client:
             raise serializers.ValidationError({'detail': 'Client is required.'})
         shipment = serializer.save(product=serializer.instance.product)
+        client_updated = sync_shipment_shipping_address(
+            shipment,
+            serializer.validated_data,
+        )
         touch_shipping_carrier_recommendation(
             self.request.user,
             shipment.carrier,
         )
         broadcast_update('shipments', action='updated', object_id=shipment.id)
+        if client_updated:
+            broadcast_update('clients', action='updated', object_id=client.id)
 
     def perform_destroy(self, instance):
         shipment_id = instance.id
