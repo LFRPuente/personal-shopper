@@ -267,6 +267,9 @@ function nh() {
     [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
       null,
     ),
+    [clientGalleryAllowsShoppingChoice, setClientGalleryAllowsShoppingChoice] = V.useState(
+      !1,
+    ),
     [calcMode, setCalcMode] = V.useState(
       localStorage.getItem("calc_mode") || "FACTOR",
     ),
@@ -1629,6 +1632,9 @@ function nh() {
     },
     Ta = (o, N = null) => {
       (setClientGalleryMissionScopeId(N),
+        setClientGalleryAllowsShoppingChoice(
+          N === null || typeof N === "undefined" || String(N).trim() === "",
+        ),
         et(o),
         jt("REVIEW"));
     },
@@ -1638,12 +1644,14 @@ function nh() {
           ? Number(N.id || N.shopping || N.mission || 0)
           : Number(N || 0);
       (setClientGalleryMissionScopeId(A || null),
+        setClientGalleryAllowsShoppingChoice(!1),
         et(o),
         jt("ANNOTATED"));
     },
     Aa = () => {
       (et(null),
         setFullscreenImage(null),
+        setClientGalleryAllowsShoppingChoice(!1),
         setClientGalleryMissionScopeId(null));
     },
     navigateSection = (o) => {
@@ -1945,9 +1953,7 @@ function nh() {
       if (
         productModalMode === "create" &&
         W &&
-        (clientGalleryMissionScopeId === null ||
-          typeof clientGalleryMissionScopeId === "undefined" ||
-          String(clientGalleryMissionScopeId).trim() === "") &&
+        clientGalleryAllowsShoppingChoice &&
         !String(N.shopping || "").trim()
       )
         return "Debes seleccionar la shopping para este producto.";
@@ -1969,7 +1975,9 @@ function nh() {
           : "",
         SeShopping = toFormShoppingId(
           (o && o.shopping) ||
-            ((clientGalleryMissionScopeId !== null &&
+            (clientGalleryAllowsShoppingChoice
+              ? ""
+              : (clientGalleryMissionScopeId !== null &&
               typeof clientGalleryMissionScopeId !== "undefined" &&
               String(clientGalleryMissionScopeId).trim() !== "")
               ? clientGalleryMissionScopeId
@@ -4514,7 +4522,7 @@ function nh() {
       ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId))
       : null,
     productModalCanChooseShopping =
-      !!W && productModalMode === "create" && !clientGalleryHasMissionScope,
+      !!W && productModalMode === "create" && clientGalleryAllowsShoppingChoice,
     productModalShoppingOptions = [...Al].sort(
       (o, N) =>
         new Date(N && N.start_time || 0).getTime() -
