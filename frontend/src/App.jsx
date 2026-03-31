@@ -8024,6 +8024,14 @@ function nh() {
                       new Date(ae.date || 0).getTime() -
                       new Date(gl.date || 0).getTime(),
                   ),
+                totalClientItems = ea.reduce(
+                  (gl, ae) =>
+                    gl +
+                    (Number.isFinite(ae.annotatedCount)
+                      ? ae.annotatedCount
+                      : ae.items.length),
+                  0,
+                ),
                 totalClientSale = ea.reduce(
                   (gl, ae) => gl + ae.productsTotal,
                   0,
@@ -8057,7 +8065,7 @@ function nh() {
                             c.jsxs("p", {
                               className: "text-xs text-gray-500",
                               children: [
-                                vl.length,
+                                totalClientItems,
                                 " items • ",
                                 (N.receipts || []).length,
                                 " tickets",
@@ -8315,9 +8323,7 @@ function nh() {
                                                     Number.isFinite(ea.annotatedCount)
                                                       ? ea.annotatedCount
                                                       : ea.items.length,
-                                                    Number.isFinite(ea.annotatedCount)
-                                                      ? " anotado(s)"
-                                                      : " item(s)",
+                                                    " item(s)",
                                                     ea.payments.length > 0 &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
