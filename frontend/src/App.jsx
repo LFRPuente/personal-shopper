@@ -299,6 +299,7 @@ function nh() {
     [stores, setStores] = V.useState([]),
     [storeRecommendations, setStoreRecommendations] = V.useState([]),
     [shippingCarrierRecommendations, setShippingCarrierRecommendations] = V.useState([]),
+    [productModalShoppingSearch, setProductModalShoppingSearch] = V.useState(""),
     [storeSearch, setStoreSearch] = V.useState(""),
     [showAddStoreInput, setShowAddStoreInput] = V.useState(!1),
     [newStoreName, setNewStoreName] = V.useState(""),
@@ -2010,6 +2011,7 @@ function nh() {
         ),
         setModalTags(vl),
         setNewModalTag(""),
+        setProductModalShoppingSearch(""),
         setStoreSearch(""),
         setShowAddStoreInput(!1),
         setNewStoreName(""),
@@ -2032,6 +2034,7 @@ function nh() {
         setProductPriceSyncSource("real"),
         setModalTags([]),
         setNewModalTag(""),
+        setProductModalShoppingSearch(""),
         setStoreSearch(""),
         setShowAddStoreInput(!1),
         setNewStoreName(""));
@@ -4572,6 +4575,14 @@ function nh() {
         new Date(N && N.start_time || 0).getTime() -
         new Date(o && o.start_time || 0).getTime(),
     ),
+    productModalShoppingSearchTokens = getSearchTokens(productModalShoppingSearch),
+    productModalFilteredShoppingOptions = productModalCanChooseShopping
+      ? productModalShoppingOptions.filter((o) => {
+        if (!productModalShoppingSearchTokens.length) return !0;
+        const N = getMissionSearchBlob(o);
+        return productModalShoppingSearchTokens.every((A) => N.includes(A));
+      })
+      : [],
     productModalSelectedShopping = productModalCanChooseShopping
       ? Al.find((o) => Number(o && o.id) === Number(st.shopping || 0)) || null
       : null,
@@ -10798,7 +10809,7 @@ function nh() {
         onClick: () => dismissActiveOverlayRef.current(),
         children: c.jsxs("div", {
           className: overlaySheetClass(
-            `bg-surface-light dark:bg-surface-dark w-full ${isDesktopLayout ? "sm:max-w-5xl rounded-3xl overflow-visible" : "sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"} p-6 shadow-2xl ui-sheet`,
+            `bg-surface-light dark:bg-surface-dark w-full ${isDesktopLayout ? "sm:max-w-5xl rounded-3xl max-h-[92vh] overflow-y-auto" : "sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"} p-6 shadow-2xl ui-sheet`,
             "edit-product",
           ),
           onClick: (o) => o.stopPropagation(),
@@ -10831,41 +10842,6 @@ function nh() {
                       className:
                         "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                       required: !0,
-                    }),
-                  ],
-                }),
-                productModalCanChooseShopping &&
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-2" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Shopping",
-                    }),
-                    c.jsxs("select", {
-                      value: st.shopping || "",
-                      onChange: (o) => Gt({ ...st, shopping: o.target.value }),
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                      children: [
-                        c.jsx("option", {
-                          value: "",
-                          children: productModalShoppingOptions.length
-                            ? "Selecciona shopping"
-                            : "Sin shoppings disponibles",
-                        }),
-                        productModalShoppingOptions.map((o) =>
-                          c.jsx(
-                            "option",
-                            {
-                              value: o.id,
-                              children: `${getMissionStoreLabel(o) || o.name || `Shopping #${o.id}`} - ${o.start_time ? new Date(o.start_time).toLocaleDateString() : "Sin fecha"}`,
-                            },
-                            `product-shopping-${o.id}`,
-                          ),
-                        ),
-                      ],
                     }),
                   ],
                 }),
@@ -11268,27 +11244,100 @@ function nh() {
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Store",
+                      children: productModalCanChooseShopping ? "Shopping" : "Store",
                     }),
                     productModalCanChooseShopping
                       ? c.jsxs("div", {
                         className:
-                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
+                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-3 dark:border-sky-800 dark:bg-sky-950/30 space-y-2",
                         children: [
-                          c.jsx("p", {
-                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
-                            children: productModalSelectedShopping
-                              ? getMissionStoreLabel(productModalSelectedShopping) ||
-                                productModalSelectedShopping.name ||
-                                "Sin tienda asignada"
-                              : "Selecciona shopping arriba",
+                          c.jsx("input", {
+                            type: "text",
+                            value: productModalShoppingSearch,
+                            onChange: (o) =>
+                              setProductModalShoppingSearch(o.target.value),
+                            placeholder: "Buscar shopping o fecha...",
+                            className:
+                              "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                           }),
                           productModalSelectedShopping &&
-                          c.jsx("p", {
-                            className: "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
-                            children: productModalSelectedShopping.start_time
-                              ? new Date(productModalSelectedShopping.start_time).toLocaleDateString()
-                              : "Sin fecha",
+                          c.jsxs("div", {
+                            className:
+                              "rounded-xl border border-sky-300/60 bg-white/80 px-3 py-2 dark:border-sky-700 dark:bg-slate-900/60",
+                            children: [
+                              c.jsx("p", {
+                                className:
+                                  "text-sm font-semibold text-sky-900 dark:text-sky-100",
+                                children:
+                                  getMissionStoreLabel(productModalSelectedShopping) ||
+                                  productModalSelectedShopping.name ||
+                                  "Sin shopping asignada",
+                              }),
+                              c.jsx("p", {
+                                className:
+                                  "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
+                                children: productModalSelectedShopping.start_time
+                                  ? new Date(productModalSelectedShopping.start_time).toLocaleDateString()
+                                  : "Sin fecha",
+                              }),
+                            ],
+                          }),
+                          c.jsx("div", {
+                            className:
+                              "max-h-36 overflow-y-auto ios-scroll space-y-1 pr-1",
+                            children: productModalFilteredShoppingOptions.length > 0
+                              ? productModalFilteredShoppingOptions
+                                .slice(0, 6)
+                                .map((o) =>
+                                  c.jsxs(
+                                    "button",
+                                    {
+                                      type: "button",
+                                      onClick: () => {
+                                        Gt({
+                                          ...st,
+                                          shopping: String(o.id),
+                                          store:
+                                            o && o.store !== null &&
+                                            typeof o.store !== "undefined"
+                                              ? String(o.store)
+                                              : "",
+                                        });
+                                        setProductModalShoppingSearch("");
+                                      },
+                                      className:
+                                        `w-full text-left rounded-xl border px-3 py-2 transition ${
+                                          Number(st.shopping || 0) === Number(o.id)
+                                            ? "border-primary bg-primary/10 text-primary"
+                                            : "border-sky-200 bg-white/80 text-slate-700 hover:border-primary/40 hover:bg-white dark:border-sky-900 dark:bg-slate-900/60 dark:text-slate-100 dark:hover:border-primary/50 dark:hover:bg-slate-900"
+                                        }`,
+                                      children: [
+                                        c.jsx("p", {
+                                          className: "text-sm font-semibold truncate",
+                                          children:
+                                            getMissionStoreLabel(o) ||
+                                            o.name ||
+                                            `Shopping #${o.id}`,
+                                        }),
+                                        c.jsx("p", {
+                                          className:
+                                            "mt-0.5 text-[11px] text-slate-500 dark:text-slate-400",
+                                          children: o.start_time
+                                            ? new Date(o.start_time).toLocaleDateString()
+                                            : "Sin fecha",
+                                        }),
+                                      ],
+                                    },
+                                    `product-shopping-search-${o.id}`,
+                                  ),
+                                )
+                              : c.jsx("p", {
+                                className:
+                                  "px-1 py-2 text-xs text-sky-700/80 dark:text-sky-300/80",
+                                children: productModalShoppingOptions.length
+                                  ? "Sin coincidencias."
+                                  : "Sin shoppings disponibles.",
+                              }),
                           }),
                         ],
                       })
