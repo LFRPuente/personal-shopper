@@ -335,6 +335,16 @@ def me(request):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_users(request):
+    queryset = User.objects.select_related('userprofile').filter(
+        is_active=True
+    ).order_by('username')
+    serializer = UserSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+
 def touch_store_recommendation(user, store):
     if not user or not store:
         return None
@@ -775,7 +785,7 @@ class MissionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Mission.objects.select_related('store').prefetch_related(
+        return Mission.objects.select_related('store', 'payer').prefetch_related(
             'clients',
             'clients__products',
             'clients__receipts',
@@ -786,7 +796,12 @@ class MissionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         store = serializer.validated_data.get('store')
         mission_name = serializer.validated_data.get('name') or (store.name if store else None)
-        mission = serializer.save(shopper=self.request.user, name=mission_name)
+        payer = serializer.validated_data.get('payer') or self.request.user
+        mission = serializer.save(
+            shopper=self.request.user,
+            payer=payer,
+            name=mission_name,
+        )
         touch_store_recommendation(self.request.user, store)
         # Auto-link currently active clients to this shopping
         active_clients = Client.objects.filter(status__iexact='active')
@@ -1218,6 +1233,7 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
             )
             replacement = ProductItem.objects.create(
                 client=original.client,
+                payer=original.payer,
                 name=replacement_name,
                 description=original.description,
                 tags=original.tags,
@@ -1382,12 +1398,15 @@ class ProductItemViewSet(viewsets.ModelViewSet):
             mission = Mission.objects.filter(
                 status__in=['ACTIVE', 'PAUSED']
             ).order_by('-start_time').first()
+        payer = serializer.validated_data.get('payer')
         store = serializer.validated_data.get('store')
         if mission is not None and mission.store_id:
             store = mission.store
         save_kwargs = {}
         if mission is not None:
             save_kwargs['mission'] = mission
+        if payer is None and mission is not None and mission.payer_id:
+            save_kwargs['payer'] = mission.payer
         if mission is not None or store is not None:
             save_kwargs['store'] = store
         product = serializer.save(**save_kwargs)

@@ -91,6 +91,7 @@ class ProductItemSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.name', read_only=True, default='')
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
+    payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
     shopping = serializers.PrimaryKeyRelatedField(
         source='mission',
         queryset=Mission.objects.all(),
@@ -137,6 +138,7 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
     shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
+    payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
 
     class Meta:
         model = ProductItem
@@ -146,6 +148,8 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
             'image',
             'charged_price',
             'real_price',
+            'payer',
+            'payer_username',
             'status',
             'shopping_name',
             'mission_name',
@@ -157,6 +161,7 @@ class ShoppingPaymentProductSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     shopping = serializers.IntegerField(source='mission_id', read_only=True)
     shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
 
     class Meta:
         model = ProductItem
@@ -166,6 +171,8 @@ class ShoppingPaymentProductSerializer(serializers.ModelSerializer):
             'image',
             'charged_price',
             'real_price',
+            'payer',
+            'payer_username',
             'status',
             'shopping',
             'shopping_name',
@@ -331,6 +338,7 @@ class ShippingCarrierRecommendationSerializer(serializers.ModelSerializer):
 class MissionSerializer(serializers.ModelSerializer):
     ticket_image = RelativeImageField(required=False, allow_null=True)
     shopper_name = serializers.CharField(source='shopper.username', read_only=True)
+    payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
     clients_detail = ClientSerializer(source='clients', many=True, read_only=True)
     products = ProductItemSerializer(many=True, read_only=True)

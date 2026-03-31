@@ -61,6 +61,7 @@ const DEFAULT_PRODUCT_FORM = {
   name: "",
   real_price: "",
   charged_price: "",
+  payer: "",
   tags: "",
   store: "",
   status: "ANNOTATED",
@@ -124,6 +125,16 @@ const resolveMediaUrl = (o) => {
   } catch {
     return N;
   }
+};
+const toFormUserId = (o) =>
+  o === null || typeof o === "undefined" || o === ""
+    ? ""
+    : String(o);
+const getUserOptionLabel = (o) => {
+  if (!o) return "";
+  const N = String((o && o.username) || "").trim();
+  const A = String((o && o.profile && o.profile.role) || "").trim();
+  return N && A ? `${N} (${A})` : N || A || "Usuario";
 };
 const getShipmentStatusLabel = (o) => {
   const N = String(o || "").toUpperCase();
@@ -259,6 +270,7 @@ function nh() {
     ),
     [calcCopied, setCalcCopied] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
+    [users, setUsers] = V.useState([]),
     [stores, setStores] = V.useState([]),
     [storeRecommendations, setStoreRecommendations] = V.useState([]),
     [shippingCarrierRecommendations, setShippingCarrierRecommendations] = V.useState([]),
@@ -340,6 +352,7 @@ function nh() {
     [missionStartForm, setMissionStartForm] = V.useState({
       name: "",
       store_name: "",
+      payer: "",
       tax_percentage: "8",
       calc_mode: "FACTOR",
       factor_value: "1.5",
@@ -448,16 +461,18 @@ function nh() {
           setLayoutMode(
             o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
           ));
-        const [N, A, yl, qs] = await Promise.all([
+        const [N, A, yl, qs, Vs] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
           I("/shipments/"),
           I("/shipping-carrier-recommendations/"),
+          I("/users/"),
         ]);
         _l(N || []);
         zl(A || []);
         setShipments(yl || []);
         setShippingCarrierRecommendations(qs || []);
+        setUsers(Vs || []);
         const vl = A.find(
           (El) => El.status === "ACTIVE" || El.status === "PAUSED",
         );
@@ -1437,6 +1452,7 @@ function nh() {
       setMissionStartForm({
         name: N,
         store_name: N,
+        payer: toFormUserId((w && w.payer) || (J && J.id)),
         tax_percentage: String(parseSafe(w && w.tax_percentage, calcTaxes)),
         calc_mode: String((w && w.calc_mode) || calcMode || "FACTOR").toUpperCase(),
         factor_value: String(parseSafe(w && w.factor_value, calcFactor)),
@@ -1454,6 +1470,11 @@ function nh() {
       const N = String(o.store_name || o.name || "").trim();
       if (!N) {
         notifyInfo("Selecciona o escribe la tienda para iniciar el shopping.");
+        return;
+      }
+      const yl = parseInt(o.payer, 10);
+      if (!Number.isInteger(yl) || yl <= 0) {
+        notifyInfo("Selecciona quien pagara el shopping.");
         return;
       }
       const A = String(o.calc_mode || "FACTOR").toUpperCase() === "PERCENTAGE"
@@ -1477,6 +1498,7 @@ function nh() {
             body: JSON.stringify({
               name: N,
               store: vl && vl.id ? vl.id : null,
+              payer: yl,
               calc_mode: A,
               tax_percentage: toNumber(o.tax_percentage, 8).toFixed(2),
               factor_value: toNumber(o.factor_value, 1.5).toFixed(4),
@@ -1491,6 +1513,7 @@ function nh() {
             body: JSON.stringify({
               name: N,
               store: vl && vl.id ? vl.id : null,
+              payer: yl,
             }),
           });
         }
@@ -1887,6 +1910,8 @@ function nh() {
       const N = o || st;
       if (!String(N.name || "").trim())
         return "Debes capturar el nombre del producto para guardar.";
+      if (!Number.isInteger(parseInt(N.payer, 10)) || parseInt(N.payer, 10) <= 0)
+        return "Debes seleccionar quien pagara este producto.";
       return getProductModalPriceError(N);
     },
     openProductModal = (o, N = "edit", A = {}) => {
@@ -1917,6 +1942,9 @@ function nh() {
             name: (o && o.name) || "",
             real_price: SeRealPrice,
             charged_price: ea ? SeChargedPrice : (SeChargedPrice || computedFinalPriceText),
+            payer: toFormUserId(
+              (o && o.payer) || (w && w.payer) || (J && J.id),
+            ),
             tags: (o && o.tags) || "",
             store: El,
             status: Se,
@@ -2027,6 +2055,10 @@ function nh() {
           tags: modalTags.join(", "),
           store: w ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
+          payer: (() => {
+            const gl = parseInt(st.payer, 10);
+            return Number.isInteger(gl) && gl > 0 ? gl : null;
+          })(),
           real_price: A(st.real_price),
           charged_price: A(st.charged_price) || N,
         },
@@ -2057,6 +2089,7 @@ function nh() {
           Se.append("name", N.name);
           Se.append("status", N.status);
           Se.append("purchase_date", new Date().toISOString().slice(0, 10));
+          N.payer !== null && Se.append("payer", String(N.payer));
           N.real_price !== null && Se.append("real_price", N.real_price);
           N.charged_price !== null && Se.append("charged_price", N.charged_price);
           N.tags && Se.append("tags", N.tags);
@@ -4311,6 +4344,7 @@ function nh() {
       "calc-input w-full border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
     productCalcCompactInputClass =
       "calc-input w-full border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
+    payerUserOptions = (users || []).filter((o) => !!(o && o.id)),
     filteredStores = stores
       .filter((o) =>
         o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
@@ -9739,6 +9773,43 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  children: [
+                    c.jsx("label", {
+                      className: "text-[10px] font-semibold text-gray-500",
+                      children: "Quien pagara",
+                    }),
+                    c.jsxs("select", {
+                      value: missionStartForm.payer,
+                      onChange: (o) =>
+                        setMissionStartForm({
+                          ...missionStartForm,
+                          payer: o.target.value,
+                        }),
+                      className:
+                        "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                      children: [
+                        c.jsx("option", {
+                          value: "",
+                          disabled: !0,
+                          children: payerUserOptions.length
+                            ? "Selecciona quien pagara"
+                            : "Sin usuarios disponibles",
+                        }),
+                        payerUserOptions.map((o) =>
+                          c.jsx(
+                            "option",
+                            {
+                              value: o.id,
+                              children: getUserOptionLabel(o),
+                            },
+                            `mission-payer-${o.id}`,
+                          ),
+                        ),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
                   className: "grid grid-cols-2 gap-2",
                   children: [
                     c.jsxs("div", {
@@ -10449,6 +10520,41 @@ function nh() {
                       className:
                         "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                       required: !0,
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: isDesktopLayout ? "col-span-2" : "",
+                  children: [
+                    c.jsx("label", {
+                      className:
+                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                      children: "Quien paga",
+                    }),
+                    c.jsxs("select", {
+                      value: st.payer,
+                      onChange: (o) => Gt({ ...st, payer: o.target.value }),
+                      className:
+                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                      children: [
+                        c.jsx("option", {
+                          value: "",
+                          disabled: !0,
+                          children: payerUserOptions.length
+                            ? "Selecciona quien pagara"
+                            : "Sin usuarios disponibles",
+                        }),
+                        payerUserOptions.map((o) =>
+                          c.jsx(
+                            "option",
+                            {
+                              value: o.id,
+                              children: getUserOptionLabel(o),
+                            },
+                            `product-payer-${o.id}`,
+                          ),
+                        ),
+                      ],
                     }),
                   ],
                 }),

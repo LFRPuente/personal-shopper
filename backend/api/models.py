@@ -118,6 +118,13 @@ class ShippingCarrierRecommendation(models.Model):
 
 class ProductItem(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='products')
+    payer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='product_payments_assigned',
+    )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     tags = models.TextField(blank=True, null=True)  # e.g. "Talla:M, Hombre, Nike"
@@ -157,6 +164,13 @@ class ProductItem(models.Model):
 class Mission(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     shopper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='missions')
+    payer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shopping_payments_assigned',
+    )
     store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='missions')
     status = models.CharField(max_length=50, choices=[('ACTIVE', 'Shopping Activo'), ('PAUSED', 'Shopping Pausado'), ('COMPLETED', 'Shopping Finalizado')], default='ACTIVE')
     # <-------- seccion 9: configuracion comercial por shopping
