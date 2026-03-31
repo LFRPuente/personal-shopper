@@ -1963,11 +1963,25 @@ function nh() {
       return getProductModalPriceError(N);
     },
     openProductModal = (o, N = "edit", A = {}) => {
-      const vl = String(o && o.tags ? o.tags : "")
+      const vlScopedShoppingId =
+          clientGalleryMissionScopeId !== null &&
+          typeof clientGalleryMissionScopeId !== "undefined" &&
+          String(clientGalleryMissionScopeId).trim() !== ""
+            ? Number(clientGalleryMissionScopeId)
+            : null,
+        vlScopedShopping =
+          Number.isFinite(vlScopedShoppingId) && vlScopedShoppingId > 0
+            ? Al.find((qa) => Number(qa.id) === Number(vlScopedShoppingId)) || null
+            : null,
+        vlContextShopping =
+          !clientGalleryAllowsShoppingChoice && vlScopedShopping
+            ? vlScopedShopping
+            : w || null,
+        vl = String(o && o.tags ? o.tags : "")
           .split(",")
           .map((Se) => Se.trim())
           .filter((Se) => Se.length > 0),
-        El = (o && o.store) || ((w && w.store) || ""),
+        El = (o && o.store) || ((vlContextShopping && vlContextShopping.store) || ""),
         SeRealPrice = formatProductPriceField((o && o.real_price) || ""),
         SeChargedPrice = formatProductPriceField((o && o.charged_price) || ""),
         computedFinalPrice = computeProductModalFinalPrice(SeRealPrice),
@@ -1978,10 +1992,10 @@ function nh() {
           (o && o.shopping) ||
             (clientGalleryAllowsShoppingChoice
               ? ""
-              : (clientGalleryMissionScopeId !== null &&
-              typeof clientGalleryMissionScopeId !== "undefined" &&
-              String(clientGalleryMissionScopeId).trim() !== "")
-              ? clientGalleryMissionScopeId
+              : (vlScopedShoppingId !== null &&
+              typeof vlScopedShoppingId !== "undefined" &&
+              String(vlScopedShoppingId).trim() !== "")
+              ? vlScopedShoppingId
               : (w && w.id) || ""),
         ),
         Se =
@@ -2002,7 +2016,7 @@ function nh() {
             charged_price: ea ? SeChargedPrice : (SeChargedPrice || computedFinalPriceText),
             shopping: SeShopping,
             payer: toFormUserId(
-              (o && o.payer) || (w && w.payer) || (J && J.id),
+              (o && o.payer) || (vlContextShopping && vlContextShopping.payer) || (J && J.id),
             ),
             tags: (o && o.tags) || "",
             store: El,
@@ -2044,10 +2058,26 @@ function nh() {
       if (!N || N.length === 0) return;
       const A = N[0],
         vl = getDraftProductFlowState(wl, X),
-        El = (w && w.store) || "";
+        ElScopedShoppingId =
+          !clientGalleryAllowsShoppingChoice &&
+          clientGalleryMissionScopeId !== null &&
+          typeof clientGalleryMissionScopeId !== "undefined" &&
+          String(clientGalleryMissionScopeId).trim() !== ""
+            ? Number(clientGalleryMissionScopeId)
+            : null,
+        ElScopedShopping =
+          Number.isFinite(ElScopedShoppingId) && ElScopedShoppingId > 0
+            ? Al.find((Se) => Number(Se.id) === Number(ElScopedShoppingId)) || null
+            : null,
+        ElContextShopping = ElScopedShopping || w || null,
+        Se = (ElContextShopping && ElContextShopping.store) || "";
       openProductModal(
         createEmptyProductForm({
-          store: El,
+          shopping:
+            Number.isFinite(ElScopedShoppingId) && ElScopedShoppingId > 0
+              ? String(ElScopedShoppingId)
+              : "",
+          store: Se,
           status: normalizeProductModalStatus(vl),
         }),
         "create",
@@ -2103,22 +2133,35 @@ function nh() {
     buildProductModalPayload = () => {
       const o = computeProductModalFinalPrice(st.real_price),
         N = Number.isFinite(o) ? o.toFixed(2) : "",
+        AScopedShoppingId =
+          productModalMode === "create" &&
+          W &&
+          !clientGalleryAllowsShoppingChoice &&
+          clientGalleryMissionScopeId !== null &&
+          typeof clientGalleryMissionScopeId !== "undefined" &&
+          String(clientGalleryMissionScopeId).trim() !== ""
+            ? parseInt(clientGalleryMissionScopeId, 10)
+            : null,
         A = (gl) => {
           if (gl === null || typeof gl === "undefined" || String(gl).trim() === "")
             return null;
           const ae = parseFloat(gl);
           return Number.isFinite(ae) ? ae.toFixed(2) : null;
         };
+      const vlResolvedShoppingId = (() => {
+        const gl = parseInt(st.shopping, 10);
+        if (Number.isInteger(gl) && gl > 0) return gl;
+        if (Number.isInteger(AScopedShoppingId) && AScopedShoppingId > 0)
+          return AScopedShoppingId;
+        return null;
+      })();
       return {
         payload: {
           ...st,
           name: String(st.name || "").trim(),
           tags: modalTags.join(", "),
-          shopping: (() => {
-            const gl = parseInt(st.shopping, 10);
-            return Number.isInteger(gl) && gl > 0 ? gl : null;
-          })(),
-          store: w ? null : st.store ? Number(st.store) : null,
+          shopping: vlResolvedShoppingId,
+          store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
           payer: (() => {
             const gl = parseInt(st.payer, 10);
@@ -2149,6 +2192,15 @@ function nh() {
           const Se = new FormData();
           setNewProductUploading(!0);
           const ea = await compressImage(pendingProductFile).catch(() => pendingProductFile);
+          const glScopedShoppingId =
+            productModalMode === "create" &&
+            W &&
+            !clientGalleryAllowsShoppingChoice &&
+            clientGalleryMissionScopeId !== null &&
+            typeof clientGalleryMissionScopeId !== "undefined" &&
+            String(clientGalleryMissionScopeId).trim() !== ""
+              ? parseInt(clientGalleryMissionScopeId, 10)
+              : null;
           Se.append("image", ea);
           Se.append("client", W.id);
           Se.append("name", N.name);
@@ -2156,6 +2208,8 @@ function nh() {
           Se.append("purchase_date", new Date().toISOString().slice(0, 10));
           N.shopping !== null
             ? Se.append("shopping", String(N.shopping))
+            : Number.isInteger(glScopedShoppingId) && glScopedShoppingId > 0
+              ? Se.append("shopping", String(glScopedShoppingId))
             : w && w.id && Se.append("shopping", w.id);
           N.payer !== null && Se.append("payer", String(N.payer));
           N.real_price !== null && Se.append("real_price", N.real_price);
