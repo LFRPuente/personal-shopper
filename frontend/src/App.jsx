@@ -88,6 +88,16 @@ const normalizeProductModalStatus = (statusValue) => {
     : normalized;
 };
 
+const DARK_NATIVE_SELECT_STYLE = {
+  color: "#ffffff",
+  backgroundColor: "#0f172a",
+};
+
+const NATIVE_DROPDOWN_OPTION_STYLE = {
+  color: "#0f172a",
+  backgroundColor: "#ffffff",
+};
+
 // <-------- seccion 8: API base configurable por entorno (evita URLs de tunnel vencidas)
 const ENV_API_URL = (import.meta.env.VITE_API_URL || "").trim();
 const Zs = ENV_API_URL
@@ -141,17 +151,25 @@ const getUserOptionLabel = (o) => {
   const A = String((o && o.profile && o.profile.role) || "").trim();
   return N && A ? `${N} (${A})` : N || A || "Usuario";
 };
+const normalizeShipmentStatusValue = (o) => {
+  const N = String(o || "").trim().toUpperCase();
+  return N === "SHIPPED"
+    ? "SHIPPED"
+    : N === "DELIVERED"
+      ? "DELIVERED"
+      : N === "CANCELLED"
+        ? "CANCELLED"
+        : "PENDING";
+};
 const getShipmentStatusLabel = (o) => {
-  const N = String(o || "").toUpperCase();
-  return N === "PREPARING"
-    ? "Preparando"
-    : N === "SHIPPED"
-      ? "Enviado"
-      : N === "DELIVERED"
-        ? "Entregado"
-        : N === "CANCELLED"
-          ? "Cancelado"
-          : "Pendiente";
+  const N = normalizeShipmentStatusValue(o);
+  return N === "SHIPPED"
+    ? "Enviado"
+    : N === "DELIVERED"
+      ? "Entregado"
+      : N === "CANCELLED"
+        ? "Cancelado"
+        : "Pendiente";
 };
 const getShipmentTrackingUrl = (carrier, trackingNumber) => {
   const o = String(trackingNumber || "").trim();
@@ -170,8 +188,7 @@ const getShipmentTrackingUrl = (carrier, trackingNumber) => {
   return "";
 };
 const canEditShipmentBox = (shipment) => {
-  const o = String((shipment && shipment.status) || "").toUpperCase();
-  return o === "PENDING" || o === "PREPARING";
+  return normalizeShipmentStatusValue(shipment && shipment.status) === "PENDING";
 };
 const getPublicShareInfoFromPath = () => {
   const o = window.location.pathname.match(/^\/share\/(client|shipment)\/([^/]+)\/?$/i);
@@ -2817,7 +2834,7 @@ function nh() {
         id: (o && o.id) || null,
         client: A,
         carrier: String((o && o.carrier) || "").trim(),
-        status: String((o && o.status) || "PENDING"),
+        status: normalizeShipmentStatusValue((o && o.status) || "PENDING"),
         tracking_number: (o && o.tracking_number) || "",
         guide_price: vl,
         client_price: vl,
@@ -2910,7 +2927,7 @@ function nh() {
             body: JSON.stringify({
               client: o.id,
               carrier: N,
-              status: String(shipmentForm.status || "PENDING"),
+              status: normalizeShipmentStatusValue(shipmentForm.status || "PENDING"),
               tracking_number: String(
                 shipmentForm.tracking_number || "",
               ).trim(),
@@ -9017,14 +9034,14 @@ function nh() {
                                       value: vl.status,
                                       onChange: (qa) =>
                                         updateShipmentForm("status", qa.target.value),
+                                      style: DARK_NATIVE_SELECT_STYLE,
                                       className:
-                                        "mt-1 w-full bg-transparent text-xs font-semibold outline-none",
+                                        "mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-primary/40",
                                       children: [
-                                        c.jsx("option", { value: "PENDING", children: "Pendiente" }, "shipment-inline-status-pending"),
-                                        c.jsx("option", { value: "PREPARING", children: "Preparando" }, "shipment-inline-status-preparing"),
-                                        c.jsx("option", { value: "SHIPPED", children: "Enviado" }, "shipment-inline-status-shipped"),
-                                        c.jsx("option", { value: "DELIVERED", children: "Entregado" }, "shipment-inline-status-delivered"),
-                                        c.jsx("option", { value: "CANCELLED", children: "Cancelado" }, "shipment-inline-status-cancelled"),
+                                        c.jsx("option", { value: "PENDING", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Pendiente" }, "shipment-inline-status-pending"),
+                                        c.jsx("option", { value: "SHIPPED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Enviado" }, "shipment-inline-status-shipped"),
+                                        c.jsx("option", { value: "DELIVERED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Entregado" }, "shipment-inline-status-delivered"),
+                                        c.jsx("option", { value: "CANCELLED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Cancelado" }, "shipment-inline-status-cancelled"),
                                       ],
                                     }),
                                   ],
@@ -13975,14 +13992,14 @@ function nh() {
                           value: shipmentForm.status,
                           onChange: (o) =>
                             updateShipmentForm("status", o.target.value),
+                          style: DARK_NATIVE_SELECT_STYLE,
                           className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
                           children: [
-                            c.jsx("option", { value: "PENDING", children: "Pendiente" }, "shipment-status-pending"),
-                            c.jsx("option", { value: "PREPARING", children: "Preparando" }, "shipment-status-preparing"),
-                            c.jsx("option", { value: "SHIPPED", children: "Enviado" }, "shipment-status-shipped"),
-                            c.jsx("option", { value: "DELIVERED", children: "Entregado" }, "shipment-status-delivered"),
-                            c.jsx("option", { value: "CANCELLED", children: "Cancelado" }, "shipment-status-cancelled"),
+                            c.jsx("option", { value: "PENDING", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Pendiente" }, "shipment-status-pending"),
+                            c.jsx("option", { value: "SHIPPED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Enviado" }, "shipment-status-shipped"),
+                            c.jsx("option", { value: "DELIVERED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Entregado" }, "shipment-status-delivered"),
+                            c.jsx("option", { value: "CANCELLED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Cancelado" }, "shipment-status-cancelled"),
                           ],
                         }),
                       ],
