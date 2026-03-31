@@ -4876,8 +4876,7 @@ function nh() {
         notifyError((o && o.message) || "No se pudo actualizar la caja.");
       }
     },
-    publicCanModifySelectedShipment =
-      !!C && !!J && publicShareType !== "shipment",
+    publicCanModifySelectedShipment = !1,
     publicCanEditSelectedShipmentProducts =
       publicCanModifySelectedShipment &&
       String((publicSelectedShipment && publicSelectedShipment.status) || "").toUpperCase() ===
@@ -5703,85 +5702,16 @@ function nh() {
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
                           children: [
-                            c.jsxs("div", {
-                              className: "min-w-0",
-                              children: [
-                                c.jsxs("div", {
-                                  className: "flex items-center gap-1.5",
-                                  children: [
-                                    c.jsx("h3", {
-                                      className: "text-sm font-bold text-amber-900 dark:text-amber-100",
-                                      children: "Pendiente",
-                                    }),
-                                    publicShareType !== "shipment" &&
-                                    c.jsx("button", {
-                                      type: "button",
-                                      title:
-                                        "Selecciona los productos que iran juntos y arma una nueva caja.",
-                                      onClick: () =>
-                                        setPublicShipmentInfoOpen((o) => !o),
-                                      className:
-                                        "w-5 h-5 rounded-full border border-amber-300 dark:border-amber-700 bg-white/80 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200 inline-flex items-center justify-center",
-                                      children: c.jsx("span", {
-                                        className:
-                                          "material-symbols-outlined text-[13px]",
-                                        children: "info",
-                                      }),
-                                    }),
-                                  ],
-                                }),
-                                publicShareType !== "shipment" &&
-                                publicShipmentInfoOpen &&
-                                c.jsx("p", {
-                                  className:
-                                    "mt-1 text-[11px] leading-4 text-amber-700 dark:text-amber-300 max-w-[220px]",
-                                  children:
-                                    "Selecciona los productos que iran juntos y arma una nueva caja.",
-                                }),
-                              ],
+                            c.jsx("h3", {
+                              className: "text-sm font-bold text-amber-900 dark:text-amber-100",
+                              children: "Pendiente",
                             }),
-                            c.jsxs("div", {
-                              className: "flex flex-col items-end gap-1 shrink-0",
+                            c.jsxs("span", {
+                              className: "text-[11px] text-amber-700 dark:text-amber-300 shrink-0",
                               children: [
-                                c.jsxs("span", {
-                                  className: "text-[11px] text-amber-700 dark:text-amber-300",
-                                  children: [
-                                    publicPendingShipmentProducts.length,
-                                    " item",
-                                    publicPendingShipmentProducts.length === 1 ? "" : "s",
-                                  ],
-                                }),
-                                publicShareType !== "shipment" &&
-                                c.jsx("button", {
-                                  type: "button",
-                                  onClick: createPublicShipmentFromSelection,
-                                  disabled:
-                                    publicBuildingShipment ||
-                                    publicPendingShipmentSelection.length === 0,
-                                  className:
-                                    `inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${
-                                      publicBuildingShipment ||
-                                      publicPendingShipmentSelection.length === 0
-                                        ? "bg-amber-200/80 text-amber-800/70 cursor-not-allowed dark:bg-amber-950/40 dark:text-amber-200/60"
-                                        : "bg-amber-600 text-white hover:bg-amber-700"
-                                    }`,
-                                  children: [
-                                    c.jsx("span", {
-                                      className:
-                                        `material-symbols-outlined text-[14px] ${
-                                          publicBuildingShipment ? "animate-spin" : ""
-                                        }`,
-                                      children: publicBuildingShipment
-                                        ? "progress_activity"
-                                        : "inventory_2",
-                                    }),
-                                    publicBuildingShipment
-                                      ? "Armando..."
-                                      : publicPendingShipmentSelection.length > 0
-                                        ? `Armar caja (${publicPendingShipmentSelection.length})`
-                                        : "Armar caja",
-                                  ],
-                                }),
+                                publicPendingShipmentProducts.length,
+                                " item",
+                                publicPendingShipmentProducts.length === 1 ? "" : "s",
                               ],
                             }),
                           ],
@@ -5790,22 +5720,10 @@ function nh() {
                           className: "grid grid-cols-2 gap-1.5",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
-                              publicShareType !== "shipment" ? "button" : "div",
+                              "div",
                               {
-                                ...(publicShareType !== "shipment"
-                                  ? {
-                                      type: "button",
-                                      onClick: () =>
-                                        togglePublicPendingShipmentSelection(o.id),
-                                    }
-                                  : {}),
                                 className:
-                                  `rounded-lg border p-1.5 flex gap-1.5 items-start text-left transition ${
-                                    publicShareType !== "shipment" &&
-                                    publicPendingShipmentSelectionSet.has(Number(o.id))
-                                      ? "border-amber-500 bg-amber-100/90 dark:border-amber-500 dark:bg-amber-950/35 ring-2 ring-amber-300/60"
-                                      : "border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900"
-                                  }`,
+                                  "rounded-lg border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-1.5 flex gap-1.5 items-start text-left",
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
@@ -5845,20 +5763,6 @@ function nh() {
                                         ],
                                       }),
                                     ],
-                                  }),
-                                  publicShareType !== "shipment" &&
-                                  c.jsx("div", {
-                                    className:
-                                      `shrink-0 w-5 h-5 rounded-full border flex items-center justify-center ${
-                                        publicPendingShipmentSelectionSet.has(Number(o.id))
-                                          ? "bg-amber-600 border-amber-600 text-white"
-                                          : "bg-white border-amber-300 text-transparent dark:bg-slate-900 dark:border-amber-800"
-                                      }`,
-                                    children: c.jsx("span", {
-                                      className:
-                                        "material-symbols-outlined text-[12px]",
-                                      children: "check",
-                                    }),
                                   }),
                                 ],
                               },
