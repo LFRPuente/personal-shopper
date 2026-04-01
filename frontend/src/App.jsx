@@ -4699,25 +4699,6 @@ function nh() {
       toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
     ),
     missionProductsCount = activeMissionProducts.length,
-    missionPurchaseCost = activeMissionProducts.reduce((o, N) => {
-      const A = toNumber(N && N.real_price, Number.NaN);
-      return Number.isFinite(A) ? o + A : o;
-    }, 0),
-    missionPurchaseCostWithDiscount = missionDiscountPercentage > 0
-      ? activeMissionProducts.reduce((o, N) => {
-        const A = toNumber(N && N.real_price, Number.NaN);
-        return Number.isFinite(A)
-          ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
-          : o;
-      }, 0)
-      : 0,
-    missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
-      const A = toNumber(N.charged_price, Number.NaN);
-      if (Number.isFinite(A)) return o + A;
-      const vl = toNumber(N.real_price, Number.NaN);
-      if (!Number.isFinite(vl)) return o;
-      return o + vl * (1 + missionTaxPercentage / 100);
-    }, 0),
     missionTotalWithDiscount = missionDiscountPercentage > 0
       ? activeMissionProducts.reduce(
         (o, N) =>
@@ -7354,80 +7335,26 @@ function nh() {
                     : "pt-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300",
                   children: ["Items: ", missionProductsCount],
                 }),
+                missionTotalWithDiscount > 0 &&
                 c.jsxs("div", {
-                  className: "text-right space-y-1.5",
+                  className:
+                    "text-right rounded-full border border-white/15 bg-white/8 px-3 py-1.5",
                   children: [
-                    c.jsxs("div", {
-                      className:
-                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
-                      children: [
-                        c.jsx("p", {
-                          className: isDesktopLayout
-                            ? "text-[9px] font-black uppercase tracking-[0.14em] text-white/70"
-                            : "text-[10px] font-black uppercase tracking-[0.12em] text-white/70",
-                          children: "Compra",
-                        }),
-                        c.jsxs("span", {
-                          className: isDesktopLayout
-                            ? "mt-1 block text-[10px] font-semibold text-white"
-                            : "mt-1 block text-[11px] font-semibold text-white",
-                          children: [
-                            "Costo compra (USD): $",
-                            missionPurchaseCost.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            }),
-                          ],
-                        }),
-                        missionPurchaseCostWithDiscount > 0 &&
-                        c.jsxs("span", {
-                          className: isDesktopLayout
-                            ? "mt-0.5 block text-[10px] font-semibold text-white"
-                            : "mt-0.5 block text-[11px] font-semibold text-white",
-                          children: [
-                            "Compra con descuento: $",
-                            missionPurchaseCostWithDiscount.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            }),
-                          ],
-                        }),
-                      ],
+                    c.jsx("p", {
+                      className: isDesktopLayout
+                        ? "text-[9px] font-black uppercase tracking-[0.14em] text-white/70"
+                        : "text-[10px] font-black uppercase tracking-[0.12em] text-white/70",
+                      children: "Con descuento",
                     }),
-                    c.jsxs("div", {
-                      className:
-                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
+                    c.jsxs("p", {
+                      className: isDesktopLayout
+                        ? "mt-0.5 text-[11px] font-semibold text-white"
+                        : "mt-0.5 text-xs font-semibold text-white",
                       children: [
-                        c.jsx("p", {
-                          className: isDesktopLayout
-                            ? "text-[9px] font-black uppercase tracking-[0.14em] text-white/70"
-                            : "text-[10px] font-black uppercase tracking-[0.12em] text-white/70",
-                          children: "Venta",
-                        }),
-                        c.jsxs("span", {
-                          className: isDesktopLayout
-                            ? "mt-1 block text-[10px] font-semibold text-white"
-                            : "mt-1 block text-[11px] font-semibold text-white",
-                          children: [
-                            "Total+Tax: $",
-                            missionTotalWithTaxes.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            }),
-                          ],
-                        }),
-                        missionTotalWithDiscount > 0 &&
-                        c.jsxs("span", {
-                          className: isDesktopLayout
-                            ? "mt-0.5 block text-[10px] font-semibold text-white"
-                            : "mt-0.5 block text-[11px] font-semibold text-white",
-                          children: [
-                            "Con descuento: $",
-                            missionTotalWithDiscount.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            }),
-                          ],
+                        "$",
+                        missionTotalWithDiscount.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
                         }),
                       ],
                     }),
