@@ -1156,9 +1156,17 @@ function nh() {
         setOpenProductInfoId(null),
         setOpenProductStatusId(null));
     };
+    const closeMenuOnEscape = (o) => {
+      o.key === "Escape" &&
+        (setOpenProductMenuId(null),
+        setOpenProductInfoId(null),
+        setOpenProductStatusId(null));
+    };
     document.addEventListener("click", closeMenuOnOutsideClick);
+    document.addEventListener("keydown", closeMenuOnEscape);
     return () => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
+      document.removeEventListener("keydown", closeMenuOnEscape);
     };
   }, [openProductMenuId, openProductInfoId, openProductStatusId]);
   V.useEffect(() => {
@@ -1173,9 +1181,14 @@ function nh() {
         return;
       setOpenShipmentEvidenceMenuId(null);
     };
+    const closeShipmentEvidenceMenuOnEscape = (o) => {
+      o.key === "Escape" && setOpenShipmentEvidenceMenuId(null);
+    };
     document.addEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
+    document.addEventListener("keydown", closeShipmentEvidenceMenuOnEscape);
     return () => {
       document.removeEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
+      document.removeEventListener("keydown", closeShipmentEvidenceMenuOnEscape);
     };
   }, [openShipmentEvidenceMenuId]);
   V.useEffect(() => {
@@ -9577,7 +9590,7 @@ function nh() {
                                                       openProductStatusId === qa.id &&
                                                       c.jsxs("div", {
                                                         className:
-                                                          "absolute left-0 top-8 min-w-[118px] rounded-xl border border-slate-200/90 bg-white/96 p-1 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/96",
+                                                          "absolute left-0 top-8 z-40 min-w-[118px] rounded-xl border border-slate-200/90 bg-white/96 p-1 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/96",
                                                         children: [
                                                           c.jsx("div", {
                                                             className:
