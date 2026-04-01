@@ -7355,11 +7355,11 @@ function nh() {
                   children: ["Items: ", missionProductsCount],
                 }),
                 c.jsxs("div", {
-                  className: "text-right space-y-1.5",
+                  className: "grid grid-cols-2 gap-2 text-right shrink-0",
                   children: [
                     c.jsxs("div", {
                       className:
-                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
+                        "min-w-[118px] rounded-xl border border-white/10 bg-white/5 px-3 py-2",
                       children: [
                         c.jsx("p", {
                           className: isDesktopLayout
@@ -7396,7 +7396,7 @@ function nh() {
                     }),
                     c.jsxs("div", {
                       className:
-                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
+                        "min-w-[118px] rounded-xl border border-white/10 bg-white/5 px-3 py-2",
                       children: [
                         c.jsx("p", {
                           className: isDesktopLayout
