@@ -4222,6 +4222,25 @@ function nh() {
       const N = getProductPaymentAmount(o);
       return Number.isFinite(N) ? N : Number.NaN;
     },
+    getProductBaseFinalPrice = (o) => {
+      const N = toNumber(o && o.charged_price, Number.NaN);
+      if (Number.isFinite(N)) return N;
+      const A = toNumber(o && o.real_price, Number.NaN);
+      return Number.isFinite(A) ? A : Number.NaN;
+    },
+    getProductImagePrimaryPrice = (o) => {
+      const N = getProductBaseFinalPrice(o);
+      return Number.isFinite(N) ? N : getProductQuickFinalPrice(o);
+    },
+    hasProductDiscountedFinalPrice = (o) => {
+      const N = getProductBaseFinalPrice(o),
+        A = getProductQuickFinalPrice(o);
+      return (
+        Number.isFinite(N) &&
+        Number.isFinite(A) &&
+        Math.abs(N - A) > 0.009
+      );
+    },
     formatProductQuickFinalPrice = (o) => {
       const N = getProductQuickFinalPrice(o);
       return Number.isFinite(N) ? formatAmount(N) : "";
@@ -12194,18 +12213,45 @@ function nh() {
                                       }),
                                     ],
                                   }),
-                                  Number.isFinite(getProductQuickFinalPrice(o)) &&
+                                  Number.isFinite(getProductImagePrimaryPrice(o)) &&
                                   c.jsx("div", {
                                     className:
                                       "absolute inset-x-0 bottom-0.5 z-20 flex justify-center pointer-events-none",
-                                    children: c.jsxs("span", {
-                                      className:
-                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                      children: [
-                                        "$",
-                                        formatProductQuickFinalPrice(o),
-                                      ],
-                                    }),
+                                    children: hasProductDiscountedFinalPrice(o)
+                                      ? c.jsxs("div", {
+                                        className:
+                                          "inline-flex flex-col items-center gap-0.5 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-2.5 py-1 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                        children: [
+                                          c.jsxs("span", {
+                                            className:
+                                              "whitespace-nowrap text-[9px] font-bold",
+                                            children: [
+                                              "Final $",
+                                              formatAmount(
+                                                getProductBaseFinalPrice(o),
+                                              ),
+                                            ],
+                                          }),
+                                          c.jsxs("span", {
+                                            className:
+                                              "whitespace-nowrap text-[9px] font-black text-emerald-700 dark:text-emerald-300",
+                                            children: [
+                                              "Desc $",
+                                              formatProductQuickFinalPrice(o),
+                                            ],
+                                          }),
+                                        ],
+                                      })
+                                      : c.jsxs("span", {
+                                        className:
+                                          "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                        children: [
+                                          "$",
+                                          formatAmount(
+                                            getProductImagePrimaryPrice(o),
+                                          ),
+                                        ],
+                                      }),
                                   }),
                                   c.jsx("div", {
                                     className: "absolute right-0.5 bottom-0.5 z-20",
