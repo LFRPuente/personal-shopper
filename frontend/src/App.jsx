@@ -282,6 +282,9 @@ function nh() {
     [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
       null,
     ),
+    [clientGalleryMissionScopeMeta, setClientGalleryMissionScopeMeta] = V.useState(
+      null,
+    ),
     [clientGalleryAllowsShoppingChoice, setClientGalleryAllowsShoppingChoice] = V.useState(
       !1,
     ),
@@ -1648,6 +1651,7 @@ function nh() {
     },
     Ta = (o, N = null) => {
       (setClientGalleryMissionScopeId(N),
+        setClientGalleryMissionScopeMeta(null),
         setClientGalleryAllowsShoppingChoice(
           N === null || typeof N === "undefined" || String(N).trim() === "",
         ),
@@ -1657,9 +1661,10 @@ function nh() {
     openClientShoppingGallery = (o, N = null) => {
       const A =
         N && typeof N == "object"
-          ? Number(N.id || N.shopping || N.mission || 0)
+          ? Number(N.id || N.key || N.shopping || N.mission || 0)
           : Number(N || 0);
       (setClientGalleryMissionScopeId(A || null),
+        setClientGalleryMissionScopeMeta(N && typeof N == "object" ? N : null),
         setClientGalleryAllowsShoppingChoice(!1),
         et(o),
         jt("ANNOTATED"));
@@ -1668,6 +1673,7 @@ function nh() {
       (et(null),
         setFullscreenImage(null),
         setClientGalleryAllowsShoppingChoice(!1),
+        setClientGalleryMissionScopeMeta(null),
         setClientGalleryMissionScopeId(null));
     },
     navigateSection = (o) => {
@@ -1986,7 +1992,9 @@ function nh() {
             : null,
         vlScopedShopping =
           Number.isFinite(vlScopedShoppingId) && vlScopedShoppingId > 0
-            ? Al.find((qa) => Number(qa.id) === Number(vlScopedShoppingId)) || null
+            ? clientGalleryScopeMission ||
+              Al.find((qa) => Number(qa.id) === Number(vlScopedShoppingId)) ||
+              null
             : null,
         vlContextShopping =
           !clientGalleryAllowsShoppingChoice && vlScopedShopping
@@ -2082,7 +2090,9 @@ function nh() {
             : null,
         ElScopedShopping =
           Number.isFinite(ElScopedShoppingId) && ElScopedShoppingId > 0
-            ? Al.find((Se) => Number(Se.id) === Number(ElScopedShoppingId)) || null
+            ? clientGalleryScopeMission ||
+              Al.find((Se) => Number(Se.id) === Number(ElScopedShoppingId)) ||
+              null
             : null,
         ElContextShopping = ElScopedShopping || w || null,
         Se = (ElContextShopping && ElContextShopping.store) || "";
@@ -2125,6 +2135,25 @@ function nh() {
           Qt());
       } catch (A) {
         console.error("Failed updating product status", A);
+      }
+    },
+    setShipmentProductStatusQuick = async (o, N) => {
+      if (!o || !N || productStatusUpdatingId === o) return;
+      setProductStatusUpdatingId(o);
+      try {
+        await I(`/products/${o}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: N }),
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        publicClientShareToken && (await reloadPublicShareData());
+        notifySuccess("Status del producto actualizado.");
+      } catch (A) {
+        console.error("Failed updating shipment product status", A);
+        notifyError((A && A.message) || "No se pudo cambiar el status del producto.");
+      } finally {
+        setProductStatusUpdatingId(null);
       }
     },
     setGalleryProductStatus = async (o, N = null, A) => {
@@ -4211,6 +4240,18 @@ function nh() {
           N.status !== "IN_REVIEW" &&
           N.status !== "REJECTED",
       ),
+    getClientVisibleShoppingIds = (o) => {
+      const N = new Set();
+      getHomeVisibleProducts(o).forEach((A) => {
+        const vl = Number((A && A.shopping) || 0);
+        Number.isFinite(vl) && vl > 0 && N.add(vl);
+      });
+      ((o && o.payments) || []).forEach((A) => {
+        const vl = Number((A && (A.shopping || A.mission)) || 0);
+        Number.isFinite(vl) && vl > 0 && N.add(vl);
+      });
+      return N;
+    },
     getHomeClientTotals = (o) =>
       o.reduce(
         (N, A) => ({
@@ -4355,9 +4396,21 @@ function nh() {
         ? "Rechazado"
         : o === "IN_REVIEW"
           ? "Revision"
+          : o === "BOUGHT"
+            ? "Comprado"
           : o === "SHIPPED"
             ? "Enviado"
             : "Anotado",
+    getProductStatusChipClassName = (o) =>
+      o === "IN_REVIEW"
+        ? "bg-amber-100/92 text-amber-800"
+        : o === "REJECTED"
+          ? "bg-rose-100/92 text-rose-700"
+          : o === "BOUGHT"
+            ? "bg-emerald-100/92 text-emerald-700"
+            : o === "SHIPPED"
+              ? "bg-blue-100/92 text-blue-700"
+              : "bg-white/90 text-gray-700",
     getUnifiedReviewState = (o) =>
       o === "PS_REVIEW" || o === "AV_REVIEW" ? "REVIEW" : o,
     getProductReviewState = (o, N = null) =>
@@ -4668,12 +4721,45 @@ function nh() {
     filteredEditingRequestClients = requestAssignableClients.filter((o) =>
       normalizeSearchText(o.name || "").includes(normalizeSearchText(editingRequestClientSearch)),
     ),
+    clientVisibleShoppingIdSet = W ? getClientVisibleShoppingIds(W) : new Set(),
     clientGalleryHasMissionScope =
       clientGalleryMissionScopeId !== null &&
       typeof clientGalleryMissionScopeId !== "undefined" &&
       String(clientGalleryMissionScopeId).trim() !== "",
     clientGalleryScopeMission = clientGalleryHasMissionScope
-      ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId))
+      ? Al.find((o) => Number(o.id) === Number(clientGalleryMissionScopeId)) ||
+        (clientGalleryMissionScopeMeta
+          ? {
+              id: Number(clientGalleryMissionScopeId),
+              name:
+                clientGalleryMissionScopeMeta.title ||
+                clientGalleryMissionScopeMeta.shopping_name ||
+                clientGalleryMissionScopeMeta.mission_name ||
+                "",
+              store_name:
+                clientGalleryMissionScopeMeta.title ||
+                clientGalleryMissionScopeMeta.shopping_name ||
+                clientGalleryMissionScopeMeta.mission_name ||
+                "",
+              start_time:
+                clientGalleryMissionScopeMeta.date ||
+                clientGalleryMissionScopeMeta.shopping_date ||
+                clientGalleryMissionScopeMeta.mission_date ||
+                "",
+              status:
+                clientGalleryMissionScopeMeta.status ||
+                (clientGalleryMissionScopeMeta.shopping &&
+                typeof clientGalleryMissionScopeMeta.shopping === "object"
+                  ? clientGalleryMissionScopeMeta.shopping.status
+                  : "") ||
+                "",
+              store:
+                clientGalleryMissionScopeMeta.shopping &&
+                typeof clientGalleryMissionScopeMeta.shopping === "object"
+                  ? clientGalleryMissionScopeMeta.shopping.store
+                  : null,
+            }
+          : null)
       : null,
     productModalCanChooseShopping =
       !!W && productModalMode === "create" && clientGalleryAllowsShoppingChoice,
@@ -4693,6 +4779,12 @@ function nh() {
     productModalSelectedShopping = productModalCanChooseShopping
       ? Al.find((o) => Number(o && o.id) === Number(st.shopping || 0)) || null
       : null,
+    productModalPinnedShopping =
+      !productModalCanChooseShopping && Number(st.shopping || 0) > 0
+        ? clientGalleryScopeMission ||
+          Al.find((o) => Number(o && o.id) === Number(st.shopping || 0)) ||
+          null
+        : null,
     missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
     missionDiscountPercentage = Math.max(
       0,
@@ -4842,8 +4934,9 @@ function nh() {
     selectedClientHomeAnnotatedProducts = W
       ? ((W.products || []).filter(
         (o) =>
-          (!selectedClientHomeScopeId ||
-            Number(o.shopping) === Number(selectedClientHomeScopeId)) &&
+          (selectedClientHomeScopeId
+            ? Number((o && o.shopping) || 0) === Number(selectedClientHomeScopeId)
+            : clientVisibleShoppingIdSet.has(Number((o && o.shopping) || 0))) &&
           String((o.status || "")).toUpperCase() === "ANNOTATED",
       ))
       : [],
@@ -4860,7 +4953,7 @@ function nh() {
           clientGalleryScopeMission.status === "COMPLETED"
             ? o.status === "ANNOTATED"
             : !0)
-        : !0,
+        : clientVisibleShoppingIdSet.has(Number((o && (o.shopping || o.mission)) || 0)),
     )),
     galleryReviewProducts = clientGalleryHasMissionScope
       ? []
@@ -8547,7 +8640,7 @@ function nh() {
                                           onClick: () =>
                                             openClientShoppingGallery(
                                               N,
-                                              ea.shopping || Number(ea.key),
+                                              ea,
                                             ),
                                           children: [
                                             c.jsxs("div", {
@@ -8894,7 +8987,7 @@ function nh() {
                                                 onClick: () =>
                                                   openClientShoppingGallery(
                                                     N,
-                                                    ea.shopping || Number(ea.key),
+                                                    ea,
                                                   ),
                                                 className:
                                                   "w-full flex items-center justify-between gap-2 text-left text-sky-700 dark:text-sky-200",
@@ -9346,90 +9439,192 @@ function nh() {
                                   ? c.jsx("div", {
                                       className: "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2",
                                       children: Se.map((qa) => {
-                                        const vl = getProductPaymentAmount(qa);
+                                        const vl = getProductPaymentAmount(qa),
+                                          productStatusValue = String(
+                                            (qa && qa.status) || "ANNOTATED",
+                                          ).toUpperCase(),
+                                          shipmentProductStatusActions = [
+                                            {
+                                              value: "ANNOTATED",
+                                              label: "Anotado",
+                                              icon: "edit_note",
+                                            },
+                                            {
+                                              value: "BOUGHT",
+                                              label: "Comprado",
+                                              icon: "shopping_bag",
+                                            },
+                                            {
+                                              value: "SHIPPED",
+                                              label: "Enviado",
+                                              icon: "local_shipping",
+                                            },
+                                          ];
                                         return c.jsxs(
-                                          El ? "button" : "div",
+                                          "div",
                                           {
-                                            type: El ? "button" : void 0,
-                                            onClick: El
-                                              ? () => toggleShipmentProductSelection(qa)
-                                              : void 0,
                                             className:
-                                              "relative overflow-hidden rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80 text-left",
+                                              "relative overflow-hidden rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80",
                                             children: [
-                                              qa.image
-                                                ? c.jsx("img", {
-                                                    src: resolveMediaUrl(qa.image),
-                                                    className:
-                                                      "w-full aspect-[4/5] object-cover",
-                                                  })
-                                                : c.jsx("div", {
-                                                    className:
-                                                      "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
-                                                    children: c.jsx("span", {
-                                                      className:
-                                                        "material-symbols-outlined text-[18px]",
-                                                      children: "image",
-                                                    }),
-                                                  }),
-                                              Number.isFinite(vl) &&
-                                              c.jsx("div", {
-                                                className:
-                                                  "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
-                                                children: c.jsxs("span", {
-                                                  className:
-                                                    "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                                  children: [
-                                                    "$",
-                                                    formatAmount(vl),
-                                                  ],
-                                                }),
-                                              }),
-                                              c.jsx("div", {
-                                                className:
-                                                  "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-1.5",
+                                              c.jsxs("div", {
+                                                className: "relative text-left w-full",
                                                 children: [
-                                                  c.jsx("p", {
-                                                    className:
-                                                      "text-[10px] font-bold text-white truncate",
-                                                    children: qa.name,
-                                                  }),
                                                   c.jsxs("div", {
                                                     className:
-                                                      "mt-1 flex flex-wrap items-center gap-1",
+                                                      "absolute top-2 left-2 z-20",
+                                                    "data-product-status": "1",
                                                     children: [
-                                                      c.jsx("span", {
+                                                      c.jsx("button", {
+                                                        type: "button",
+                                                        onClick: (o) => {
+                                                          (o.stopPropagation(),
+                                                            setOpenProductMenuId(null),
+                                                            setOpenProductInfoId(null),
+                                                            setOpenProductStatusId((N) =>
+                                                              N === qa.id ? null : qa.id,
+                                                            ));
+                                                        },
                                                         className:
-                                                          "inline-flex max-w-[70%] truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm",
-                                                        children:
-                                                          qa.shopping_name ||
-                                                          qa.mission_name ||
-                                                          qa.store_name ||
-                                                          "Sin shopping",
+                                                          `w-6 h-6 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${getProductStatusChipClassName(productStatusValue)} ${productStatusUpdatingId === qa.id ? "opacity-70 cursor-wait" : ""}`,
+                                                        title: `Cambiar status (${getProductStatusLabel(productStatusValue)})`,
+                                                        children: c.jsx("span", {
+                                                          className:
+                                                            `material-symbols-outlined text-[12px] ${productStatusUpdatingId === qa.id ? "animate-spin" : ""}`,
+                                                          children:
+                                                            productStatusUpdatingId === qa.id
+                                                              ? "progress_activity"
+                                                              : productStatusValue === "BOUGHT"
+                                                                ? "shopping_bag"
+                                                                : productStatusValue === "SHIPPED"
+                                                                  ? "local_shipping"
+                                                                  : "edit_note",
+                                                        }),
                                                       }),
-                                                      (qa.shopping_date ||
-                                                        qa.mission_date) &&
-                                                      c.jsx("span", {
+                                                      openProductStatusId === qa.id &&
+                                                      c.jsxs("div", {
                                                         className:
-                                                          "inline-flex shrink-0 rounded-full bg-white/14 px-1.5 py-0.5 text-[9px] font-semibold text-white/80 backdrop-blur-sm",
-                                                        children: new Date(
-                                                          qa.shopping_date ||
-                                                            qa.mission_date,
-                                                        ).toLocaleDateString(),
+                                                          "absolute left-0 top-8 min-w-[118px] rounded-xl border border-slate-200/90 bg-white/96 p-1 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/96",
+                                                        children: [
+                                                          c.jsx("div", {
+                                                            className:
+                                                              "px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400",
+                                                            children: "Cambiar status",
+                                                          }),
+                                                          shipmentProductStatusActions.map((o) =>
+                                                            c.jsxs(
+                                                              "button",
+                                                              {
+                                                                type: "button",
+                                                                onClick: (N) => {
+                                                                  (N.stopPropagation(),
+                                                                    setOpenProductStatusId(null),
+                                                                    setShipmentProductStatusQuick(
+                                                                      qa.id,
+                                                                      o.value,
+                                                                    ));
+                                                                },
+                                                                disabled:
+                                                                  productStatusUpdatingId === qa.id,
+                                                                className:
+                                                                  "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[11px] text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80 disabled:opacity-60 disabled:cursor-wait",
+                                                                children: [
+                                                                  c.jsx("span", {
+                                                                    children: o.label,
+                                                                  }),
+                                                                  c.jsx("span", {
+                                                                    className:
+                                                                      "material-symbols-outlined text-[13px]",
+                                                                    children: o.icon,
+                                                                  }),
+                                                                ],
+                                                              },
+                                                              `shipment-status-${qa.id}-${o.value}`,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       }),
                                                     ],
                                                   }),
+                                                  qa.image
+                                                    ? c.jsx("img", {
+                                                        src: resolveMediaUrl(qa.image),
+                                                        className:
+                                                          "w-full aspect-[4/5] object-cover",
+                                                      })
+                                                    : c.jsx("div", {
+                                                        className:
+                                                          "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
+                                                        children: c.jsx("span", {
+                                                          className:
+                                                            "material-symbols-outlined text-[18px]",
+                                                          children: "image",
+                                                        }),
+                                                      }),
+                                                  Number.isFinite(vl) &&
+                                                  c.jsx("div", {
+                                                    className:
+                                                      "absolute inset-x-0 bottom-2 z-20 flex justify-center pointer-events-none",
+                                                    children: c.jsxs("span", {
+                                                      className:
+                                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                                      children: [
+                                                        "$",
+                                                        formatAmount(vl),
+                                                      ],
+                                                    }),
+                                                  }),
+                                                  c.jsx("div", {
+                                                    className:
+                                                      "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-2 pb-8",
+                                                    children: [
+                                                      c.jsx("p", {
+                                                        className:
+                                                          "text-[10px] font-bold text-white truncate",
+                                                        children: qa.name,
+                                                      }),
+                                                      c.jsxs("div", {
+                                                        className:
+                                                          "mt-1 flex flex-wrap items-center gap-1",
+                                                        children: [
+                                                          c.jsx("span", {
+                                                            className:
+                                                              "inline-flex max-w-full truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm",
+                                                            children:
+                                                              qa.shopping_name ||
+                                                              qa.mission_name ||
+                                                              qa.store_name ||
+                                                              "Sin shopping",
+                                                          }),
+                                                          (qa.shopping_date ||
+                                                            qa.mission_date) &&
+                                                          c.jsx("span", {
+                                                            className:
+                                                              "inline-flex shrink-0 rounded-full bg-white/14 px-1.5 py-0.5 text-[9px] font-semibold text-white/80 backdrop-blur-sm",
+                                                            children: new Date(
+                                                              qa.shopping_date ||
+                                                                qa.mission_date,
+                                                            ).toLocaleDateString(),
+                                                          }),
+                                                        ],
+                                                      }),
+                                                    ],
+                                                  }),
+                                                  El &&
+                                                  c.jsx("button", {
+                                                    type: "button",
+                                                    onClick: (o) => {
+                                                      (o.stopPropagation(),
+                                                        toggleShipmentProductSelection(qa));
+                                                    },
+                                                    className:
+                                                      "absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/70",
+                                                    children: c.jsx("span", {
+                                                      className:
+                                                        "material-symbols-outlined text-[14px]",
+                                                      children: "close",
+                                                    }),
+                                                  }),
                                                 ],
-                                              }),
-                                              El &&
-                                              c.jsx("div", {
-                                                className:
-                                                  "absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center",
-                                                children: c.jsx("span", {
-                                                  className:
-                                                    "material-symbols-outlined text-[14px]",
-                                                  children: "close",
-                                                }),
                                               }),
                                             ],
                                           },
@@ -11437,7 +11632,10 @@ function nh() {
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: productModalCanChooseShopping ? "Shopping" : "Store",
+                      children:
+                        productModalCanChooseShopping || productModalPinnedShopping
+                          ? "Shopping"
+                          : "Store",
                     }),
                     productModalCanChooseShopping
                       ? c.jsxs("div", {
@@ -11531,6 +11729,28 @@ function nh() {
                                   ? "Sin coincidencias."
                                   : "Sin shoppings disponibles.",
                               }),
+                          }),
+                        ],
+                      })
+                      : productModalPinnedShopping
+                      ? c.jsxs("div", {
+                        className:
+                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
+                        children: [
+                          c.jsx("p", {
+                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
+                            children:
+                              getMissionStoreLabel(productModalPinnedShopping) ||
+                              productModalPinnedShopping.name ||
+                              "Sin shopping asignada",
+                          }),
+                          productModalPinnedShopping.start_time &&
+                          c.jsx("p", {
+                            className:
+                              "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
+                            children: new Date(
+                              productModalPinnedShopping.start_time,
+                            ).toLocaleDateString(),
                           }),
                         ],
                       })

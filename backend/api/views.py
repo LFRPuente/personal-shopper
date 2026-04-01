@@ -174,7 +174,38 @@ def deactivate_empty_shipment_share_links(shipment):
     ).update(is_active=False)
 
 
-def sync_product_shipment_status(product):
+def product_has_any_shipment(product):
+    if not product:
+        return False
+    try:
+        if getattr(product, 'shipment', None):
+            return True
+    except Exception:
+        pass
+    try:
+        return product.shipments.exists()
+    except Exception:
+        return False
+
+
+def validate_products_ready_for_shipment(products):
+    invalid_products = [
+        product
+        for product in (products or [])
+        if getattr(product, 'mission_id', None)
+        and getattr(getattr(product, 'mission', None), 'status', None) != 'COMPLETED'
+    ]
+    if invalid_products:
+        raise serializers.ValidationError(
+            {
+                'products': (
+                    'Only products from completed shoppings can be added to a shipment.'
+                )
+            }
+        )
+
+
+def mark_product_as_shipped(product):
     if not product:
         return
     if product.status != 'SHIPPED':
@@ -182,28 +213,44 @@ def sync_product_shipment_status(product):
         product.save(update_fields=['status'])
 
 
+def sync_detached_product_status(product):
+    if not product:
+        return
+    if product_has_any_shipment(product):
+        return
+    if product.status == 'SHIPPED':
+        product.status = 'ANNOTATED'
+        product.save(update_fields=['status'])
+
+
 def attach_products_to_shipment(shipment, products):
     if not shipment:
         return
+    validate_products_ready_for_shipment(products)
     desired_ids = [product.id for product in products]
     current_ids = list(shipment.products.values_list('id', flat=True))
     remove_ids = [product_id for product_id in current_ids if product_id not in desired_ids]
     if remove_ids:
+        removed_products = list(ProductItem.objects.filter(id__in=remove_ids))
         shipment.products.remove(*remove_ids)
-        for product_id in remove_ids:
-            broadcast_update('products', action='updated', object_id=product_id)
+        for product in removed_products:
+            sync_detached_product_status(product)
+            broadcast_update('products', action='updated', object_id=product.id)
     if not desired_ids:
         deactivate_empty_shipment_share_links(shipment)
     for product in products:
+        was_attached_to_this_shipment = product.id in current_ids
         for other in Shipment.objects.filter(products=product).exclude(id=shipment.id):
             other.products.remove(product)
             if other.product_id == product.id:
                 fallback_product_id = other.products.order_by('id').values_list('id', flat=True).first()
                 other.product_id = fallback_product_id
                 other.save(update_fields=['product'])
+            deactivate_empty_shipment_share_links(other)
             broadcast_update('shipments', action='updated', object_id=other.id)
         shipment.products.add(product)
-        sync_product_shipment_status(product)
+        if not was_attached_to_this_shipment:
+            mark_product_as_shipped(product)
         broadcast_update('products', action='updated', object_id=product.id)
     primary_product_id = desired_ids[0] if desired_ids else None
     mission_ids = list(
@@ -1654,7 +1701,8 @@ class ShipmentViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         shipment_id = instance.id
-        product_ids = list(instance.products.values_list('id', flat=True))
+        shipment_products = list(instance.products.all())
+        product_ids = [product.id for product in shipment_products]
         evidence_files = list(
             instance.evidence.exclude(file='').values_list('file', flat=True)
         )
@@ -1666,6 +1714,8 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 default_storage.delete(evidence_file)
             except Exception:
                 pass
+        for product in shipment_products:
+            sync_detached_product_status(product)
         for product_id in product_ids:
             broadcast_update('products', action='updated', object_id=product_id)
         broadcast_update('shipments', action='deleted', object_id=shipment_id)
