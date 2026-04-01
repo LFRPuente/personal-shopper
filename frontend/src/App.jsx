@@ -9530,16 +9530,15 @@ function nh() {
                                           productStatusValue = String(
                                             (qa && qa.status) || "ANNOTATED",
                                           ).toUpperCase(),
+                                          shipmentDisplayStatusValue =
+                                            productStatusValue === "BOUGHT"
+                                              ? "ANNOTATED"
+                                              : productStatusValue,
                                           shipmentProductStatusActions = [
                                             {
                                               value: "ANNOTATED",
                                               label: "Anotado",
                                               icon: "edit_note",
-                                            },
-                                            {
-                                              value: "BOUGHT",
-                                              label: "Comprado",
-                                              icon: "shopping_bag",
                                             },
                                             {
                                               value: "SHIPPED",
@@ -9572,17 +9571,16 @@ function nh() {
                                                             ));
                                                         },
                                                         className:
-                                                          `w-6 h-6 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${getProductStatusChipClassName(productStatusValue)} ${productStatusUpdatingId === qa.id ? "opacity-70 cursor-wait" : ""}`,
-                                                        title: `Cambiar status (${getProductStatusLabel(productStatusValue)})`,
+                                                          `w-6 h-6 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${getProductStatusChipClassName(shipmentDisplayStatusValue)} ${productStatusUpdatingId === qa.id ? "opacity-70 cursor-wait" : ""}`,
+                                                        title: `Cambiar status (${getProductStatusLabel(shipmentDisplayStatusValue)})`,
                                                         children: c.jsx("span", {
                                                           className:
                                                             `material-symbols-outlined text-[12px] ${productStatusUpdatingId === qa.id ? "animate-spin" : ""}`,
                                                           children:
                                                             productStatusUpdatingId === qa.id
                                                               ? "progress_activity"
-                                                              : productStatusValue === "BOUGHT"
-                                                                ? "shopping_bag"
-                                                                : productStatusValue === "SHIPPED"
+                                                              : shipmentDisplayStatusValue ===
+                                                                  "SHIPPED"
                                                                   ? "local_shipping"
                                                                   : "edit_note",
                                                         }),
