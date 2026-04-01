@@ -4646,6 +4646,10 @@ function nh() {
       toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
     ),
     missionProductsCount = activeMissionProducts.length,
+    missionAnnotatedPurchaseCost = activeMissionProducts.reduce((o, N) => {
+      if (String((N && N.status) || "").toUpperCase() !== "ANNOTATED") return o;
+      return o + toNumber(N && N.real_price, 0);
+    }, 0),
     missionTotalWithoutTaxes = activeMissionProducts.reduce((o, N) => {
       const A = toNumber(N.real_price, Number.NaN);
       if (Number.isFinite(A)) return o + A;
@@ -7299,8 +7303,20 @@ function nh() {
                   children: [
                     c.jsxs("span", {
                       className: isDesktopLayout
-                        ? "block text-[10px] font-semibold text-primary"
-                        : "block text-[11px] font-semibold text-primary",
+                        ? "block text-[10px] font-semibold text-amber-600 dark:text-amber-300"
+                        : "block text-[11px] font-semibold text-amber-600 dark:text-amber-300",
+                      children: [
+                        "Costo compra (USD): $",
+                        missionAnnotatedPurchaseCost.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }),
+                      ],
+                    }),
+                    c.jsxs("span", {
+                      className: isDesktopLayout
+                        ? "mt-0.5 block text-[10px] font-semibold text-primary"
+                        : "mt-0.5 block text-[11px] font-semibold text-primary",
                       children: [
                         "Total+Tax: $",
                         missionTotalWithTaxes.toLocaleString("en-US", {
