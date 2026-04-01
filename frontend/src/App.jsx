@@ -196,10 +196,25 @@ const getPublicShareInfoFromPath = () => {
     ? { type: String(o[1] || "").toLowerCase(), token: decodeURIComponent(o[2]) }
     : { type: "", token: "" };
 };
+const getPublicShareFocusShipmentIdFromSearch = () => {
+  try {
+    const o = new URLSearchParams(window.location.search || ""),
+      N = String(o.get("focus_shipment_id") || o.get("shipment") || "").trim();
+    if (!N) return null;
+    const A = parseInt(N, 10);
+    return Number.isFinite(A) ? A : null;
+  } catch {
+    return null;
+  }
+};
 function nh() {
   const publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
     publicClientShareToken = publicShareInfo.token,
     publicShareType = publicShareInfo.type,
+    publicFocusShipmentIdFromSearch = V.useMemo(
+      () => getPublicShareFocusShipmentIdFromSearch(),
+      [],
+    ),
     DEFAULT_BREAKDOWN_TEMPLATE =
       "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
@@ -2754,6 +2769,25 @@ function nh() {
         );
       }
     },
+    copyClientShipmentHistoryLink = async (o) => {
+      if (!o || !o.id || !o.client) return;
+      try {
+        const N = await generateClientHistoryShareLink({ id: o.client }),
+          A = new URL(N.share_url, window.location.origin);
+        A.searchParams.set("focus_shipment_id", String(o.id));
+        await navigator.clipboard.writeText(A.toString());
+        const vl = `shipment-client-history-share-${o.id}`;
+        setCopiedClientShareLinks((El) =>
+          El.includes(vl) ? El : [...El, vl],
+        );
+        notifySuccess("Link copiado.");
+      } catch (N) {
+        console.error("Failed to copy client shipment history link", N);
+        notifyError(
+          (N && N.message) || "No se pudo generar el link del cliente.",
+        );
+      }
+    },
     copyShipmentShareLink = async (o) => {
       if (!o || !o.id) return;
       try {
@@ -4992,16 +5026,18 @@ function nh() {
   }, [publicClientShareToken, publicShareType]);
   V.useEffect(() => {
     if (!publicClientShareData) return;
-    if (
-      publicShareType === "shipment" &&
-      publicClientShareData.focus_shipment_id
-    ) {
-      setPublicExpandedShipmentId(Number(publicClientShareData.focus_shipment_id));
+    const o =
+      publicShareType === "shipment"
+        ? publicClientShareData.focus_shipment_id
+        : publicFocusShipmentIdFromSearch || publicClientShareData.focus_shipment_id;
+    if (o) {
+      setPublicExpandedShipmentId(Number(o));
       return;
     }
     setPublicExpandedShipmentId(null);
   }, [
     publicShareType,
+    publicFocusShipmentIdFromSearch,
     publicClientShareData &&
     publicClientShareData.focus_shipment_id,
     publicClientShareData &&
@@ -5934,7 +5970,7 @@ function nh() {
                                 onClick: () =>
                                   setPublicExpandedShipmentId(Number(o.id)),
                                 className:
-                                  `w-full text-left rounded-xl border px-3 py-2 transition ${Number(publicClientShareData.focus_shipment_id) === Number(o.id) ? "border-primary bg-primary/5" : "border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-800/50"}`,
+                                  `w-full text-left rounded-xl border px-3 py-2 transition ${Number(publicExpandedShipmentId) === Number(o.id) || Number(publicClientShareData.focus_shipment_id) === Number(o.id) ? "border-primary bg-primary/5" : "border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-800/50"}`,
                                 children: [
                                   c.jsxs("div", {
                                     className: "flex items-center justify-between gap-2",
@@ -9046,6 +9082,22 @@ function nh() {
                                   }),
                                 }),
                                 c.jsx("button", {
+                                  type: "button",
+                                  onClick: () => copyClientShipmentHistoryLink(N),
+                                  className:
+                                    "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                                  title: "Copiar link del cliente con este envio abierto",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[16px]",
+                                    children: copiedClientShareLinks.includes(
+                                      `shipment-client-history-share-${N.id}`,
+                                    )
+                                      ? "done"
+                                      : "link",
+                                  }),
+                                }),
+                                c.jsx("button", {
                                   onClick: () => deleteShipment(N),
                                   className:
                                     "w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30",
@@ -9406,7 +9458,8 @@ function nh() {
                                 }),
                                 (N.evidence || []).length > 0
                                   ? c.jsx("div", {
-                                      className: "mt-2 grid grid-cols-2 gap-2",
+                                      className:
+                                        "mt-2 grid grid-cols-3 sm:grid-cols-4 gap-1.5",
                                       children: (N.evidence || []).map((A) => {
                                         const vl = getShipmentEvidenceKind(A);
                                         return c.jsxs(
@@ -9420,7 +9473,8 @@ function nh() {
                                                     src: resolveMediaUrl(A.file),
                                                     controls: !0,
                                                     preload: "metadata",
-                                                    className: "w-full aspect-[4/5] bg-black object-cover",
+                                                    className:
+                                                      "w-full aspect-square bg-black object-cover",
                                                   })
                                                 : c.jsx("img", {
                                                     src: resolveMediaUrl(A.file),
@@ -9431,15 +9485,15 @@ function nh() {
                                                         copyMessage: "Evidencia copiada.",
                                                       }),
                                                     className:
-                                                      "w-full aspect-[4/5] object-cover cursor-zoom-in",
+                                                      "w-full aspect-square object-cover cursor-zoom-in",
                                                   }),
                                               c.jsxs("div", {
                                                 className:
-                                                  "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-2 py-1.5 flex items-end justify-between gap-2",
+                                                  "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-1.5 py-1 flex items-end justify-between gap-1",
                                                 children: [
                                                   c.jsx("span", {
                                                     className:
-                                                      "text-[10px] font-bold uppercase text-white/90",
+                                                      "text-[9px] font-bold uppercase text-white/90",
                                                     children:
                                                       vl === "VIDEO" ? "Video" : "Imagen",
                                                   }),
@@ -9450,10 +9504,10 @@ function nh() {
                                                     disabled:
                                                       shipmentEvidenceDeletingId === A.id,
                                                     className:
-                                                      "w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-60",
+                                                      "w-5 h-5 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-60",
                                                     children: c.jsx("span", {
                                                       className:
-                                                        `material-symbols-outlined text-[14px] ${
+                                                        `material-symbols-outlined text-[12px] ${
                                                           shipmentEvidenceDeletingId === A.id ? "animate-spin" : ""
                                                         }`,
                                                       children:
