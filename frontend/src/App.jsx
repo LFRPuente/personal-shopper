@@ -9558,7 +9558,7 @@ function nh() {
                                                 children: [
                                                   c.jsxs("div", {
                                                     className:
-                                                      "absolute top-2 left-2 z-20",
+                                                      `absolute top-2 left-2 ${openProductStatusId === qa.id ? "z-50" : "z-20"}`,
                                                     "data-product-status": "1",
                                                     children: [
                                                       c.jsx("button", {
