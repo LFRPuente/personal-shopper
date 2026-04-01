@@ -4641,6 +4641,10 @@ function nh() {
       ? Al.find((o) => Number(o && o.id) === Number(st.shopping || 0)) || null
       : null,
     missionTaxPercentage = toNumber(w && w.tax_percentage, toNumber(calcTaxes, 0)),
+    missionDiscountPercentage = Math.max(
+      0,
+      toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
+    ),
     missionProductsCount = activeMissionProducts.length,
     missionTotalWithoutTaxes = activeMissionProducts.reduce((o, N) => {
       const A = toNumber(N.real_price, Number.NaN);
@@ -4656,6 +4660,18 @@ function nh() {
       if (!Number.isFinite(vl)) return o;
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
+    missionDiscountTotal = missionDiscountPercentage > 0
+      ? activeMissionProducts.reduce(
+        (o, N) =>
+          o +
+          Math.max(
+            0,
+            getBreakdownBaseAmount(N) -
+              getProductPaymentAmount(N, missionDiscountPercentage),
+          ),
+        0,
+      )
+      : 0,
     filteredMissionSummaryProducts = activeMissionProducts.filter((o) =>
       missionSummaryStatusFilter === "ALL"
         ? !0
@@ -7293,6 +7309,19 @@ function nh() {
                       children: [
                         "Total+Tax: $",
                         missionTotalWithTaxes.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }),
+                      ],
+                    }),
+                    missionDiscountTotal > 0 &&
+                    c.jsxs("span", {
+                      className: isDesktopLayout
+                        ? "mt-0.5 block text-[9px] font-medium text-emerald-600 dark:text-emerald-300"
+                        : "mt-0.5 block text-[10px] font-medium text-emerald-600 dark:text-emerald-300",
+                      children: [
+                        "Descuento: -$",
+                        missionDiscountTotal.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         }),
