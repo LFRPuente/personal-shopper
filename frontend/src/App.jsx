@@ -340,6 +340,8 @@ function nh() {
     [shipmentSearch, setShipmentSearch] = V.useState(""),
     [shipmentEvidenceUploadingId, setShipmentEvidenceUploadingId] = V.useState(null),
     [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
+    [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null),
+    [openShipmentEvidenceMenuId, setOpenShipmentEvidenceMenuId] = V.useState(null),
     [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
     [shipmentSaving, setShipmentSaving] = V.useState(!1),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
@@ -1159,6 +1161,23 @@ function nh() {
       document.removeEventListener("click", closeMenuOnOutsideClick);
     };
   }, [openProductMenuId, openProductInfoId, openProductStatusId]);
+  V.useEffect(() => {
+    if (openShipmentEvidenceMenuId === null) return;
+    const closeShipmentEvidenceMenuOnOutsideClick = (o) => {
+      const N = o.target;
+      if (
+        N &&
+        N.closest &&
+        N.closest("[data-shipment-evidence-menu]")
+      )
+        return;
+      setOpenShipmentEvidenceMenuId(null);
+    };
+    document.addEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
+    return () => {
+      document.removeEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
+    };
+  }, [openShipmentEvidenceMenuId]);
   V.useEffect(() => {
     if (!C) {
       setRequests([]);
@@ -3206,6 +3225,7 @@ function nh() {
     uploadShipmentEvidence = async (o, N) => {
       if (!o || !o.id || !N || !N.length) return;
       setShipmentEvidenceUploadingId(o.id);
+      setOpenShipmentEvidenceMenuId(null);
       try {
         const A = new FormData();
         for (const vl of Array.from(N)) {
@@ -3227,6 +3247,55 @@ function nh() {
         setShipmentEvidenceUploadingId(null);
       }
     },
+    openShipmentEvidenceReplacePicker = (o, N) => {
+      if (!o || !o.id || !N || !N.id) return;
+      setOpenShipmentEvidenceMenuId(null);
+      openImageSourcePicker(
+        (A) => {
+          const vl = A && A.target && A.target.files;
+          vl && vl.length > 0 && replaceShipmentEvidence(o, N, vl[0]);
+        },
+        {
+          title: "Cambiar evidencia",
+          eyebrow: "Evidencia del envio",
+          description:
+            "Elige si quieres reemplazar la evidencia desde el dispositivo o pegar una imagen desde el portapapeles.",
+          multiple: !1,
+          accept: "image/*,video/*",
+          deviceDescription:
+            "Abre tu galeria o archivos y selecciona una imagen o video nuevo para esta evidencia.",
+          clipboardLabel: "Pegar desde portapapeles",
+          clipboardDescription:
+            "Pega una imagen copiada para reemplazar la evidencia actual.",
+        },
+      );
+    },
+    replaceShipmentEvidence = async (o, N, A) => {
+      if (!o || !o.id || !N || !N.id || !A) return;
+      setShipmentEvidenceReplacingId(N.id);
+      try {
+        const vl = new FormData(),
+          El = await prepareShipmentEvidenceFile(A);
+        if (!El) {
+          notifyError("No se pudo preparar el archivo de evidencia.");
+          return;
+        }
+        vl.append("file", El);
+        await I(`/shipments/${o.id}/evidence/${N.id}/replace/`, {
+          method: "POST",
+          body: vl,
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        publicClientShareToken && (await reloadPublicShareData());
+        notifySuccess("Evidencia actualizada.");
+      } catch (vl) {
+        console.error("Failed replacing shipment evidence", vl);
+        notifyError((vl && vl.message) || "No se pudo cambiar la evidencia.");
+      } finally {
+        setShipmentEvidenceReplacingId(null);
+      }
+    },
     deleteShipmentEvidence = async (o, N) => {
       if (!o || !o.id || !N) return;
       const A = await confirmAction({
@@ -3237,6 +3306,7 @@ function nh() {
         tone: "danger",
       });
       if (!A) return;
+      setOpenShipmentEvidenceMenuId(null);
       setShipmentEvidenceDeletingId(N);
       try {
         await I(`/shipments/${o.id}/evidence/${N}/`, {
@@ -9468,7 +9538,7 @@ function nh() {
                                           "div",
                                           {
                                             className:
-                                              "relative overflow-hidden rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80",
+                                              "relative overflow-visible rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80",
                                             children: [
                                               c.jsxs("div", {
                                                 className: "relative text-left w-full",
@@ -9553,11 +9623,20 @@ function nh() {
                                                     ? c.jsx("img", {
                                                         src: resolveMediaUrl(qa.image),
                                                         className:
-                                                          "w-full aspect-[4/5] object-cover",
+                                                          "w-full aspect-[4/5] object-cover cursor-zoom-in rounded-t-xl",
+                                                        onClick: (o) => {
+                                                          o.stopPropagation();
+                                                          setFullscreenImage({
+                                                            url: resolveMediaUrl(qa.image),
+                                                            copyOnClick: !0,
+                                                            copyMessage: "Imagen copiada.",
+                                                          });
+                                                        },
+                                                        title: "Abrir imagen",
                                                       })
                                                     : c.jsx("div", {
                                                         className:
-                                                          "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
+                                                          "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 rounded-t-xl",
                                                         children: c.jsx("span", {
                                                           className:
                                                             "material-symbols-outlined text-[18px]",
@@ -9710,8 +9789,86 @@ function nh() {
                                           "div",
                                           {
                                             className:
-                                              "relative overflow-hidden rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80",
+                                              "relative overflow-visible rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80",
                                             children: [
+                                              c.jsxs("div", {
+                                                className: "absolute top-1.5 right-1.5 z-20",
+                                                "data-shipment-evidence-menu": "1",
+                                                children: [
+                                                  c.jsx("button", {
+                                                    type: "button",
+                                                    onClick: (o) => {
+                                                      (o.stopPropagation(),
+                                                        setOpenShipmentEvidenceMenuId((N) =>
+                                                          N === A.id ? null : A.id,
+                                                        ));
+                                                    },
+                                                    className:
+                                                      "w-5 h-5 rounded-full bg-white/38 text-gray-700 hover:bg-white/56 border border-white/35 shadow-sm backdrop-blur-[2px] flex items-center justify-center",
+                                                    title: "Opciones de evidencia",
+                                                    children: c.jsx("span", {
+                                                      className:
+                                                        "material-symbols-outlined text-[12px]",
+                                                      children: "more_vert",
+                                                    }),
+                                                  }),
+                                                  openShipmentEvidenceMenuId === A.id &&
+                                                  c.jsxs("div", {
+                                                    className:
+                                                      "absolute right-0 top-7 z-30 w-36 rounded-xl border border-slate-200 bg-white shadow-lg p-1 dark:border-slate-700 dark:bg-slate-900",
+                                                    children: [
+                                                      c.jsxs("button", {
+                                                        type: "button",
+                                                        onClick: (o) => {
+                                                          (o.stopPropagation(),
+                                                            openShipmentEvidenceReplacePicker(N, A));
+                                                        },
+                                                        disabled:
+                                                          shipmentEvidenceReplacingId === A.id,
+                                                        className:
+                                                          `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-blue-700 dark:text-blue-200 ${shipmentEvidenceReplacingId === A.id ? "opacity-60 cursor-wait bg-blue-50 dark:bg-blue-950/30" : "hover:bg-blue-50 dark:hover:bg-blue-950/30"}`,
+                                                        children: [
+                                                          c.jsx("span", {
+                                                            className:
+                                                              `material-symbols-outlined text-[14px] ${shipmentEvidenceReplacingId === A.id ? "animate-spin" : ""}`,
+                                                            children:
+                                                              shipmentEvidenceReplacingId === A.id
+                                                                ? "progress_activity"
+                                                                : "edit",
+                                                          }),
+                                                          shipmentEvidenceReplacingId === A.id
+                                                            ? "Cambiando"
+                                                            : "Cambiar",
+                                                        ],
+                                                      }),
+                                                      c.jsxs("button", {
+                                                        type: "button",
+                                                        onClick: (o) => {
+                                                          (o.stopPropagation(),
+                                                            deleteShipmentEvidence(N, A.id));
+                                                        },
+                                                        disabled:
+                                                          shipmentEvidenceDeletingId === A.id,
+                                                        className:
+                                                          `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-red-700 dark:text-red-300 ${shipmentEvidenceDeletingId === A.id ? "opacity-60 cursor-wait bg-red-50 dark:bg-red-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"}`,
+                                                        children: [
+                                                          c.jsx("span", {
+                                                            className:
+                                                              `material-symbols-outlined text-[14px] ${shipmentEvidenceDeletingId === A.id ? "animate-spin" : ""}`,
+                                                            children:
+                                                              shipmentEvidenceDeletingId === A.id
+                                                                ? "progress_activity"
+                                                                : "delete",
+                                                          }),
+                                                          shipmentEvidenceDeletingId === A.id
+                                                            ? "Eliminando"
+                                                            : "Eliminar",
+                                                        ],
+                                                      }),
+                                                    ],
+                                                  }),
+                                                ],
+                                              }),
                                               vl === "VIDEO"
                                                 ? c.jsx("video", {
                                                     src: resolveMediaUrl(A.file),
@@ -9741,24 +9898,9 @@ function nh() {
                                                     children:
                                                       vl === "VIDEO" ? "Video" : "Imagen",
                                                   }),
-                                                  c.jsx("button", {
-                                                    type: "button",
-                                                    onClick: () =>
-                                                      deleteShipmentEvidence(N, A.id),
-                                                    disabled:
-                                                      shipmentEvidenceDeletingId === A.id,
+                                                  c.jsx("span", {
                                                     className:
-                                                      "w-5 h-5 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-60",
-                                                    children: c.jsx("span", {
-                                                      className:
-                                                        `material-symbols-outlined text-[12px] ${
-                                                          shipmentEvidenceDeletingId === A.id ? "animate-spin" : ""
-                                                        }`,
-                                                      children:
-                                                        shipmentEvidenceDeletingId === A.id
-                                                          ? "progress_activity"
-                                                          : "delete",
-                                                    }),
+                                                      "inline-flex h-5 w-5 shrink-0",
                                                   }),
                                                 ],
                                               }),

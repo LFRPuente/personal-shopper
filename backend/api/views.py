@@ -1820,6 +1820,57 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=True, methods=['post'], url_path=r'evidence/(?P<evidence_id>[^/.]+)/replace')
+    def replace_evidence(self, request, pk=None, evidence_id=None):
+        shipment = self.get_object()
+        evidence = shipment.evidence.filter(id=evidence_id).first()
+        if not evidence:
+            return Response(
+                {'error': 'Evidence not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        uploaded_file = request.FILES.get('file')
+        if uploaded_file is None:
+            uploaded_files = request.FILES.getlist('files')
+            uploaded_file = uploaded_files[0] if uploaded_files else None
+        if uploaded_file is None:
+            return Response(
+                {'error': 'A file is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        content_type = str(getattr(uploaded_file, 'content_type', '') or '').lower()
+        if content_type.startswith('image/'):
+            media_type = ShipmentEvidence.MediaType.IMAGE
+        elif content_type.startswith('video/'):
+            media_type = ShipmentEvidence.MediaType.VIDEO
+        else:
+            return Response(
+                {'error': 'Only image or video files are allowed.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        previous_file = evidence.file.name
+        evidence.file = uploaded_file
+        evidence.media_type = media_type
+        evidence.uploaded_by = request.user
+        evidence.save(update_fields=['file', 'media_type', 'uploaded_by'])
+        if previous_file and previous_file != evidence.file.name:
+            try:
+                ShipmentEvidence._meta.get_field('file').storage.delete(previous_file)
+            except Exception:
+                pass
+        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
+        broadcast_update('shipments', action='updated', object_id=shipment.id)
+        return Response(
+            {
+                'shipment': self.get_serializer(shipment).data,
+                'evidence': ShipmentEvidenceSerializer(
+                    evidence,
+                    context={'request': request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=['delete'], url_path=r'evidence/(?P<evidence_id>[^/.]+)')
     def delete_evidence(self, request, pk=None, evidence_id=None):
         shipment = self.get_object()
