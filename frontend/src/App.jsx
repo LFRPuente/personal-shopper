@@ -4660,15 +4660,10 @@ function nh() {
       if (!Number.isFinite(vl)) return o;
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
-    missionDiscountTotal = missionDiscountPercentage > 0
+    missionTotalWithDiscount = missionDiscountPercentage > 0
       ? activeMissionProducts.reduce(
         (o, N) =>
-          o +
-          Math.max(
-            0,
-            getBreakdownBaseAmount(N) -
-              getProductPaymentAmount(N, missionDiscountPercentage),
-          ),
+          o + getProductPaymentAmount(N, missionDiscountPercentage),
         0,
       )
       : 0,
@@ -7314,14 +7309,14 @@ function nh() {
                         }),
                       ],
                     }),
-                    missionDiscountTotal > 0 &&
+                    missionTotalWithDiscount > 0 &&
                     c.jsxs("span", {
                       className: isDesktopLayout
                         ? "mt-0.5 block text-[9px] font-medium text-emerald-600 dark:text-emerald-300"
                         : "mt-0.5 block text-[10px] font-medium text-emerald-600 dark:text-emerald-300",
                       children: [
-                        "Descuento: -$",
-                        missionDiscountTotal.toLocaleString("en-US", {
+                        "Con descuento: $",
+                        missionTotalWithDiscount.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         }),
