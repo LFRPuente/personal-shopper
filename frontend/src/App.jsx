@@ -4705,6 +4705,10 @@ function nh() {
         (o.products || []).filter((N) => Number(N.shopping) === Number(w.id)),
       )
       : [],
+    activeMissionSummaryProducts = activeMissionProducts.filter((o) => {
+      const N = String((o && o.status) || "").toUpperCase();
+      return N === "ANNOTATED";
+    }),
     requestAssignableClients = [...(Kl || [])].sort((o, N) =>
       String(o.name || "").localeCompare(String(N.name || ""), "es", {
         sensitivity: "base",
@@ -4790,20 +4794,20 @@ function nh() {
       0,
       toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
     ),
-    missionProductsCount = activeMissionProducts.length,
-    missionPurchaseCost = activeMissionProducts.reduce((o, N) => {
+    missionProductsCount = activeMissionSummaryProducts.length,
+    missionPurchaseCost = activeMissionSummaryProducts.reduce((o, N) => {
       const A = toNumber(N && N.real_price, Number.NaN);
       return Number.isFinite(A) ? o + A : o;
     }, 0),
     missionPurchaseCostWithDiscount = missionDiscountPercentage > 0
-      ? activeMissionProducts.reduce((o, N) => {
+      ? activeMissionSummaryProducts.reduce((o, N) => {
         const A = toNumber(N && N.real_price, Number.NaN);
         return Number.isFinite(A)
           ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
           : o;
       }, 0)
       : 0,
-    missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
+    missionTotalWithTaxes = activeMissionSummaryProducts.reduce((o, N) => {
       const A = toNumber(N.charged_price, Number.NaN);
       if (Number.isFinite(A)) return o + A;
       const vl = toNumber(N.real_price, Number.NaN);
@@ -4811,7 +4815,7 @@ function nh() {
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
     missionTotalWithDiscount = missionDiscountPercentage > 0
-      ? activeMissionProducts.reduce(
+      ? activeMissionSummaryProducts.reduce(
         (o, N) =>
           o + getProductPaymentAmount(N, missionDiscountPercentage),
         0,
