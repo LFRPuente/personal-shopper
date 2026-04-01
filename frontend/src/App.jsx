@@ -12233,7 +12233,7 @@ function nh() {
                                             className:
                                               "whitespace-nowrap text-[9px] font-bold",
                                             children: [
-                                              "Final $",
+                                              "Venta $",
                                               formatAmount(
                                                 getProductBaseFinalPrice(o),
                                               ),
@@ -12243,7 +12243,7 @@ function nh() {
                                             className:
                                               "whitespace-nowrap text-[9px] font-black text-emerald-700 dark:text-emerald-300",
                                             children: [
-                                              "Desc $",
+                                              "C/desc $",
                                               formatProductQuickFinalPrice(o),
                                             ],
                                           }),
