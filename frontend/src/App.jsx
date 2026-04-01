@@ -4665,9 +4665,9 @@ function nh() {
       toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
     ),
     missionProductsCount = activeMissionProducts.length,
-    missionAnnotatedPurchaseCost = activeMissionProducts.reduce((o, N) => {
-      if (String((N && N.status) || "").toUpperCase() !== "ANNOTATED") return o;
-      return o + toNumber(N && N.real_price, 0);
+    missionPurchaseCost = activeMissionProducts.reduce((o, N) => {
+      const A = toNumber(N && N.real_price, Number.NaN);
+      return Number.isFinite(A) ? o + A : o;
     }, 0),
     missionTotalWithoutTaxes = activeMissionProducts.reduce((o, N) => {
       const A = toNumber(N.real_price, Number.NaN);
@@ -7322,11 +7322,11 @@ function nh() {
                   children: [
                     c.jsxs("span", {
                       className: isDesktopLayout
-                        ? "block text-[10px] font-semibold text-amber-600 dark:text-amber-300"
-                        : "block text-[11px] font-semibold text-amber-600 dark:text-amber-300",
+                        ? "block text-[10px] font-semibold text-primary"
+                        : "block text-[11px] font-semibold text-primary",
                       children: [
                         "Costo compra (USD): $",
-                        missionAnnotatedPurchaseCost.toLocaleString("en-US", {
+                        missionPurchaseCost.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         }),
@@ -7347,8 +7347,8 @@ function nh() {
                     missionTotalWithDiscount > 0 &&
                     c.jsxs("span", {
                       className: isDesktopLayout
-                        ? "mt-0.5 block text-[9px] font-medium text-emerald-600 dark:text-emerald-300"
-                        : "mt-0.5 block text-[10px] font-medium text-emerald-600 dark:text-emerald-300",
+                        ? "mt-0.5 block text-[10px] font-semibold text-primary"
+                        : "mt-0.5 block text-[11px] font-semibold text-primary",
                       children: [
                         "Con descuento: $",
                         missionTotalWithDiscount.toLocaleString("en-US", {
@@ -7359,8 +7359,8 @@ function nh() {
                     }),
                     c.jsxs("span", {
                       className: isDesktopLayout
-                        ? "mt-0.5 block text-[9px] font-medium text-gray-500 dark:text-gray-400"
-                        : "mt-0.5 block text-[10px] font-medium text-gray-500 dark:text-gray-400",
+                        ? "mt-0.5 block text-[10px] font-semibold text-primary"
+                        : "mt-0.5 block text-[11px] font-semibold text-primary",
                       children: [
                         "Sin tax: $",
                         missionTotalWithoutTaxes.toLocaleString("en-US", {
