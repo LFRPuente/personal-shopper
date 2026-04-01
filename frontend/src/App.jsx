@@ -4703,6 +4703,14 @@ function nh() {
       const A = toNumber(N && N.real_price, Number.NaN);
       return Number.isFinite(A) ? o + A : o;
     }, 0),
+    missionPurchaseCostWithDiscount = missionDiscountPercentage > 0
+      ? activeMissionProducts.reduce((o, N) => {
+        const A = toNumber(N && N.real_price, Number.NaN);
+        return Number.isFinite(A)
+          ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
+          : o;
+      }, 0)
+      : 0,
     missionTotalWithTaxes = activeMissionProducts.reduce((o, N) => {
       const A = toNumber(N.charged_price, Number.NaN);
       if (Number.isFinite(A)) return o + A;
@@ -7347,42 +7355,79 @@ function nh() {
                   children: ["Items: ", missionProductsCount],
                 }),
                 c.jsxs("div", {
-                  className: "text-right",
+                  className: "text-right space-y-1.5",
                   children: [
-                    c.jsxs("span", {
-                      className: isDesktopLayout
-                        ? "block text-[10px] font-semibold text-white"
-                        : "block text-[11px] font-semibold text-white",
+                    c.jsxs("div", {
+                      className:
+                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
                       children: [
-                        "Costo compra (USD): $",
-                        missionPurchaseCost.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                        c.jsx("p", {
+                          className: isDesktopLayout
+                            ? "text-[9px] font-black uppercase tracking-[0.14em] text-white/70"
+                            : "text-[10px] font-black uppercase tracking-[0.12em] text-white/70",
+                          children: "Compra",
+                        }),
+                        c.jsxs("span", {
+                          className: isDesktopLayout
+                            ? "mt-1 block text-[10px] font-semibold text-white"
+                            : "mt-1 block text-[11px] font-semibold text-white",
+                          children: [
+                            "Costo compra (USD): $",
+                            missionPurchaseCost.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }),
+                          ],
+                        }),
+                        missionPurchaseCostWithDiscount > 0 &&
+                        c.jsxs("span", {
+                          className: isDesktopLayout
+                            ? "mt-0.5 block text-[10px] font-semibold text-white"
+                            : "mt-0.5 block text-[11px] font-semibold text-white",
+                          children: [
+                            "Compra con descuento: $",
+                            missionPurchaseCostWithDiscount.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }),
+                          ],
                         }),
                       ],
                     }),
-                    c.jsxs("span", {
-                      className: isDesktopLayout
-                        ? "mt-0.5 block text-[10px] font-semibold text-white"
-                        : "mt-0.5 block text-[11px] font-semibold text-white",
+                    c.jsxs("div", {
+                      className:
+                        "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
                       children: [
-                        "Total+Tax: $",
-                        missionTotalWithTaxes.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                        c.jsx("p", {
+                          className: isDesktopLayout
+                            ? "text-[9px] font-black uppercase tracking-[0.14em] text-white/70"
+                            : "text-[10px] font-black uppercase tracking-[0.12em] text-white/70",
+                          children: "Venta",
                         }),
-                      ],
-                    }),
-                    missionTotalWithDiscount > 0 &&
-                    c.jsxs("span", {
-                      className: isDesktopLayout
-                        ? "mt-0.5 block text-[10px] font-semibold text-white"
-                        : "mt-0.5 block text-[11px] font-semibold text-white",
-                      children: [
-                        "Con descuento: $",
-                        missionTotalWithDiscount.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                        c.jsxs("span", {
+                          className: isDesktopLayout
+                            ? "mt-1 block text-[10px] font-semibold text-white"
+                            : "mt-1 block text-[11px] font-semibold text-white",
+                          children: [
+                            "Total+Tax: $",
+                            missionTotalWithTaxes.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }),
+                          ],
+                        }),
+                        missionTotalWithDiscount > 0 &&
+                        c.jsxs("span", {
+                          className: isDesktopLayout
+                            ? "mt-0.5 block text-[10px] font-semibold text-white"
+                            : "mt-0.5 block text-[11px] font-semibold text-white",
+                          children: [
+                            "Con descuento: $",
+                            missionTotalWithDiscount.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }),
+                          ],
                         }),
                       ],
                     }),
