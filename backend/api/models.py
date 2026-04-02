@@ -435,6 +435,7 @@ class ClientHistoryShareLink(models.Model):
         on_delete=models.CASCADE,
         related_name='history_share_links',
     )
+    public_token = models.CharField(max_length=64, unique=True, null=True, blank=True)
     token_hash = models.CharField(max_length=64, unique=True)
     created_by = models.ForeignKey(
         User,

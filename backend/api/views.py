@@ -5,7 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.http import Http404
@@ -221,15 +221,7 @@ def calculate_client_share_balance_total(client):
 
 
 def deactivate_empty_client_share_links(client_id=None, mission_id=None):
-    if not client_id:
-        return
-    still_shareable = ProductItem.objects.filter(client_id=client_id).exists()
-    if still_shareable:
-        return
-    ClientHistoryShareLink.objects.filter(
-        client_id=client_id,
-        is_active=True,
-    ).update(is_active=False)
+    return
 
 
 def deactivate_empty_shipment_share_links(shipment):
@@ -687,16 +679,39 @@ def create_client_mission_share_link(request):
             {'error': 'Client not found.'},
             status=status.HTTP_404_NOT_FOUND,
         )
-    ClientHistoryShareLink.objects.filter(
-        client=client,
-        is_active=True,
-    ).update(is_active=False)
-    raw_token = secrets.token_urlsafe(32)
-    share_link = ClientHistoryShareLink.objects.create(
-        client=client,
-        token_hash=hash_share_token(raw_token),
-        created_by=request.user,
+    share_link = (
+        ClientHistoryShareLink.objects.filter(client=client)
+        .order_by('-is_active', '-created_at', '-id')
+        .first()
     )
+    raw_token = ''
+    if share_link:
+        raw_token = str(share_link.public_token or '').strip()
+        if not raw_token:
+            raw_token = secrets.token_urlsafe(32)
+        share_link.public_token = raw_token
+        share_link.is_active = True
+        if not share_link.created_by_id:
+            share_link.created_by = request.user
+        share_link.save(
+            update_fields=[
+                'public_token',
+                'is_active',
+                'created_by',
+            ],
+        )
+        ClientHistoryShareLink.objects.filter(
+            client=client,
+            is_active=True,
+        ).exclude(id=share_link.id).update(is_active=False)
+    else:
+        raw_token = secrets.token_urlsafe(32)
+        share_link = ClientHistoryShareLink.objects.create(
+            client=client,
+            public_token=raw_token,
+            token_hash=hash_share_token(raw_token),
+            created_by=request.user,
+        )
     serializer = ClientHistoryShareLinkSerializer(share_link)
     return Response(
         {
@@ -760,7 +775,7 @@ def public_client_mission_share_view(request, token):
     token_hash = hash_share_token(token)
     share_link = (
         ClientHistoryShareLink.objects.select_related('client')
-        .filter(token_hash=token_hash, is_active=True)
+        .filter(Q(public_token=token) | Q(token_hash=token_hash), is_active=True)
         .first()
     )
     if not share_link or share_link.is_expired:
@@ -803,7 +818,7 @@ def public_client_build_shipment_view(request, token):
     token_hash = hash_share_token(token)
     share_link = (
         ClientHistoryShareLink.objects.select_related('client', 'created_by')
-        .filter(token_hash=token_hash, is_active=True)
+        .filter(Q(public_token=token) | Q(token_hash=token_hash), is_active=True)
         .first()
     )
     if not share_link or share_link.is_expired:
