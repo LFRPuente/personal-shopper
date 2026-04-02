@@ -9174,7 +9174,7 @@ function nh() {
                   children: [
                     c.jsxs("div", {
                       className:
-                        "px-4 py-4 flex items-start gap-3.5 relative min-h-[132px]",
+                        "px-3 py-3 sm:px-4 sm:py-4 flex flex-wrap items-start gap-3 relative",
                       children: [
                         c.jsx("div", {
                           className:
@@ -9182,7 +9182,7 @@ function nh() {
                           children: N.name.charAt(0),
                         }),
                         c.jsxs("div", {
-                          className: "flex-1 min-w-0 cursor-pointer",
+                          className: "flex-1 basis-0 min-w-0 cursor-pointer",
                           onClick: () => ge(A ? null : N.id),
                           children: [
                             c.jsx("h3", {
@@ -9199,36 +9199,8 @@ function nh() {
                               ],
                             }),
                             c.jsxs("div", {
-                              className: "mt-1.5 space-y-0.5",
-                              children: [
-                                c.jsxs("p", {
-                                  className:
-                                    `text-[11px] font-bold ${
-                                      totalClientBalance < 0
-                                        ? "text-emerald-700 dark:text-emerald-300"
-                                        : totalClientBalance > 0
-                                          ? "text-slate-700 dark:text-slate-300"
-                                          : "text-slate-500 dark:text-slate-400"
-                                    }`,
-                                  children: [
-                                    totalClientBalance < 0
-                                      ? "A favor total: $"
-                                      : "Deuda total: $",
-                                    formatAmount(Math.abs(totalClientBalance)),
-                                  ],
-                                }),
-                                c.jsxs("p", {
-                                  className:
-                                    "text-[11px] font-bold text-blue-700 dark:text-blue-300",
-                                  children: [
-                                    "Total Venta: $",
-                                    formatAmount(totalClientSale || El.sale),
-                                  ],
-                                }),
-                              ],
-                            }),
-                            c.jsxs("div", {
-                              className: "mt-2 grid grid-cols-2 gap-2 max-w-[18rem] min-w-0",
+                              className:
+                                "mt-2 grid grid-cols-2 gap-2 w-full max-w-none sm:max-w-[18rem] min-w-0",
                               children: [
                                 c.jsxs("div", {
                                   className:
@@ -9299,7 +9271,7 @@ function nh() {
                         }),
                         c.jsxs("div", {
                           className:
-                            "shrink-0 self-start flex flex-col items-end gap-1.5 pt-0.5",
+                            "w-full sm:w-auto shrink-0 self-start flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1.5 pt-0.5",
                           children: [
                             w
                               ? c.jsx("div", {
