@@ -6876,7 +6876,6 @@ function nh() {
                         }),
                       ],
                     }),
-                    !publicSelectedShipment &&
                     (publicClientShareData.shipments || []).length > 0 &&
                     c.jsxs("div", {
                       className:
@@ -6887,7 +6886,7 @@ function nh() {
                           children: [
                             c.jsx("h3", {
                               className: "text-sm font-bold text-text-main dark:text-white",
-                              children: "Envios",
+                              children: "Historial de envios",
                             }),
                             c.jsxs("span", {
                               className: "text-[11px] text-text-sub",
@@ -6958,7 +6957,12 @@ function nh() {
                         }),
                       ],
                     }),
-                    !publicSelectedShipment &&
+                    (publicClientShareData.shipments || []).length === 0 &&
+                    c.jsx("div", {
+                      className:
+                        "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-10 text-center text-sm text-text-sub",
+                      children: "No hay envios para mostrar.",
+                    }),
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
@@ -7115,12 +7119,6 @@ function nh() {
                         }),
                       ],
                     }),
-                    (publicClientShareData.shipments || []).length === 0 &&
-                    c.jsx("div", {
-                          className:
-                            "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-10 text-center text-sm text-text-sub",
-                          children: "No hay envios para mostrar.",
-                        }),
                   ],
                 }),
         ],
