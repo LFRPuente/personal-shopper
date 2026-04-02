@@ -156,30 +156,67 @@ def calculate_client_credit_total(client):
 def calculate_client_share_balance_total(client):
     if not client:
         return 0
-    shopping_product_totals = {}
-    shopping_payment_totals = {}
-    products = ProductItem.objects.filter(client=client).exclude(
-        status__in=['IN_REVIEW', 'REJECTED']
+    def get_discounted_product_amount(product, discount_percentage=0):
+        discount_multiplier = max(0, 1 - float(discount_percentage or 0) / 100)
+        charged_price = product.charged_price
+        if charged_price is not None:
+            return float(charged_price) * discount_multiplier
+        real_price = product.real_price
+        return float(real_price or 0)
+
+    products = list(
+        ProductItem.objects.filter(client=client)
+        .exclude(status__in=['IN_REVIEW', 'REJECTED'])
+        .select_related('mission')
+        .order_by('-created_at', '-id')
     )
+    payments = list(
+        ShoppingPayment.objects.filter(client=client, mission__isnull=False)
+        .select_related('mission')
+        .prefetch_related('products')
+        .order_by('-updated_at', '-created_at', '-id')
+    )
+
+    products_by_shopping = {}
     for product in products:
         shopping_id = product.mission_id
         if not shopping_id:
             continue
-        shopping_product_totals[shopping_id] = shopping_product_totals.get(shopping_id, 0) + float(
-            product.charged_price or product.real_price or 0
-        )
-    payments = ShoppingPayment.objects.filter(client=client)
+        products_by_shopping.setdefault(shopping_id, []).append(product)
+
+    latest_payments_by_shopping = {}
     for payment in payments:
         shopping_id = payment.mission_id
-        if not shopping_id:
+        if not shopping_id or shopping_id in latest_payments_by_shopping:
             continue
-        shopping_payment_totals[shopping_id] = shopping_payment_totals.get(shopping_id, 0) + float(
-            payment.amount or 0
-        )
-    shopping_ids = set(shopping_product_totals.keys()) | set(shopping_payment_totals.keys())
+        latest_payments_by_shopping[shopping_id] = payment
+
+    shopping_ids = set(products_by_shopping.keys()) | set(latest_payments_by_shopping.keys())
     balance_total = 0
     for shopping_id in shopping_ids:
-        balance_total += shopping_product_totals.get(shopping_id, 0) - shopping_payment_totals.get(shopping_id, 0)
+        latest_payment = latest_payments_by_shopping.get(shopping_id)
+        selected_product_ids = set()
+        payment_amount = 0
+        discount_percentage = 0
+        if latest_payment is not None:
+            selected_product_ids = set(latest_payment.products.values_list('id', flat=True))
+            payment_amount = float(latest_payment.amount or 0)
+            discount_percentage = float(
+                getattr(latest_payment.mission, 'discount_percentage', 0) or 0
+            )
+        elif products_by_shopping.get(shopping_id):
+            mission = products_by_shopping[shopping_id][0].mission
+            discount_percentage = float(
+                getattr(mission, 'discount_percentage', 0) or 0
+            )
+
+        products_total = 0
+        for product in products_by_shopping.get(shopping_id, []):
+            product_status = str(product.status or '').upper()
+            if product_status == 'ANNOTATED' or product.id in selected_product_ids:
+                products_total += get_discounted_product_amount(product, discount_percentage)
+
+        balance_total += products_total - payment_amount
     return round(balance_total, 2)
 
 
