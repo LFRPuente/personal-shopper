@@ -6982,7 +6982,7 @@ function nh() {
                           ],
                         }),
                         c.jsx("div", {
-                          className: "grid grid-cols-2 gap-1.5 justify-items-center",
+                          className: "grid grid-cols-3 gap-1.5 justify-items-center",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
                               "div",
