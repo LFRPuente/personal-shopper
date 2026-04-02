@@ -3502,6 +3502,9 @@ function nh() {
       ) || null
       : null,
     paymentHistoryEntries = paymentLocalRecordEntries(paymentCurrentRecord),
+    paymentHistoryRows = paymentModalClient
+      ? getClientPaymentHistoryRows(paymentModalClient)
+      : [],
     paymentFilteredProducts = paymentModalProducts.filter((o) => {
       const N = String(paymentProductSearch || "").trim().toLowerCase();
       if (!N) return !0;
@@ -14975,24 +14978,30 @@ function nh() {
                                       className:
                                         "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
                                       children: [
-                                        paymentHistoryEntries.length,
+                                        paymentHistoryRows.length,
                                         " movimiento(s)",
                                       ],
                                     }),
                                   ],
                                 }),
-                                paymentHistoryEntries.length === 0
+                                paymentHistoryRows.length === 0
                                   ? c.jsx("p", {
                                     className:
                                       "text-[11px] leading-5 text-text-sub",
                                     children:
-                                      "Aun no hay abonos guardados en esta shopping.",
+                                      "Aun no hay abonos guardados para este cliente.",
                                   })
                                   : c.jsx("div", {
                                     className:
                                       "max-h-48 overflow-y-auto ios-scroll space-y-2 pr-1.5",
-                                    children: paymentHistoryEntries.map((o) =>
-                                      c.jsxs(
+                                    children: paymentHistoryRows.map((o) => {
+                                      const N =
+                                          Boolean(o && o.payment_id) &&
+                                          Number(o.payment_id) === Number(paymentForm.id || 0) &&
+                                          (!Array.isArray(o.shopping_tags) ||
+                                            o.shopping_tags.length === 0),
+                                        A = N && paymentEntryEditingId === Number(o.id);
+                                      return c.jsxs(
                                         "div",
                                         {
                                           className:
@@ -15005,11 +15014,34 @@ function nh() {
                                                 c.jsxs("div", {
                                                   className: "min-w-0",
                                                   children: [
-                                                    paymentEntryEditingId ===
-                                                    Number(o.id)
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[11px] font-bold text-violet-700 dark:text-violet-200 truncate",
+                                                      children:
+                                                        o.shopping_title ||
+                                                        `Shopping #${o.shopping_id}`,
+                                                    }),
+                                                    Array.isArray(o.shopping_tags) &&
+                                                    o.shopping_tags.length > 0 &&
+                                                    c.jsx("div", {
+                                                      className:
+                                                        "mt-1 flex flex-wrap gap-1",
+                                                      children: o.shopping_tags.map((vl) =>
+                                                        c.jsx(
+                                                          "span",
+                                                          {
+                                                            className:
+                                                              "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
+                                                            children: vl,
+                                                          },
+                                                          `payment-history-tag-${o.id}-${vl}`,
+                                                        ),
+                                                      ),
+                                                    }),
+                                                    A
                                                       ? c.jsxs("div", {
                                                         className:
-                                                          "flex items-center gap-1.5",
+                                                          "mt-1 flex items-center gap-1.5",
                                                         children: [
                                                           c.jsx("input", {
                                                             type: "number",
@@ -15017,9 +15049,9 @@ function nh() {
                                                             inputMode: "decimal",
                                                             value:
                                                               paymentEntryDraftAmount,
-                                                            onChange: (N) =>
+                                                            onChange: (vl) =>
                                                               setPaymentEntryDraftAmount(
-                                                                N.target.value,
+                                                                vl.target.value,
                                                               ),
                                                             className:
                                                               "w-28 px-2.5 py-1.5 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
@@ -15069,7 +15101,7 @@ function nh() {
                                                       })
                                                       : c.jsxs("p", {
                                                         className:
-                                                          `text-[13px] font-bold ${
+                                                          `text-[13px] font-bold mt-0.5 ${
                                                             paymentLocalToNumber(
                                                               o.amount,
                                                               0,
@@ -15128,8 +15160,8 @@ function nh() {
                                                         ),
                                                       ],
                                                     }),
-                                                    paymentEntryEditingId !==
-                                                    Number(o.id) &&
+                                                    N &&
+                                                    !A &&
                                                     c.jsxs("div", {
                                                       className:
                                                         "flex items-center justify-end gap-1",
@@ -15188,8 +15220,8 @@ function nh() {
                                           ],
                                         },
                                         `payment-history-entry-${o.id}`,
-                                      ),
-                                    ),
+                                      );
+                                    }),
                                   }),
                               ],
                             }),
