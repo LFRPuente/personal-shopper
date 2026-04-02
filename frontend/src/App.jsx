@@ -6179,7 +6179,7 @@ function nh() {
                         c.jsx("p", {
                           className:
                             "text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300",
-                          children: "Credito disponible",
+                          children: "A favor disponible",
                         }),
                         c.jsxs("p", {
                           className:
@@ -6190,7 +6190,7 @@ function nh() {
                           className:
                             "mt-1 text-[11px] leading-5 text-emerald-700/80 dark:text-emerald-200/80",
                           children:
-                            "Este credito ya considera las compras donde se uso credito previo.",
+                            "Este saldo a favor ya considera las compras donde se uso saldo previo.",
                         }),
                       ],
                     }),
@@ -7456,7 +7456,7 @@ function nh() {
                                 className:
                                   `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
-                                  vl < 0 ? "Credito: " : "Deuda: ",
+                                  vl < 0 ? "A favor: " : "Deuda: ",
                                   "$",
                                   formatAmount(Math.abs(vl)),
                                 ],
@@ -8759,7 +8759,7 @@ function nh() {
                                     }`,
                                   children: [
                                     totalClientBalance < 0
-                                      ? "Credito total: $"
+                                      ? "A favor total: $"
                                       : "Deuda total: $",
                                     formatAmount(Math.abs(totalClientBalance)),
                                   ],
@@ -8797,7 +8797,7 @@ function nh() {
                                               : "text-slate-500/75"
                                         }`,
                                       children:
-                                        totalClientBalance < 0 ? "Credito" : "Deuda",
+                                        totalClientBalance < 0 ? "A favor" : "Deuda",
                                     }),
                                     c.jsxs("p", {
                                       className:
@@ -9056,7 +9056,7 @@ function nh() {
                                                         }`,
                                                       children: [
                                                         ea.balance < 0
-                                                          ? "Credito: $"
+                                                          ? "A favor: $"
                                                           : "Deuda: $",
                                                         formatAmount(
                                                           ea.balance < 0
@@ -9274,7 +9274,7 @@ function nh() {
                                                                 }`,
                                                               children: [
                                                                 bi < 0
-                                                                  ? "Credito: $"
+                                                                  ? "A favor: $"
                                                                   : "Deuda: $",
                                                                 formatAmount(
                                                                   bi < 0
@@ -12567,7 +12567,7 @@ function nh() {
                                   `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
                                   selectedClientHomePaymentSummary.balance < 0
-                                    ? "Credito: "
+                                    ? "A favor: "
                                     : "Deuda: ",
                                   "$",
                                   formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
@@ -12599,7 +12599,7 @@ function nh() {
                               `text-[9px] font-black uppercase ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
                             children:
                               selectedClientHomePaymentSummary.balance < 0
-                                ? "Credito"
+                                ? "A favor"
                                 : "Deuda",
                           }),
                           c.jsxs("span", {
@@ -14495,7 +14495,7 @@ function nh() {
                                         }`,
                                       children:
                                         clientPaymentBalance < 0
-                                          ? "Credito"
+                                          ? "A favor"
                                           : "Deuda",
                                     }),
                                     c.jsxs("p", {
@@ -15287,7 +15287,7 @@ function nh() {
                                         }`,
                                       children:
                                         paymentFormBalance < 0
-                                          ? "Credito"
+                                          ? "A favor"
                                           : "Deuda",
                                     }),
                                     c.jsxs("p", {
@@ -15321,7 +15321,7 @@ function nh() {
                                     ? "Este monto se agregara como un abono nuevo al historial."
                                     : "Puedes capturar un nuevo abono o dejarlo en 0 para solo ajustar los productos."
                                   : paymentFormBalance < 0
-                                  ? "Credito a favor: el cliente pago mas de lo seleccionado."
+                                  ? "A favor: el cliente pago mas de lo seleccionado."
                                   : "Puedes quitar o agregar productos para ajustar lo que cubre este pago.",
                             }),
                           ],
