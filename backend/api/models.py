@@ -33,9 +33,11 @@ class Client(models.Model):
     name = models.CharField(max_length=255)
     status = models.CharField(max_length=50, default='Pending')
     tags = models.TextField(blank=True, null=True)
+    phone_country_code = models.CharField(max_length=8, blank=True, default='+52')
     phone = models.CharField(max_length=30, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     shipping_address = models.TextField(blank=True, null=True)
+    shipping_addresses = models.JSONField(default=list, blank=True)
     added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='clients_added', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

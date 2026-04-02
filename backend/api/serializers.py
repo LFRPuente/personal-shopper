@@ -68,6 +68,68 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = '__all__'
 
+    def validate_phone_country_code(self, value):
+        raw_value = str(value or '').strip()
+        digits = ''.join(ch for ch in raw_value if ch.isdigit())
+        if not digits:
+            return '+52'
+        return f'+{digits[:4]}'
+
+    def validate_phone(self, value):
+        raw_value = str(value or '').strip()
+        if not raw_value:
+            return ''
+        digits = ''.join(ch for ch in raw_value if ch.isdigit())
+        if len(digits) != 10:
+            raise serializers.ValidationError('Phone must contain exactly 10 digits.')
+        return digits
+
+    def validate_shipping_addresses(self, value):
+        if value in (None, ''):
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Shipping addresses must be a list.')
+        normalized = []
+        seen = set()
+        for entry in value:
+            text = str(entry or '').strip()
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(text)
+        return normalized
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        primary_address = str(
+            attrs.get(
+                'shipping_address',
+                getattr(self.instance, 'shipping_address', '') if self.instance else '',
+            )
+            or ''
+        ).strip()
+        extra_addresses = attrs.get(
+            'shipping_addresses',
+            getattr(self.instance, 'shipping_addresses', []) if self.instance else [],
+        )
+        normalized_extra = []
+        seen = {primary_address.casefold()} if primary_address else set()
+        for entry in extra_addresses or []:
+            text = str(entry or '').strip()
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized_extra.append(text)
+        attrs['shipping_address'] = primary_address
+        attrs['shipping_addresses'] = normalized_extra
+        return attrs
+
     def get_products(self, obj):
         serializer = ProductItemSerializer(
             obj.products.all(), many=True, context=self.context

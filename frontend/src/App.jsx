@@ -151,6 +151,43 @@ const getUserOptionLabel = (o) => {
   const A = String((o && o.profile && o.profile.role) || "").trim();
   return N && A ? `${N} (${A})` : N || A || "Usuario";
 };
+const normalizeClientCountryCode = (o) => {
+  const N = String(o || "").replace(/[^\d]/g, "");
+  return N ? `+${N.slice(0, 4)}` : "+52";
+};
+const normalizeClientPhoneDigits = (o) =>
+  String(o || "")
+    .replace(/\D/g, "")
+    .slice(0, 10);
+const sanitizeClientCountryCodeInput = (o) => {
+  const N = String(o || "")
+    .replace(/\D/g, "")
+    .slice(0, 7);
+  return N ? `+${N}` : "+";
+};
+const sanitizeClientPhoneInput = (o) =>
+  String(o || "")
+    .replace(/\D/g, "")
+    .slice(0, 10);
+const normalizeClientShippingAddresses = (o, N = "") => {
+  const A = Array.isArray(o) ? o : [];
+  const vl = String(N || "").trim();
+  const El = vl ? new Set([vl.toLowerCase()]) : new Set();
+  return A.reduce((Se, ea) => {
+    const gl = String(ea || "").trim();
+    if (!gl) return Se;
+    const ae = gl.toLowerCase();
+    if (El.has(ae)) return Se;
+    El.add(ae);
+    Se.push(gl);
+    return Se;
+  }, []);
+};
+const getClientPhoneDisplay = (o) => {
+  const N = normalizeClientPhoneDigits(o && o.phone);
+  if (!N) return "";
+  return `${normalizeClientCountryCode(o && o.phone_country_code)} ${N}`;
+};
 const normalizeShipmentStatusValue = (o) => {
   const N = String(o || "").trim().toUpperCase();
   return N === "SHIPPED"
@@ -241,9 +278,11 @@ function nh() {
     [me, ut] = V.useState(!1),
     [Vl, Yt] = V.useState(""),
     [Nt, it] = V.useState(""),
+    [clientPhoneCountryCode, setClientPhoneCountryCode] = V.useState("+52"),
     [p, z] = V.useState(""),
     [q, sl] = V.useState(""),
     [rl, d] = V.useState(""),
+    [clientShippingAddresses, setClientShippingAddresses] = V.useState([]),
     [j, _] = V.useState(""),
     [O, Y] = V.useState(null),
     [K, tl] = V.useState(!1),
@@ -251,9 +290,11 @@ function nh() {
       name: "",
       tags: "",
       status: "",
+      phone_country_code: "+52",
       phone: "",
       email: "",
       shipping_address: "",
+      shipping_addresses: [],
     }),
     [kt, Kt] = V.useState(null),
     [va, we] = V.useState(null),
@@ -1519,35 +1560,77 @@ function nh() {
         setLayoutMode("MOBILE")
       );
     },
+    buildClientPayload = ({
+      name = "",
+      status = "Pending",
+      tags = "",
+      phone_country_code = "+52",
+      phone = "",
+      email = "",
+      shipping_address = "",
+      shipping_addresses = [],
+    }) => ({
+      name: String(name || "").trim(),
+      status,
+      tags: String(tags || "").trim(),
+      phone_country_code: normalizeClientCountryCode(phone_country_code),
+      phone: normalizeClientPhoneDigits(phone),
+      email: String(email || "").trim(),
+      shipping_address: String(shipping_address || "").trim(),
+      shipping_addresses: normalizeClientShippingAddresses(
+        shipping_addresses,
+        shipping_address,
+      ),
+    }),
     Na = async (o) => {
       if ((o.preventDefault(), !!Vl))
         try {
+          const A = buildClientPayload({
+            name: Vl,
+            status: "Pending",
+            tags: Nt,
+            phone_country_code: clientPhoneCountryCode,
+            phone: p,
+            email: q,
+            shipping_address: rl,
+            shipping_addresses: clientShippingAddresses,
+          });
+          if (A.phone && A.phone.length !== 10) {
+            notifyInfo("El telefono debe tener exactamente 10 numeros.");
+            return;
+          }
           const N = await I("/clients/", {
             method: "POST",
-            body: JSON.stringify({
-              name: Vl,
-              status: "Pending",
-              tags: Nt,
-              phone: p,
-              email: q,
-              shipping_address: rl,
-            }),
+            body: JSON.stringify(A),
           });
-          (_l([...Kl, N]), Yt(""), it(""), z(""), sl(""), d(""), k(!1));
-        } catch {
-          notifyError("Error creating client");
+          (_l([...Kl, N]),
+            Yt(""),
+            it(""),
+            setClientPhoneCountryCode("+52"),
+            z(""),
+            sl(""),
+            d(""),
+            setClientShippingAddresses([]),
+            k(!1));
+        } catch (N) {
+          notifyError((N && N.message) || "Error creating client");
         }
     },
     ja = async (o) => {
       if ((o.preventDefault(), !!ml.name))
         try {
+          const Nl = buildClientPayload(ml);
+          if (Nl.phone && Nl.phone.length !== 10) {
+            notifyInfo("El telefono debe tener exactamente 10 numeros.");
+            return;
+          }
           const N = await I(`/clients/${O.id}/`, {
             method: "PATCH",
-            body: JSON.stringify(ml),
+            body: JSON.stringify(Nl),
           });
           (_l(Kl.map((A) => (A.id === O.id ? N : A))), tl(!1), Y(null));
-        } catch {
-          notifyError("Error updating client");
+        } catch (N) {
+          notifyError((N && N.message) || "Error updating client");
         }
     },
     Ea = async (o) => {
@@ -8976,7 +9059,16 @@ function nh() {
               }),
               X !== "PS" &&
               c.jsxs("button", {
-                onClick: () => k(!0),
+                onClick: () => {
+                  (Yt(""),
+                    it(""),
+                    setClientPhoneCountryCode("+52"),
+                    z(""),
+                    sl(""),
+                    d(""),
+                    setClientShippingAddresses([]),
+                    k(!0));
+                },
                 className:
                   "bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition",
                 children: [
@@ -9234,10 +9326,16 @@ function nh() {
                                         name: N.name,
                                         tags: N.tags || "",
                                         status: N.status,
+                                        phone_country_code:
+                                          N.phone_country_code || "+52",
                                         phone: N.phone || "",
                                         email: N.email || "",
                                         shipping_address:
                                           N.shipping_address || "",
+                                        shipping_addresses:
+                                          Array.isArray(N.shipping_addresses)
+                                            ? N.shipping_addresses
+                                            : [],
                                       }),
                                       tl(!0));
                                   },
@@ -9267,10 +9365,10 @@ function nh() {
                       className:
                         "border-t border-border-light dark:border-border-dark px-4 py-3",
                       children: [
-                        N.phone &&
+                        !!getClientPhoneDisplay(N) &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["📱 ", N.phone],
+                          children: ["📱 ", getClientPhoneDisplay(N)],
                         }),
                         N.email &&
                         c.jsxs("p", {
@@ -9281,6 +9379,21 @@ function nh() {
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-2",
                           children: ["📦 ", N.shipping_address],
+                        }),
+                        Array.isArray(N.shipping_addresses) &&
+                        N.shipping_addresses.length > 0 &&
+                        c.jsx("div", {
+                          className: "mb-2 space-y-1",
+                          children: N.shipping_addresses.map((o, A) =>
+                            c.jsxs(
+                              "p",
+                              {
+                                className: "text-[10px] text-gray-500",
+                                children: ["📍 ", o],
+                              },
+                              `client-extra-shipping-${N.id}-${A}`,
+                            ),
+                          ),
                         }),
                         vl.length === 0 && (N.payments || []).length === 0
                           ? c.jsx("p", {
@@ -11671,13 +11784,39 @@ function nh() {
                             "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                           children: "Phone",
                         }),
-                        c.jsx("input", {
-                          type: "tel",
-                          value: p,
-                          onChange: (o) => z(o.target.value),
-                          placeholder: "+1 555 1234",
-                          className:
-                            "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                        c.jsxs("div", {
+                          className: "grid grid-cols-[96px_minmax(0,1fr)] gap-2",
+                          children: [
+                            c.jsx("input", {
+                              type: "text",
+                              value: clientPhoneCountryCode,
+                              onChange: (o) =>
+                                setClientPhoneCountryCode(
+                                  sanitizeClientCountryCodeInput(
+                                    o.target.value,
+                                  ),
+                                ),
+                              placeholder: "+52",
+                              maxLength: 8,
+                              className:
+                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                            }),
+                            c.jsx("input", {
+                              type: "tel",
+                              inputMode: "numeric",
+                              value: p,
+                              onChange: (o) =>
+                                z(sanitizeClientPhoneInput(o.target.value)),
+                              placeholder: "5512345678",
+                              maxLength: 10,
+                              className:
+                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                            }),
+                          ],
+                        }),
+                        c.jsx("p", {
+                          className: "mt-1 text-[11px] text-gray-500",
+                          children: "10 digits plus country code",
                         }),
                       ],
                     }),
@@ -11701,6 +11840,7 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  className: "space-y-3",
                   children: [
                     c.jsx("label", {
                       className:
@@ -11714,6 +11854,74 @@ function nh() {
                       rows: 2,
                       className:
                         "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none resize-none",
+                    }),
+                    c.jsxs("div", {
+                      className: "space-y-2",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-3",
+                          children: [
+                            c.jsx("p", {
+                              className:
+                                "text-xs font-medium uppercase tracking-[0.18em] text-gray-500",
+                              children: "Other shipping addresses",
+                            }),
+                            c.jsxs("button", {
+                              type: "button",
+                              onClick: () =>
+                                setClientShippingAddresses([
+                                  ...clientShippingAddresses,
+                                  "",
+                                ]),
+                              className:
+                                "px-3 py-1.5 text-xs font-semibold rounded-xl ui-btn-secondary",
+                              children: ["+", " Add"],
+                            }),
+                          ],
+                        }),
+                        clientShippingAddresses.length
+                          ? clientShippingAddresses.map((o, N) =>
+                              c.jsxs(
+                                "div",
+                                {
+                                  className: "flex gap-2 items-start",
+                                  children: [
+                                    c.jsx("textarea", {
+                                      value: o,
+                                      onChange: (A) =>
+                                        setClientShippingAddresses(
+                                          clientShippingAddresses.map(
+                                            (vl, El) =>
+                                              El === N ? A.target.value : vl,
+                                          ),
+                                        ),
+                                      rows: 2,
+                                      placeholder: "Additional shipping address",
+                                      className:
+                                        "flex-1 px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none resize-none",
+                                    }),
+                                    c.jsx("button", {
+                                      type: "button",
+                                      onClick: () =>
+                                        setClientShippingAddresses(
+                                          clientShippingAddresses.filter(
+                                            (A, vl) => vl !== N,
+                                          ),
+                                        ),
+                                      className:
+                                        "px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 text-red-500 hover:bg-red-100",
+                                      children: "Remove",
+                                    }),
+                                  ],
+                                },
+                                `create-client-shipping-${N}`,
+                              ),
+                            )
+                          : c.jsx("p", {
+                              className: "text-xs text-gray-500",
+                              children: "No additional addresses yet.",
+                            }),
+                      ],
                     }),
                   ],
                 }),
@@ -11805,13 +12013,46 @@ function nh() {
                             "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                           children: "Phone",
                         }),
-                        c.jsx("input", {
-                          type: "tel",
-                          value: ml.phone,
-                          onChange: (o) =>
-                            hl({ ...ml, phone: o.target.value }),
-                          className:
-                            "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                        c.jsxs("div", {
+                          className: "grid grid-cols-[96px_minmax(0,1fr)] gap-2",
+                          children: [
+                            c.jsx("input", {
+                              type: "text",
+                              value: ml.phone_country_code,
+                              onChange: (o) =>
+                                hl({
+                                  ...ml,
+                                  phone_country_code:
+                                    sanitizeClientCountryCodeInput(
+                                      o.target.value,
+                                    ),
+                                }),
+                              placeholder: "+52",
+                              maxLength: 8,
+                              className:
+                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                            }),
+                            c.jsx("input", {
+                              type: "tel",
+                              inputMode: "numeric",
+                              value: ml.phone,
+                              onChange: (o) =>
+                                hl({
+                                  ...ml,
+                                  phone: sanitizeClientPhoneInput(
+                                    o.target.value,
+                                  ),
+                                }),
+                              placeholder: "5512345678",
+                              maxLength: 10,
+                              className:
+                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                            }),
+                          ],
+                        }),
+                        c.jsx("p", {
+                          className: "mt-1 text-[11px] text-gray-500",
+                          children: "10 digits plus country code",
                         }),
                       ],
                     }),
@@ -11835,6 +12076,7 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
+                  className: "space-y-3",
                   children: [
                     c.jsx("label", {
                       className:
@@ -11848,6 +12090,84 @@ function nh() {
                       rows: 2,
                       className:
                         "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none resize-none",
+                    }),
+                    c.jsxs("div", {
+                      className: "space-y-2",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-3",
+                          children: [
+                            c.jsx("p", {
+                              className:
+                                "text-xs font-medium uppercase tracking-[0.18em] text-gray-500",
+                              children: "Other shipping addresses",
+                            }),
+                            c.jsxs("button", {
+                              type: "button",
+                              onClick: () =>
+                                hl({
+                                  ...ml,
+                                  shipping_addresses: [
+                                    ...(Array.isArray(ml.shipping_addresses)
+                                      ? ml.shipping_addresses
+                                      : []),
+                                    "",
+                                  ],
+                                }),
+                              className:
+                                "px-3 py-1.5 text-xs font-semibold rounded-xl ui-btn-secondary",
+                              children: ["+", " Add"],
+                            }),
+                          ],
+                        }),
+                        Array.isArray(ml.shipping_addresses) &&
+                        ml.shipping_addresses.length
+                          ? ml.shipping_addresses.map((o, N) =>
+                              c.jsxs(
+                                "div",
+                                {
+                                  className: "flex gap-2 items-start",
+                                  children: [
+                                    c.jsx("textarea", {
+                                      value: o,
+                                      onChange: (A) =>
+                                        hl({
+                                          ...ml,
+                                          shipping_addresses:
+                                            ml.shipping_addresses.map(
+                                              (vl, El) =>
+                                                El === N ? A.target.value : vl,
+                                            ),
+                                        }),
+                                      rows: 2,
+                                      placeholder: "Additional shipping address",
+                                      className:
+                                        "flex-1 px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none resize-none",
+                                    }),
+                                    c.jsx("button", {
+                                      type: "button",
+                                      onClick: () =>
+                                        hl({
+                                          ...ml,
+                                          shipping_addresses:
+                                            ml.shipping_addresses.filter(
+                                              (A, vl) => vl !== N,
+                                            ),
+                                        }),
+                                      className:
+                                        "px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 text-red-500 hover:bg-red-100",
+                                      children: "Remove",
+                                    }),
+                                  ],
+                                },
+                                `edit-client-shipping-${N}`,
+                              ),
+                            )
+                          : c.jsx("p", {
+                              className: "text-xs text-gray-500",
+                              children: "No additional addresses yet.",
+                            }),
+                      ],
                     }),
                   ],
                 }),
