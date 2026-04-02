@@ -3618,7 +3618,7 @@ function nh() {
     },
     startEditingPaymentEntry = (o) => {
       if (!o) return;
-      setPaymentEntryEditingId(Number(o.id));
+      setPaymentEntryEditingId(String(o.id));
       setPaymentEntryDraftAmount(paymentLocalFormatAmountField(o.amount));
     },
     cancelEditingPaymentEntry = () => {
@@ -3626,22 +3626,88 @@ function nh() {
       setPaymentEntryDraftAmount("");
     },
     savePaymentEntry = async (o) => {
-      if (!paymentForm.id || !o) return;
-      const N = String(paymentEntryDraftAmount || "").trim();
-      if (N === "" || !Number.isFinite(parseFloat(N))) {
+      const N = paymentModalClient || clientPaymentModalClient,
+        A = String(paymentEntryDraftAmount || "").trim();
+      if (!N || !o) return;
+      if (A === "" || !Number.isFinite(parseFloat(A))) {
         notifyInfo("Captura un monto valido para el abono.");
         return;
       }
-      setPaymentEntrySavingId(Number(o.id));
+      const vl = paymentLocalToNumber(A, Number.NaN);
+      if (!Number.isFinite(vl) || vl < 0) {
+        notifyInfo("Captura un monto valido para el abono.");
+        return;
+      }
+      setPaymentEntrySavingId(String(o.id));
       try {
-        const A = await I(`/payments/${paymentForm.id}/entries/${o.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            amount: paymentLocalToNumber(N, 0).toFixed(2),
-          }),
-        });
-        setPaymentForm((vl) => ({
-          ...vl,
+        if (
+          String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
+          String((o && o.group_token) || "").trim()
+        ) {
+          const El = getClientBatchEditPlan(N, o, vl),
+            Se = ((o && o.grouped_entries) || []).reduce((ea, gl) => {
+              const ae = Number(gl && gl.shopping_id);
+              return (
+                Number.isFinite(ae) &&
+                  (ea.has(ae) || ea.set(ae, []), ea.get(ae).push(gl)),
+                ea
+              );
+            }, new Map());
+          for (const ea of El) {
+            const gl = Number(ea && ea.key),
+              ae = Math.max(toNumber(ea && ea.desiredAmount, 0), 0),
+              qa = Se.get(gl) || [],
+              oi = qa[0] || null,
+              Pi = qa.slice(1);
+            for (const pa of Pi)
+              await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
+                method: "DELETE",
+              });
+            if (oi) {
+              if (ae > 0)
+                await I(`/payments/${oi.payment_id}/entries/${oi.id}/`, {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    amount: ae.toFixed(2),
+                  }),
+                });
+              else
+                await I(`/payments/${oi.payment_id}/entries/${oi.id}/`, {
+                  method: "DELETE",
+                });
+            } else if (ae > 0) {
+              const pa = getClientShoppingPayments(N, gl)[0] || null,
+                mi = getClientPaymentTargetProductIds(N, gl);
+              await I(pa ? `/payments/${pa.id}/` : "/payments/", {
+                method: pa ? "PATCH" : "POST",
+                body: JSON.stringify({
+                  client: N.id,
+                  shopping: gl,
+                  amount: (
+                    (pa ? getPaymentRecordAmount(pa) : 0) + ae
+                  ).toFixed(2),
+                  products: mi,
+                  entry_kind: "CLIENT_BATCH",
+                  entry_group_token: o.group_token,
+                }),
+              });
+            }
+          }
+        } else {
+          const El = o.payment_id || paymentForm.id;
+          if (!El || !o.id) {
+            notifyError("No se pudo identificar el abono.");
+            return;
+          }
+          await I(`/payments/${El}/entries/${o.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              amount: vl.toFixed(2),
+            }),
+          });
+        }
+        setPaymentForm((El) => ({
+          ...El,
           amount: "",
         }));
         setPaymentAmountManual(!0);
@@ -3650,42 +3716,57 @@ function nh() {
         await refreshCoreData();
         await refreshSelectedClient();
         notifySuccess("Abono actualizado.");
-      } catch (A) {
-        console.error("Failed updating payment entry", A);
-        notifyError((A && A.message) || "No se pudo actualizar el abono.");
+      } catch (El) {
+        console.error("Failed updating payment entry", El);
+        notifyError((El && El.message) || "No se pudo actualizar el abono.");
       } finally {
         setPaymentEntrySavingId(null);
       }
     },
     deletePaymentEntry = async (o) => {
-      if (!paymentForm.id || !o) return;
+      if (!o) return;
+      const N =
+        String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
+        String((o && o.group_token) || "").trim();
       if (
         !(await confirmAction({
-          title: "Eliminar abono",
-          message: "Se eliminara este abono del historial y se recalculara el total del pago.",
+          title: N ? "Eliminar abono general" : "Eliminar abono",
+          message: N
+            ? "Se eliminara este abono general y todas sus asignaciones por shopping."
+            : "Se eliminara este abono del historial y se recalculara el total del pago.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
       )
         return;
-      setPaymentEntrySavingId(Number(o.id));
+      setPaymentEntrySavingId(String(o.id));
       try {
-        const N = await I(`/payments/${paymentForm.id}/entries/${o.id}/`, {
-          method: "DELETE",
-        });
-        setPaymentForm((A) => ({
-          ...A,
+        const A = N
+          ? (o.grouped_entries || []).map((vl) => ({
+            payment_id: vl.payment_id,
+            id: vl.id,
+          }))
+          : [{ payment_id: o.payment_id || paymentForm.id, id: o.id }];
+        for (const vl of A)
+          vl &&
+            vl.payment_id &&
+            vl.id &&
+            (await I(`/payments/${vl.payment_id}/entries/${vl.id}/`, {
+              method: "DELETE",
+            }));
+        String(paymentEntryEditingId || "") === String(o.id) &&
+          (setPaymentEntryEditingId(null), setPaymentEntryDraftAmount(""));
+        setPaymentForm((vl) => ({
+          ...vl,
           amount: "",
         }));
         setPaymentAmountManual(!0);
-        Number(paymentEntryEditingId) === Number(o.id) &&
-          (setPaymentEntryEditingId(null), setPaymentEntryDraftAmount(""));
         await refreshCoreData();
         await refreshSelectedClient();
         notifySuccess("Abono eliminado.");
-      } catch (N) {
-        console.error("Failed deleting payment entry", N);
-        notifyError((N && N.message) || "No se pudo eliminar el abono.");
+      } catch (A) {
+        console.error("Failed deleting payment entry", A);
+        notifyError((A && A.message) || "No se pudo eliminar el abono.");
       } finally {
         setPaymentEntrySavingId(null);
       }
@@ -15357,12 +15438,10 @@ function nh() {
                                     className:
                                       "max-h-48 overflow-y-auto ios-scroll space-y-2 pr-1.5",
                                     children: paymentHistoryRows.map((o) => {
-                                      const N =
-                                          Boolean(o && o.payment_id) &&
-                                          Number(o.payment_id) === Number(paymentForm.id || 0) &&
-                                          (!Array.isArray(o.shopping_tags) ||
-                                            o.shopping_tags.length === 0),
-                                        A = N && paymentEntryEditingId === Number(o.id),
+                                      const N = !0,
+                                        A =
+                                          String(paymentEntryEditingId || "") ===
+                                          String(o.id),
                                         vl = Array.isArray(o.shopping_allocations)
                                           ? o.shopping_allocations.find(
                                             (El) =>
@@ -15433,18 +15512,18 @@ function nh() {
                                                             onClick: () =>
                                                               savePaymentEntry(o),
                                                             disabled:
-                                                              paymentEntrySavingId ===
-                                                              Number(o.id),
+                                                              String(paymentEntrySavingId || "") ===
+                                                              String(o.id),
                                                             className:
                                                               "w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
                                                             children: c.jsx(
                                                               "span",
                                                               {
                                                                 className:
-                                                                  `material-symbols-outlined text-[14px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                                  `material-symbols-outlined text-[14px] ${String(paymentEntrySavingId || "") === String(o.id) ? "animate-spin" : ""}`,
                                                                 children:
-                                                                  paymentEntrySavingId ===
-                                                                  Number(o.id)
+                                                                  String(paymentEntrySavingId || "") ===
+                                                                  String(o.id)
                                                                     ? "progress_activity"
                                                                     : "check",
                                                               },
@@ -15455,8 +15534,8 @@ function nh() {
                                                             onClick:
                                                               cancelEditingPaymentEntry,
                                                             disabled:
-                                                              paymentEntrySavingId ===
-                                                              Number(o.id),
+                                                              String(paymentEntrySavingId || "") ===
+                                                              String(o.id),
                                                             className:
                                                               "w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
                                                             children: c.jsx(
@@ -15562,8 +15641,8 @@ function nh() {
                                                               o,
                                                             ),
                                                           disabled:
-                                                            paymentEntrySavingId ===
-                                                            Number(o.id),
+                                                            String(paymentEntrySavingId || "") ===
+                                                            String(o.id),
                                                           className:
                                                             "w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
                                                           children: c.jsx(
@@ -15583,18 +15662,18 @@ function nh() {
                                                               o,
                                                             ),
                                                           disabled:
-                                                            paymentEntrySavingId ===
-                                                            Number(o.id),
+                                                            String(paymentEntrySavingId || "") ===
+                                                            String(o.id),
                                                           className:
                                                             "w-7 h-7 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
                                                           children: c.jsx(
                                                             "span",
                                                             {
                                                               className:
-                                                                `material-symbols-outlined text-[14px] ${paymentEntrySavingId === Number(o.id) ? "animate-spin" : ""}`,
+                                                                `material-symbols-outlined text-[14px] ${String(paymentEntrySavingId || "") === String(o.id) ? "animate-spin" : ""}`,
                                                               children:
-                                                                paymentEntrySavingId ===
-                                                                Number(o.id)
+                                                                String(paymentEntrySavingId || "") ===
+                                                                String(o.id)
                                                                   ? "progress_activity"
                                                                   : "delete",
                                                             },
