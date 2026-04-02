@@ -385,7 +385,6 @@ function nh() {
     [publicPendingShipmentSelection, setPublicPendingShipmentSelection] = V.useState([]),
     [publicBuildingShipment, setPublicBuildingShipment] = V.useState(!1),
     [publicShipmentInfoOpen, setPublicShipmentInfoOpen] = V.useState(!1),
-    [publicPurchasesModalOpen, setPublicPurchasesModalOpen] = V.useState(!1),
     [requests, setRequests] = V.useState([]),
     [shipments, setShipments] = V.useState([]),
     [shipmentSearch, setShipmentSearch] = V.useState(""),
@@ -750,8 +749,6 @@ function nh() {
         ? "image-source"
       : inputDialog
         ? "input"
-        : publicPurchasesModalOpen
-          ? "public-purchases-modal"
         : clientPaymentModalOpen
           ? "client-payment-modal"
         : paymentModalOpen
@@ -805,10 +802,6 @@ function nh() {
       }
       if (inputDialog) {
         closeInputDialog(null);
-        return;
-      }
-      if (publicPurchasesModalOpen) {
-        setPublicPurchasesModalOpen(!1);
         return;
       }
       if (clientPaymentModalOpen) {
@@ -914,7 +907,6 @@ function nh() {
     confirmDialog,
     imageSourceDialog,
     inputDialog,
-    publicPurchasesModalOpen,
     paymentModalOpen,
     shipmentProductPickerOpen,
     shipmentModalOpen,
@@ -6535,143 +6527,6 @@ function nh() {
             ],
           }),
         }),
-        publicPurchasesModalOpen &&
-        c.jsx("div", {
-          className: overlayBackdropClass(
-            "fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-            "public-purchases-modal",
-          ),
-          onClick: () => dismissActiveOverlayRef.current(),
-          children: c.jsxs("div", {
-            className: overlaySheetClass(
-              "bg-surface-light dark:bg-surface-dark w-full sm:max-w-3xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
-              "public-purchases-modal",
-            ),
-            onClick: (o) => o.stopPropagation(),
-            children: [
-              c.jsxs("div", {
-                className:
-                  "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
-                children: [
-                  c.jsxs("div", {
-                    className: "min-w-0",
-                    children: [
-                      c.jsx("h3", {
-                        className: "text-base font-black text-text-main dark:text-white",
-                        children: "Compras",
-                      }),
-                      c.jsxs("p", {
-                        className: "mt-1 text-xs text-text-sub",
-                        children: [
-                          publicPendingShipmentProducts.length,
-                          " item",
-                          publicPendingShipmentProducts.length === 1 ? "" : "s",
-                        ],
-                      }),
-                    ],
-                  }),
-                  c.jsx("button", {
-                    type: "button",
-                    onClick: () => dismissActiveOverlayRef.current(),
-                    className:
-                      "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center shrink-0",
-                    children: c.jsx("span", {
-                      className: "material-symbols-outlined text-[18px]",
-                      children: "close",
-                    }),
-                  }),
-                ],
-              }),
-              c.jsx("div", {
-                className: "flex-1 overflow-y-auto ios-scroll p-4",
-                children: c.jsx("div", {
-                  className: "grid grid-cols-2 gap-1.5 sm:gap-2",
-                  children: publicPendingShipmentProducts.map((o) =>
-                    c.jsxs(
-                      "div",
-                      {
-                        className:
-                          "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[1.18]",
-                        children: [
-                          o.image
-                            ? c.jsx("img", {
-                                src: resolveMediaUrl(o.image),
-                                onClick: () =>
-                                  setFullscreenImage(resolveMediaUrl(o.image)),
-                                className:
-                                  "w-full h-full object-cover cursor-zoom-in",
-                              })
-                            : c.jsx("div", {
-                                className:
-                                  "w-full h-full flex items-center justify-center text-amber-300 dark:text-amber-700",
-                                children: c.jsx("span", {
-                                  className:
-                                    "material-symbols-outlined text-[28px]",
-                                  children: "image",
-                                }),
-                              }),
-                          c.jsx("div", {
-                            className:
-                              "absolute inset-0 bg-gradient-to-b from-black/18 via-transparent to-black/24 pointer-events-none",
-                          }),
-                          c.jsx("div", {
-                            className:
-                              "absolute top-1.5 left-1.5 right-1.5 z-10 pointer-events-none",
-                            children: c.jsx("div", {
-                              className:
-                                "inline-flex max-w-full rounded-full bg-white/18 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm",
-                              children: c.jsx("span", {
-                                className: "truncate",
-                                children: o.name,
-                              }),
-                            }),
-                          }),
-                          Number.isFinite(getProductImagePrimaryPrice(o)) &&
-                          c.jsx("div", {
-                            className:
-                              "absolute inset-x-0 bottom-1 z-10 flex justify-center pointer-events-none",
-                            children: hasProductDiscountedFinalPrice(o)
-                              ? c.jsxs("div", {
-                                className:
-                                  "inline-flex flex-col items-center gap-0.5 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-2.5 py-1 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                children: [
-                                  c.jsxs("span", {
-                                    className:
-                                      "whitespace-nowrap text-[9px] font-bold",
-                                    children: [
-                                      "Venta $",
-                                      formatAmount(getProductBaseFinalPrice(o)),
-                                    ],
-                                  }),
-                                  c.jsxs("span", {
-                                    className:
-                                      "whitespace-nowrap text-[9px] font-black text-emerald-700 dark:text-emerald-300",
-                                    children: [
-                                      "C/desc $",
-                                      formatProductQuickFinalPrice(o),
-                                    ],
-                                  }),
-                                ],
-                              })
-                              : c.jsxs("span", {
-                                className:
-                                  "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                children: [
-                                  "$",
-                                  formatAmount(getProductImagePrimaryPrice(o)),
-                                ],
-                              }),
-                          }),
-                        ],
-                      },
-                      `public-purchases-modal-product-${o.id}`,
-                    ),
-                  ),
-                }),
-              }),
-            ],
-          }),
-        }),
         c.jsxs("div", {
         className:
           "w-full max-w-[480px] rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-xl overflow-hidden",
@@ -7105,11 +6960,9 @@ function nh() {
                     }),
                     !publicSelectedShipment &&
                     publicPendingShipmentProducts.length > 0 &&
-                    c.jsxs("button", {
-                      type: "button",
-                      onClick: () => setPublicPurchasesModalOpen(!0),
+                    c.jsxs("div", {
                       className:
-                        "w-full rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 text-left transition hover:bg-amber-100/80 dark:hover:bg-amber-950/35",
+                        "rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
@@ -7128,26 +6981,93 @@ function nh() {
                             }),
                           ],
                         }),
-                        c.jsxs("div", {
-                          className: "flex items-center justify-between gap-3",
-                          children: [
-                            c.jsx("p", {
-                              className: "text-[11px] text-amber-800 dark:text-amber-200",
-                              children: "Toca para ver todas las compras.",
-                            }),
-                            c.jsxs("span", {
-                              className:
-                                "inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-[10px] font-bold text-amber-800 dark:text-amber-200 shrink-0",
-                              children: [
-                                "Ver compras",
-                                c.jsx("span", {
-                                  className:
-                                    "material-symbols-outlined text-[14px]",
-                                  children: "chevron_right",
-                                }),
-                              ],
-                            }),
-                          ],
+                        c.jsx("div", {
+                          className: "grid grid-cols-2 gap-1.5",
+                          children: publicPendingShipmentProducts.map((o) =>
+                            c.jsxs(
+                              "div",
+                              {
+                                className:
+                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[1.9]",
+                                children: [
+                                  o.image
+                                    ? c.jsx("img", {
+                                        src: resolveMediaUrl(o.image),
+                                        onClick: () =>
+                                          setFullscreenImage(resolveMediaUrl(o.image)),
+                                        className:
+                                          "w-full h-full object-cover cursor-zoom-in",
+                                      })
+                                    : c.jsx("div", {
+                                        className:
+                                          "w-full h-full flex items-center justify-center text-amber-300 dark:text-amber-700",
+                                        children: c.jsx("span", {
+                                          className:
+                                            "material-symbols-outlined text-[22px]",
+                                          children: "image",
+                                        }),
+                                      }),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-0 bg-gradient-to-b from-black/18 via-transparent to-black/24 pointer-events-none",
+                                  }),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute top-1 left-1 right-1 z-10 pointer-events-none",
+                                    children: c.jsx("div", {
+                                      className:
+                                        "inline-flex max-w-full rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm",
+                                      children: c.jsx("span", {
+                                        className: "truncate",
+                                        children: o.name,
+                                      }),
+                                    }),
+                                  }),
+                                  Number.isFinite(getProductImagePrimaryPrice(o)) &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-1 z-10 flex justify-center pointer-events-none",
+                                    children: hasProductDiscountedFinalPrice(o)
+                                      ? c.jsxs("div", {
+                                        className:
+                                          "inline-flex flex-col items-center gap-0 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-2 py-0.5 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                        children: [
+                                          c.jsxs("span", {
+                                            className:
+                                              "whitespace-nowrap text-[8px] font-bold",
+                                            children: [
+                                              "Venta $",
+                                              formatAmount(
+                                                getProductBaseFinalPrice(o),
+                                              ),
+                                            ],
+                                          }),
+                                          c.jsxs("span", {
+                                            className:
+                                              "whitespace-nowrap text-[8px] font-black text-emerald-700 dark:text-emerald-300",
+                                            children: [
+                                              "C/desc $",
+                                              formatProductQuickFinalPrice(o),
+                                            ],
+                                          }),
+                                        ],
+                                      })
+                                      : c.jsxs("span", {
+                                        className:
+                                          "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[2px] text-[9px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                        children: [
+                                          "$",
+                                          formatAmount(
+                                            getProductImagePrimaryPrice(o),
+                                          ),
+                                        ],
+                                      }),
+                                  }),
+                                ],
+                              },
+                              `public-pending-product-${o.id}`,
+                            ),
+                          ),
                         }),
                       ],
                     }),
