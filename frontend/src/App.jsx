@@ -13212,51 +13212,76 @@ function nh() {
                   : "bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light space-y-3",
                 children: [
                   c.jsxs("div", {
-                    className: "flex items-center gap-4",
+                    className: "flex items-start justify-between gap-3",
                     children: [
-                      c.jsx("div", {
-                        className:
-                          "w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl uppercase border",
-                        children: W.name.charAt(0),
-                      }),
                       c.jsxs("div", {
-                        className: "min-w-0",
+                        className: "min-w-0 flex items-center gap-4 flex-1",
                         children: [
-                          c.jsx("span", {
-                            className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${W.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
-                            children:
-                              W.status === "Active" ? "In Shopping" : "Idle",
-                          }),
-                          c.jsx("p", {
+                          c.jsx("div", {
                             className:
-                              "text-xs text-text-sub dark:text-slate-400 truncate",
-                            children: W.tags,
+                              "w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl uppercase border shrink-0",
+                            children: W.name.charAt(0),
                           }),
                           c.jsxs("div", {
-                            className: "mt-1.5 space-y-0.5",
+                            className: "min-w-0",
                             children: [
-                              c.jsxs("p", {
-                                className:
-                                  `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
-                                children: [
-                                  selectedClientHomeGlobalBalance < 0
-                                    ? "A favor: "
-                                    : "Deuda: ",
-                                  "$",
-                                  formatAmount(Math.abs(selectedClientHomeGlobalBalance)),
-                                ],
+                              c.jsx("span", {
+                                className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${W.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
+                                children:
+                                  W.status === "Active" ? "In Shopping" : "Idle",
                               }),
-                              c.jsxs("p", {
+                              c.jsx("p", {
                                 className:
-                                  "inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-blue-700 dark:text-blue-300",
+                                  "text-xs text-text-sub dark:text-slate-400 truncate",
+                                children: W.tags,
+                              }),
+                              c.jsxs("div", {
+                                className: "mt-1.5 space-y-0.5",
                                 children: [
-                                  "Venta: $",
-                                  formatAmount(selectedClientHomeAnnotatedTotals.sale),
+                                  c.jsxs("p", {
+                                    className:
+                                      `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
+                                    children: [
+                                      selectedClientHomeGlobalBalance < 0
+                                        ? "A favor: "
+                                        : "Deuda: ",
+                                      "$",
+                                      formatAmount(Math.abs(selectedClientHomeGlobalBalance)),
+                                    ],
+                                  }),
+                                  c.jsxs("p", {
+                                    className:
+                                      "inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-blue-700 dark:text-blue-300",
+                                    children: [
+                                      "Venta: $",
+                                      formatAmount(selectedClientHomeAnnotatedTotals.sale),
+                                    ],
+                                  }),
                                 ],
                               }),
                             ],
                           }),
                         ],
+                      }),
+                      c.jsx("button", {
+                        type: "button",
+                        onClick: () => {
+                          const o = `client-history-${W.id}`;
+                          if (copiedClientShareLinks.includes(o)) {
+                            setCopiedClientShareLinks((N) =>
+                              N.filter((A) => A !== o),
+                            );
+                            return;
+                          }
+                          copyClientMissionShareLink(null, W);
+                        },
+                        className:
+                          `w-9 h-9 rounded-full border shrink-0 flex items-center justify-center transition ${copiedClientShareLinks.includes(`client-history-${W.id}`) ? "border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-800 dark:bg-sky-950/35 dark:text-sky-200" : "border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/70 text-violet-600 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-950/30"}`,
+                        title: "Copiar link del cliente",
+                        children: c.jsx("span", {
+                          className: "material-symbols-outlined text-[18px]",
+                          children: "share",
+                        }),
                       }),
                     ],
                   }),
