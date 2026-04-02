@@ -8030,6 +8030,35 @@ function nh() {
                             type: "button",
                             onClick: (N) => {
                               N.stopPropagation();
+                              const A = `client-history-${o.id}`;
+                              if (copiedClientShareLinks.includes(A)) {
+                                setCopiedClientShareLinks((vl) =>
+                                  vl.filter((El) => El !== A),
+                                );
+                                return;
+                              }
+                              copyClientMissionShareLink(null, o);
+                            },
+                            className:
+                              `w-8 h-8 rounded-md border flex items-center justify-center transition ${
+                                copiedClientShareLinks.includes(`client-history-${o.id}`)
+                                  ? "border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/35 dark:text-sky-200"
+                                  : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200"
+                              }`,
+                            title: copiedClientShareLinks.includes(`client-history-${o.id}`)
+                              ? "Link copiado"
+                              : "Copiar link del cliente",
+                            children: c.jsx("span", {
+                              className: "material-symbols-outlined text-[14px]",
+                              children: copiedClientShareLinks.includes(`client-history-${o.id}`)
+                                ? "done"
+                                : "share",
+                            }),
+                          }),
+                          c.jsx("button", {
+                            type: "button",
+                            onClick: (N) => {
+                              N.stopPropagation();
                               openPaymentModal(o, w);
                             },
                             className:
