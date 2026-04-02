@@ -6988,68 +6988,78 @@ function nh() {
                               "div",
                               {
                                 className:
-                                  "rounded-lg border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-1.5 flex gap-1.5 items-start text-left",
+                                  "rounded-lg border border-amber-200 dark:border-amber-900 bg-white/90 dark:bg-slate-900 p-1.5 flex gap-2 items-start text-left",
                                 children: [
-                                  o.image
-                                    ? c.jsx("img", {
-                                        src: resolveMediaUrl(o.image),
-                                        onClick: () =>
-                                          setFullscreenImage(resolveMediaUrl(o.image)),
-                                        className:
-                                          "w-12 h-12 rounded-md object-cover cursor-zoom-in shrink-0",
-                                      })
-                                    : c.jsx("div", {
-                                        className:
-                                          "w-12 h-12 rounded-md bg-amber-100/80 dark:bg-amber-950/20 flex items-center justify-center text-amber-300 dark:text-amber-700 shrink-0",
-                                        children: c.jsx("span", {
-                                          className:
-                                            "material-symbols-outlined text-[18px]",
-                                          children: "image",
-                                        }),
-                                      }),
                                   c.jsxs("div", {
-                                    className: "min-w-0 flex-1",
+                                    className: "relative shrink-0 w-16 h-16",
+                                    children: [
+                                      o.image
+                                        ? c.jsx("img", {
+                                            src: resolveMediaUrl(o.image),
+                                            onClick: () =>
+                                              setFullscreenImage(resolveMediaUrl(o.image)),
+                                            className:
+                                              "w-16 h-16 rounded-md object-cover cursor-zoom-in",
+                                          })
+                                        : c.jsx("div", {
+                                            className:
+                                              "w-16 h-16 rounded-md bg-amber-100/80 dark:bg-amber-950/20 flex items-center justify-center text-amber-300 dark:text-amber-700",
+                                            children: c.jsx("span", {
+                                              className:
+                                                "material-symbols-outlined text-[20px]",
+                                              children: "image",
+                                            }),
+                                          }),
+                                      Number.isFinite(getProductImagePrimaryPrice(o)) &&
+                                      c.jsx("div", {
+                                        className:
+                                          "absolute inset-x-0 bottom-0.5 z-10 flex justify-center pointer-events-none",
+                                        children: hasProductDiscountedFinalPrice(o)
+                                          ? c.jsxs("div", {
+                                            className:
+                                              "inline-flex flex-col items-center gap-0.5 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-2 py-1 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                            children: [
+                                              c.jsxs("span", {
+                                                className:
+                                                  "whitespace-nowrap text-[8px] font-bold leading-none",
+                                                children: [
+                                                  "Venta $",
+                                                  formatAmount(
+                                                    getProductBaseFinalPrice(o),
+                                                  ),
+                                                ],
+                                              }),
+                                              c.jsxs("span", {
+                                                className:
+                                                  "whitespace-nowrap text-[8px] font-black leading-none text-emerald-700 dark:text-emerald-300",
+                                                children: [
+                                                  "C/desc $",
+                                                  formatProductQuickFinalPrice(o),
+                                                ],
+                                              }),
+                                            ],
+                                          })
+                                          : c.jsxs("span", {
+                                            className:
+                                              "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[9px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                            children: [
+                                              "$",
+                                              formatAmount(
+                                                getProductImagePrimaryPrice(o),
+                                              ),
+                                            ],
+                                          }),
+                                      }),
+                                    ],
+                                  }),
+                                  c.jsxs("div", {
+                                    className: "min-w-0 flex-1 pt-0.5",
                                     children: [
                                       c.jsx("p", {
                                         className:
                                           "text-[10px] leading-4 font-semibold text-text-main dark:text-white line-clamp-2",
                                           children: o.name,
                                       }),
-                                      hasProductDiscountedFinalPrice(o)
-                                        ? c.jsxs("div", {
-                                          className: "mt-1 flex flex-wrap gap-1",
-                                          children: [
-                                            c.jsxs("span", {
-                                              className:
-                                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/90 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm",
-                                              children: [
-                                                "Venta $",
-                                                formatAmount(
-                                                  getProductBaseFinalPrice(o),
-                                                ),
-                                              ],
-                                            }),
-                                            c.jsxs("span", {
-                                              className:
-                                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-emerald-50 dark:bg-emerald-950/35 px-2 py-[3px] text-[10px] font-black text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 shadow-sm",
-                                              children: [
-                                                "C/desc $",
-                                                formatProductQuickFinalPrice(o),
-                                              ],
-                                            }),
-                                          ],
-                                        })
-                                        : Number.isFinite(getProductImagePrimaryPrice(o)) &&
-                                          c.jsxs("span", {
-                                            className:
-                                              "mt-1 inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/90 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm",
-                                            children: [
-                                              "Venta $",
-                                              formatAmount(
-                                                getProductImagePrimaryPrice(o),
-                                              ),
-                                            ],
-                                          }),
                                     ],
                                   }),
                                 ],
