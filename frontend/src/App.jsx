@@ -6988,7 +6988,7 @@ function nh() {
                               "div",
                               {
                                 className:
-                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[0.96]",
+                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[1.08]",
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
