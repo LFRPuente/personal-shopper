@@ -228,6 +228,11 @@ const getShipmentTrackingUrl = (carrier, trackingNumber) => {
   }
   return "";
 };
+const SHIPMENT_CARRIER_OPTIONS = [
+  { value: "", label: "Sin definir" },
+  { value: "Estafeta", label: "Estafeta" },
+  { value: "DHL", label: "DHL" },
+];
 const canEditShipmentBox = (shipment) => {
   return normalizeShipmentStatusValue(shipment && shipment.status) === "PENDING";
 };
@@ -406,6 +411,7 @@ function nh() {
       client_price: "",
       shipping_address: "",
       product_ids: [],
+      initial_product_ids: [],
     }),
     [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
     [paymentSaving, setPaymentSaving] = V.useState(!1),
@@ -3186,6 +3192,10 @@ function nh() {
           ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
             Number(Se),
           ),
+        initial_product_ids:
+          ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
+            Number(Se),
+          ),
       };
     },
     loadShipmentForm = (o = null, N = null) => {
@@ -3257,6 +3267,15 @@ function nh() {
         notifyInfo("Selecciona al menos un producto.");
         return;
       }
+      const sameShipmentProductSelection =
+        [...(shipmentForm.product_ids || [])]
+          .map((El) => Number(El))
+          .sort((El, Se) => El - Se)
+          .join(",") ===
+        [...(shipmentForm.initial_product_ids || [])]
+          .map((El) => Number(El))
+          .sort((El, Se) => El - Se)
+          .join(",");
       setShipmentSaving(!0);
       try {
         const El = await I(
@@ -3278,12 +3297,14 @@ function nh() {
             }),
           },
         );
-        const Se = await I(`/shipments/${El.id}/set-products/`, {
-          method: "POST",
-          body: JSON.stringify({
-            products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
-          }),
-        });
+        const Se = sameShipmentProductSelection
+          ? El
+          : await I(`/shipments/${El.id}/set-products/`, {
+              method: "POST",
+              body: JSON.stringify({
+                products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
+              }),
+            });
         setShipmentModalOpen(!1);
         setShipmentProductPickerOpen(!1);
         setPublicExpandedShipmentId(Number(El.id));
@@ -10121,14 +10142,22 @@ function nh() {
                                         "text-[10px] uppercase font-bold text-text-sub",
                                       children: "Paqueteria",
                                     }),
-                                    c.jsx("input", {
-                                      type: "text",
+                                    c.jsx("select", {
                                       value: vl.carrier,
                                       onChange: (qa) =>
                                         updateShipmentForm("carrier", qa.target.value),
-                                      placeholder: "Ej. DHL, Estafeta",
                                       className:
                                         "mt-1 w-full bg-transparent text-xs font-semibold outline-none",
+                                      children: SHIPMENT_CARRIER_OPTIONS.map((qa) =>
+                                        c.jsx(
+                                          "option",
+                                          {
+                                            value: qa.value,
+                                            children: qa.label,
+                                          },
+                                          `shipment-inline-carrier-${qa.value || "empty"}`,
+                                        ),
+                                      ),
                                     }),
                                   ],
                                 }),
@@ -16234,42 +16263,24 @@ function nh() {
                       className: "text-[11px] font-semibold text-text-sub",
                       children: "Paqueteria",
                     }),
-                    c.jsx("input", {
-                      type: "text",
+                    c.jsx("select", {
                       value: shipmentForm.carrier,
                       onChange: (o) =>
                         updateShipmentForm("carrier", o.target.value),
-                      placeholder: "Ej. DHL, FedEx, Estafeta",
+                      style: DARK_NATIVE_SELECT_STYLE,
                       className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                    }),
-                    c.jsx("div", {
-                      className:
-                        "mt-2 max-h-44 overflow-y-auto ios-scroll rounded-xl border border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm",
-                      children:
-                        filteredShippingCarrierSuggestions.length > 0
-                          ? filteredShippingCarrierSuggestions.map((o) =>
-                              c.jsx(
-                                "button",
-                                {
-                                  type: "button",
-                                  onClick: () =>
-                                    updateShipmentForm("carrier", o.name),
-                                  className:
-                                    "w-full text-left px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800 text-sm hover:text-primary",
-                                  children: c.jsx("span", {
-                                    className: "font-medium",
-                                    children: o.name,
-                                  }),
-                                },
-                                `shipment-carrier-${o.recommendation_id || o.id}`,
-                              ),
-                            )
-                          : c.jsx("div", {
-                              className:
-                                "px-3 py-2 text-sm text-gray-400 dark:text-gray-500",
-                              children: "Sin sugerencias",
-                            }),
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
+                      children: SHIPMENT_CARRIER_OPTIONS.map((o) =>
+                        c.jsx(
+                          "option",
+                          {
+                            value: o.value,
+                            style: NATIVE_DROPDOWN_OPTION_STYLE,
+                            children: o.label,
+                          },
+                          `shipment-carrier-option-${o.value || "empty"}`,
+                        ),
+                      ),
                     }),
                   ],
                 }),
