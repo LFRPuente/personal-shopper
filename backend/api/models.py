@@ -16,6 +16,8 @@ class LayoutMode(models.TextChoices):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=4, choices=Role.choices, default=Role.AV)
+    display_name = models.CharField(max_length=255, blank=True, default='')
+    phone = models.CharField(max_length=30, blank=True, default='')
     layout_mode = models.CharField(
         max_length=6,
         choices=LayoutMode.choices,

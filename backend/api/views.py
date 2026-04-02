@@ -313,6 +313,18 @@ def me(request):
     )
     if request.method == 'PATCH':
         update_fields = []
+        display_name = request.data.get('display_name')
+        if display_name is not None:
+            normalized_display_name = str(display_name).strip()
+            if profile.display_name != normalized_display_name:
+                profile.display_name = normalized_display_name
+                update_fields.append('display_name')
+        phone = request.data.get('phone')
+        if phone is not None:
+            normalized_phone = str(phone).strip()
+            if profile.phone != normalized_phone:
+                profile.phone = normalized_phone
+                update_fields.append('phone')
         layout_mode = request.data.get('layout_mode')
         if layout_mode is not None:
             normalized_layout_mode = str(layout_mode).strip().upper()

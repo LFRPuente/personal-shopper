@@ -46,7 +46,7 @@ class RelativeMediaField(serializers.FileField):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['role', 'layout_mode', 'home_layout']
+        fields = ['role', 'display_name', 'phone', 'layout_mode', 'home_layout']
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(source='userprofile', read_only=True)

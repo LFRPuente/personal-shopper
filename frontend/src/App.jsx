@@ -311,6 +311,11 @@ function nh() {
       localStorage.getItem("default_breakdown_template") ||
         DEFAULT_BREAKDOWN_TEMPLATE,
     ),
+    [profileSettingsForm, setProfileSettingsForm] = V.useState({
+      display_name: "",
+      phone: "",
+    }),
+    [profileSettingsSaving, setProfileSettingsSaving] = V.useState(!1),
     [calcCopied, setCalcCopied] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
     [users, setUsers] = V.useState([]),
@@ -458,7 +463,6 @@ function nh() {
     toastTimeoutsRef = V.useRef(new Map()),
     toastIdRef = V.useRef(0),
     shoppingCalcPersistTimerRef = V.useRef(null),
-    breakdownTemplateTextareaRef = V.useRef(null),
     I = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       (C && (A.Authorization = `Bearer ${C}`),
@@ -905,6 +909,12 @@ function nh() {
     document.addEventListener("keydown", o, !0);
     return () => document.removeEventListener("keydown", o, !0);
   }, []);
+  V.useEffect(() => {
+    setProfileSettingsForm({
+      display_name: String((J && J.profile && J.profile.display_name) || ""),
+      phone: String((J && J.profile && J.profile.phone) || ""),
+    });
+  }, [J]);
   V.useEffect(() => {
     if (!me || !he || !productPriceAutoSync) return;
     if (productPriceSyncSource === "charged") {
@@ -10520,169 +10530,30 @@ function nh() {
       setDefaultBreakdownTemplate(o);
       localStorage.setItem("default_breakdown_template", o);
     },
-    insertBreakdownTemplateSnippet = (o, N = {}) => {
-      const A = breakdownTemplateTextareaRef.current,
-        vl = defaultBreakdownTemplate || "",
-        El =
-          typeof N.start == "number"
-            ? N.start
-            : A && typeof A.selectionStart == "number"
-              ? A.selectionStart
-              : vl.length,
-        Se =
-          typeof N.end == "number"
-            ? N.end
-            : A && typeof A.selectionEnd == "number"
-              ? A.selectionEnd
-              : El,
-        ea = `${vl.slice(0, El)}${o}${vl.slice(Se)}`;
-      persistDefaultBreakdownTemplate(ea);
-      window.requestAnimationFrame(() => {
-        const gl = breakdownTemplateTextareaRef.current;
-        if (!gl) return;
-        const ae = El + o.length;
-        gl.focus();
-        gl.setSelectionRange(ae, ae);
-      });
+    saveProfileSettings = async () => {
+      if (!J || profileSettingsSaving) return;
+      const o = String((profileSettingsForm.display_name || "")).trim(),
+        N = String((profileSettingsForm.phone || "")).trim(),
+        A = String((J && J.profile && J.profile.display_name) || "").trim(),
+        vl = String((J && J.profile && J.profile.phone) || "").trim();
+      if (o === A && N === vl) return;
+      setProfileSettingsSaving(!0);
+      try {
+        const El = await I("/auth/me/", {
+          method: "PATCH",
+          body: JSON.stringify({
+            display_name: o,
+            phone: N,
+          }),
+        });
+        El && (b(El), notifySuccess("Perfil guardado."));
+      } catch (El) {
+        console.error("Failed saving profile settings", El);
+        notifyError("No se pudo guardar la configuracion del perfil.");
+      } finally {
+        setProfileSettingsSaving(!1);
+      }
     },
-    handleBreakdownTemplateDrop = (o) => {
-      o.preventDefault();
-      const N = o.dataTransfer.getData("text/plain");
-      if (!N) return;
-      const A = o.currentTarget,
-        vl = typeof A.selectionStart == "number" ? A.selectionStart : void 0,
-        El = typeof A.selectionEnd == "number" ? A.selectionEnd : void 0;
-      insertBreakdownTemplateSnippet(N, { start: vl, end: El });
-    },
-    breakdownTemplateVariableBlocks = [
-      {
-        id: "title",
-        label: "Titulo",
-        description: "Encabezado del desglose",
-        snippet: "{title}",
-      },
-      {
-        id: "items",
-        label: "Items",
-        description: "Lista de productos",
-        snippet: "{items}",
-      },
-      {
-        id: "total",
-        label: "Total",
-        description: "Total final",
-        snippet: "{total}",
-      },
-      {
-        id: "subtotal",
-        label: "Subtotal",
-        description: "Total antes del descuento",
-        snippet: "{subtotal}",
-      },
-      {
-        id: "discountPercentage",
-        label: "Descuento %",
-        description: "Porcentaje de descuento",
-        snippet: "{discount_percentage}",
-      },
-      {
-        id: "discountAmount",
-        label: "Monto descuento",
-        description: "Monto descontado",
-        snippet: "{discount_amount}",
-      },
-      {
-        id: "clientName",
-        label: "Cliente",
-        description: "Nombre del cliente",
-        snippet: "{client_name}",
-      },
-      {
-        id: "shoppingName",
-        label: "Shopping",
-        description: "Nombre del shopping",
-        snippet: "{shopping_name}",
-      },
-    ],
-    breakdownTemplateConditionalBlocks = [
-      {
-        id: "discountLine",
-        label: "Si hay descuento",
-        description: "Agrega la linea de descuento solo cuando exista",
-        snippet:
-          "{{if discount_percentage}}Descuento: {discount_percentage}% (-${discount_amount}){{/if}}",
-      },
-      {
-        id: "subtotalLine",
-        label: "Si hay descuento: subtotal",
-        description: "Muestra subtotal solo cuando haya descuento",
-        snippet:
-          "{{if discount_percentage}}Subtotal: ${subtotal}{{/if}}",
-      },
-      {
-        id: "clientLine",
-        label: "Si hay cliente",
-        description: "Muestra el nombre del cliente cuando exista",
-        snippet:
-          "{{if client_name}}Cliente: {client_name}{{/if}}",
-      },
-      {
-        id: "shoppingLine",
-        label: "Si hay shopping",
-        description: "Muestra el nombre del shopping cuando exista",
-        snippet:
-          "{{if shopping_name}}Shopping: {shopping_name}{{/if}}",
-      },
-    ],
-    renderBreakdownTemplateBlock = (o, N = "variable") =>
-      c.jsxs(
-        "button",
-        {
-          type: "button",
-          draggable: !0,
-          onClick: () => insertBreakdownTemplateSnippet(o.snippet),
-          onDragStart: (A) => {
-            A.dataTransfer.effectAllowed = "copy";
-            A.dataTransfer.setData("text/plain", o.snippet);
-          },
-          className:
-            N === "conditional"
-              ? "text-left rounded-2xl border border-emerald-200/80 bg-emerald-50/80 dark:border-emerald-900/70 dark:bg-emerald-950/20 px-3 py-2 transition hover:border-emerald-300 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/30"
-              : "text-left rounded-2xl border border-sky-200/80 bg-sky-50/80 dark:border-sky-900/70 dark:bg-sky-950/20 px-3 py-2 transition hover:border-sky-300 hover:bg-sky-100/80 dark:hover:bg-sky-950/30",
-          children: [
-            c.jsxs("div", {
-              className: "flex items-start justify-between gap-2",
-              children: [
-                c.jsxs("div", {
-                  className: "min-w-0",
-                  children: [
-                    c.jsx("p", {
-                      className:
-                        "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
-                      children: N === "conditional" ? "Bloque" : "Variable",
-                    }),
-                    c.jsx("p", {
-                      className:
-                        "mt-1 text-xs font-bold text-text-main dark:text-white",
-                      children: o.label,
-                    }),
-                  ],
-                }),
-                c.jsx("span", {
-                  className:
-                    "material-symbols-outlined text-base text-text-sub/70",
-                  children: "drag_indicator",
-                }),
-              ],
-            }),
-            c.jsx("p", {
-              className: "mt-1 text-[11px] leading-4 text-text-sub",
-              children: o.description,
-            }),
-          ],
-        },
-        o.id,
-      ),
     du = () =>
       c.jsxs("div", {
         className: isDesktopLayout
@@ -10698,17 +10569,32 @@ function nh() {
               c.jsx("div", {
                 className:
                   "w-24 h-24 mx-auto rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-4xl mb-4 border-4 border-white shadow-sm",
-                children: J.username.charAt(0).toUpperCase(),
+                children: String(
+                  (profileSettingsForm.display_name || "").trim() || J.username,
+                )
+                  .charAt(0)
+                  .toUpperCase(),
               }),
               c.jsx("h2", {
-                className: "text-2xl font-bold",
-                children: J.username,
+                className: "text-2xl font-bold text-center",
+                children:
+                  String((profileSettingsForm.display_name || "").trim()) ||
+                  J.username,
+              }),
+              c.jsxs("p", {
+                className: "mt-1 text-center text-sm text-text-sub",
+                children: ["@", J.username],
               }),
               c.jsx("span", {
                 className:
                   "inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-xs uppercase rounded-full",
                 children: J.profile.role,
               }),
+              !!String((profileSettingsForm.phone || "").trim()) &&
+                c.jsxs("p", {
+                  className: "mt-4 text-sm text-text-main text-center",
+                  children: ["Tel: ", String((profileSettingsForm.phone || "").trim())],
+                }),
             ],
           }),
           c.jsxs("div", {
@@ -10716,6 +10602,119 @@ function nh() {
               ? "bg-surface-light p-5 rounded-3xl border shadow-card space-y-4"
               : "bg-surface-light p-4 rounded-2xl border shadow-card space-y-3",
             children: [
+              c.jsxs("div", {
+                className: "space-y-1 pb-1 border-b border-border-light dark:border-border-dark",
+                children: [
+                  c.jsx("h3", {
+                    className: "text-base font-bold text-text-main",
+                    children: "Configuraciones",
+                  }),
+                  c.jsx("p", {
+                    className: "text-xs text-text-sub",
+                    children:
+                      "Tabla base del perfil para ir agregando ajustes por seccion.",
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className: "space-y-3",
+                children: [
+                  c.jsxs("div", {
+                    children: [
+                      c.jsx("h3", {
+                        className: "text-sm font-bold text-text-main",
+                        children: "Datos del perfil",
+                      }),
+                      c.jsx("p", {
+                        className: "text-xs text-text-sub mt-1",
+                        children: "Nombre visible y telefono del usuario.",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("div", {
+                    className: "grid gap-3 md:grid-cols-2",
+                    children: [
+                      c.jsxs("label", {
+                        className: "block",
+                        children: [
+                          c.jsx("span", {
+                            className:
+                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                            children: "Nombre",
+                          }),
+                          c.jsx("input", {
+                            type: "text",
+                            value: profileSettingsForm.display_name,
+                            onChange: (o) =>
+                              setProfileSettingsForm((N) => ({
+                                ...N,
+                                display_name: o.target.value,
+                              })),
+                            placeholder: J.username,
+                            className:
+                              "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                          }),
+                        ],
+                      }),
+                      c.jsxs("label", {
+                        className: "block",
+                        children: [
+                          c.jsx("span", {
+                            className:
+                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                            children: "Telefono",
+                          }),
+                          c.jsx("input", {
+                            type: "text",
+                            value: profileSettingsForm.phone,
+                            onChange: (o) =>
+                              setProfileSettingsForm((N) => ({
+                                ...N,
+                                phone: o.target.value,
+                              })),
+                            placeholder: "5512345678",
+                            className:
+                              "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                  c.jsxs("div", {
+                    className: "flex flex-wrap items-center gap-2",
+                    children: [
+                      c.jsxs("span", {
+                        className:
+                          "inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-[11px] font-semibold text-text-sub",
+                        children: ["Usuario: @", J.username],
+                      }),
+                      c.jsx("button", {
+                        type: "button",
+                        onClick: saveProfileSettings,
+                        disabled:
+                          profileSettingsSaving ||
+                          (String((profileSettingsForm.display_name || "")).trim() ===
+                            String((J.profile && J.profile.display_name) || "").trim() &&
+                            String((profileSettingsForm.phone || "")).trim() ===
+                              String((J.profile && J.profile.phone) || "").trim()),
+                        className:
+                          `px-4 py-2 rounded-xl text-xs font-bold transition ${
+                            profileSettingsSaving ||
+                            (String((profileSettingsForm.display_name || "")).trim() ===
+                              String((J.profile && J.profile.display_name) || "").trim() &&
+                              String((profileSettingsForm.phone || "")).trim() ===
+                                String((J.profile && J.profile.phone) || "").trim())
+                              ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                              : "bg-primary text-white hover:bg-primary-dark"
+                          }`,
+                        children: profileSettingsSaving
+                          ? "Guardando..."
+                          : "Guardar datos",
+                      }),
+                    ],
+                  }),
+                ],
+              }),
               c.jsxs("div", {
                 className: "space-y-2",
                 children: [
@@ -10758,74 +10757,28 @@ function nh() {
                 children: [
                   c.jsx("h3", {
                     className: "text-sm font-bold text-text-main",
-                    children: "Desglose Default",
+                    children: "Configuracion de desglose",
                   }),
-                  c.jsxs("div", {
-                    className: "mt-1 space-y-1",
-                    children: [
-                      c.jsx("p", {
-                        className: "text-xs text-text-sub",
-                        children:
-                          "Arrastra bloques al editor o tocalos para insertarlos donde esta el cursor.",
-                      }),
-                      c.jsx("p", {
-                        className: "text-[11px] text-text-sub/80",
-                        children:
-                          "Los bloques inteligentes solo escriben esa linea cuando el dato exista, por ejemplo descuento o cliente.",
-                      }),
-                    ],
+                  c.jsx("p", {
+                    className: "mt-1 text-xs text-text-sub",
+                    children:
+                      "Editor libre del texto por default. Ya no usa bloques visuales.",
                   }),
                 ],
               }),
-              c.jsxs("div", {
-                className: "space-y-3",
-                children: [
-                  c.jsxs("div", {
-                    children: [
-                      c.jsx("p", {
-                        className:
-                          "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
-                        children: "Variables",
-                      }),
-                      c.jsx("div", {
-                        className: "mt-2 grid grid-cols-2 gap-2",
-                        children: breakdownTemplateVariableBlocks.map((o) =>
-                          renderBreakdownTemplateBlock(o, "variable"),
-                        ),
-                      }),
-                    ],
-                  }),
-                  c.jsxs("div", {
-                    children: [
-                      c.jsx("p", {
-                        className:
-                          "text-[11px] font-extrabold uppercase tracking-[0.18em] text-text-sub/80",
-                        children: "Bloques inteligentes",
-                      }),
-                      c.jsx("div", {
-                        className: "mt-2 grid gap-2",
-                        children: breakdownTemplateConditionalBlocks.map((o) =>
-                          renderBreakdownTemplateBlock(o, "conditional"),
-                        ),
-                      }),
-                    ],
-                  }),
-                ],
+              c.jsx("p", {
+                className: "text-[11px] text-text-sub",
+                children:
+                  "Variables disponibles: {title} • {items} • {total} • {subtotal} • {discount_percentage} • {discount_amount} • {client_name} • {shopping_name}",
               }),
               c.jsx("textarea", {
-                ref: breakdownTemplateTextareaRef,
                 value: defaultBreakdownTemplate,
                 onChange: (o) => {
                   persistDefaultBreakdownTemplate(o.target.value);
                 },
-                onDragOver: (o) => {
-                  o.preventDefault();
-                  o.dataTransfer.dropEffect = "copy";
-                },
-                onDrop: handleBreakdownTemplateDrop,
-                rows: 8,
+                rows: 10,
                 className:
-                  "w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 px-3 py-2 text-xs text-text-main dark:text-white outline-none focus:ring-2 focus:ring-primary/40 whitespace-pre-wrap",
+                  "w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 px-3 py-3 text-xs text-text-main dark:text-white outline-none focus:ring-2 focus:ring-primary/40 whitespace-pre-wrap",
               }),
               c.jsxs("div", {
                 className: "flex items-center gap-2",
@@ -10843,7 +10796,22 @@ function nh() {
                   c.jsx("p", {
                     className: "text-[11px] text-text-sub",
                     children:
-                      "Tambien puedes editar el texto manualmente si quieres un formato mas libre.",
+                      "Se guarda en este navegador y puedes editarlo manualmente.",
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className:
+                  "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-4",
+                children: [
+                  c.jsx("h3", {
+                    className: "text-sm font-bold text-text-main",
+                    children: "Por definir",
+                  }),
+                  c.jsx("p", {
+                    className: "mt-1 text-xs text-text-sub",
+                    children:
+                      "Espacio reservado para mas cambios dentro de esta tabla de configuraciones.",
                   }),
                 ],
               }),
