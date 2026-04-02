@@ -6988,7 +6988,7 @@ function nh() {
                               "div",
                               {
                                 className:
-                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[1.9]",
+                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[3.7]",
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
@@ -7013,10 +7013,10 @@ function nh() {
                                   }),
                                   c.jsx("div", {
                                     className:
-                                      "absolute top-1 left-1 right-1 z-10 pointer-events-none",
+                                      "absolute top-0.5 left-0.5 right-0.5 z-10 pointer-events-none",
                                     children: c.jsx("div", {
                                       className:
-                                        "inline-flex max-w-full rounded-full bg-white/18 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm",
+                                        "inline-flex max-w-full rounded-full bg-white/18 px-1.5 py-0.5 text-[8px] font-semibold text-white backdrop-blur-sm",
                                       children: c.jsx("span", {
                                         className: "truncate",
                                         children: o.name,
@@ -7026,15 +7026,15 @@ function nh() {
                                   Number.isFinite(getProductImagePrimaryPrice(o)) &&
                                   c.jsx("div", {
                                     className:
-                                      "absolute inset-x-0 bottom-1 z-10 flex justify-center pointer-events-none",
+                                      "absolute inset-x-0 bottom-0.5 z-10 flex justify-center pointer-events-none",
                                     children: hasProductDiscountedFinalPrice(o)
                                       ? c.jsxs("div", {
                                         className:
-                                          "inline-flex flex-col items-center gap-0 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-2 py-0.5 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                          "inline-flex flex-col items-center gap-0 rounded-2xl bg-white/82 dark:bg-slate-900/82 px-1.5 py-0.5 text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
                                         children: [
                                           c.jsxs("span", {
                                             className:
-                                              "whitespace-nowrap text-[8px] font-bold",
+                                              "whitespace-nowrap text-[7px] font-bold",
                                             children: [
                                               "Venta $",
                                               formatAmount(
@@ -7044,7 +7044,7 @@ function nh() {
                                           }),
                                           c.jsxs("span", {
                                             className:
-                                              "whitespace-nowrap text-[8px] font-black text-emerald-700 dark:text-emerald-300",
+                                              "whitespace-nowrap text-[7px] font-black text-emerald-700 dark:text-emerald-300",
                                             children: [
                                               "C/desc $",
                                               formatProductQuickFinalPrice(o),
@@ -7054,7 +7054,7 @@ function nh() {
                                       })
                                       : c.jsxs("span", {
                                         className:
-                                          "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[2px] text-[9px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                          "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-1.5 py-[2px] text-[8px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
                                         children: [
                                           "$",
                                           formatAmount(
