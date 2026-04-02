@@ -7770,7 +7770,7 @@ function nh() {
                                 className:
                                   `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
-                                  vl < 0 ? "A favor global: " : "Deuda global: ",
+                                  vl < 0 ? "A favor: " : "Deuda: ",
                                   "$",
                                   formatAmount(Math.abs(vl)),
                                 ],
@@ -12881,8 +12881,8 @@ function nh() {
                                   `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
                                   selectedClientHomeGlobalBalance < 0
-                                    ? "A favor global: "
-                                    : "Deuda global: ",
+                                    ? "A favor: "
+                                    : "Deuda: ",
                                   "$",
                                   formatAmount(Math.abs(selectedClientHomeGlobalBalance)),
                                 ],
