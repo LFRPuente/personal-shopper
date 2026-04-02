@@ -11775,7 +11775,6 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-4",
                   children: [
                     c.jsxs("div", {
                       children: [
@@ -11785,7 +11784,8 @@ function nh() {
                           children: "Phone",
                         }),
                         c.jsxs("div", {
-                          className: "grid grid-cols-[96px_minmax(0,1fr)] gap-2",
+                          className:
+                            "grid grid-cols-[112px_minmax(0,1fr)] gap-3",
                           children: [
                             c.jsx("input", {
                               type: "text",
@@ -11799,7 +11799,7 @@ function nh() {
                               placeholder: "+52",
                               maxLength: 8,
                               className:
-                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                                "w-full px-4 py-3 text-lg border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                             }),
                             c.jsx("input", {
                               type: "tel",
@@ -11810,30 +11810,9 @@ function nh() {
                               placeholder: "5512345678",
                               maxLength: 10,
                               className:
-                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                                "w-full px-4 py-3 text-lg border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                             }),
                           ],
-                        }),
-                        c.jsx("p", {
-                          className: "mt-1 text-[11px] text-gray-500",
-                          children: "10 digits plus country code",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Email",
-                        }),
-                        c.jsx("input", {
-                          type: "email",
-                          value: q,
-                          onChange: (o) => sl(o.target.value),
-                          placeholder: "client@email.com",
-                          className:
-                            "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                         }),
                       ],
                     }),
@@ -12004,7 +11983,6 @@ function nh() {
                   ],
                 }),
                 c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-4",
                   children: [
                     c.jsxs("div", {
                       children: [
@@ -12014,7 +11992,8 @@ function nh() {
                           children: "Phone",
                         }),
                         c.jsxs("div", {
-                          className: "grid grid-cols-[96px_minmax(0,1fr)] gap-2",
+                          className:
+                            "grid grid-cols-[112px_minmax(0,1fr)] gap-3",
                           children: [
                             c.jsx("input", {
                               type: "text",
@@ -12030,7 +12009,7 @@ function nh() {
                               placeholder: "+52",
                               maxLength: 8,
                               className:
-                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                                "w-full px-4 py-3 text-lg border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                             }),
                             c.jsx("input", {
                               type: "tel",
@@ -12046,30 +12025,9 @@ function nh() {
                               placeholder: "5512345678",
                               maxLength: 10,
                               className:
-                                "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
+                                "w-full px-4 py-3 text-lg border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                             }),
                           ],
-                        }),
-                        c.jsx("p", {
-                          className: "mt-1 text-[11px] text-gray-500",
-                          children: "10 digits plus country code",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Email",
-                        }),
-                        c.jsx("input", {
-                          type: "email",
-                          value: ml.email,
-                          onChange: (o) =>
-                            hl({ ...ml, email: o.target.value }),
-                          className:
-                            "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                         }),
                       ],
                     }),
