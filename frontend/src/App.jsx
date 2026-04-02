@@ -6982,13 +6982,13 @@ function nh() {
                           ],
                         }),
                         c.jsx("div", {
-                          className: "grid grid-cols-2 gap-1.5",
+                          className: "grid grid-cols-2 gap-1.5 justify-items-center",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
                               "div",
                               {
                                 className:
-                                  "relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[3.7]",
+                                  "relative w-full max-w-[128px] sm:max-w-[138px] overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-slate-100 dark:bg-slate-900 aspect-[1.18]",
                                 children: [
                                   o.image
                                     ? c.jsx("img", {
