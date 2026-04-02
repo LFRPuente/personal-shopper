@@ -79,7 +79,7 @@ def broadcast_update(model, action='changed', object_id=None):
     )
 
 
-def create_payment_entry(payment, amount, total_after, user=None):
+def create_payment_entry(payment, amount, total_after, user=None, entry_kind='SHOPPING', group_token=None):
     amount_decimal = Decimal(amount or 0)
     if amount_decimal == Decimal('0'):
         return None
@@ -87,6 +87,8 @@ def create_payment_entry(payment, amount, total_after, user=None):
         payment=payment,
         amount=amount_decimal,
         total_after=Decimal(total_after or 0),
+        entry_kind=entry_kind or 'SHOPPING',
+        group_token=(str(group_token).strip() or None) if group_token is not None else None,
         created_by=user,
     )
 
@@ -1584,11 +1586,17 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         payment = serializer.save(created_by=self.request.user)
+        entry_kind = str(self.request.data.get('entry_kind') or 'SHOPPING').strip().upper()
+        if entry_kind not in {'SHOPPING', 'CLIENT_BATCH'}:
+            entry_kind = 'SHOPPING'
+        group_token = self.request.data.get('entry_group_token')
         create_payment_entry(
             payment,
             payment.amount,
             payment.amount,
             self.request.user,
+            entry_kind=entry_kind,
+            group_token=group_token,
         )
         broadcast_update('payments', action='created', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
@@ -1596,11 +1604,17 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         previous_amount = Decimal(serializer.instance.amount or 0)
         payment = serializer.save()
+        entry_kind = str(self.request.data.get('entry_kind') or 'SHOPPING').strip().upper()
+        if entry_kind not in {'SHOPPING', 'CLIENT_BATCH'}:
+            entry_kind = 'SHOPPING'
+        group_token = self.request.data.get('entry_group_token')
         create_payment_entry(
             payment,
             Decimal(payment.amount or 0) - previous_amount,
             payment.amount,
             self.request.user,
+            entry_kind=entry_kind,
+            group_token=group_token,
         )
         broadcast_update('payments', action='updated', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)

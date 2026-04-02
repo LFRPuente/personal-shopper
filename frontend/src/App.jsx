@@ -3753,18 +3753,21 @@ function nh() {
       }
       setClientPaymentSaving(!0);
       try {
-        for (const vl of A) {
-          const El = Number(vl && vl.key),
-            Se = getClientShoppingPayments(o, El)[0] || null,
-            ea = Se ? getPaymentRecordAmount(Se) : 0,
-            gl = getClientPaymentTargetProductIds(o, El);
-          await I(Se ? `/payments/${Se.id}/` : "/payments/", {
-            method: Se ? "PATCH" : "POST",
+        const vl = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        for (const El of A) {
+          const Se = Number(El && El.key),
+            ea = getClientShoppingPayments(o, Se)[0] || null,
+            gl = ea ? getPaymentRecordAmount(ea) : 0,
+            ae = getClientPaymentTargetProductIds(o, Se);
+          await I(ea ? `/payments/${ea.id}/` : "/payments/", {
+            method: ea ? "PATCH" : "POST",
             body: JSON.stringify({
               client: o.id,
-              shopping: El,
-              amount: (ea + paymentLocalToNumber(vl.appliedAmount, 0)).toFixed(2),
-              products: gl,
+              shopping: Se,
+              amount: (gl + paymentLocalToNumber(El.appliedAmount, 0)).toFixed(2),
+              products: ae,
+              entry_kind: "CLIENT_BATCH",
+              entry_group_token: vl,
             }),
           });
         }
@@ -4683,6 +4686,53 @@ function nh() {
             new Date(A.created_at || 0).getTime() -
             new Date(N.created_at || 0).getTime(),
         ),
+    getClientPaymentHistoryRows = (o) => {
+      const N = getClientPaymentHistoryEntries(o),
+        A = new Set(),
+        vl = [];
+      N.forEach((El) => {
+        const Se = String((El && El.entry_kind) || "").toUpperCase(),
+          ea = String((El && El.group_token) || "").trim();
+        if (Se === "CLIENT_BATCH" && ea) {
+          if (A.has(ea)) return;
+          A.add(ea);
+          const gl = N.filter(
+              (ae) =>
+                String((ae && ae.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
+                String((ae && ae.group_token) || "").trim() === ea,
+            ),
+            ae = gl.reduce(
+              (oi, Pi) => oi + paymentLocalToNumber(Pi && Pi.amount, 0),
+              0,
+            ),
+            qa = Array.from(
+              new Set(
+                gl
+                  .map((oi) =>
+                    String(oi && (oi.shopping_title || oi.shopping_name) || "").trim(),
+                  )
+                  .filter(Boolean),
+              ),
+            );
+          vl.push({
+            id: `client-batch-${ea}`,
+            entry_kind: "CLIENT_BATCH",
+            amount: ae,
+            total_after: ae,
+            created_at: gl[0] && gl[0].created_at,
+            created_by_username: gl[0] && gl[0].created_by_username,
+            shopping_title: "Abono general",
+            shopping_tags: qa,
+          });
+          return;
+        }
+        vl.push({
+          ...El,
+          shopping_tags: [],
+        });
+      });
+      return vl;
+    },
     clientPaymentModalClient = Kl.find(
       (o) => String(o.id) === String(clientPaymentForm.client || ""),
     ) || null,
@@ -4710,6 +4760,9 @@ function nh() {
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
     clientPaymentHistoryEntries = clientPaymentModalClient
       ? getClientPaymentHistoryEntries(clientPaymentModalClient)
+      : [],
+    clientPaymentHistoryRows = clientPaymentModalClient
+      ? getClientPaymentHistoryRows(clientPaymentModalClient)
       : [],
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
@@ -14048,7 +14101,7 @@ function nh() {
                                         "text-[11px] text-text-sub mt-0.5",
                                       children: [
                                         clientPaymentReceivingTargets.length,
-                                        " marcadas de ",
+                                        " de ",
                                         clientPaymentTargets.length,
                                       ],
                                     }),
@@ -14150,23 +14203,17 @@ function nh() {
                                             "shrink-0 text-right flex flex-col items-end gap-1",
                                           children: [
                                             o.isReceiving
-                                              ? c.jsxs("span", {
+                                              ? c.jsx("span", {
                                                 className:
-                                                  "inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
-                                                children: [
+                                                  "inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700",
+                                                children:
                                                   c.jsx("span", {
                                                     className:
-                                                      "material-symbols-outlined text-[12px]",
+                                                      "material-symbols-outlined text-[16px]",
                                                     children: "check_circle",
                                                   }),
-                                                  "Marcada",
-                                                ],
                                               })
-                                              : c.jsx("span", {
-                                                className:
-                                                  "inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500",
-                                                children: "Sin abono",
-                                              }),
+                                              : null,
                                             o.isReceiving &&
                                             c.jsxs("span", {
                                               className:
@@ -14265,13 +14312,13 @@ function nh() {
                                       className:
                                         "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
                                       children: [
-                                        clientPaymentHistoryEntries.length,
+                                        clientPaymentHistoryRows.length,
                                         " movimiento(s)",
                                       ],
                                     }),
                                   ],
                                 }),
-                                clientPaymentHistoryEntries.length === 0
+                                clientPaymentHistoryRows.length === 0
                                   ? c.jsx("p", {
                                     className:
                                       "text-[11px] leading-5 text-text-sub",
@@ -14280,7 +14327,7 @@ function nh() {
                                   })
                                   : c.jsx("div", {
                                     className: "space-y-2 max-h-56 overflow-y-auto ios-scroll pr-1",
-                                    children: clientPaymentHistoryEntries.map((o) =>
+                                    children: clientPaymentHistoryRows.map((o) =>
                                       c.jsxs(
                                         "div",
                                         {
@@ -14300,6 +14347,23 @@ function nh() {
                                                       children:
                                                         o.shopping_title ||
                                                         `Shopping #${o.shopping_id}`,
+                                                    }),
+                                                    Array.isArray(o.shopping_tags) &&
+                                                    o.shopping_tags.length > 0 &&
+                                                    c.jsx("div", {
+                                                      className:
+                                                        "mt-1 flex flex-wrap gap-1",
+                                                      children: o.shopping_tags.map((N) =>
+                                                        c.jsx(
+                                                          "span",
+                                                          {
+                                                            className:
+                                                              "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
+                                                            children: N,
+                                                          },
+                                                          `client-payment-history-tag-${o.id}-${N}`,
+                                                        ),
+                                                      ),
                                                     }),
                                                     c.jsxs("p", {
                                                       className:
@@ -14360,7 +14424,7 @@ function nh() {
                                             }),
                                           ],
                                         },
-                                        `client-payment-history-entry-${o.payment_id}-${o.id}`,
+                                        `client-payment-history-entry-${o.id}`,
                                       ),
                                     ),
                                   }),
@@ -14458,8 +14522,8 @@ function nh() {
                                 "text-[11px] leading-5 text-text-sub",
                               children:
                                 clientPaymentReceivingTargets.length > 0
-                                  ? "Las shoppings marcadas se abonan automaticamente empezando por la mas antigua."
-                                  : "Captura un monto para marcar automaticamente las shoppings que recibiran el abono.",
+                                  ? "El abono se reparte automaticamente empezando por la shopping mas antigua."
+                                  : "Captura un monto para repartirlo automaticamente entre las shoppings con deuda.",
                             }),
                           ],
                         }),

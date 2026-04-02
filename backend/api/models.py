@@ -392,6 +392,10 @@ class ShoppingPayment(models.Model):
 
 
 class ShoppingPaymentEntry(models.Model):
+    ENTRY_KIND_CHOICES = [
+        ('SHOPPING', 'Abono por shopping'),
+        ('CLIENT_BATCH', 'Abono general de cliente'),
+    ]
     payment = models.ForeignKey(
         ShoppingPayment,
         on_delete=models.CASCADE,
@@ -399,6 +403,12 @@ class ShoppingPaymentEntry(models.Model):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_after = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    entry_kind = models.CharField(
+        max_length=20,
+        choices=ENTRY_KIND_CHOICES,
+        default='SHOPPING',
+    )
+    group_token = models.CharField(max_length=64, blank=True, null=True)
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

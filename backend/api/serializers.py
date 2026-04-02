@@ -183,6 +183,10 @@ class ShoppingPaymentEntrySerializer(serializers.ModelSerializer):
     created_by_username = serializers.CharField(
         source='created_by.username', read_only=True, default=None
     )
+    shopping = serializers.IntegerField(source='payment.mission_id', read_only=True)
+    shopping_name = serializers.CharField(
+        source='payment.mission.name', read_only=True, default=None
+    )
 
     class Meta:
         model = ShoppingPaymentEntry
@@ -190,6 +194,10 @@ class ShoppingPaymentEntrySerializer(serializers.ModelSerializer):
             'id',
             'amount',
             'total_after',
+            'entry_kind',
+            'group_token',
+            'shopping',
+            'shopping_name',
             'created_by',
             'created_by_username',
             'created_at',
