@@ -631,6 +631,13 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
 class ClientMissionShareProductSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     shipment = serializers.SerializerMethodField()
+    discount_percentage = serializers.DecimalField(
+        source='mission.discount_percentage',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+        default=0,
+    )
 
     def get_shipment(self, obj):
         shipment = None
@@ -657,6 +664,7 @@ class ClientMissionShareProductSerializer(serializers.ModelSerializer):
             'status',
             'charged_price',
             'real_price',
+            'discount_percentage',
             'created_at',
             'purchase_date',
             'shipment',

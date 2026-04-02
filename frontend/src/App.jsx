@@ -4867,7 +4867,9 @@ function nh() {
     getProductPaymentAmount = (o, N = null) => {
       const A =
           N === null
-            ? paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
+            ? hasValue(o && o.discount_percentage)
+              ? toNumber(o && o.discount_percentage, 0)
+              : paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
             : N,
         vl = Math.max(0, 1 - toNumber(A, 0) / 100),
         El = toNumber(o && o.charged_price, Number.NaN);
@@ -7013,18 +7015,41 @@ function nh() {
                                           "text-[10px] leading-4 font-semibold text-text-main dark:text-white line-clamp-2",
                                           children: o.name,
                                       }),
-                                      c.jsxs("p", {
-                                        className:
-                                          "mt-0.5 text-xs font-black text-amber-700 dark:text-amber-300",
-                                        children: [
-                                          "$",
-                                          formatAmount(
-                                            parseFloat(
-                                              o.charged_price || o.real_price || 0,
-                                            ),
-                                          ),
-                                        ],
-                                      }),
+                                      hasProductDiscountedFinalPrice(o)
+                                        ? c.jsxs("div", {
+                                          className: "mt-1 flex flex-wrap gap-1",
+                                          children: [
+                                            c.jsxs("span", {
+                                              className:
+                                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/90 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm",
+                                              children: [
+                                                "Venta $",
+                                                formatAmount(
+                                                  getProductBaseFinalPrice(o),
+                                                ),
+                                              ],
+                                            }),
+                                            c.jsxs("span", {
+                                              className:
+                                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-emerald-50 dark:bg-emerald-950/35 px-2 py-[3px] text-[10px] font-black text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 shadow-sm",
+                                              children: [
+                                                "C/desc $",
+                                                formatProductQuickFinalPrice(o),
+                                              ],
+                                            }),
+                                          ],
+                                        })
+                                        : Number.isFinite(getProductImagePrimaryPrice(o)) &&
+                                          c.jsxs("span", {
+                                            className:
+                                              "mt-1 inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/90 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm",
+                                            children: [
+                                              "Venta $",
+                                              formatAmount(
+                                                getProductImagePrimaryPrice(o),
+                                              ),
+                                            ],
+                                          }),
                                     ],
                                   }),
                                 ],
