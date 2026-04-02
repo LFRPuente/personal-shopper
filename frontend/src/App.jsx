@@ -147,9 +147,13 @@ const toFormShoppingId = (o) =>
     : String(o);
 const getUserOptionLabel = (o) => {
   if (!o) return "";
-  const N = String((o && o.username) || "").trim();
-  const A = String((o && o.profile && o.profile.role) || "").trim();
-  return N && A ? `${N} (${A})` : N || A || "Usuario";
+  const N = String(
+    (o && o.profile && o.profile.display_name) || "",
+  ).trim();
+  const A = String((o && o.username) || "").trim();
+  const vl = N || A;
+  const El = String((o && o.profile && o.profile.role) || "").trim();
+  return vl && El ? `${vl} (${El})` : vl || El || "Usuario";
 };
 const normalizeClientCountryCode = (o) => {
   const N = String(o || "").replace(/[^\d]/g, "");
