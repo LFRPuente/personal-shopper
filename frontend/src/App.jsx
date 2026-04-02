@@ -7707,8 +7707,11 @@ function nh() {
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) => {
                 const N = getHomeClientMissionAnnotatedTotals(o.products || [], w.id),
-                  A = getClientShoppingPaymentSummary(o, w.id),
-                  vl = A.balance;
+                  A = getClientShoppingHistoryEntries(o),
+                  vl = A.reduce(
+                    (El, Se) => El + toNumber(Se && Se.balance, 0),
+                    0,
+                  );
                 return c.jsxs(
                   "div",
                   {
@@ -7767,7 +7770,7 @@ function nh() {
                                 className:
                                   `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${vl < 0 ? "bg-emerald-100 text-emerald-800" : vl > 0 ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-700"}`,
                                 children: [
-                                  vl < 0 ? "A favor: " : "Deuda: ",
+                                  vl < 0 ? "A favor global: " : "Deuda global: ",
                                   "$",
                                   formatAmount(Math.abs(vl)),
                                 ],
