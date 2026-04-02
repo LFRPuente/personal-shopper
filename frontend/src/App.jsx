@@ -4720,6 +4720,12 @@ function nh() {
     productCalcCompactInputClass =
       "calc-input w-full border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
     payerUserOptions = (users || []).filter((o) => !!(o && o.id)),
+    activeMissionPayerUser = payerUserOptions.find(
+      (o) => String((o && o.id) || "") === String((w && w.payer) || ""),
+    ),
+    activeMissionPayerLabel = activeMissionPayerUser
+      ? getUserOptionLabel(activeMissionPayerUser)
+      : String((w && w.payer_username) || "").trim(),
     filteredStores = stores
       .filter((o) =>
         o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
@@ -6483,8 +6489,8 @@ function nh() {
               className: "text-text-sub text-sm mb-6",
               children: w
                 ? w.status === "PAUSED"
-                  ? `Shopping pausado en ${getMissionStoreLabel(w)}.`
-                  : `Comprando en ${getMissionStoreLabel(w)}.`
+                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
+                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
                 : "Inicia un shopping al entrar a la tienda para comenzar a registrar compras.",
             }),
             w
@@ -7511,7 +7517,7 @@ function nh() {
                         ? "text-xs text-gray-500 truncate mt-0.5"
                         : "text-[10px] text-gray-500 truncate",
                       children: w
-                        ? `${getMissionStoreLabel(w)} • ${w.status}`
+                        ? `${getMissionStoreLabel(w)} • ${w.status}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}`
                         : "Sin shopping activo",
                     }),
                   ],
