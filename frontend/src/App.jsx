@@ -960,7 +960,7 @@ function nh() {
     const o = Kl.find(
         (A) => String(A.id) === String(clientPaymentForm.client || ""),
       ) || null,
-      N = getClientPaymentTargets(o).reduce(
+      N = (o ? getClientPaymentTargets(o) : []).reduce(
         (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
         0,
       ),
@@ -4563,6 +4563,7 @@ function nh() {
       };
     },
     getClientShoppingHistoryEntries = (o) => {
+      if (!o) return [];
       const N = getHomeVisibleProducts(o),
         A = N.reduce((gl, ae) => {
           const qa = String(ae.shopping || "");
@@ -4657,6 +4658,7 @@ function nh() {
       return vl;
     },
     getClientPaymentTargetProductIds = (o, N) => {
+      if (!o) return [];
       const A = getClientShoppingPayments(o, N),
         vl = A[0] || null,
         El = vl
@@ -4684,12 +4686,16 @@ function nh() {
     clientPaymentModalClient = Kl.find(
       (o) => String(o.id) === String(clientPaymentForm.client || ""),
     ) || null,
-    clientPaymentTargets = getClientPaymentTargets(clientPaymentModalClient),
+    clientPaymentTargets = clientPaymentModalClient
+      ? getClientPaymentTargets(clientPaymentModalClient)
+      : [],
     clientPaymentAmountValue = paymentLocalToNumber(clientPaymentForm.amount, 0),
-    clientPaymentPlan = getClientPaymentPlan(
-      clientPaymentModalClient,
-      clientPaymentAmountValue,
-    ),
+    clientPaymentPlan = clientPaymentModalClient
+      ? getClientPaymentPlan(
+        clientPaymentModalClient,
+        clientPaymentAmountValue,
+      )
+      : [],
     clientPaymentReceivingTargets = clientPaymentPlan.filter(
       (o) => toNumber(o && o.appliedAmount, 0) > 0,
     ),
@@ -4702,9 +4708,9 @@ function nh() {
       0,
     ),
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
-    clientPaymentHistoryEntries = getClientPaymentHistoryEntries(
-      clientPaymentModalClient,
-    ),
+    clientPaymentHistoryEntries = clientPaymentModalClient
+      ? getClientPaymentHistoryEntries(clientPaymentModalClient)
+      : [],
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
