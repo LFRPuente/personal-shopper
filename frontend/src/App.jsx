@@ -9057,7 +9057,7 @@ function nh() {
                   }),
                 ],
               }),
-              X !== "PS" &&
+              ["AV", "PS", "BOTH"].includes(X) &&
               c.jsxs("button", {
                 onClick: () => {
                   (Yt(""),
