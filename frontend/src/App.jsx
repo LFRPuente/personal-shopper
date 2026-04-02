@@ -371,6 +371,13 @@ function nh() {
     [paymentEntryEditingId, setPaymentEntryEditingId] = V.useState(null),
     [paymentEntryDraftAmount, setPaymentEntryDraftAmount] = V.useState(""),
     [paymentEntrySavingId, setPaymentEntrySavingId] = V.useState(null),
+    [clientPaymentModalOpen, setClientPaymentModalOpen] = V.useState(!1),
+    [clientPaymentSaving, setClientPaymentSaving] = V.useState(!1),
+    [clientPaymentAmountManual, setClientPaymentAmountManual] = V.useState(!1),
+    [clientPaymentForm, setClientPaymentForm] = V.useState({
+      client: "",
+      amount: "",
+    }),
     [newRequestText, setNewRequestText] = V.useState(""),
     [newRequestClientId, setNewRequestClientId] = V.useState(""),
     [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
@@ -684,6 +691,8 @@ function nh() {
         ? "image-source"
       : inputDialog
         ? "input"
+        : clientPaymentModalOpen
+          ? "client-payment-modal"
         : paymentModalOpen
           ? "payment-modal"
         : shipmentProductPickerOpen
@@ -735,6 +744,16 @@ function nh() {
       }
       if (inputDialog) {
         closeInputDialog(null);
+        return;
+      }
+      if (clientPaymentModalOpen) {
+        setClientPaymentModalOpen(!1);
+        setClientPaymentAmountManual(!1);
+        setClientPaymentSaving(!1);
+        setClientPaymentForm({
+          client: "",
+          amount: "",
+        });
         return;
       }
       if (paymentModalOpen) {
@@ -935,6 +954,26 @@ function nh() {
     paymentForm.shopping,
     paymentForm.product_ids,
     Kl,
+  ]);
+  V.useEffect(() => {
+    if (!clientPaymentModalOpen || clientPaymentAmountManual) return;
+    const o = Kl.find(
+        (A) => String(A.id) === String(clientPaymentForm.client || ""),
+      ) || null,
+      N = getClientPaymentTargets(o).reduce(
+        (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
+        0,
+      ),
+      A = N > 0 ? N.toFixed(2) : "";
+    setClientPaymentForm((vl) =>
+      String((vl && vl.amount) || "") === A ? vl : { ...vl, amount: A },
+    );
+  }, [
+    clientPaymentModalOpen,
+    clientPaymentAmountManual,
+    clientPaymentForm.client,
+    Kl,
+    Al,
   ]);
   V.useEffect(() => {
     C && Ti();
@@ -3491,6 +3530,30 @@ function nh() {
       ? Math.max(paymentSelectedProductsTotal - paymentCurrentAmountValue, 0)
       : paymentSelectedProductsTotal,
     paymentFormBalance = paymentSelectedProductsTotal - paymentPreviewAmountValue,
+    clientPaymentModalClient = Kl.find(
+      (o) => String(o.id) === String(clientPaymentForm.client || ""),
+    ) || null,
+    clientPaymentTargets = getClientPaymentTargets(clientPaymentModalClient),
+    clientPaymentAmountValue = paymentLocalToNumber(clientPaymentForm.amount, 0),
+    clientPaymentPlan = getClientPaymentPlan(
+      clientPaymentModalClient,
+      clientPaymentAmountValue,
+    ),
+    clientPaymentReceivingTargets = clientPaymentPlan.filter(
+      (o) => toNumber(o && o.appliedAmount, 0) > 0,
+    ),
+    clientPaymentTotalDebt = clientPaymentTargets.reduce(
+      (o, N) => o + Math.max(paymentLocalToNumber(N && N.balance, 0), 0),
+      0,
+    ),
+    clientPaymentAllocatedTotal = clientPaymentPlan.reduce(
+      (o, N) => o + Math.max(paymentLocalToNumber(N && N.appliedAmount, 0), 0),
+      0,
+    ),
+    clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
+    clientPaymentHistoryEntries = getClientPaymentHistoryEntries(
+      clientPaymentModalClient,
+    ),
     getDefaultPaymentProductIds = (o, N) =>
       paymentLocalShoppingProducts(o, N)
         .filter((A) => !paymentLocalShoppingPayments(o, N).some((vl) =>
@@ -3540,6 +3603,19 @@ function nh() {
       setPaymentEntryDraftAmount("");
       setPaymentEntrySavingId(null);
       setPaymentModalOpen(!0);
+    },
+    openClientPaymentModal = (o) => {
+      if (!o) return;
+      const N = getClientPaymentTargets(o).reduce(
+        (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
+        0,
+      );
+      setClientPaymentForm({
+        client: String(o.id),
+        amount: N > 0 ? N.toFixed(2) : "",
+      });
+      setClientPaymentAmountManual(!1);
+      setClientPaymentModalOpen(!0);
     },
     togglePaymentProductSelection = (o) => {
       if (!o) return;
@@ -3679,6 +3755,57 @@ function nh() {
         notifyError((vl && vl.message) || "No se pudo guardar el pago.");
       } finally {
         setPaymentSaving(!1);
+      }
+    },
+    saveClientPayment = async () => {
+      const o = clientPaymentModalClient,
+        N = paymentLocalToNumber(clientPaymentForm.amount, Number.NaN);
+      if (!o) {
+        notifyInfo("Selecciona un cliente valido.");
+        return;
+      }
+      if (!Number.isFinite(N) || N <= 0) {
+        notifyInfo("Captura un monto valido.");
+        return;
+      }
+      const A = getClientPaymentPlan(o, N).filter(
+        (vl) => paymentLocalToNumber(vl && vl.appliedAmount, 0) > 0,
+      );
+      if (A.length === 0) {
+        notifyInfo("Este cliente no tiene shoppings con deuda pendiente.");
+        return;
+      }
+      setClientPaymentSaving(!0);
+      try {
+        for (const vl of A) {
+          const El = Number(vl && vl.key),
+            Se = getClientShoppingPayments(o, El)[0] || null,
+            ea = Se ? getPaymentRecordAmount(Se) : 0,
+            gl = getClientPaymentTargetProductIds(o, El);
+          await I(Se ? `/payments/${Se.id}/` : "/payments/", {
+            method: Se ? "PATCH" : "POST",
+            body: JSON.stringify({
+              client: o.id,
+              shopping: El,
+              amount: (ea + paymentLocalToNumber(vl.appliedAmount, 0)).toFixed(2),
+              products: gl,
+            }),
+          });
+        }
+        setClientPaymentModalOpen(!1);
+        setClientPaymentAmountManual(!1);
+        setClientPaymentForm({
+          client: "",
+          amount: "",
+        });
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Pago guardado.");
+      } catch (vl) {
+        console.error("Failed saving client payment", vl);
+        notifyError((vl && vl.message) || "No se pudo guardar el pago.");
+      } finally {
+        setClientPaymentSaving(!1);
       }
     },
     deletePayment = async (o) => {
@@ -4459,6 +4586,125 @@ function nh() {
         balance: Se - ea,
       };
     },
+    getClientShoppingHistoryEntries = (o) => {
+      const N = getHomeVisibleProducts(o),
+        A = N.reduce((gl, ae) => {
+          const qa = String(ae.shopping || "");
+          return (gl[qa] || (gl[qa] = []), gl[qa].push(ae), gl);
+        }, {});
+      return Array.from(
+        new Set([
+          ...Object.keys(A),
+          ...(((o && o.payments) || []).map((gl) =>
+            String((gl && (gl.shopping || gl.mission)) || ""),
+          ).filter(Boolean)),
+        ]),
+      )
+        .map((gl) => {
+          const ae = A[gl] || [],
+            qa = ae.filter(
+              (miProduct) =>
+                String((miProduct && miProduct.status) || "").toUpperCase() ===
+                "ANNOTATED",
+            ),
+            Pi = getClientShoppingPayments(o, gl),
+            pa = getClientShoppingPaymentSummary(o, gl),
+            oiPaymentName =
+              (Pi[0] && (Pi[0].shopping_name || Pi[0].mission_name)) || "",
+            oiPaymentDate =
+              (Pi[0] && (Pi[0].updated_at || Pi[0].created_at)) || "",
+            oi = Al.find((mi) => mi.id === Number(gl)),
+            mi =
+              oi && oi.name
+                ? oi.name
+                : ae[0] && (ae[0].shopping_name || ae[0].mission_name)
+                  ? String(ae[0].shopping_name || ae[0].mission_name).trim()
+                  : oiPaymentName
+                    ? oiPaymentName
+                    : `Tienda #${gl}`,
+            Ri =
+              (oi && oi.start_time) ||
+              (ae[0] &&
+                (ae[0].shopping_date || ae[0].mission_date || ae[0].created_at)) ||
+              oiPaymentDate ||
+              "";
+          return {
+            key: gl,
+            shopping: oi,
+            title: mi,
+            date: Ri,
+            items: ae,
+            annotatedItems: qa,
+            annotatedCount: qa.length,
+            payments: Pi,
+            productsTotal: getPaymentProductsTotal(
+              ae,
+              paymentLocalShoppingDiscount(gl),
+            ),
+            paymentsTotal: pa.amount,
+            balance: pa.balance,
+          };
+        })
+        .sort(
+          (gl, ae) =>
+            new Date(ae.date || 0).getTime() - new Date(gl.date || 0).getTime(),
+        );
+    },
+    getClientPaymentTargets = (o) =>
+      getClientShoppingHistoryEntries(o)
+        .filter((N) => toNumber(N && N.balance, 0) > 0)
+        .sort(
+          (N, A) =>
+            new Date(N.date || 0).getTime() - new Date(A.date || 0).getTime(),
+        ),
+    getClientPaymentPlan = (o, N = 0) => {
+      let A = Math.max(toNumber(N, 0), 0);
+      const vl = getClientPaymentTargets(o).map((El) => {
+        const Se = Math.max(toNumber(El && El.balance, 0), 0);
+        let ea = 0;
+        A > 0 && ((ea = Math.min(A, Se)), (A -= ea));
+        return {
+          ...El,
+          debtAmount: Se,
+          appliedAmount: ea,
+          isReceiving: ea > 0,
+        };
+      });
+      if (A > 0 && vl.length > 0) {
+        const El = vl[0];
+        vl[0] = {
+          ...El,
+          appliedAmount: El.appliedAmount + A,
+          isReceiving: !0,
+        };
+      }
+      return vl;
+    },
+    getClientPaymentTargetProductIds = (o, N) => {
+      const A = getClientShoppingPayments(o, N),
+        vl = A[0] || null,
+        El = vl
+          ? getPaymentRecordProducts(vl).map((Se) => Number(Se && Se.id))
+          : [];
+      return paymentLocalShoppingProducts(o, N, El).map((Se) => Number(Se.id));
+    },
+    getClientPaymentHistoryEntries = (o) =>
+      getClientShoppingHistoryEntries(o)
+        .flatMap((N) =>
+          (N.payments || []).flatMap((A) =>
+            paymentLocalRecordEntries(A).map((vl) => ({
+              ...vl,
+              payment_id: A.id,
+              shopping_id: Number(N.key),
+              shopping_title: N.title,
+            })),
+          ),
+        )
+        .sort(
+          (N, A) =>
+            new Date(A.created_at || 0).getTime() -
+            new Date(N.created_at || 0).getTime(),
+        ),
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
@@ -8389,69 +8635,7 @@ function nh() {
               const A = Ei === N.id,
                 vl = getHomeVisibleProducts(N),
                 El = getHomeClientTotals(vl),
-                Se = vl.reduce((ea, gl) => {
-                  const ae = String(gl.shopping);
-                  return (ea[ae] || (ea[ae] = []), ea[ae].push(gl), ea);
-                }, {}),
-                ea = Array.from(
-                  new Set([
-                    ...Object.keys(Se),
-                    ...((N.payments || []).map((gl) =>
-                      String((gl && (gl.shopping || gl.mission)) || ""),
-                    ).filter(Boolean)),
-                  ]),
-                )
-                  .map((gl) => {
-                    const ae = Se[gl] || [],
-                      qa = ae.filter(
-                        (miProduct) =>
-                          String((miProduct && miProduct.status) || "").toUpperCase() ===
-                          "ANNOTATED",
-                      ),
-                      Pi = getClientShoppingPayments(N, gl),
-                      pa = getClientShoppingPaymentSummary(N, gl),
-                      oiPaymentName =
-                        (Pi[0] && (Pi[0].shopping_name || Pi[0].mission_name)) || "",
-                      oiPaymentDate =
-                        (Pi[0] && (Pi[0].updated_at || Pi[0].created_at)) || "";
-                    const oi =
-                        Al.find((mi) => mi.id === Number(gl)),
-                      oiName = (ae[0] && (ae[0].shopping_name || ae[0].mission_name)
-                        ? String(ae[0].shopping_name || ae[0].mission_name).trim()
-                        : oiPaymentName),
-                      mi =
-                        oi && oi.name
-                          ? oi.name
-                          : oiName
-                            ? oiName
-                            : `Tienda #${gl}`,
-                      Ri =
-                        (oi && oi.start_time) ||
-                        (ae[0] && (ae[0].shopping_date || ae[0].mission_date || ae[0].created_at)) ||
-                        oiPaymentDate ||
-                        "";
-                    return {
-                      key: gl,
-                      shopping: oi,
-                      title: mi,
-                      date: Ri,
-                      items: ae,
-                      annotatedItems: qa,
-                      annotatedCount: qa.length,
-                      payments: Pi,
-                      productsTotal: getPaymentProductsTotal(
-                        ae,
-                        paymentLocalShoppingDiscount(gl),
-                      ),
-                      paymentsTotal: pa.amount,
-                      balance: pa.balance,
-                    };
-                  })
-                  .sort(
-                    (gl, ae) =>
-                      new Date(ae.date || 0).getTime() -
-                      new Date(gl.date || 0).getTime(),
-                  ),
+                ea = getClientShoppingHistoryEntries(N),
                 totalClientItems = ea.reduce(
                   (gl, ae) =>
                     gl +
@@ -8644,6 +8828,17 @@ function nh() {
                                     className:
                                       "material-symbols-outlined text-[15px]",
                                     children: "photo_library",
+                                  }),
+                                }),
+                                c.jsx("button", {
+                                  onClick: () => openClientPaymentModal(N),
+                                  className:
+                                    "w-7 h-7 rounded-full flex items-center justify-center hover:bg-emerald-100 text-emerald-600 dark:text-emerald-300 dark:hover:bg-emerald-950/30",
+                                  title: "Pago del cliente",
+                                  children: c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[15px]",
+                                    children: "payments",
                                   }),
                                 }),
                                 c.jsx("button", {
@@ -13762,6 +13957,533 @@ function nh() {
                   className:
                     "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
                   children: inputDialog.confirmLabel,
+                }),
+              ],
+            }),
+          ],
+        }),
+      }),
+      clientPaymentModalOpen &&
+      c.jsx("div", {
+        className: overlayBackdropClass(
+          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+          "client-payment-modal",
+        ),
+        onClick: () => dismissActiveOverlayRef.current(),
+        children: c.jsxs("div", {
+          className: overlaySheetClass(
+            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-6xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
+            "client-payment-modal",
+          ),
+          onClick: (o) => o.stopPropagation(),
+          children: [
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
+              children: [
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-base font-bold text-text-main",
+                      children: "Pago del cliente",
+                    }),
+                    c.jsxs("p", {
+                      className: "text-[11px] text-text-sub mt-0.5",
+                      children: [
+                        clientPaymentModalClient
+                          ? clientPaymentModalClient.name
+                          : "Cliente",
+                        " • se abona del shopping mas antiguo al mas reciente",
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsx("button", {
+                  onClick: () => dismissActiveOverlayRef.current(),
+                  className:
+                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
+                  children: c.jsx("span", {
+                    className: "material-symbols-outlined text-[18px]",
+                    children: "close",
+                  }),
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-4",
+              children: [
+                c.jsxs("div", {
+                  className:
+                    "grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4",
+                  children: [
+                    c.jsxs("div", {
+                      className:
+                        "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 overflow-hidden",
+                      children: [
+                        c.jsxs("div", {
+                          className:
+                            "px-4 py-3 border-b border-border-light dark:border-border-dark space-y-3",
+                          children: [
+                            c.jsxs("div", {
+                              className:
+                                "flex items-center justify-between gap-3",
+                              children: [
+                                c.jsxs("div", {
+                                  className: "min-w-0",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-sm font-bold text-text-main",
+                                      children: "Shoppings del pago",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-[11px] text-text-sub mt-0.5",
+                                      children: [
+                                        clientPaymentReceivingTargets.length,
+                                        " marcadas de ",
+                                        clientPaymentTargets.length,
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("span", {
+                                  className:
+                                    "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
+                                  children: [
+                                    "Abono: $",
+                                    formatAmount(clientPaymentAllocatedTotal),
+                                  ],
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        clientPaymentTargets.length === 0
+                          ? c.jsx("div", {
+                            className:
+                              "px-4 py-10 text-sm text-center text-text-sub",
+                            children:
+                              "Este cliente no tiene shoppings con deuda pendiente.",
+                          })
+                          : c.jsx("div", {
+                            className:
+                              "max-h-[52vh] overflow-y-auto ios-scroll p-3 space-y-2",
+                            children: clientPaymentPlan.map((o) =>
+                              c.jsxs(
+                                "div",
+                                {
+                                  className:
+                                    `rounded-2xl border px-3 py-3 transition ${
+                                      o.isReceiving
+                                        ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
+                                        : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50"
+                                    }`,
+                                  children: [
+                                    c.jsxs("div", {
+                                      className:
+                                        "flex items-start justify-between gap-3",
+                                      children: [
+                                        c.jsxs("div", {
+                                          className: "min-w-0 flex-1",
+                                          children: [
+                                            c.jsx("p", {
+                                              className:
+                                                "text-sm font-semibold truncate text-text-main dark:text-white",
+                                              children: o.title,
+                                            }),
+                                            c.jsxs("p", {
+                                              className:
+                                                "text-[11px] text-text-sub mt-0.5",
+                                              children: [
+                                                o.date
+                                                  ? new Date(o.date).toLocaleDateString()
+                                                  : "Sin fecha",
+                                                " • ",
+                                                Number.isFinite(o.annotatedCount)
+                                                  ? o.annotatedCount
+                                                  : o.items.length,
+                                                " item(s)",
+                                              ],
+                                            }),
+                                            c.jsxs("div", {
+                                              className:
+                                                "mt-2 flex flex-wrap gap-1",
+                                              children: [
+                                                c.jsxs("span", {
+                                                  className:
+                                                    "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
+                                                  children: [
+                                                    "Venta: $",
+                                                    formatAmount(o.productsTotal),
+                                                  ],
+                                                }),
+                                                c.jsxs("span", {
+                                                  className:
+                                                    "inline-flex rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
+                                                  children: [
+                                                    "Pagado: $",
+                                                    formatAmount(o.paymentsTotal),
+                                                  ],
+                                                }),
+                                                c.jsxs("span", {
+                                                  className:
+                                                    "inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-700",
+                                                  children: [
+                                                    "Deuda: $",
+                                                    formatAmount(o.debtAmount),
+                                                  ],
+                                                }),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                        c.jsxs("div", {
+                                          className:
+                                            "shrink-0 text-right flex flex-col items-end gap-1",
+                                          children: [
+                                            o.isReceiving
+                                              ? c.jsxs("span", {
+                                                className:
+                                                  "inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
+                                                children: [
+                                                  c.jsx("span", {
+                                                    className:
+                                                      "material-symbols-outlined text-[12px]",
+                                                    children: "check_circle",
+                                                  }),
+                                                  "Marcada",
+                                                ],
+                                              })
+                                              : c.jsx("span", {
+                                                className:
+                                                  "inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500",
+                                                children: "Sin abono",
+                                              }),
+                                            o.isReceiving &&
+                                            c.jsxs("span", {
+                                              className:
+                                                "text-[11px] font-bold text-violet-700 dark:text-violet-300",
+                                              children: [
+                                                "Abona $",
+                                                formatAmount(o.appliedAmount),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                },
+                                `client-payment-shopping-${o.key}`,
+                              ),
+                            ),
+                          }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      className: "space-y-4",
+                      children: [
+                        c.jsxs("div", {
+                          className:
+                            "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 p-4 space-y-4",
+                          children: [
+                            c.jsxs("label", {
+                              className: "block",
+                              children: [
+                                c.jsx("span", {
+                                  className:
+                                    "text-[11px] font-semibold text-text-sub",
+                                  children: "Monto del pago",
+                                }),
+                                c.jsx("input", {
+                                  type: "number",
+                                  step: "0.01",
+                                  inputMode: "decimal",
+                                  value: clientPaymentForm.amount,
+                                  onChange: (o) => {
+                                    setClientPaymentAmountManual(!0);
+                                    setClientPaymentForm((N) => ({
+                                      ...N,
+                                      amount: o.target.value,
+                                    }));
+                                  },
+                                  placeholder: "0.00",
+                                  className:
+                                    "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "mt-1 flex items-center justify-between gap-2",
+                                  children: [
+                                    c.jsx("span", {
+                                      className:
+                                        "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
+                                      children: `Deuda total: $${formatAmount(clientPaymentTotalDebt)}`,
+                                    }),
+                                    c.jsx("button", {
+                                      type: "button",
+                                      onClick: () => {
+                                        setClientPaymentAmountManual(!1);
+                                        setClientPaymentForm((N) => ({
+                                          ...N,
+                                          amount:
+                                            clientPaymentTotalDebt > 0
+                                              ? clientPaymentTotalDebt.toFixed(2)
+                                              : "",
+                                        }));
+                                      },
+                                      className:
+                                        "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
+                                      children: "Usar deuda",
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className:
+                                "rounded-3xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-4 py-3.5 space-y-3",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "flex items-center justify-between gap-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-xs font-bold uppercase tracking-wide text-text-sub",
+                                      children: "Historial de abonos",
+                                    }),
+                                    c.jsxs("span", {
+                                      className:
+                                        "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
+                                      children: [
+                                        clientPaymentHistoryEntries.length,
+                                        " movimiento(s)",
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                clientPaymentHistoryEntries.length === 0
+                                  ? c.jsx("p", {
+                                    className:
+                                      "text-[11px] leading-5 text-text-sub",
+                                    children:
+                                      "Aun no hay abonos guardados para este cliente.",
+                                  })
+                                  : c.jsx("div", {
+                                    className: "space-y-2 max-h-56 overflow-y-auto ios-scroll pr-1",
+                                    children: clientPaymentHistoryEntries.map((o) =>
+                                      c.jsxs(
+                                        "div",
+                                        {
+                                          className:
+                                            "rounded-2xl border border-violet-100 dark:border-violet-900/60 bg-violet-50/60 dark:bg-violet-950/20 px-3 py-2.5",
+                                          children: [
+                                            c.jsxs("div", {
+                                              className:
+                                                "flex items-start justify-between gap-2",
+                                              children: [
+                                                c.jsxs("div", {
+                                                  className: "min-w-0",
+                                                  children: [
+                                                    c.jsx("p", {
+                                                      className:
+                                                        "text-[11px] font-bold text-violet-700 dark:text-violet-200 truncate",
+                                                      children:
+                                                        o.shopping_title ||
+                                                        `Shopping #${o.shopping_id}`,
+                                                    }),
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        "text-[12px] font-bold mt-0.5 text-emerald-700 dark:text-emerald-300",
+                                                      children: [
+                                                        paymentLocalToNumber(
+                                                          o.amount,
+                                                          0,
+                                                        ) < 0
+                                                          ? "-$"
+                                                          : "+$",
+                                                        formatAmount(
+                                                          Math.abs(
+                                                            paymentLocalToNumber(
+                                                              o.amount,
+                                                              0,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    }),
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        "text-[10px] text-text-sub mt-0.5",
+                                                      children: [
+                                                        o.created_at
+                                                          ? new Date(
+                                                            o.created_at,
+                                                          ).toLocaleString()
+                                                          : "Sin fecha",
+                                                        o.created_by_username
+                                                          ? ` - ${o.created_by_username}`
+                                                          : "",
+                                                      ],
+                                                    }),
+                                                  ],
+                                                }),
+                                                c.jsxs("div", {
+                                                  className:
+                                                    "text-right shrink-0",
+                                                  children: [
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        "text-[10px] font-bold text-violet-700 dark:text-violet-200",
+                                                      children: [
+                                                        "Total $",
+                                                        formatAmount(
+                                                          paymentLocalToNumber(
+                                                            o.total_after,
+                                                            0,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    }),
+                                                  ],
+                                                }),
+                                              ],
+                                            }),
+                                          ],
+                                        },
+                                        `client-payment-history-entry-${o.payment_id}-${o.id}`,
+                                      ),
+                                    ),
+                                  }),
+                              ],
+                            }),
+                            c.jsxs("div", {
+                              className: "grid grid-cols-1 sm:grid-cols-3 gap-2",
+                              children: [
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300",
+                                      children: "Deuda",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-lg font-bold text-blue-700 dark:text-blue-100 mt-1",
+                                      children: [
+                                        "$",
+                                        formatAmount(clientPaymentTotalDebt),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    "rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 px-3 py-2",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
+                                      children: "Pago",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
+                                      children: [
+                                        "$",
+                                        formatAmount(clientPaymentAllocatedTotal),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className:
+                                    `rounded-2xl border px-3 py-2 ${
+                                      clientPaymentBalance < 0
+                                        ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
+                                        : clientPaymentBalance > 0
+                                          ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
+                                          : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
+                                    }`,
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        `text-[10px] uppercase font-bold ${
+                                          clientPaymentBalance < 0
+                                            ? "text-emerald-700 dark:text-emerald-300"
+                                            : clientPaymentBalance > 0
+                                              ? "text-slate-700 dark:text-slate-300"
+                                              : "text-emerald-700 dark:text-emerald-300"
+                                        }`,
+                                      children:
+                                        clientPaymentBalance < 0
+                                          ? "Credito"
+                                          : "Deuda",
+                                    }),
+                                    c.jsxs("p", {
+                                      className:
+                                        `text-lg font-bold mt-1 ${
+                                          clientPaymentBalance < 0
+                                            ? "text-emerald-700 dark:text-emerald-100"
+                                            : clientPaymentBalance > 0
+                                              ? "text-slate-700 dark:text-slate-100"
+                                              : "text-emerald-700 dark:text-emerald-100"
+                                        }`,
+                                      children: [
+                                        "$",
+                                        formatAmount(
+                                          clientPaymentBalance < 0
+                                            ? Math.abs(clientPaymentBalance)
+                                            : clientPaymentBalance,
+                                        ),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsx("p", {
+                              className:
+                                "text-[11px] leading-5 text-text-sub",
+                              children:
+                                clientPaymentReceivingTargets.length > 0
+                                  ? "Las shoppings marcadas se abonan automaticamente empezando por la mas antigua."
+                                  : "Captura un monto para marcar automaticamente las shoppings que recibiran el abono.",
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className:
+                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
+              children: [
+                c.jsx("button", {
+                  onClick: () => dismissActiveOverlayRef.current(),
+                  disabled: clientPaymentSaving,
+                  className:
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
+                  children: "Cancelar",
+                }),
+                c.jsx("button", {
+                  onClick: saveClientPayment,
+                  disabled:
+                    clientPaymentSaving ||
+                    clientPaymentTargets.length === 0 ||
+                    !Number.isFinite(clientPaymentAmountValue) ||
+                    clientPaymentAmountValue <= 0,
+                  className:
+                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-70",
+                  children: clientPaymentSaving ? "Guardando..." : "Guardar",
                 }),
               ],
             }),
