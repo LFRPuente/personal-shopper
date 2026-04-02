@@ -3502,9 +3502,6 @@ function nh() {
       ) || null
       : null,
     paymentHistoryEntries = paymentLocalRecordEntries(paymentCurrentRecord),
-    paymentHistoryRows = paymentModalClient
-      ? getClientPaymentHistoryRows(paymentModalClient)
-      : [],
     paymentFilteredProducts = paymentModalProducts.filter((o) => {
       const N = String(paymentProductSearch || "").trim().toLowerCase();
       if (!N) return !0;
@@ -4766,6 +4763,9 @@ function nh() {
       : [],
     clientPaymentHistoryRows = clientPaymentModalClient
       ? getClientPaymentHistoryRows(clientPaymentModalClient)
+      : [],
+    paymentHistoryRows = paymentModalClient
+      ? getClientPaymentHistoryRows(paymentModalClient)
       : [],
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
