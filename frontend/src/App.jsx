@@ -378,6 +378,15 @@ function nh() {
       client: "",
       amount: "",
     }),
+    [clientPaymentEntryEditingId, setClientPaymentEntryEditingId] = V.useState(
+      null,
+    ),
+    [clientPaymentEntryDraftAmount, setClientPaymentEntryDraftAmount] = V.useState(
+      "",
+    ),
+    [clientPaymentEntrySavingId, setClientPaymentEntrySavingId] = V.useState(
+      null,
+    ),
     [newRequestText, setNewRequestText] = V.useState(""),
     [newRequestClientId, setNewRequestClientId] = V.useState(""),
     [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
@@ -750,6 +759,9 @@ function nh() {
         setClientPaymentModalOpen(!1);
         setClientPaymentAmountManual(!1);
         setClientPaymentSaving(!1);
+        setClientPaymentEntryEditingId(null);
+        setClientPaymentEntryDraftAmount("");
+        setClientPaymentEntrySavingId(null);
         setClientPaymentForm({
           client: "",
           amount: "",
@@ -3787,6 +3799,193 @@ function nh() {
         setClientPaymentSaving(!1);
       }
     },
+    startEditingClientPaymentEntry = (o) => {
+      if (!o) return;
+      setClientPaymentEntryEditingId(String(o.id));
+      setClientPaymentEntryDraftAmount(paymentLocalFormatAmountField(o.amount));
+    },
+    cancelEditingClientPaymentEntry = () => {
+      setClientPaymentEntryEditingId(null);
+      setClientPaymentEntryDraftAmount("");
+    },
+    getClientBatchEditPlan = (o, N, A = 0) => {
+      if (!o || !N) return [];
+      const vl = ((N && N.grouped_entries) || []).reduce((El, Se) => {
+          const ea = Number(Se && Se.shopping_id);
+          return (
+            Number.isFinite(ea) &&
+              El.set(
+                ea,
+                (El.get(ea) || 0) + paymentLocalToNumber(Se && Se.amount, 0),
+              ),
+            El
+          );
+        }, new Map()),
+        El = getClientShoppingHistoryEntries(o)
+          .map((Se) => {
+            const ea = Number(Se && Se.key),
+              gl = vl.get(ea) || 0,
+              ae = Math.max(toNumber(Se && Se.balance, 0), 0) + gl;
+            return {
+              ...Se,
+              existingAmount: gl,
+              desiredAmount: 0,
+              batchAvailable: ae,
+            };
+          })
+          .filter((Se) => Se.batchAvailable > 0 || Se.existingAmount > 0)
+          .sort(
+            (Se, ea) =>
+              new Date(Se.date || 0).getTime() - new Date(ea.date || 0).getTime(),
+          );
+      let Se = Math.max(toNumber(A, 0), 0);
+      return (
+        El.forEach((ea) => {
+          if (!(Se > 0)) return;
+          const gl = Math.min(Se, Math.max(toNumber(ea.batchAvailable, 0), 0));
+          ((ea.desiredAmount = gl), (Se -= gl));
+        }),
+        Se > 0 &&
+          El.length > 0 &&
+          (El[0].desiredAmount = toNumber(El[0].desiredAmount, 0) + Se),
+        El
+      );
+    },
+    saveClientPaymentHistoryRow = async (o) => {
+      const N = clientPaymentModalClient,
+        A = String(clientPaymentEntryDraftAmount || "").trim();
+      if (!N || !o) return;
+      if (A === "" || !Number.isFinite(parseFloat(A))) {
+        notifyInfo("Captura un monto valido para el abono.");
+        return;
+      }
+      const vl = paymentLocalToNumber(A, Number.NaN);
+      if (!Number.isFinite(vl) || vl < 0) {
+        notifyInfo("Captura un monto valido para el abono.");
+        return;
+      }
+      setClientPaymentEntrySavingId(String(o.id));
+      try {
+        if (
+          String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
+          String((o && o.group_token) || "").trim()
+        ) {
+          const El = getClientBatchEditPlan(N, o, vl),
+            Se = ((o && o.grouped_entries) || []).reduce((ae, qa) => {
+              const oi = Number(qa && qa.shopping_id);
+              return (
+                Number.isFinite(oi) &&
+                  (ae.has(oi) || ae.set(oi, []), ae.get(oi).push(qa)),
+                ae
+              );
+            }, new Map());
+          for (const ae of El) {
+            const qa = Number(ae && ae.key),
+              oi = Math.max(toNumber(ae && ae.desiredAmount, 0), 0),
+              Pi = Se.get(qa) || [],
+              pa = Pi[0] || null,
+              mi = Pi.slice(1);
+            for (const Ri of mi)
+              await I(`/payments/${Ri.payment_id}/entries/${Ri.id}/`, {
+                method: "DELETE",
+              });
+            if (pa) {
+              if (oi > 0)
+                await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    amount: oi.toFixed(2),
+                  }),
+                });
+              else
+                await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
+                  method: "DELETE",
+                });
+            } else if (oi > 0) {
+              const Ri = getClientShoppingPayments(N, qa)[0] || null,
+                bi = getClientPaymentTargetProductIds(N, qa);
+              await I(Ri ? `/payments/${Ri.id}/` : "/payments/", {
+                method: Ri ? "PATCH" : "POST",
+                body: JSON.stringify({
+                  client: N.id,
+                  shopping: qa,
+                  amount: (
+                    (Ri ? getPaymentRecordAmount(Ri) : 0) + oi
+                  ).toFixed(2),
+                  products: bi,
+                  entry_kind: "CLIENT_BATCH",
+                  entry_group_token: o.group_token,
+                }),
+              });
+            }
+          }
+        } else {
+          if (!o.payment_id || !o.id) {
+            notifyError("No se pudo identificar el abono.");
+            return;
+          }
+          await I(`/payments/${o.payment_id}/entries/${o.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              amount: vl.toFixed(2),
+            }),
+          });
+        }
+        setClientPaymentEntryEditingId(null);
+        setClientPaymentEntryDraftAmount("");
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Abono actualizado.");
+      } catch (El) {
+        console.error("Failed updating client payment history row", El);
+        notifyError((El && El.message) || "No se pudo actualizar el abono.");
+      } finally {
+        setClientPaymentEntrySavingId(null);
+      }
+    },
+    deleteClientPaymentHistoryRow = async (o) => {
+      if (!o) return;
+      const N =
+        String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
+        String((o && o.group_token) || "").trim();
+      if (
+        !(await confirmAction({
+          title: N ? "Eliminar abono general" : "Eliminar abono",
+          message: N
+            ? "Se eliminara este abono general y todas sus asignaciones por shopping."
+            : "Se eliminara este abono del historial.",
+          confirmLabel: "Eliminar",
+          tone: "danger",
+        }))
+      )
+        return;
+      setClientPaymentEntrySavingId(String(o.id));
+      try {
+        const A = N
+          ? (o.grouped_entries || []).map((vl) => ({
+            payment_id: vl.payment_id,
+            id: vl.id,
+          }))
+          : [{ payment_id: o.payment_id, id: o.id }];
+        for (const vl of A)
+          vl &&
+            vl.payment_id &&
+            vl.id &&
+            (await I(`/payments/${vl.payment_id}/entries/${vl.id}/`, {
+              method: "DELETE",
+            }));
+        String(clientPaymentEntryEditingId || "") === String(o.id) &&
+          (setClientPaymentEntryEditingId(null), setClientPaymentEntryDraftAmount(""));
+        await refreshCoreData();
+        await refreshSelectedClient();
+        notifySuccess("Abono eliminado.");
+      } catch (A) {
+        console.error("Failed deleting client payment history row", A);
+        notifyError((A && A.message) || "No se pudo eliminar el abono.");
+      } finally {
+        setClientPaymentEntrySavingId(null);
+      }
+    },
     deletePayment = async (o) => {
       if (!o || !o.id) return;
       const N = await confirmAction({
@@ -4706,29 +4905,58 @@ function nh() {
               0,
             ),
             qa = Array.from(
-              new Set(
-                gl
-                  .map((oi) =>
-                    String(oi && (oi.shopping_title || oi.shopping_name) || "").trim(),
-                  )
-                  .filter(Boolean),
-              ),
+              gl.reduce((oi, Pi) => {
+                const pa = Number(Pi && Pi.shopping_id),
+                  mi = String(
+                    Pi && (Pi.shopping_title || Pi.shopping_name) || "",
+                  ).trim() || `Shopping #${pa || "?"}`,
+                  Ri = oi.get(pa) || {
+                    shopping_id: pa,
+                    shopping_title: mi,
+                    amount: 0,
+                  };
+                return (
+                  Ri.amount += paymentLocalToNumber(Pi && Pi.amount, 0),
+                  oi.set(pa, Ri),
+                  oi
+                );
+              }, new Map()).values(),
             );
           vl.push({
             id: `client-batch-${ea}`,
             entry_kind: "CLIENT_BATCH",
+            group_token: ea,
             amount: ae,
             total_after: ae,
             created_at: gl[0] && gl[0].created_at,
             created_by_username: gl[0] && gl[0].created_by_username,
             shopping_title: "Abono general",
-            shopping_tags: qa,
+            shopping_tags: qa.map((oi) => oi.shopping_title),
+            shopping_allocations: qa,
+            grouped_entries: gl.map((oi) => ({
+              id: oi.id,
+              payment_id: oi.payment_id,
+              shopping_id: Number(oi.shopping_id),
+              shopping_title:
+                String(oi && (oi.shopping_title || oi.shopping_name) || "").trim() ||
+                `Shopping #${oi && oi.shopping_id}`,
+              amount: paymentLocalToNumber(oi && oi.amount, 0),
+            })),
           });
           return;
         }
         vl.push({
           ...El,
           shopping_tags: [],
+          shopping_allocations: [
+            {
+              shopping_id: Number(El && El.shopping_id),
+              shopping_title:
+                String(El && (El.shopping_title || El.shopping_name) || "").trim() ||
+                `Shopping #${El && El.shopping_id}`,
+              amount: paymentLocalToNumber(El && El.amount, 0),
+            },
+          ],
         });
       });
       return vl;
@@ -14330,8 +14558,17 @@ function nh() {
                                   })
                                   : c.jsx("div", {
                                     className: "space-y-2 max-h-56 overflow-y-auto ios-scroll pr-1",
-                                    children: clientPaymentHistoryRows.map((o) =>
-                                      c.jsxs(
+                                    children: clientPaymentHistoryRows.map((o) => {
+                                      const N =
+                                          String(clientPaymentEntryEditingId || "") ===
+                                          String(o.id),
+                                        A = Array.isArray(o.shopping_allocations)
+                                          ? o.shopping_allocations
+                                          : [],
+                                        vl =
+                                          String((o && o.entry_kind) || "").toUpperCase() ===
+                                          "CLIENT_BATCH";
+                                      return c.jsxs(
                                         "div",
                                         {
                                           className:
@@ -14351,43 +14588,116 @@ function nh() {
                                                         o.shopping_title ||
                                                         `Shopping #${o.shopping_id}`,
                                                     }),
-                                                    Array.isArray(o.shopping_tags) &&
-                                                    o.shopping_tags.length > 0 &&
+                                                    A.length > 0 &&
                                                     c.jsx("div", {
                                                       className:
                                                         "mt-1 flex flex-wrap gap-1",
-                                                      children: o.shopping_tags.map((N) =>
-                                                        c.jsx(
+                                                      children: A.map((El) =>
+                                                        c.jsxs(
                                                           "span",
                                                           {
                                                             className:
                                                               "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
-                                                            children: N,
+                                                            children: [
+                                                              El.shopping_title,
+                                                              " $",
+                                                              formatAmount(
+                                                                Math.abs(
+                                                                  paymentLocalToNumber(
+                                                                    El.amount,
+                                                                    0,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
                                                           },
-                                                          `client-payment-history-tag-${o.id}-${N}`,
+                                                          `client-payment-history-tag-${o.id}-${El.shopping_id}`,
                                                         ),
                                                       ),
                                                     }),
-                                                    c.jsxs("p", {
-                                                      className:
-                                                        "text-[12px] font-bold mt-0.5 text-emerald-700 dark:text-emerald-300",
-                                                      children: [
-                                                        paymentLocalToNumber(
-                                                          o.amount,
-                                                          0,
-                                                        ) < 0
-                                                          ? "-$"
-                                                          : "+$",
-                                                        formatAmount(
-                                                          Math.abs(
-                                                            paymentLocalToNumber(
-                                                              o.amount,
-                                                              0,
+                                                    N
+                                                      ? c.jsxs("div", {
+                                                        className:
+                                                          "mt-1 flex items-center gap-1.5",
+                                                        children: [
+                                                          c.jsx("input", {
+                                                            type: "number",
+                                                            step: "0.01",
+                                                            inputMode: "decimal",
+                                                            value:
+                                                              clientPaymentEntryDraftAmount,
+                                                            onChange: (El) =>
+                                                              setClientPaymentEntryDraftAmount(
+                                                                El.target.value,
+                                                              ),
+                                                            className:
+                                                              "w-28 px-2.5 py-1.5 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                                                          }),
+                                                          c.jsx("button", {
+                                                            type: "button",
+                                                            onClick: () =>
+                                                              saveClientPaymentHistoryRow(
+                                                                o,
+                                                              ),
+                                                            disabled:
+                                                              clientPaymentEntrySavingId ===
+                                                              String(o.id),
+                                                            className:
+                                                              "w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
+                                                            children: c.jsx(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  `material-symbols-outlined text-[14px] ${clientPaymentEntrySavingId === String(o.id) ? "animate-spin" : ""}`,
+                                                                children:
+                                                                  clientPaymentEntrySavingId ===
+                                                                  String(o.id)
+                                                                    ? "progress_activity"
+                                                                    : "check",
+                                                              },
+                                                            ),
+                                                          }),
+                                                          c.jsx("button", {
+                                                            type: "button",
+                                                            onClick:
+                                                              cancelEditingClientPaymentEntry,
+                                                            disabled:
+                                                              clientPaymentEntrySavingId ===
+                                                              String(o.id),
+                                                            className:
+                                                              "w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
+                                                            children: c.jsx(
+                                                              "span",
+                                                              {
+                                                                className:
+                                                                  "material-symbols-outlined text-[14px]",
+                                                                children:
+                                                                  "close",
+                                                              },
+                                                            ),
+                                                          }),
+                                                        ],
+                                                      })
+                                                      : c.jsxs("p", {
+                                                        className:
+                                                          "text-[12px] font-bold mt-0.5 text-emerald-700 dark:text-emerald-300",
+                                                        children: [
+                                                          paymentLocalToNumber(
+                                                            o.amount,
+                                                            0,
+                                                          ) < 0
+                                                            ? "-$"
+                                                            : "+$",
+                                                          formatAmount(
+                                                            Math.abs(
+                                                              paymentLocalToNumber(
+                                                                o.amount,
+                                                                0,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    }),
+                                                        ],
+                                                      }),
                                                     c.jsxs("p", {
                                                       className:
                                                         "text-[10px] text-text-sub mt-0.5",
@@ -14406,19 +14716,71 @@ function nh() {
                                                 }),
                                                 c.jsxs("div", {
                                                   className:
-                                                    "text-right shrink-0",
+                                                    "text-right shrink-0 space-y-1",
                                                   children: [
                                                     c.jsxs("p", {
                                                       className:
                                                         "text-[10px] font-bold text-violet-700 dark:text-violet-200",
                                                       children: [
-                                                        "Total $",
+                                                        vl ? "Global $" : "Total $",
                                                         formatAmount(
                                                           paymentLocalToNumber(
                                                             o.total_after,
                                                             0,
                                                           ),
                                                         ),
+                                                      ],
+                                                    }),
+                                                    !N &&
+                                                    c.jsxs("div", {
+                                                      className:
+                                                        "flex items-center justify-end gap-1",
+                                                      children: [
+                                                        c.jsx("button", {
+                                                          type: "button",
+                                                          onClick: () =>
+                                                            startEditingClientPaymentEntry(
+                                                              o,
+                                                            ),
+                                                          disabled:
+                                                            clientPaymentEntrySavingId ===
+                                                            String(o.id),
+                                                          className:
+                                                            "w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
+                                                          children: c.jsx(
+                                                            "span",
+                                                            {
+                                                              className:
+                                                                "material-symbols-outlined text-[14px]",
+                                                              children:
+                                                                "edit",
+                                                            },
+                                                          ),
+                                                        }),
+                                                        c.jsx("button", {
+                                                          type: "button",
+                                                          onClick: () =>
+                                                            deleteClientPaymentHistoryRow(
+                                                              o,
+                                                            ),
+                                                          disabled:
+                                                            clientPaymentEntrySavingId ===
+                                                            String(o.id),
+                                                          className:
+                                                            "w-7 h-7 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
+                                                          children: c.jsx(
+                                                            "span",
+                                                            {
+                                                              className:
+                                                                `material-symbols-outlined text-[14px] ${clientPaymentEntrySavingId === String(o.id) ? "animate-spin" : ""}`,
+                                                              children:
+                                                                clientPaymentEntrySavingId ===
+                                                                String(o.id)
+                                                                  ? "progress_activity"
+                                                                  : "delete",
+                                                            },
+                                                          ),
+                                                        }),
                                                       ],
                                                     }),
                                                   ],
@@ -14428,8 +14790,8 @@ function nh() {
                                           ],
                                         },
                                         `client-payment-history-entry-${o.id}`,
-                                      ),
-                                    ),
+                                      );
+                                    }),
                                   }),
                               ],
                             }),
@@ -15000,7 +15362,17 @@ function nh() {
                                           Number(o.payment_id) === Number(paymentForm.id || 0) &&
                                           (!Array.isArray(o.shopping_tags) ||
                                             o.shopping_tags.length === 0),
-                                        A = N && paymentEntryEditingId === Number(o.id);
+                                        A = N && paymentEntryEditingId === Number(o.id),
+                                        vl = Array.isArray(o.shopping_allocations)
+                                          ? o.shopping_allocations.find(
+                                            (El) =>
+                                              Number(El && El.shopping_id) ===
+                                              Number(paymentForm.shopping || 0),
+                                          ) || null
+                                          : null,
+                                        El =
+                                          String((o && o.entry_kind) || "").toUpperCase() ===
+                                          "CLIENT_BATCH";
                                       return c.jsxs(
                                         "div",
                                         {
@@ -15026,15 +15398,15 @@ function nh() {
                                                     c.jsx("div", {
                                                       className:
                                                         "mt-1 flex flex-wrap gap-1",
-                                                      children: o.shopping_tags.map((vl) =>
+                                                      children: o.shopping_tags.map((Se) =>
                                                         c.jsx(
                                                           "span",
                                                           {
                                                             className:
                                                               "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
-                                                            children: vl,
+                                                            children: Se,
                                                           },
-                                                          `payment-history-tag-${o.id}-${vl}`,
+                                                          `payment-history-tag-${o.id}-${Se}`,
                                                         ),
                                                       ),
                                                     }),
@@ -15150,12 +15522,29 @@ function nh() {
                                                       className:
                                                         "text-[10px] font-bold text-violet-700 dark:text-violet-200",
                                                       children: [
-                                                        "Total ",
+                                                        El ? "Global " : "Total ",
                                                         "$",
                                                         formatAmount(
                                                           paymentLocalToNumber(
                                                             o.total_after,
                                                             0,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    }),
+                                                    El &&
+                                                    vl &&
+                                                    c.jsxs("p", {
+                                                      className:
+                                                        "text-[10px] font-bold text-emerald-700 dark:text-emerald-300",
+                                                      children: [
+                                                        "Esta shopping $",
+                                                        formatAmount(
+                                                          Math.abs(
+                                                            paymentLocalToNumber(
+                                                              vl.amount,
+                                                              0,
+                                                            ),
                                                           ),
                                                         ),
                                                       ],
