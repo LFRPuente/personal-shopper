@@ -3139,6 +3139,23 @@ function nh() {
         if (vl !== 0) return vl;
         return String(N.name || "").localeCompare(String(A.name || ""));
       }),
+    getClientShipmentAddressOptions = (o = "") => {
+      const N = Kl.find((A) => String(A.id) === String(o || ""));
+      if (!N) return [];
+      const A = [];
+      const vl = new Set();
+      const El = (Se) => {
+        const qa = String(Se || "").trim();
+        if (!qa) return;
+        const yo = qa.toLowerCase();
+        if (vl.has(yo)) return;
+        vl.add(yo);
+        A.push(qa);
+      };
+      El(N.shipping_address);
+      (Array.isArray(N.shipping_addresses) ? N.shipping_addresses : []).forEach(El);
+      return A;
+    },
     getShipmentFormState = (o = null, N = null) => {
       const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
       const vl =
@@ -3163,6 +3180,7 @@ function nh() {
         client_price: El,
         shipping_address:
           (o && o.shipping_address) ||
+          getClientShipmentAddressOptions(A)[0] ||
           ((N && (N.shipping_address || "")) || ""),
         product_ids:
           ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
@@ -3201,11 +3219,9 @@ function nh() {
       setShipmentForm((A) => {
         const vl = { ...A, [o]: N };
         if (o === "client" && String(A.client || "") !== String(N || "")) {
-          const El = Kl.find((Se) => String(Se.id) === String(N || ""));
+          const El = getClientShipmentAddressOptions(N);
           vl.product_ids = [];
-          if (!String(A.shipping_address || "").trim()) {
-            vl.shipping_address = (El && El.shipping_address) || "";
-          }
+          vl.shipping_address = El[0] || "";
         }
         return vl;
       });
@@ -10204,6 +10220,26 @@ function nh() {
                                     "text-[10px] uppercase font-bold text-text-sub",
                                   children: "Direccion de envio",
                                 }),
+                                getClientShipmentAddressOptions(vl.client).length > 1 &&
+                                c.jsxs("select", {
+                                  value: vl.shipping_address,
+                                  onChange: (qa) =>
+                                    updateShipmentForm("shipping_address", qa.target.value),
+                                  style: DARK_NATIVE_SELECT_STYLE,
+                                  className:
+                                    "mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-primary/40",
+                                  children: getClientShipmentAddressOptions(vl.client).map((qa, yo) =>
+                                    c.jsx(
+                                      "option",
+                                      {
+                                        value: qa,
+                                        style: NATIVE_DROPDOWN_OPTION_STYLE,
+                                        children: qa,
+                                      },
+                                      `shipment-inline-address-${yo}`,
+                                    ),
+                                  ),
+                                }),
                                 c.jsx("textarea", {
                                   rows: 2,
                                   value: vl.shipping_address,
@@ -16268,6 +16304,26 @@ function nh() {
                     c.jsx("span", {
                       className: "text-[11px] font-semibold text-text-sub",
                       children: "Direccion de envio",
+                    }),
+                    getClientShipmentAddressOptions(shipmentForm.client).length > 1 &&
+                    c.jsxs("select", {
+                      value: shipmentForm.shipping_address,
+                      onChange: (o) =>
+                        updateShipmentForm("shipping_address", o.target.value),
+                      style: DARK_NATIVE_SELECT_STYLE,
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
+                      children: getClientShipmentAddressOptions(shipmentForm.client).map((o, N) =>
+                        c.jsx(
+                          "option",
+                          {
+                            value: o,
+                            style: NATIVE_DROPDOWN_OPTION_STYLE,
+                            children: o,
+                          },
+                          `shipment-address-${N}`,
+                        ),
+                      ),
                     }),
                     c.jsx("textarea", {
                       rows: 3,

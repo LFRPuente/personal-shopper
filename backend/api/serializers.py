@@ -692,6 +692,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
     shopping_names = serializers.SerializerMethodField()
     mission_names = serializers.SerializerMethodField()
     evidence = serializers.SerializerMethodField()
+    client_shipping_addresses = serializers.SerializerMethodField()
 
     def get_product_count(self, obj):
         return obj.products.count()
@@ -722,11 +723,34 @@ class ShipmentSerializer(serializers.ModelSerializer):
             context=self.context,
         ).data
 
+    def get_client_shipping_addresses(self, obj):
+        client = getattr(obj, 'client', None)
+        if client is None:
+            return []
+        addresses = []
+        seen = set()
+
+        def append_address(value):
+            text = str(value or '').strip()
+            if not text:
+                return
+            key = text.casefold()
+            if key in seen:
+                return
+            seen.add(key)
+            addresses.append(text)
+
+        append_address(getattr(client, 'shipping_address', ''))
+        for entry in getattr(client, 'shipping_addresses', []) or []:
+            append_address(entry)
+        return addresses
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         client = getattr(instance, 'client', None)
         data['shipping_address'] = (
-            (getattr(client, 'shipping_address', '') or '')
+            (getattr(instance, 'shipping_address', '') or '')
+            or (getattr(client, 'shipping_address', '') or '')
             if client is not None
             else (getattr(instance, 'shipping_address', '') or '')
         )

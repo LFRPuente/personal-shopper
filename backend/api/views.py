@@ -482,17 +482,41 @@ def sync_shipment_shipping_address(shipment, validated_data=None):
     explicit_address = (
         validated_data is not None and 'shipping_address' in validated_data
     )
-    next_address = (
-        shipment.shipping_address
-        if explicit_address
-        else getattr(client, 'shipping_address', '')
-    )
-    normalized_address = str(next_address or '').strip()
+    primary_address = str(getattr(client, 'shipping_address', '') or '').strip()
+    next_address = str(shipment.shipping_address or '').strip() if explicit_address else primary_address
+    normalized_address = next_address or primary_address
     client_updated = False
-    if explicit_address and str(client.shipping_address or '').strip() != normalized_address:
-        client.shipping_address = normalized_address
-        client.save(update_fields=['shipping_address'])
+    current_extra_addresses = list(getattr(client, 'shipping_addresses', []) or [])
+    normalized_extra_addresses = []
+    seen = {primary_address.casefold()} if primary_address else set()
+    for entry in current_extra_addresses:
+        text = str(entry or '').strip()
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized_extra_addresses.append(text)
+    update_fields = []
+    if explicit_address and normalized_address:
+        if not primary_address:
+            client.shipping_address = normalized_address
+            primary_address = normalized_address
+            client_updated = True
+            update_fields.append('shipping_address')
+        elif normalized_address.casefold() != primary_address.casefold():
+            key = normalized_address.casefold()
+            if key not in seen:
+                normalized_extra_addresses.append(normalized_address)
+                seen.add(key)
+                client_updated = True
+    if normalized_extra_addresses != list(getattr(client, 'shipping_addresses', []) or []):
+        client.shipping_addresses = normalized_extra_addresses
         client_updated = True
+        update_fields.append('shipping_addresses')
+    if update_fields:
+        client.save(update_fields=update_fields)
     if str(shipment.shipping_address or '').strip() != normalized_address:
         shipment.shipping_address = normalized_address
         shipment.save(update_fields=['shipping_address'])
