@@ -3123,28 +3123,36 @@ function nh() {
       document.body.style.userSelect = "none";
       document.body.style.cursor = o === "column" ? "col-resize" : "row-resize";
     },
-    getShipmentAssignableProducts = (o = null) =>
-      Kl.flatMap((N) =>
-        ((N && N.products) || [])
-          .filter((A) =>
+    getShipmentAssignableProducts = (o = null) => {
+      const N = new Map(
+        (Al || []).map((A) => [Number(A.id), String(A.status || "").toUpperCase()]),
+      );
+      return Kl.flatMap((A) =>
+        ((A && A.products) || [])
+          .filter((vl) =>
             ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(
-              String(A.status || "").toUpperCase(),
+              String(vl.status || "").toUpperCase(),
             ),
           )
-          .filter((A) => (!o ? !0 : Number(A.client) === Number(o)))
-          .map((A) => ({
-            ...A,
-            client_name: N.name,
+          .filter((vl) => (!o ? !0 : Number(vl.client) === Number(o)))
+          .filter((vl) => {
+            const El = Number(vl.shopping || vl.mission || vl.mission_id || 0);
+            return !El || N.get(El) === "COMPLETED";
+          })
+          .map((vl) => ({
+            ...vl,
+            client_name: A.name,
             shipping_address:
-              A.shipping_address || N.shipping_address || "",
+              vl.shipping_address || A.shipping_address || "",
           })),
-      ).sort((N, A) => {
-        const vl = String(N.shopping_name || N.mission_name || N.store_name || "").localeCompare(
-          String(A.shopping_name || A.mission_name || A.store_name || ""),
+      ).sort((A, vl) => {
+        const El = String(A.shopping_name || A.mission_name || A.store_name || "").localeCompare(
+          String(vl.shopping_name || vl.mission_name || vl.store_name || ""),
         );
-        if (vl !== 0) return vl;
-        return String(N.name || "").localeCompare(String(A.name || ""));
-      }),
+        if (El !== 0) return El;
+        return String(A.name || "").localeCompare(String(vl.name || ""));
+      });
+    },
     getClientShipmentAddressOptions = (o = "") => {
       const N = Kl.find((A) => String(A.id) === String(o || ""));
       if (!N) return [];
@@ -3265,6 +3273,18 @@ function nh() {
       }
       if (!(shipmentForm.product_ids || []).length) {
         notifyInfo("Selecciona al menos un producto.");
+        return;
+      }
+      const shipmentProductsById = new Map(
+        getShipmentAssignableProducts(o.id).map((El) => [Number(El.id), El]),
+      );
+      const invalidShipmentSelection = (shipmentForm.product_ids || []).some(
+        (El) => !shipmentProductsById.has(Number(El)),
+      );
+      if (invalidShipmentSelection) {
+        notifyInfo(
+          "Solo puedes enviar productos de shoppings cerradas. Quita los demas productos para guardar.",
+        );
         return;
       }
       const sameShipmentProductSelection =
