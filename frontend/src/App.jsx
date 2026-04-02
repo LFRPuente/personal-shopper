@@ -11759,23 +11759,6 @@ function nh() {
                 }),
                 c.jsxs("div", {
                   children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Tags (comma separated)",
-                    }),
-                    c.jsx("input", {
-                      type: "text",
-                      value: Nt,
-                      onChange: (o) => it(o.target.value),
-                      placeholder: "e.g. Apple, Sony, VIP",
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  children: [
                     c.jsxs("div", {
                       children: [
                         c.jsx("label", {
@@ -11963,22 +11946,6 @@ function nh() {
                       className:
                         "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                       required: !0,
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Tags (comma separated)",
-                    }),
-                    c.jsx("input", {
-                      type: "text",
-                      value: ml.tags,
-                      onChange: (o) => hl({ ...ml, tags: o.target.value }),
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
                     }),
                   ],
                 }),
