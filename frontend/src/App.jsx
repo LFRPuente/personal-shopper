@@ -3530,30 +3530,6 @@ function nh() {
       ? Math.max(paymentSelectedProductsTotal - paymentCurrentAmountValue, 0)
       : paymentSelectedProductsTotal,
     paymentFormBalance = paymentSelectedProductsTotal - paymentPreviewAmountValue,
-    clientPaymentModalClient = Kl.find(
-      (o) => String(o.id) === String(clientPaymentForm.client || ""),
-    ) || null,
-    clientPaymentTargets = getClientPaymentTargets(clientPaymentModalClient),
-    clientPaymentAmountValue = paymentLocalToNumber(clientPaymentForm.amount, 0),
-    clientPaymentPlan = getClientPaymentPlan(
-      clientPaymentModalClient,
-      clientPaymentAmountValue,
-    ),
-    clientPaymentReceivingTargets = clientPaymentPlan.filter(
-      (o) => toNumber(o && o.appliedAmount, 0) > 0,
-    ),
-    clientPaymentTotalDebt = clientPaymentTargets.reduce(
-      (o, N) => o + Math.max(paymentLocalToNumber(N && N.balance, 0), 0),
-      0,
-    ),
-    clientPaymentAllocatedTotal = clientPaymentPlan.reduce(
-      (o, N) => o + Math.max(paymentLocalToNumber(N && N.appliedAmount, 0), 0),
-      0,
-    ),
-    clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
-    clientPaymentHistoryEntries = getClientPaymentHistoryEntries(
-      clientPaymentModalClient,
-    ),
     getDefaultPaymentProductIds = (o, N) =>
       paymentLocalShoppingProducts(o, N)
         .filter((A) => !paymentLocalShoppingPayments(o, N).some((vl) =>
@@ -4705,6 +4681,30 @@ function nh() {
             new Date(A.created_at || 0).getTime() -
             new Date(N.created_at || 0).getTime(),
         ),
+    clientPaymentModalClient = Kl.find(
+      (o) => String(o.id) === String(clientPaymentForm.client || ""),
+    ) || null,
+    clientPaymentTargets = getClientPaymentTargets(clientPaymentModalClient),
+    clientPaymentAmountValue = paymentLocalToNumber(clientPaymentForm.amount, 0),
+    clientPaymentPlan = getClientPaymentPlan(
+      clientPaymentModalClient,
+      clientPaymentAmountValue,
+    ),
+    clientPaymentReceivingTargets = clientPaymentPlan.filter(
+      (o) => toNumber(o && o.appliedAmount, 0) > 0,
+    ),
+    clientPaymentTotalDebt = clientPaymentTargets.reduce(
+      (o, N) => o + Math.max(paymentLocalToNumber(N && N.balance, 0), 0),
+      0,
+    ),
+    clientPaymentAllocatedTotal = clientPaymentPlan.reduce(
+      (o, N) => o + Math.max(paymentLocalToNumber(N && N.appliedAmount, 0), 0),
+      0,
+    ),
+    clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
+    clientPaymentHistoryEntries = getClientPaymentHistoryEntries(
+      clientPaymentModalClient,
+    ),
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
