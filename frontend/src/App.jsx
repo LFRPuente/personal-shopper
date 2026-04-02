@@ -5653,9 +5653,11 @@ function nh() {
     selectedClientHomeAnnotatedTotals = selectedClientHomeScopeId
       ? getHomeClientMissionAnnotatedTotals((W && W.products) || [], selectedClientHomeScopeId)
       : getHomeClientTotals(selectedClientHomeAnnotatedProducts),
-    selectedClientHomePaymentSummary = selectedClientHomeScopeId && W
-      ? getClientShoppingPaymentSummary(W, selectedClientHomeScopeId)
-      : { amount: 0, productsTotal: 0, balance: 0 },
+    selectedClientHomeHistoryEntries = W ? getClientShoppingHistoryEntries(W) : [],
+    selectedClientHomeGlobalBalance = selectedClientHomeHistoryEntries.reduce(
+      (o, N) => o + toNumber(N && N.balance, 0),
+      0,
+    ),
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryHasMissionScope
         ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
@@ -12873,13 +12875,13 @@ function nh() {
                             children: [
                               c.jsxs("p", {
                                 className:
-                                  `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
+                                  `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
                                 children: [
-                                  selectedClientHomePaymentSummary.balance < 0
-                                    ? "A favor: "
-                                    : "Deuda: ",
+                                  selectedClientHomeGlobalBalance < 0
+                                    ? "A favor global: "
+                                    : "Deuda global: ",
                                   "$",
-                                  formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
+                                  formatAmount(Math.abs(selectedClientHomeGlobalBalance)),
                                 ],
                               }),
                               c.jsxs("p", {
@@ -12901,26 +12903,26 @@ function nh() {
                     children: [
                       c.jsxs("span", {
                         className:
-                          `flex-1 rounded-lg border px-2 py-1.5 shadow-sm text-center flex flex-col items-center justify-center gap-0.5 ${selectedClientHomePaymentSummary.balance < 0 ? "border-emerald-200 bg-emerald-50/90" : selectedClientHomePaymentSummary.balance > 0 ? "border-rose-200 bg-rose-50/95" : "border-slate-200 bg-slate-50/95"}`,
+                          `flex-1 rounded-lg border px-2 py-1.5 shadow-sm text-center flex flex-col items-center justify-center gap-0.5 ${selectedClientHomeGlobalBalance < 0 ? "border-emerald-200 bg-emerald-50/90" : selectedClientHomeGlobalBalance > 0 ? "border-rose-200 bg-rose-50/95" : "border-slate-200 bg-slate-50/95"}`,
                         children: [
                           c.jsx("span", {
                             className:
-                              `text-[9px] font-black uppercase ${selectedClientHomePaymentSummary.balance < 0 ? "text-emerald-700/75" : selectedClientHomePaymentSummary.balance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
+                              `text-[9px] font-black uppercase ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700/75" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700/75" : "text-slate-700/75"}`,
                             children:
-                              selectedClientHomePaymentSummary.balance < 0
+                              selectedClientHomeGlobalBalance < 0
                                 ? "A favor"
                                 : "Deuda",
                           }),
                           c.jsxs("span", {
                             className:
-                              selectedClientHomePaymentSummary.balance < 0
+                              selectedClientHomeGlobalBalance < 0
                                 ? "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-emerald-800"
-                                : selectedClientHomePaymentSummary.balance > 0
+                                : selectedClientHomeGlobalBalance > 0
                                   ? "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-rose-800"
                                   : "inline-flex items-center justify-center whitespace-nowrap text-sm font-bold text-slate-800",
                             children: [
                               "$",
-                              formatAmount(Math.abs(selectedClientHomePaymentSummary.balance)),
+                              formatAmount(Math.abs(selectedClientHomeGlobalBalance)),
                             ],
                           }),
                         ],
