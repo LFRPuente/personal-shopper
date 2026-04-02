@@ -9032,11 +9032,13 @@ function nh() {
       });
     },
     Hl = () => {
-      const o = Kl.filter(
-        (N) =>
-          N.name.toLowerCase().includes(j.toLowerCase()) ||
-          (N.tags && N.tags.toLowerCase().includes(j.toLowerCase())),
-      );
+      const o = [...Kl]
+        .filter(
+          (N) =>
+            N.name.toLowerCase().includes(j.toLowerCase()) ||
+            (N.tags && N.tags.toLowerCase().includes(j.toLowerCase())),
+        )
+        .sort((N, A) => Number(N.id || 0) - Number(A.id || 0));
       return c.jsxs("div", {
         className: isDesktopLayout ? "space-y-6" : "space-y-4",
         children: [
@@ -9109,7 +9111,11 @@ function nh() {
                 children: "No clients defined or matched search.",
               }),
             })
-            : o.map((N) => {
+            : c.jsx("div", {
+              className: isDesktopLayout
+                ? "grid grid-cols-1 xl:grid-cols-2 gap-3"
+                : "space-y-3",
+              children: o.map((N) => {
               const A = Ei === N.id,
                 vl = getHomeVisibleProducts(N),
                 El = getHomeClientTotals(vl),
@@ -9130,14 +9136,15 @@ function nh() {
                   (gl, ae) => gl + ae.balance,
                   0,
                 );
-              return c.jsxs(
+                return c.jsxs(
                 "div",
                 {
                   className:
-                    "bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark overflow-hidden group ui-card-quiet",
+                    "rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-hidden group shadow-card ui-card-quiet",
                   children: [
                     c.jsxs("div", {
-                      className: "px-3 py-3 flex items-start gap-3 relative",
+                      className:
+                        "px-4 py-4 flex items-start gap-3.5 relative min-h-[132px]",
                       children: [
                         c.jsx("div", {
                           className:
@@ -9822,6 +9829,7 @@ function nh() {
                 },
                 N.id,
               );
+            }),
             }),
         ],
       });

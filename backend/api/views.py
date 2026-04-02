@@ -1421,7 +1421,7 @@ class ClientViewSet(viewsets.ModelViewSet):
             'receipts',
             'payments',
             'payments__products',
-        )
+        ).order_by('created_at', 'id')
         # Si la persona autenticada tiene perfil de AV, solo ve a sus clientes
         if hasattr(user, 'userprofile'):
             if user.userprofile.role == 'AV':
