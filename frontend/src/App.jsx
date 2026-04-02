@@ -3253,10 +3253,6 @@ function nh() {
         notifyInfo("Selecciona un cliente.");
         return;
       }
-      if (!N) {
-        notifyInfo("Captura la paqueteria.");
-        return;
-      }
       if (!(shipmentForm.product_ids || []).length) {
         notifyInfo("Selecciona al menos un producto.");
         return;
@@ -16190,7 +16186,7 @@ function nh() {
                     }),
                     c.jsx("p", {
                       className: "text-[11px] text-text-sub mt-0.5",
-                      children: "Selecciona cliente, paqueteria y productos.",
+                      children: "Selecciona cliente y productos.",
                     }),
                   ],
                 }),
