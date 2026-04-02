@@ -153,6 +153,36 @@ def calculate_client_credit_total(client):
     return round(max(credit_total, 0), 2)
 
 
+def calculate_client_share_balance_total(client):
+    if not client:
+        return 0
+    shopping_product_totals = {}
+    shopping_payment_totals = {}
+    products = ProductItem.objects.filter(client=client).exclude(
+        status__in=['IN_REVIEW', 'REJECTED']
+    )
+    for product in products:
+        shopping_id = product.mission_id
+        if not shopping_id:
+            continue
+        shopping_product_totals[shopping_id] = shopping_product_totals.get(shopping_id, 0) + float(
+            product.charged_price or product.real_price or 0
+        )
+    payments = ShoppingPayment.objects.filter(client=client)
+    for payment in payments:
+        shopping_id = payment.mission_id
+        if not shopping_id:
+            continue
+        shopping_payment_totals[shopping_id] = shopping_payment_totals.get(shopping_id, 0) + float(
+            payment.amount or 0
+        )
+    shopping_ids = set(shopping_product_totals.keys()) | set(shopping_payment_totals.keys())
+    balance_total = 0
+    for shopping_id in shopping_ids:
+        balance_total += shopping_product_totals.get(shopping_id, 0) - shopping_payment_totals.get(shopping_id, 0)
+    return round(balance_total, 2)
+
+
 def deactivate_empty_client_share_links(client_id=None, mission_id=None):
     if not client_id:
         return
@@ -700,6 +730,7 @@ def public_client_mission_share_view(request, token):
             'receipts': [],
             'shipments': shipment_serializer.data,
             'client_credit': calculate_client_credit_total(share_link.client),
+            'client_balance': calculate_client_share_balance_total(share_link.client),
             'total': total,
         }
     )

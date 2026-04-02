@@ -5831,9 +5831,14 @@ function nh() {
     publicPendingShipmentSelectionSet = new Set(
       publicPendingShipmentSelection.map((o) => Number(o)),
     ),
-    publicClientCreditTotal = publicClientShareData
-      ? Math.max(toNumber(publicClientShareData.client_credit, 0), 0)
+    publicClientBalanceTotal = publicClientShareData
+      ? toNumber(publicClientShareData.client_balance, 0)
       : 0,
+    publicClientBalanceLabel = publicClientBalanceTotal < 0
+      ? "A favor"
+      : publicClientBalanceTotal > 0
+        ? "Deuda"
+        : "Sin saldo",
     missionReviewAlertCount = missionReviewAlerts.length,
     isDesktopLayout = layoutMode === "WEB" && isWideViewport;
   V.useEffect(() => {
@@ -6512,6 +6517,12 @@ function nh() {
             className:
               "px-5 py-4 border-b border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/70",
             children: [
+              c.jsxs("div", {
+                className: "flex items-start justify-between gap-3",
+                children: [
+                  c.jsxs("div", {
+                    className: "min-w-0 flex-1",
+                    children: [
               c.jsx("p", {
                 className: "text-[10px] font-black tracking-[0.24em] uppercase text-text-sub",
                 children:
@@ -6543,6 +6554,28 @@ function nh() {
                 className: "mt-1 text-xs text-text-sub dark:text-slate-400",
                 children: [
                   `${(publicClientShareData.shipments || []).length || 0} envios`,
+                ],
+              }),
+                    ],
+                  }),
+                  publicClientShareData &&
+                  c.jsxs("div", {
+                    className: `shrink-0 min-w-[116px] rounded-2xl border px-3 py-2 text-right ${publicClientBalanceTotal < 0 ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20" : publicClientBalanceTotal > 0 ? "border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/20" : "border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/60"}`,
+                    children: [
+                      c.jsx("p", {
+                        className: "text-[10px] font-black uppercase tracking-[0.2em] text-text-sub",
+                        children: "Saldo",
+                      }),
+                      c.jsx("p", {
+                        className: `mt-1 text-[11px] font-bold ${publicClientBalanceTotal < 0 ? "text-emerald-700 dark:text-emerald-300" : publicClientBalanceTotal > 0 ? "text-rose-700 dark:text-rose-300" : "text-text-sub dark:text-slate-300"}`,
+                        children: publicClientBalanceLabel,
+                      }),
+                      c.jsxs("p", {
+                        className: `mt-1 text-base font-black ${publicClientBalanceTotal < 0 ? "text-emerald-800 dark:text-emerald-100" : publicClientBalanceTotal > 0 ? "text-rose-800 dark:text-rose-100" : "text-text-main dark:text-white"}`,
+                        children: ["$", formatAmount(Math.abs(publicClientBalanceTotal))],
+                      }),
+                    ],
+                  }),
                 ],
               }),
             ],
@@ -6579,29 +6612,6 @@ function nh() {
               : c.jsxs("div", {
                   className: "px-4 py-4 space-y-3",
                   children: [
-                    publicClientCreditTotal > 0 &&
-                    c.jsxs("div", {
-                      className:
-                        "rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3",
-                      children: [
-                        c.jsx("p", {
-                          className:
-                            "text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300",
-                          children: "A favor disponible",
-                        }),
-                        c.jsxs("p", {
-                          className:
-                            "mt-1 text-lg font-black text-emerald-800 dark:text-emerald-100",
-                          children: ["$", formatAmount(publicClientCreditTotal)],
-                        }),
-                        c.jsx("p", {
-                          className:
-                            "mt-1 text-[11px] leading-5 text-emerald-700/80 dark:text-emerald-200/80",
-                          children:
-                            "Este saldo a favor ya considera las compras donde se uso saldo previo.",
-                        }),
-                      ],
-                    }),
                     publicSelectedShipment &&
                     c.jsxs("div", {
                       className:
@@ -6941,7 +6951,7 @@ function nh() {
                           children: [
                             c.jsx("h3", {
                               className: "text-sm font-bold text-amber-900 dark:text-amber-100",
-                              children: "Pendiente",
+                              children: "Compras",
                             }),
                             c.jsxs("span", {
                               className: "text-[11px] text-amber-700 dark:text-amber-300 shrink-0",
