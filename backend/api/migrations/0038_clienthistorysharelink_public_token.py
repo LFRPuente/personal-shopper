@@ -25,10 +25,37 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='clienthistorysharelink',
-            name='public_token',
-            field=models.CharField(blank=True, max_length=64, null=True, unique=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=(
+                        "ALTER TABLE api_clienthistorysharelink "
+                        "ADD COLUMN IF NOT EXISTS public_token varchar(64);"
+                    ),
+                    reverse_sql=(
+                        "ALTER TABLE api_clienthistorysharelink "
+                        "DROP COLUMN IF EXISTS public_token;"
+                    ),
+                ),
+                migrations.RunSQL(
+                    sql=(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS "
+                        "api_clienthistorysharelink_public_token_uniq "
+                        "ON api_clienthistorysharelink (public_token);"
+                    ),
+                    reverse_sql=(
+                        "DROP INDEX IF EXISTS "
+                        "api_clienthistorysharelink_public_token_uniq;"
+                    ),
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='clienthistorysharelink',
+                    name='public_token',
+                    field=models.CharField(blank=True, max_length=64, null=True, unique=True),
+                ),
+            ],
         ),
         migrations.RunPython(
             backfill_client_history_share_tokens,
