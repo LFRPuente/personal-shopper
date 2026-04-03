@@ -3123,27 +3123,32 @@ function nh() {
       document.body.style.userSelect = "none";
       document.body.style.cursor = o === "column" ? "col-resize" : "row-resize";
     },
-    getShipmentAssignableProducts = (o = null) => {
-      const N = new Map(
-        (Al || []).map((A) => [Number(A.id), String(A.status || "").toUpperCase()]),
+    getShipmentAssignableProducts = (o = null, N = null) => {
+      const A = new Map(
+        (Al || []).map((vl) => [Number(vl.id), String(vl.status || "").toUpperCase()]),
       );
-      return Kl.flatMap((A) =>
-        ((A && A.products) || [])
-          .filter((vl) =>
+      const vl = Number(N || 0);
+      return Kl.flatMap((El) =>
+        ((El && El.products) || [])
+          .filter((Se) =>
             ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(
-              String(vl.status || "").toUpperCase(),
+              String(Se.status || "").toUpperCase(),
             ),
           )
-          .filter((vl) => (!o ? !0 : Number(vl.client) === Number(o)))
-          .filter((vl) => {
-            const El = Number(vl.shopping || vl.mission || vl.mission_id || 0);
-            return !El || N.get(El) === "COMPLETED";
+          .filter((Se) => (!o ? !0 : Number(Se.client) === Number(o)))
+          .filter((Se) => {
+            const qa = Number(Se.shopping || Se.mission || Se.mission_id || 0);
+            return !qa || A.get(qa) === "COMPLETED";
           })
-          .map((vl) => ({
-            ...vl,
-            client_name: A.name,
+          .filter((Se) => {
+            const qa = Number((((Se || {}).shipment || {}).id) || 0);
+            return !qa || qa === vl;
+          })
+          .map((Se) => ({
+            ...Se,
+            client_name: El.name,
             shipping_address:
-              vl.shipping_address || A.shipping_address || "",
+              Se.shipping_address || El.shipping_address || "",
           })),
       ).sort((A, vl) => {
         const El = String(A.shopping_name || A.mission_name || A.store_name || "").localeCompare(
@@ -3276,14 +3281,14 @@ function nh() {
         return;
       }
       const shipmentProductsById = new Map(
-        getShipmentAssignableProducts(o.id).map((El) => [Number(El.id), El]),
+        getShipmentAssignableProducts(o.id, shipmentForm.id).map((El) => [Number(El.id), El]),
       );
       const invalidShipmentSelection = (shipmentForm.product_ids || []).some(
         (El) => !shipmentProductsById.has(Number(El)),
       );
       if (invalidShipmentSelection) {
         notifyInfo(
-          "Solo puedes enviar productos de shoppings cerradas. Quita los demas productos para guardar.",
+          "Solo puedes enviar productos de shoppings cerradas y que no pertenezcan a otro envio. Quita los demas productos para guardar.",
         );
         return;
       }
@@ -3540,7 +3545,10 @@ function nh() {
     shipmentModalClient = Kl.find(
       (o) => String(o.id) === String(shipmentForm.client || ""),
     ),
-    shipmentModalProducts = getShipmentAssignableProducts(shipmentForm.client),
+    shipmentModalProducts = getShipmentAssignableProducts(
+      shipmentForm.client,
+      shipmentForm.id,
+    ),
     shipmentModalFilteredProducts = shipmentModalProducts.filter((o) => {
       const N = String(shipmentProductSearch || "").trim().toLowerCase();
       if (!N) return !0;

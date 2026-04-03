@@ -266,6 +266,32 @@ def validate_products_ready_for_shipment(products):
         )
 
 
+def validate_products_not_assigned_to_other_shipments(products, shipment=None):
+    products = list(products or [])
+    if not products:
+        return
+    current_shipment_id = getattr(shipment, 'id', None)
+    conflicting_product_ids = set(
+        Shipment.objects.filter(products__in=products)
+        .exclude(id=current_shipment_id)
+        .values_list('products__id', flat=True)
+    )
+    conflicting_names = [
+        str(getattr(product, 'name', '') or f'Product #{product.id}')
+        for product in products
+        if product.id in conflicting_product_ids
+    ]
+    if conflicting_names:
+        raise serializers.ValidationError(
+            {
+                'products': (
+                    'These products are already assigned to another shipment: '
+                    + ', '.join(sorted(set(conflicting_names)))
+                )
+            }
+        )
+
+
 def mark_product_as_shipped(product):
     if not product:
         return
@@ -288,6 +314,7 @@ def attach_products_to_shipment(shipment, products):
     if not shipment:
         return
     validate_products_ready_for_shipment(products)
+    validate_products_not_assigned_to_other_shipments(products, shipment=shipment)
     desired_ids = [product.id for product in products]
     current_ids = list(shipment.products.values_list('id', flat=True))
     remove_ids = [product_id for product_id in current_ids if product_id not in desired_ids]
@@ -301,14 +328,6 @@ def attach_products_to_shipment(shipment, products):
         deactivate_empty_shipment_share_links(shipment)
     for product in products:
         was_attached_to_this_shipment = product.id in current_ids
-        for other in Shipment.objects.filter(products=product).exclude(id=shipment.id):
-            other.products.remove(product)
-            if other.product_id == product.id:
-                fallback_product_id = other.products.order_by('id').values_list('id', flat=True).first()
-                other.product_id = fallback_product_id
-                other.save(update_fields=['product'])
-            deactivate_empty_shipment_share_links(other)
-            broadcast_update('shipments', action='updated', object_id=other.id)
         shipment.products.add(product)
         if not was_attached_to_this_shipment:
             mark_product_as_shipped(product)
