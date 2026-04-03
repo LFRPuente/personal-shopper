@@ -3123,40 +3123,81 @@ function nh() {
       document.body.style.userSelect = "none";
       document.body.style.cursor = o === "column" ? "col-resize" : "row-resize";
     },
-    getShipmentAssignableProducts = (o = null, N = null) => {
-      const A = new Map(
-        (Al || []).map((vl) => [Number(vl.id), String(vl.status || "").toUpperCase()]),
+    getShipmentClientProducts = (o = null) => {
+      const N = Kl.find((A) => Number(A.id) === Number(o || 0));
+      if (!N) return [];
+      return ((N && N.products) || []).map((A) => ({
+        ...A,
+        client_name: N.name,
+        shipping_address:
+          A.shipping_address || N.shipping_address || "",
+      }));
+    },
+    getShipmentProductPickerState = (o = null, N = null, A = null) => {
+      const vl = Array.isArray(A) ? A : getShipmentClientProducts(o);
+      const El = new Map(
+        (Al || []).map((qa) => [
+          Number(qa.id),
+          String(qa.status || "").toUpperCase(),
+        ]),
       );
-      const vl = Number(N || 0);
-      return Kl.flatMap((El) =>
-        ((El && El.products) || [])
-          .filter((Se) =>
-            ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(
-              String(Se.status || "").toUpperCase(),
+      const Se = Number(N || 0);
+      const ea = {
+        totalEligible: 0,
+        totalHidden: 0,
+        hiddenByStatus: 0,
+        hiddenByOpenShopping: 0,
+        hiddenByOtherShipment: 0,
+      };
+      const gl = [];
+      for (const qa of vl) {
+        const yo = String(qa.status || "").toUpperCase();
+        if (!["ANNOTATED", "BOUGHT", "SHIPPED"].includes(yo)) {
+          ea.hiddenByStatus += 1;
+          continue;
+        }
+        const el = Number(qa.shopping || qa.mission || qa.mission_id || 0);
+        if (el && El.get(el) !== "COMPLETED") {
+          ea.hiddenByOpenShopping += 1;
+          continue;
+        }
+        const tn = Number((((qa || {}).shipment || {}).id) || 0);
+        if (tn && tn !== Se) {
+          ea.hiddenByOtherShipment += 1;
+          continue;
+        }
+        gl.push(qa);
+      }
+      ea.totalEligible = gl.length;
+      ea.totalHidden =
+        ea.hiddenByStatus +
+        ea.hiddenByOpenShopping +
+        ea.hiddenByOtherShipment;
+      return {
+        products: gl.sort((qa, yo) => {
+          const el = String(
+            qa.shopping_name || qa.mission_name || qa.store_name || "",
+          ).localeCompare(
+            String(
+              yo.shopping_name || yo.mission_name || yo.store_name || "",
             ),
-          )
-          .filter((Se) => (!o ? !0 : Number(Se.client) === Number(o)))
-          .filter((Se) => {
-            const qa = Number(Se.shopping || Se.mission || Se.mission_id || 0);
-            return !qa || A.get(qa) === "COMPLETED";
-          })
-          .filter((Se) => {
-            const qa = Number((((Se || {}).shipment || {}).id) || 0);
-            return !qa || qa === vl;
-          })
-          .map((Se) => ({
-            ...Se,
-            client_name: El.name,
-            shipping_address:
-              Se.shipping_address || El.shipping_address || "",
-          })),
-      ).sort((A, vl) => {
-        const El = String(A.shopping_name || A.mission_name || A.store_name || "").localeCompare(
-          String(vl.shopping_name || vl.mission_name || vl.store_name || ""),
-        );
-        if (El !== 0) return El;
-        return String(A.name || "").localeCompare(String(vl.name || ""));
-      });
+          );
+          if (el !== 0) return el;
+          return String(qa.name || "").localeCompare(String(yo.name || ""));
+        }),
+        hiddenSummary: ea,
+      };
+    },
+    formatShipmentHiddenProductsMessage = (o = null) => {
+      if (!o || !o.totalHidden) return "";
+      const N = [];
+      o.hiddenByOpenShopping &&
+        N.push(`${o.hiddenByOpenShopping} por shopping abierta`);
+      o.hiddenByOtherShipment &&
+        N.push(`${o.hiddenByOtherShipment} en otro envio`);
+      o.hiddenByStatus &&
+        N.push(`${o.hiddenByStatus} por status no elegible`);
+      return N.length ? `Ocultos: ${N.join(", ")}.` : "";
     },
     getClientShipmentAddressOptions = (o = "") => {
       const N = Kl.find((A) => String(A.id) === String(o || ""));
@@ -3280,8 +3321,9 @@ function nh() {
         notifyInfo("Selecciona al menos un producto.");
         return;
       }
+      const qa = getShipmentProductPickerState(o.id, shipmentForm.id);
       const shipmentProductsById = new Map(
-        getShipmentAssignableProducts(o.id, shipmentForm.id).map((El) => [Number(El.id), El]),
+        qa.products.map((El) => [Number(El.id), El]),
       );
       const invalidShipmentSelection = (shipmentForm.product_ids || []).some(
         (El) => !shipmentProductsById.has(Number(El)),
@@ -3545,9 +3587,28 @@ function nh() {
     shipmentModalClient = Kl.find(
       (o) => String(o.id) === String(shipmentForm.client || ""),
     ),
-    shipmentModalProducts = getShipmentAssignableProducts(
+    shipmentModalClientProducts = getShipmentClientProducts(
       shipmentForm.client,
-      shipmentForm.id,
+    ),
+    shipmentModalProductState = shipmentProductPickerOpen
+      ? getShipmentProductPickerState(
+          shipmentForm.client,
+          shipmentForm.id,
+          shipmentModalClientProducts,
+        )
+      : {
+          products: [],
+          hiddenSummary: {
+            totalEligible: 0,
+            totalHidden: 0,
+            hiddenByStatus: 0,
+            hiddenByOpenShopping: 0,
+            hiddenByOtherShipment: 0,
+          },
+        },
+    shipmentModalProducts = shipmentModalProductState.products,
+    shipmentHiddenProductsMessage = formatShipmentHiddenProductsMessage(
+      shipmentModalProductState.hiddenSummary,
     ),
     shipmentModalFilteredProducts = shipmentModalProducts.filter((o) => {
       const N = String(shipmentProductSearch || "").trim().toLowerCase();
@@ -3562,7 +3623,7 @@ function nh() {
         .filter(Boolean)
         .some((A) => String(A).toLowerCase().includes(N));
     }),
-    shipmentSelectedProducts = shipmentModalProducts.filter((o) =>
+    shipmentSelectedProducts = shipmentModalClientProducts.filter((o) =>
       (shipmentForm.product_ids || []).includes(Number(o.id)),
     ),
     paymentLocalToNumber = (o, N = 0) => {
@@ -6434,6 +6495,12 @@ function nh() {
                     shipmentSelectedProducts.length,
                     " producto(s) seleccionado(s)",
                   ],
+                }),
+                shipmentHiddenProductsMessage &&
+                c.jsx("p", {
+                  className:
+                    "text-[11px] text-amber-700 dark:text-amber-300",
+                  children: shipmentHiddenProductsMessage,
                 }),
               ],
             }),
