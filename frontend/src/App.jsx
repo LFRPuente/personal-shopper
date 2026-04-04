@@ -9639,8 +9639,9 @@ function nh() {
                                 }),
                                 c.jsx("span", {
                                   className:
-                                    "material-symbols-outlined text-gray-400 text-[15px] cursor-pointer transition-transform",
-                                  style: { transform: A ? "rotate(180deg)" : "" },
+                                    `material-symbols-outlined text-gray-400 text-[15px] cursor-pointer ui-disclosure-chevron ${
+                                      A ? "ui-disclosure-chevron-open" : ""
+                                    }`,
                                   onClick: () => ge(A ? null : N.id),
                                   children: "expand_more",
                                 }),
@@ -9651,10 +9652,14 @@ function nh() {
                       ],
                     }),
                     A &&
-                    c.jsxs("div", {
-                      className:
-                        "border-t border-border-light dark:border-border-dark px-4 py-3",
-                      children: [
+                    c.jsx("div", {
+                      className: "ui-disclosure-panel ui-disclosure-panel-open",
+                      children: c.jsx("div", {
+                        className: "ui-disclosure-inner",
+                        children: c.jsxs("div", {
+                          className:
+                            "border-t border-border-light dark:border-border-dark px-4 py-3",
+                          children: [
                         !!getClientPhoneDisplay(N) &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
@@ -9854,12 +9859,13 @@ function nh() {
                                                   title: "Ver desglose",
                                                   children: c.jsx("span", {
                                                     className:
-                                                      "material-symbols-outlined text-[14px]",
-                                                    children:
-                                                      openHistoryMissionByClient[N.id] ===
-                                                      ea.key
-                                                        ? "expand_less"
-                                                        : "expand_more",
+                                                      `material-symbols-outlined text-[14px] ui-disclosure-chevron ${
+                                                        openHistoryMissionByClient[N.id] ===
+                                                        ea.key
+                                                          ? "ui-disclosure-chevron-open"
+                                                          : ""
+                                                      }`,
+                                                    children: "expand_more",
                                                   }),
                                                 }),
                                               ],
@@ -9870,8 +9876,13 @@ function nh() {
                                         ea.key &&
                                         c.jsx("div", {
                                           className:
-                                            "border-t border-gray-200 dark:border-gray-700 px-2 py-1.5 space-y-1",
-                                          children: [
+                                            "ui-disclosure-panel ui-disclosure-panel-open",
+                                          children: c.jsx("div", {
+                                            className: "ui-disclosure-inner",
+                                            children: c.jsx("div", {
+                                              className:
+                                                "border-t border-gray-200 dark:border-gray-700 px-2 py-1.5 space-y-1",
+                                              children: [
                                             ea.payments.length > 0 &&
                                             c.jsxs("div", {
                                               className: "mb-2 space-y-1.5",
@@ -10098,6 +10109,8 @@ function nh() {
                                             }),
                                           ],
                                         }),
+                                      }),
+                                    }),
                                       ],
                                     },
                                     ea.key,
@@ -10106,14 +10119,16 @@ function nh() {
                               }),
                             ],
                           }),
-                      ],
+                        ],
+                      }),
                     }),
-                  ],
-                },
-                N.id,
-              );
-            }),
-            }),
+                  }),
+                ],
+              },
+              N.id,
+            );
+          }),
+        }),
         ],
       });
     },
