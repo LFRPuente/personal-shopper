@@ -137,6 +137,13 @@ const resolveMediaUrl = (o) => {
     return N;
   }
 };
+const revokeBlobUrl = (o) => {
+  const N = String(o || "").trim();
+  if (!N.startsWith("blob:")) return;
+  try {
+    URL.revokeObjectURL(N);
+  } catch {}
+};
 const toFormUserId = (o) =>
   o === null || typeof o === "undefined" || o === ""
     ? ""
@@ -1250,6 +1257,24 @@ function nh() {
   V.useEffect(() => {
     localStorage.setItem("calc_exchange_rate", String(calcExchangeRate));
   }, [calcExchangeRate]);
+  V.useEffect(
+    () => () => {
+      revokeBlobUrl(va);
+    },
+    [va],
+  );
+  V.useEffect(
+    () => () => {
+      revokeBlobUrl(newRequestImagePreview);
+    },
+    [newRequestImagePreview],
+  );
+  V.useEffect(
+    () => () => {
+      revokeBlobUrl(editingRequestImagePreview);
+    },
+    [editingRequestImagePreview],
+  );
   V.useEffect(() => {
     if (
       openProductMenuId === null &&
