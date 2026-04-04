@@ -18,7 +18,9 @@ import { AppProvider } from './AppContext.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
+const FullscreenImageModal = V.lazy(() => import('./components/FullscreenImageModal.jsx'));
 const HomeSection = V.lazy(() => import('./sections/HomeSection.jsx'));
+const InputDialog = V.lazy(() => import('./components/InputDialog.jsx'));
 const PaymentModal = V.lazy(() => import('./components/PaymentModal.jsx'));
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
@@ -14995,103 +14997,15 @@ function nh() {
         }),
       }),
       inputDialog &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-4 ui-backdrop",
-          "input",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet flex flex-col",
-            "input",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsx("div", {
-              className: "flex-1 overflow-y-auto ios-scroll pr-1",
-              children: [
-                c.jsx("h3", {
-                  className: "text-base font-bold text-text-main",
-                  children: inputDialog.title,
-                }),
-                inputDialog.message &&
-                c.jsx("p", {
-                  className: "text-sm text-text-sub mt-1",
-                  children: inputDialog.message,
-                }),
-                c.jsx("div", {
-                  className: "mt-4 space-y-3",
-                  children: inputDialog.fields.map((o) =>
-                    c.jsxs(
-                      "label",
-                      {
-                        className: "block",
-                        children: [
-                          c.jsx("span", {
-                            className: "text-[11px] font-semibold text-text-sub",
-                            children: o.label || o.name,
-                          }),
-                          o.type === "textarea"
-                            ? c.jsx("textarea", {
-                              rows: 4,
-                              value: o.value,
-                              onChange: (N) =>
-                                updateInputDialogField(o.name, N.target.value),
-                              placeholder: o.placeholder || "",
-                              className:
-                                "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                            })
-                            : o.type === "select"
-                              ? c.jsx("select", {
-                                value: o.value,
-                                onChange: (N) =>
-                                  updateInputDialogField(o.name, N.target.value),
-                                className:
-                                  "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                                children: (o.options || []).map((N) =>
-                                  c.jsx(
-                                    "option",
-                                    { value: N.value, children: N.label },
-                                    `${o.name}-${N.value}`,
-                                  ),
-                                ),
-                              })
-                              : c.jsx("input", {
-                                type: "text",
-                                value: o.value,
-                                onChange: (N) =>
-                                  updateInputDialogField(o.name, N.target.value),
-                                placeholder: o.placeholder || "",
-                                className:
-                                  "mt-1 w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                              }),
-                        ],
-                      },
-                      o.name,
-                    ),
-                  ),
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className: "mt-5 grid grid-cols-2 gap-2 pt-3 border-t border-border-light dark:border-border-dark",
-              children: [
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
-                  children: inputDialog.cancelLabel,
-                }),
-                c.jsx("button", {
-                  onClick: submitInputDialog,
-                  className:
-                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold",
-                  children: inputDialog.confirmLabel,
-                }),
-              ],
-            }),
-          ],
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(InputDialog, {
+          inputDialog,
+          overlayBackdropClass,
+          overlaySheetClass,
+          dismissActiveOverlayRef,
+          updateInputDialogField,
+          submitInputDialog,
         }),
       }),
       clientPaymentModalOpen &&
@@ -16297,59 +16211,15 @@ function nh() {
         }),
       }),
       getFullscreenImageUrl(fullscreenImage) &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
-          "fullscreen-image",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "relative max-w-[95vw] max-h-[90vh] ui-sheet",
-            "fullscreen-image",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("div", {
-              className: "absolute -top-11 right-0 flex items-center gap-2",
-              children: [
-                c.jsx("a", {
-                  href: getFullscreenImageUrl(fullscreenImage),
-                  target: "_blank",
-                  rel: "noreferrer",
-                  className:
-                    "px-3 py-1.5 rounded-full bg-white text-gray-700 text-xs font-bold border border-gray-200 shadow hover:bg-gray-100",
-                  children: "Abrir enlace",
-                }),
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  className:
-                    "w-9 h-9 rounded-full bg-white text-gray-700 border border-gray-200 flex items-center justify-center shadow",
-                  children: c.jsx("span", {
-                    className: "material-symbols-outlined",
-                    children: "close",
-                  }),
-                }),
-              ],
-            }),
-            c.jsx("img", {
-              src: getFullscreenImageUrl(fullscreenImage),
-              className:
-                `max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
-              onClick: () => handleFullscreenImageCopy(),
-              onError: (o) => {
-                o.currentTarget.style.display = "none";
-              },
-            }),
-            typeof fullscreenImage == "object" &&
-            fullscreenImage &&
-            fullscreenImage.copyOnClick &&
-            c.jsx("p", {
-              className:
-                "mt-3 text-center text-xs font-medium text-white/80",
-              children: "Toca la imagen para copiarla.",
-            }),
-          ],
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(FullscreenImageModal, {
+          fullscreenImage,
+          overlayBackdropClass,
+          overlaySheetClass,
+          dismissActiveOverlayRef,
+          getFullscreenImageUrl,
+          handleFullscreenImageCopy,
         }),
       }),
       c.jsx("nav", {
