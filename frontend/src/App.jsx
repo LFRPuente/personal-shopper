@@ -3381,15 +3381,24 @@ function nh() {
                 products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
               }),
             });
+        const ea = Se || El;
         setShipmentModalOpen(!1);
         setShipmentProductPickerOpen(!1);
         setPublicExpandedShipmentId(Number(El.id));
         setExpandedShipmentId(Number(El.id));
-        setShipmentForm(getShipmentFormState(Se || El));
-        await refreshCoreData();
-        await refreshSelectedClient();
-        publicClientShareToken && (await reloadPublicShareData());
+        upsertShipmentListItem(ea);
+        setShipmentForm(getShipmentFormState(ea));
         notifySuccess(shipmentForm.id ? "Envio actualizado." : "Envio creado.");
+        refreshCoreData().catch((gl) => {
+          console.error("Failed refreshing core data after saving shipment", gl);
+        });
+        refreshSelectedClient().catch((gl) => {
+          console.error("Failed refreshing selected client after saving shipment", gl);
+        });
+        publicClientShareToken &&
+          reloadPublicShareData().catch((gl) => {
+            console.error("Failed refreshing public share after saving shipment", gl);
+          });
       } catch (El) {
         console.error("Failed saving shipment", El);
         notifyError((El && El.message) || "No se pudo guardar el envio.");
@@ -4899,6 +4908,9 @@ function nh() {
       maximumFractionDigits: 2,
     }),
     formatAmount = (o) => amountFormatter.format(toNumber(o, 0)),
+    hasShipmentTrackingReady = (o) =>
+      !!String((o && o.carrier) || "").trim() &&
+      !!String((o && o.tracking_number) || "").trim(),
     getShipmentPurchasePriceAmount = (o) => {
       const N =
         o &&
@@ -4932,6 +4944,21 @@ function nh() {
     getShipmentSalePriceSummary = (o) => {
       const N = getShipmentSalePriceAmount(o);
       return N <= 0 ? "Costo de envio gratis" : `Costo de venta: $${formatAmount(N)}`;
+    },
+    getPublicShipmentSalePriceSummary = (o) => {
+      if (!hasShipmentTrackingReady(o)) return "";
+      return getShipmentSalePriceSummary(o);
+    },
+    upsertShipmentListItem = (o) => {
+      if (!o || !o.id) return;
+      setShipments((N) => {
+        const A = Array.isArray(N) ? N : [];
+        const vl = A.findIndex((El) => Number(El.id) === Number(o.id));
+        if (vl === -1) return [o, ...A];
+        const El = [...A];
+        El[vl] = { ...El[vl], ...o };
+        return El;
+      });
     },
     getHomeVisibleProducts = (o) =>
       (o.products || []).filter(
@@ -6818,10 +6845,13 @@ function nh() {
                                 "Rastrear guia",
                               ],
                             }),
+                            getPublicShipmentSalePriceSummary(
+                              publicSelectedShipment,
+                            ) &&
                             c.jsx("p", {
                               className:
                                 "text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
-                              children: getShipmentSalePriceSummary(
+                              children: getPublicShipmentSalePriceSummary(
                                 publicSelectedShipment,
                               ),
                             }),
@@ -7047,10 +7077,11 @@ function nh() {
                                               o.carrier ||
                                               `Envio #${o.id}`,
                                           }),
+                                          getPublicShipmentSalePriceSummary(o) &&
                                           c.jsx("p", {
                                             className:
                                               "mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
-                                            children: getShipmentSalePriceSummary(o),
+                                            children: getPublicShipmentSalePriceSummary(o),
                                           }),
                                         ],
                                       }),
