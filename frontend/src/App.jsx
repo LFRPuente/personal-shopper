@@ -442,6 +442,7 @@ function nh() {
     [shipmentClientSearch, setShipmentClientSearch] = V.useState(""),
     [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
     [shipmentProductSearch, setShipmentProductSearch] = V.useState(""),
+    [shipmentProductRenderLimit, setShipmentProductRenderLimit] = V.useState(24),
     [shipmentForm, setShipmentForm] = V.useState({
       id: null,
       client: "",
@@ -1436,6 +1437,10 @@ function nh() {
       document.removeEventListener("keydown", closeShipmentEvidenceMenuOnEscape);
     };
   }, [openShipmentEvidenceMenuId]);
+  V.useEffect(() => {
+    if (!shipmentProductPickerOpen) return;
+    setShipmentProductRenderLimit(24);
+  }, [shipmentProductPickerOpen, shipmentForm.client, shipmentProductSearch]);
   V.useEffect(() => {
     if (!C) {
       setRequests([]);
@@ -3782,6 +3787,12 @@ function nh() {
         .filter(Boolean)
         .some((A) => String(A).toLowerCase().includes(N));
     }),
+    shipmentVisibleProductCards = shipmentModalFilteredProducts.slice(
+      0,
+      shipmentProductRenderLimit,
+    ),
+    shipmentHasMoreProductCards =
+      shipmentModalFilteredProducts.length > shipmentVisibleProductCards.length,
     shipmentSelectedProducts = (() => {
       const o = new Map();
       shipmentModalClientProducts.forEach((N) => {
@@ -17068,89 +17079,118 @@ function nh() {
                 })
               : c.jsx("div", {
                   className:
-                    "flex-1 overflow-y-auto ios-scroll p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
-                  children: shipmentModalFilteredProducts.map((o) => {
-                    const N = (shipmentForm.product_ids || []).includes(
-                        Number(o.id),
-                      ),
-                      A = getProductPaymentAmount(o);
-                    return c.jsxs(
-                      "button",
-                      {
-                        type: "button",
-                        onClick: () => toggleShipmentProductSelection(o),
-                        className:
-                          `relative overflow-hidden rounded-2xl border text-left ${N ? "border-primary ring-2 ring-primary/30" : "border-border-light dark:border-border-dark"} bg-surface-light dark:bg-surface-dark`,
-                        children: [
-                          o.image
-                            ? c.jsx("img", {
-                                src: resolveMediaUrl(o.image),
-                                className: "w-full aspect-[3/4] object-cover",
-                              })
-                            : c.jsx("div", {
+                    "flex-1 overflow-y-auto ios-scroll px-4 py-4",
+                  children: [
+                    c.jsx("div", {
+                      className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
+                      children: shipmentVisibleProductCards.map((o) => {
+                        const N = (shipmentForm.product_ids || []).includes(
+                            Number(o.id),
+                          ),
+                          A = getProductPaymentAmount(o);
+                        return c.jsxs(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => toggleShipmentProductSelection(o),
+                            className:
+                              `relative overflow-hidden rounded-2xl border text-left ui-media-card ${N ? "border-primary ring-2 ring-primary/30" : "border-border-light dark:border-border-dark"} bg-surface-light dark:bg-surface-dark`,
+                            children: [
+                              o.image
+                                ? c.jsx("img", {
+                                    src: resolveMediaUrl(o.image),
+                                    className: "w-full aspect-[3/4] object-cover",
+                                  })
+                                : c.jsx("div", {
+                                    className:
+                                      "w-full aspect-[3/4] bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400",
+                                    children: c.jsx("span", {
+                                      className:
+                                        "material-symbols-outlined text-[24px]",
+                                      children: "image",
+                                    }),
+                                  }),
+                              Number.isFinite(A) &&
+                              c.jsx("div", {
                                 className:
-                                  "w-full aspect-[3/4] bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400",
-                                children: c.jsx("span", {
+                                  "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                                children: c.jsxs("span", {
                                   className:
-                                    "material-symbols-outlined text-[24px]",
-                                  children: "image",
+                                    "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                  children: ["$", formatAmount(A)],
                                 }),
                               }),
-                          Number.isFinite(A) &&
-                          c.jsx("div", {
-                            className:
-                              "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
-                            children: c.jsxs("span", {
-                              className:
-                                "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                              children: ["$", formatAmount(A)],
-                            }),
-                          }),
-                          c.jsx("div", {
-                            className:
-                              "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
-                            children: c.jsxs("div", {
-                              className: "space-y-0.5",
-                              children: [
-                                c.jsx("p", {
-                                  className:
-                                    "text-[11px] font-semibold text-white truncate",
-                                  children: o.name,
-                                }),
-                                c.jsx("p", {
-                                  className: "text-[10px] text-white/80 truncate",
-                                  children:
-                                    o.shopping_name ||
-                                    o.mission_name ||
-                                    o.store_name ||
-                                    "Sin shopping",
-                                }),
-                                (o.shopping_date || o.mission_date) &&
-                                c.jsx("p", {
-                                  className: "text-[10px] text-white/70 truncate",
-                                  children: new Date(
-                                    o.shopping_date || o.mission_date,
-                                  ).toLocaleDateString(),
-                                }),
-                              ],
-                            }),
-                          }),
-                          c.jsx("div", {
-                            className:
-                              `absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center ${N ? "bg-primary border-primary text-white" : "bg-white/85 border-white/90 text-slate-400"}`,
-                            children:
-                              N &&
-                              c.jsx("span", {
+                              c.jsx("div", {
                                 className:
-                                  "material-symbols-outlined text-[15px]",
-                                children: "check",
+                                  "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
+                                children: c.jsxs("div", {
+                                  className: "space-y-0.5",
+                                  children: [
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[11px] font-semibold text-white truncate",
+                                      children: o.name,
+                                    }),
+                                    c.jsx("p", {
+                                      className: "text-[10px] text-white/80 truncate",
+                                      children:
+                                        o.shopping_name ||
+                                        o.mission_name ||
+                                        o.store_name ||
+                                        "Sin shopping",
+                                    }),
+                                    (o.shopping_date || o.mission_date) &&
+                                    c.jsx("p", {
+                                      className:
+                                        "text-[10px] text-white/70 truncate",
+                                      children: new Date(
+                                        o.shopping_date || o.mission_date,
+                                      ).toLocaleDateString(),
+                                    }),
+                                  ],
+                                }),
                               }),
-                          }),
-                        ],
-                      },
-                      `shipment-picker-${o.id}`,
-                    );
-                  }),
+                              c.jsx("div", {
+                                className:
+                                  `absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center ${N ? "bg-primary border-primary text-white" : "bg-white/85 border-white/90 text-slate-400"}`,
+                                children:
+                                  N &&
+                                  c.jsx("span", {
+                                    className:
+                                      "material-symbols-outlined text-[15px]",
+                                    children: "check",
+                                  }),
+                              }),
+                            ],
+                          },
+                          `shipment-picker-${o.id}`,
+                        );
+                      }),
+                    }),
+                    shipmentHasMoreProductCards &&
+                    c.jsxs("div", {
+                      className: "pt-4 flex flex-col items-center gap-2",
+                      children: [
+                        c.jsxs("p", {
+                          className: "text-[11px] text-text-sub",
+                          children: [
+                            shipmentVisibleProductCards.length,
+                            " de ",
+                            shipmentModalFilteredProducts.length,
+                            " productos cargados",
+                          ],
+                        }),
+                        c.jsx("button", {
+                          type: "button",
+                          onClick: () =>
+                            setShipmentProductRenderLimit((o) => o + 24),
+                          className:
+                            "px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold dark:bg-slate-800 dark:hover:bg-slate-700",
+                          children: "Mostrar mas",
+                        }),
+                      ],
+                    }),
+                  ],
                 }),
             c.jsxs("div", {
               className:
