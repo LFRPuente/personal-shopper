@@ -7,6 +7,18 @@ const IS_FIREFOX =
   typeof navigator != "undefined" &&
   /firefox/i.test(String(navigator.userAgent || ""));
 const ENABLE_REALTIME_UPDATES = !IS_FIREFOX;
+const scheduleIdleTask = (task, timeout = 250) => {
+  if (typeof window != "undefined" && typeof window.requestIdleCallback == "function") {
+    const handle = window.requestIdleCallback(task, { timeout });
+    return () => {
+      try {
+        window.cancelIdleCallback(handle);
+      } catch {}
+    };
+  }
+  const handle = window.setTimeout(task, timeout);
+  return () => window.clearTimeout(handle);
+};
 const optimizeMediaElementProps = (type, props) => {
   if (!props || typeof props != "object") return props;
   if (type === "img") {
@@ -628,32 +640,20 @@ function nh() {
           setLayoutMode(
             o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
           ));
-        const [N, A, yl, qs, Vs] = await Promise.all([
+        const [N, A, yl, Vs] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
           I("/shipments/"),
-          I("/shipping-carrier-recommendations/"),
           I("/users/"),
         ]);
         _l(N || []);
         zl(A || []);
         setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
-        setShippingCarrierRecommendations(qs || []);
         setUsers(Vs || []);
         const vl = A.find(
           (El) => El.status === "ACTIVE" || El.status === "PAUSED",
         );
-        const [El, Se] = await Promise.all([
-          I("/stores/"),
-          I("/store-recommendations/"),
-        ]);
-        setStores(El || []);
-        setStoreRecommendations(Se || []);
         Dl(vl || null);
-        if (vl && vl.id) {
-          const ea = await I(`/reviews/unread-summary/?shopping=${vl.id}`);
-          setHomeUnreadSummary(ea || {});
-        } else setHomeUnreadSummary({});
       } catch (o) {
         console.error("Failed loading data", o);
       }
@@ -661,27 +661,33 @@ function nh() {
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
-        const [N, A, vl, yl, qs] = await Promise.all([
+        const [N, A, yl] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
-          I("/store-recommendations/"),
           I("/shipments/"),
-          I("/shipping-carrier-recommendations/"),
         ]);
         _l(N || []);
         zl(A || []);
-        setStoreRecommendations(vl || []);
         setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
-        setShippingCarrierRecommendations(qs || []);
         const El = (A || []).find(
           (Se) => Se.status === "ACTIVE" || Se.status === "PAUSED",
         );
         Dl(El || null);
-        if (El && El.id) {
-          const Se = await I(`/reviews/unread-summary/?shopping=${El.id}`);
-          setHomeUnreadSummary(Se || {});
-        } else setHomeUnreadSummary({});
       } catch {}
+    },
+    loadAuxiliaryData = async () => {
+      try {
+        const [o, N, A] = await Promise.all([
+          I("/stores/"),
+          I("/store-recommendations/"),
+          I("/shipping-carrier-recommendations/"),
+        ]);
+        setStores(o || []);
+        setStoreRecommendations(N || []);
+        setShippingCarrierRecommendations(A || []);
+      } catch (o) {
+        console.error("Failed loading auxiliary data", o);
+      }
     },
     refreshSelectedClient = async () => {
       const o = selectedClientIdRef.current;
@@ -1166,6 +1172,17 @@ function nh() {
   V.useEffect(() => {
     if (!C) setSeenReviewItemMap({});
   }, [C]);
+  V.useEffect(() => {
+    if (!C) return;
+    const cancel = scheduleIdleTask(() => {
+      loadAuxiliaryData().catch((o) => {
+        console.error("Failed scheduling auxiliary data load", o);
+      });
+    }, 450);
+    return () => {
+      cancel();
+    };
+  }, [C]);
   V.useEffect(
     () => () => {
       toastTimeoutsRef.current.forEach((o) => clearTimeout(o));
@@ -1459,17 +1476,17 @@ function nh() {
       return;
     }
     let isMounted = !0;
-    const loadRequests = async () => {
+    const cancel = scheduleIdleTask(async () => {
       try {
         const o = await I("/requests/");
         isMounted && setRequests(o || []);
       } catch (o) {
         console.error("Failed loading requests", o);
       }
-    };
-    loadRequests();
+    }, 600);
     return () => {
       isMounted = !1;
+      cancel();
     };
   }, [C]);
   // <-------- seccion 8: carga inicial de revisiones por cliente (sin polling)
@@ -1480,17 +1497,17 @@ function nh() {
       return;
     }
     let isMounted = !0;
-    const loadProductReviews = async () => {
+    const cancel = scheduleIdleTask(async () => {
       try {
         const N = await I(`/reviews/?client=${o}`);
         isMounted && setProductReviews(N || []);
       } catch (N) {
         console.error("Failed loading product reviews", N);
       }
-    };
-    loadProductReviews();
+    }, 800);
     return () => {
       isMounted = !1;
+      cancel();
     };
   }, [C, W && W.id]);
   V.useEffect(() => {
@@ -1500,17 +1517,17 @@ function nh() {
       return;
     }
     let isMounted = !0;
-    const loadUnreadSummary = async () => {
+    const cancel = scheduleIdleTask(async () => {
       try {
         const N = await I(`/reviews/unread-summary/?shopping=${o}`);
         isMounted && setHomeUnreadSummary(N || {});
       } catch (N) {
         console.error("Failed loading unread review summary", N);
       }
-    };
-    loadUnreadSummary();
+    }, 700);
     return () => {
       isMounted = !1;
+      cancel();
     };
   }, [C, w && w.id]);
   // <-------- seccion 8: carga inicial de alertas de revision por mision
@@ -1522,7 +1539,7 @@ function nh() {
       return;
     }
     let isMounted = !0;
-    const loadMissionReviews = async () => {
+    const cancel = scheduleIdleTask(async () => {
       try {
         const A = await I(`/reviews/?shopping=${o}`);
         isMounted &&
@@ -1534,10 +1551,10 @@ function nh() {
       } catch (A) {
         console.error("Failed loading shopping reviews", A);
       }
-    };
-    loadMissionReviews();
+    }, 900);
     return () => {
       isMounted = !1;
+      cancel();
     };
   }, [C, w && w.id, w && w.status]);
   // <-------- seccion 9: sincroniza calculadora con configuracion de mision activa
