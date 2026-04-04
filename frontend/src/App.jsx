@@ -3355,7 +3355,7 @@ function nh() {
       return A;
     },
     getShipmentFormState = (o = null, N = null) => {
-      const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
+      const A = String((N && N.client) || (o && o.client) || "");
       const Se =
         (o && (o.products_detail || o.products)) || (N && N.id ? [N] : []);
       const vl =
@@ -3747,53 +3747,86 @@ function nh() {
     shipmentModalClient = Kl.find(
       (o) => String(o.id) === String(shipmentForm.client || ""),
     ),
-    filteredShipmentClients = Kl.filter((o) => {
-      const N = String(shipmentClientSearch || "").trim().toLowerCase();
-      return !N || String(o.name || "").toLowerCase().includes(N);
-    }),
-    shipmentModalClientProducts = getShipmentClientProducts(
-      shipmentForm.client,
+    shipmentClientOptions = V.useMemo(
+      () =>
+        (Kl || []).map((o) => ({
+          id: o.id,
+          name: o.name,
+        })),
+      [Kl],
     ),
-    shipmentModalProductState = shipmentProductPickerOpen
-      ? getShipmentProductPickerState(
-          shipmentForm.client,
-          shipmentForm.id,
-          shipmentModalClientProducts,
-        )
-      : {
-          products: [],
-          hiddenSummary: {
-            totalEligible: 0,
-            totalHidden: 0,
-            hiddenByStatus: 0,
-            hiddenByOpenShopping: 0,
-            hiddenByOtherShipment: 0,
-          },
-        },
+    filteredShipmentClients = V.useMemo(() => {
+      const o = String(shipmentClientSearch || "").trim().toLowerCase();
+      return shipmentClientOptions.filter((N) =>
+        !o || String(N.name || "").toLowerCase().includes(o),
+      );
+    }, [shipmentClientOptions, shipmentClientSearch]),
+    shipmentModalClientProducts = V.useMemo(
+      () => getShipmentClientProducts(shipmentForm.client),
+      [Kl, shipmentForm.client],
+    ),
+    shipmentModalProductState = V.useMemo(
+      () =>
+        shipmentProductPickerOpen
+          ? getShipmentProductPickerState(
+              shipmentForm.client,
+              shipmentForm.id,
+              shipmentModalClientProducts,
+            )
+          : {
+              products: [],
+              hiddenSummary: {
+                totalEligible: 0,
+                totalHidden: 0,
+                hiddenByStatus: 0,
+                hiddenByOpenShopping: 0,
+                hiddenByOtherShipment: 0,
+              },
+            },
+      [
+        shipmentProductPickerOpen,
+        shipmentForm.client,
+        shipmentForm.id,
+        shipmentModalClientProducts,
+        Al,
+      ],
+    ),
     shipmentModalProducts = shipmentModalProductState.products,
-    shipmentHiddenProductsMessage = formatShipmentHiddenProductsMessage(
-      shipmentModalProductState.hiddenSummary,
+    shipmentHiddenProductsMessage = V.useMemo(
+      () =>
+        formatShipmentHiddenProductsMessage(
+          shipmentModalProductState.hiddenSummary,
+        ),
+      [shipmentModalProductState],
     ),
-    shipmentModalFilteredProducts = shipmentModalProducts.filter((o) => {
-      const N = String(shipmentProductSearch || "").trim().toLowerCase();
-      if (!N) return !0;
-      return [
-        o.name,
-        o.shopping_name || o.mission_name,
-        o.store_name,
-        o.client_name,
-        o.status,
-      ]
-        .filter(Boolean)
-        .some((A) => String(A).toLowerCase().includes(N));
-    }),
-    shipmentVisibleProductCards = shipmentModalFilteredProducts.slice(
-      0,
-      shipmentProductRenderLimit,
+    shipmentModalFilteredProducts = V.useMemo(
+      () =>
+        shipmentModalProducts.filter((o) => {
+          const N = String(shipmentProductSearch || "").trim().toLowerCase();
+          if (!N) return !0;
+          return [
+            o.name,
+            o.shopping_name || o.mission_name,
+            o.store_name,
+            o.client_name,
+            o.status,
+          ]
+            .filter(Boolean)
+            .some((A) => String(A).toLowerCase().includes(N));
+        }),
+      [shipmentModalProducts, shipmentProductSearch],
+    ),
+    shipmentVisibleProductCards = V.useMemo(
+      () =>
+        shipmentModalFilteredProducts.slice(
+          0,
+          shipmentProductRenderLimit,
+        ),
+      [shipmentModalFilteredProducts, shipmentProductRenderLimit],
     ),
     shipmentHasMoreProductCards =
       shipmentModalFilteredProducts.length > shipmentVisibleProductCards.length,
-    shipmentSelectedProducts = (() => {
+    shipmentSelectedProducts = V.useMemo(() => {
       const o = new Map();
       shipmentModalClientProducts.forEach((N) => {
         o.set(Number(N.id), N);
@@ -3808,7 +3841,12 @@ function nh() {
       return (shipmentForm.product_ids || [])
         .map((A) => o.get(Number(A)))
         .filter(Boolean);
-    })(),
+    }, [
+      shipmentModalClientProducts,
+      shipments,
+      shipmentForm.id,
+      shipmentForm.product_ids,
+    ]),
     paymentLocalToNumber = (o, N = 0) => {
       const A = parseFloat(o);
       return Number.isFinite(A) ? A : N;
