@@ -49,6 +49,24 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'updateMissionRequest',
   'deleteMissionRequest',
   'startRequestModify',
+  'editingRequestId',
+  'editingRequestText',
+  'setEditingRequestText',
+  'editingRequestClientId',
+  'setEditingRequestClientId',
+  'editingRequestClientPickerOpen',
+  'setEditingRequestClientPickerOpen',
+  'editingRequestClientSearch',
+  'setEditingRequestClientSearch',
+  'editingRequestImagePreview',
+  'editingRequestSaving',
+  'saveRequestModify',
+  'cancelRequestModify',
+  'pickEditingRequestImage',
+  'clearEditingRequestImage',
+  'filteredEditingRequestClients',
+  'getClientNameById',
+  'getRelativeTime',
 ];
 
 const money = (value) =>
@@ -106,6 +124,24 @@ const HomeSection = V.memo(function HomeSection() {
     updateMissionRequest,
     deleteMissionRequest,
     startRequestModify,
+    editingRequestId,
+    editingRequestText,
+    setEditingRequestText,
+    editingRequestClientId,
+    setEditingRequestClientId,
+    editingRequestClientPickerOpen,
+    setEditingRequestClientPickerOpen,
+    editingRequestClientSearch,
+    setEditingRequestClientSearch,
+    editingRequestImagePreview,
+    editingRequestSaving,
+    saveRequestModify,
+    cancelRequestModify,
+    pickEditingRequestImage,
+    clearEditingRequestImage,
+    filteredEditingRequestClients,
+    getClientNameById,
+    getRelativeTime,
   } = useApp();
 
   return c.jsxs('div', {
@@ -165,71 +201,328 @@ const HomeSection = V.memo(function HomeSection() {
               ? c.jsx('p', { className: 'text-xs text-gray-400 py-3 text-center', children: 'Sin peticiones activas.' })
               : requests.map((request) =>
                   c.jsxs('div', {
-                    className: 'rounded-xl border-l-4 px-3 py-2.5 shadow-sm bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400',
+                    className: `relative rounded-xl border-l-4 px-3 py-2.5 shadow-sm transition ${
+                      request.status === 'ACKNOWLEDGED'
+                        ? 'bg-emerald-100/95 border-emerald-500 border-l-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:border-l-emerald-500'
+                        : request.status === 'NO_STOCK'
+                          ? 'bg-rose-100/95 border-rose-500 border-l-rose-700 dark:bg-rose-950/60 dark:border-rose-700 dark:border-l-rose-500'
+                          : request.status === 'MODIFIED'
+                            ? 'bg-amber-100/95 border-amber-500 border-l-amber-700 dark:bg-amber-950/60 dark:border-amber-700 dark:border-l-amber-500'
+                            : request.status === 'DISCARDED'
+                              ? 'bg-slate-100/95 border-slate-400 border-l-slate-600 dark:bg-slate-900 dark:border-slate-600 dark:border-l-slate-400'
+                              : 'bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400'
+                    }`,
                     children: [
-                      c.jsx('p', { className: 'text-xs font-medium text-gray-700 dark:text-gray-200 mb-2', children: request.description }),
-                      request.image && c.jsx('button', {
-                        onClick: () => setFullscreenImage(resolveMediaUrl(request.image)),
-                        className: 'mb-2 ui-media-frame ui-media-ticket-md',
-                        children: c.jsx('img', { src: resolveMediaUrl(request.image), className: 'w-full h-full object-cover' }),
-                      }),
-                      c.jsx('div', {
-                        className: 'flex flex-wrap gap-1.5',
-                        children: [
-                          c.jsx('button', {
-                            onClick: () =>
-                              updateMissionRequest(
-                                request.id,
-                                request.status === 'ACKNOWLEDGED'
-                                  ? 'PENDING'
-                                  : 'ACKNOWLEDGED',
-                              ),
-                            className:
-                              'w-8 h-8 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center',
-                            title: 'Enterado',
-                            children: c.jsx('span', {
-                              className: 'material-symbols-outlined text-[14px]',
-                              children: 'check',
-                            }),
+                      editingRequestId === request.id
+                        ? c.jsxs('div', {
+                            className: 'space-y-2',
+                            children: [
+                              c.jsx('textarea', {
+                                rows: 3,
+                                value: editingRequestText,
+                                onChange: (event) => setEditingRequestText(event.target.value),
+                                className:
+                                  'w-full px-2.5 py-2 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary resize-none',
+                                placeholder: 'Describe la modificación...',
+                              }),
+                              c.jsxs('div', {
+                                className: 'relative',
+                                children: [
+                                  c.jsx('button', {
+                                    type: 'button',
+                                    onClick: () =>
+                                      setEditingRequestClientPickerOpen(
+                                        (value) => !value,
+                                      ),
+                                    className:
+                                      'w-full rounded-lg border border-slate-300 bg-white/85 px-3 py-2 text-left text-[11px] font-medium text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800',
+                                    children:
+                                      getClientNameById(editingRequestClientId) ||
+                                      'Asignar cliente',
+                                  }),
+                                  editingRequestClientPickerOpen &&
+                                    c.jsxs('div', {
+                                      className:
+                                        'absolute left-0 top-11 z-30 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2',
+                                      children: [
+                                        c.jsx('input', {
+                                          type: 'text',
+                                          value: editingRequestClientSearch,
+                                          onChange: (event) =>
+                                            setEditingRequestClientSearch(
+                                              event.target.value,
+                                            ),
+                                          placeholder: 'Buscar cliente...',
+                                          className:
+                                            'w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary',
+                                        }),
+                                        c.jsxs('button', {
+                                          type: 'button',
+                                          onClick: () => {
+                                            setEditingRequestClientId('');
+                                            setEditingRequestClientPickerOpen(!1);
+                                            setEditingRequestClientSearch('');
+                                          },
+                                          className:
+                                            'mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800',
+                                          children: [
+                                            'Sin cliente',
+                                            getClientNameById(editingRequestClientId)
+                                              ? ''
+                                              : ' ✓',
+                                          ],
+                                        }),
+                                        c.jsx('div', {
+                                          className:
+                                            'mt-1 max-h-44 overflow-y-auto ios-scroll',
+                                          children:
+                                            filteredEditingRequestClients.length > 0
+                                              ? filteredEditingRequestClients.map(
+                                                  (client) =>
+                                                    c.jsx(
+                                                      'button',
+                                                      {
+                                                        type: 'button',
+                                                        onClick: () => {
+                                                          setEditingRequestClientId(
+                                                            String(client.id),
+                                                          );
+                                                          setEditingRequestClientPickerOpen(
+                                                            !1,
+                                                          );
+                                                          setEditingRequestClientSearch(
+                                                            '',
+                                                          );
+                                                        },
+                                                        className:
+                                                          'w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800',
+                                                        children: client.name,
+                                                      },
+                                                      `editing-request-client-${client.id}`,
+                                                    ),
+                                                )
+                                              : c.jsx('p', {
+                                                  className:
+                                                    'px-2.5 py-3 text-[11px] text-gray-400 text-center',
+                                                  children:
+                                                    'No hay clientes que coincidan.',
+                                                }),
+                                        }),
+                                      ],
+                                    }),
+                                ],
+                              }),
+                              editingRequestImagePreview &&
+                                c.jsxs('div', {
+                                  className:
+                                    'flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-2 text-[11px] text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100',
+                                  children: [
+                                    c.jsx('p', {
+                                      className: 'min-w-0 flex-1 truncate',
+                                      children: 'Imagen seleccionada',
+                                    }),
+                                    c.jsxs('div', {
+                                      className: 'flex items-center gap-1.5',
+                                      children: [
+                                        c.jsx('button', {
+                                          type: 'button',
+                                          onClick: () =>
+                                            setFullscreenImage({
+                                              url: editingRequestImagePreview,
+                                              copyOnClick: !0,
+                                              copyMessage: 'Imagen copiada.',
+                                            }),
+                                          className:
+                                            'rounded-md border border-sky-300 px-2 py-1 font-semibold text-sky-700 dark:border-sky-700 dark:text-sky-200',
+                                          children: 'Abrir',
+                                        }),
+                                        c.jsx('button', {
+                                          onClick: clearEditingRequestImage,
+                                          className:
+                                            'rounded-md border border-sky-300 px-2 py-1 font-semibold text-sky-700 dark:border-sky-700 dark:text-sky-200',
+                                          title: 'Quitar imagen',
+                                          children: 'Quitar',
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                              c.jsxs('div', {
+                                className: 'flex items-center gap-2',
+                                children: [
+                                  c.jsx('button', {
+                                    onClick: () => saveRequestModify(request),
+                                    disabled:
+                                      editingRequestSaving ||
+                                      !editingRequestText.trim(),
+                                    className: `text-[10px] px-3 py-1.5 rounded-full text-white font-semibold transition ${
+                                      editingRequestSaving ||
+                                      !editingRequestText.trim()
+                                        ? 'bg-amber-300 cursor-not-allowed'
+                                        : 'bg-amber-500 hover:bg-amber-600'
+                                    }`,
+                                    children: editingRequestSaving
+                                      ? 'Guardando...'
+                                      : 'Guardar',
+                                  }),
+                                  c.jsx('button', {
+                                    onClick: pickEditingRequestImage,
+                                    disabled: editingRequestSaving,
+                                    className:
+                                      'text-[10px] px-3 py-1.5 rounded-lg bg-sky-100 text-sky-700 font-semibold hover:bg-sky-200 transition disabled:opacity-60 disabled:cursor-not-allowed',
+                                    children: 'Imagen',
+                                  }),
+                                  c.jsx('button', {
+                                    onClick: cancelRequestModify,
+                                    disabled: editingRequestSaving,
+                                    className:
+                                      'text-[10px] px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition disabled:opacity-60 disabled:cursor-not-allowed',
+                                    children: 'X',
+                                  }),
+                                ],
+                              }),
+                            ],
+                          })
+                        : c.jsxs('div', {
+                            className: 'flex items-start gap-2',
+                            children: [
+                              c.jsxs('div', {
+                                className: 'min-w-0 flex-1',
+                                children: [
+                                  c.jsx('p', {
+                                    className:
+                                      'text-xs font-semibold truncate text-gray-900 dark:text-gray-100',
+                                    children: request.description,
+                                  }),
+                                  c.jsxs('div', {
+                                    className: 'mt-1 flex items-center gap-1.5',
+                                    children: [
+                                      c.jsx('span', {
+                                        className: `text-[9px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded ${
+                                          request.status === 'ACKNOWLEDGED'
+                                            ? 'bg-emerald-700 text-white dark:bg-emerald-500 dark:text-slate-900'
+                                            : request.status === 'NO_STOCK'
+                                              ? 'bg-rose-700 text-white dark:bg-rose-500 dark:text-slate-900'
+                                              : request.status === 'MODIFIED'
+                                                ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-900'
+                                                : request.status === 'DISCARDED'
+                                                  ? 'bg-slate-600 text-white dark:bg-slate-400 dark:text-slate-900'
+                                                  : 'bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-900'
+                                        }`,
+                                        children:
+                                          request.status === 'ACKNOWLEDGED'
+                                            ? 'ENTERADO'
+                                            : request.status === 'NO_STOCK'
+                                              ? 'NO HAY'
+                                              : request.status === 'MODIFIED'
+                                                ? 'MODIFICADA'
+                                                : request.status === 'DISCARDED'
+                                                  ? 'DESCARTADA'
+                                                  : 'PENDIENTE',
+                                      }),
+                                      c.jsxs('p', {
+                                        className:
+                                          'text-[10px] text-gray-700 dark:text-gray-300 truncate',
+                                        children: [
+                                          request.created_by_username ||
+                                            request.created_by_name ||
+                                            'Usuario',
+                                          ' (',
+                                          request.created_by_role || 'AV',
+                                          ') • ',
+                                          request.client_name
+                                            ? `${request.client_name} • `
+                                            : '',
+                                          getRelativeTime(
+                                            request.updated_at ||
+                                              request.created_at,
+                                          ),
+                                        ],
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              }),
+                              c.jsxs('div', {
+                                className: 'shrink-0 flex items-center gap-1',
+                                children: [
+                                  request.image &&
+                                    c.jsx('button', {
+                                      onClick: () =>
+                                        setFullscreenImage({
+                                          url: resolveMediaUrl(request.image),
+                                          copyOnClick: !0,
+                                          copyMessage: 'Imagen copiada.',
+                                        }),
+                                      className:
+                                        'w-8 h-8 rounded-md border border-slate-300 bg-white/85 text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800 flex items-center justify-center',
+                                      title: 'Abrir imagen',
+                                      children: c.jsx('span', {
+                                        className:
+                                          'material-symbols-outlined text-[14px]',
+                                        children: 'image',
+                                      }),
+                                    }),
+                                  c.jsx('button', {
+                                    onClick: () =>
+                                      updateMissionRequest(
+                                        request.id,
+                                        request.status === 'ACKNOWLEDGED'
+                                          ? 'PENDING'
+                                          : 'ACKNOWLEDGED',
+                                      ),
+                                    className:
+                                      'w-8 h-8 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center',
+                                    title: 'Enterado',
+                                    children: c.jsx('span', {
+                                      className:
+                                        'material-symbols-outlined text-[14px]',
+                                      children: 'check',
+                                    }),
+                                  }),
+                                  c.jsx('button', {
+                                    onClick: () =>
+                                      updateMissionRequest(
+                                        request.id,
+                                        request.status === 'NO_STOCK'
+                                          ? 'PENDING'
+                                          : 'NO_STOCK',
+                                      ),
+                                    className:
+                                      'w-8 h-8 rounded-md border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center',
+                                    title: 'No existencia',
+                                    children: c.jsx('span', {
+                                      className:
+                                        'material-symbols-outlined text-[14px]',
+                                      children: 'block',
+                                    }),
+                                  }),
+                                  c.jsx('button', {
+                                    onClick: () => startRequestModify(request),
+                                    className:
+                                      'w-8 h-8 rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center',
+                                    title: 'Modificar',
+                                    children: c.jsx('span', {
+                                      className:
+                                        'material-symbols-outlined text-[14px]',
+                                      children: 'edit',
+                                    }),
+                                  }),
+                                  c.jsx('button', {
+                                    onClick: () => deleteMissionRequest(request.id),
+                                    className:
+                                      'w-8 h-8 rounded-md border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center',
+                                    title: 'Eliminar',
+                                    children: c.jsx('span', {
+                                      className:
+                                        'material-symbols-outlined text-[14px]',
+                                      children: 'delete_forever',
+                                    }),
+                                  }),
+                                ],
+                              }),
+                            ],
                           }),
-                          c.jsx('button', {
-                            onClick: () =>
-                              updateMissionRequest(
-                                request.id,
-                                request.status === 'NO_STOCK'
-                                  ? 'PENDING'
-                                  : 'NO_STOCK',
-                              ),
-                            className:
-                              'w-8 h-8 rounded-md border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center',
-                            title: 'No existencia',
-                            children: c.jsx('span', {
-                              className: 'material-symbols-outlined text-[14px]',
-                              children: 'block',
-                            }),
-                          }),
-                          c.jsx('button', {
-                            onClick: () => startRequestModify(request),
-                            className:
-                              'w-8 h-8 rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center',
-                            title: 'Modificar',
-                            children: c.jsx('span', {
-                              className: 'material-symbols-outlined text-[14px]',
-                              children: 'edit',
-                            }),
-                          }),
-                          c.jsx('button', {
-                            onClick: () => deleteMissionRequest(request.id),
-                            className:
-                              'w-8 h-8 rounded-md border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center',
-                            title: 'Eliminar',
-                            children: c.jsx('span', {
-                              className: 'material-symbols-outlined text-[14px]',
-                              children: 'delete_forever',
-                            }),
-                          }),
-                        ],
-                      }),
                     ],
                   }, request.id),
                 ),
