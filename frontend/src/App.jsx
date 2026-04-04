@@ -24,8 +24,78 @@ const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
+
+const APP_SECTION_PATHS = {
+  HOME: "/home",
+  MISSIONS: "/shoppings",
+  CLIENTS: "/clients",
+  SHIPMENTS: "/shipments",
+  CALCULATOR: "/calculator",
+  PROFILE: "/profile",
+};
+
+function slugifyRouteToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getAppRouteFromPath(pathname) {
+  const parts = String(pathname || "/")
+    .split("?")[0]
+    .split("#")[0]
+    .split("/")
+    .filter(Boolean);
+  if (parts[0] === "share") {
+    return { section: "HOME", homeClientSlug: null, isPublicShare: !0 };
+  }
+  if (!parts.length) {
+    return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "home") {
+    return {
+      section: "HOME",
+      homeClientSlug:
+        parts[1] === "clients" && parts[2] ? decodeURIComponent(parts[2]) : null,
+      isPublicShare: !1,
+    };
+  }
+  if (parts[0] === "shoppings" || parts[0] === "missions") {
+    return { section: "MISSIONS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "clients") {
+    return { section: "CLIENTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "shipments") {
+    return { section: "SHIPMENTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "calculator") {
+    return { section: "CALCULATOR", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "profile") {
+    return { section: "PROFILE", homeClientSlug: null, isPublicShare: !1 };
+  }
+  return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
+}
+
+function buildAppPath(section, options = {}) {
+  if (section === "HOME" && options.homeClientSlug) {
+    return `/home/clients/${encodeURIComponent(options.homeClientSlug)}`;
+  }
+  return APP_SECTION_PATHS[section] || APP_SECTION_PATHS.HOME;
+}
 function nh() {
-  const publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
+  const initialAppRoute = V.useMemo(
+      () =>
+        typeof window !== "undefined"
+          ? getAppRouteFromPath(window.location.pathname)
+          : { section: "HOME", homeClientSlug: null, isPublicShare: !1 },
+      [],
+    ),
+    publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
     publicClientShareToken = publicShareInfo.token,
     publicShareType = publicShareInfo.type,
     publicFocusShipmentIdFromSearch = V.useMemo(
@@ -47,7 +117,7 @@ function nh() {
     [isWideViewport, setIsWideViewport] = V.useState(() =>
       typeof window !== "undefined" ? window.innerWidth >= 1024 : !1,
     ),
-    [nl, Ll] = V.useState("HOME"),
+    [nl, Ll] = V.useState(initialAppRoute.section),
     [sectionTransitionStage, setSectionTransitionStage] = V.useState("idle"),
     [Al, zl] = V.useState([]),
     [w, Dl] = V.useState(null),
@@ -279,7 +349,8 @@ function nh() {
     wsStoppedRef = V.useRef(!1),
     reviewConversationScrollRef = V.useRef(null),
     reviewConversationStateRef = V.useRef(""),
-    currentTabRef = V.useRef("HOME"),
+    currentTabRef = V.useRef(initialAppRoute.section),
+    pendingHomeClientRouteRef = V.useRef(initialAppRoute.homeClientSlug),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
     shipmentsLoadedRef = V.useRef(!1),
@@ -1022,6 +1093,40 @@ function nh() {
     currentTabRef.current = nl;
     if (nl === "HOME") setHomeNeedsAttention(!1);
   }, [nl]);
+  V.useEffect(() => {
+    if (publicShareType || typeof window === "undefined") return;
+    const o = () => {
+      const N = getAppRouteFromPath(window.location.pathname);
+      if (N.isPublicShare) return;
+      pendingHomeClientRouteRef.current = N.homeClientSlug;
+      setSectionTransitionStage("idle");
+      Ll(N.section);
+      if (N.section !== "HOME" || !N.homeClientSlug) et(null);
+    };
+    window.addEventListener("popstate", o);
+    return () => window.removeEventListener("popstate", o);
+  }, [publicShareType]);
+  V.useEffect(() => {
+    if (!C || publicShareType || nl !== "HOME") return;
+    const o = pendingHomeClientRouteRef.current;
+    if (!o) return;
+    const N = Kl.find((A) => {
+      const vl = slugifyRouteToken(A.name || A.username || A.id);
+      return vl === o || String(A.id) === String(o);
+    });
+    N && (!W || Number(W.id) !== Number(N.id)) && et(N);
+  }, [C, publicShareType, nl, Kl, W]);
+  V.useEffect(() => {
+    if (!C || publicShareType || typeof window === "undefined") return;
+    const o =
+      nl === "HOME"
+        ? W
+          ? slugifyRouteToken(W.name || W.username || W.id)
+          : pendingHomeClientRouteRef.current
+        : null;
+    const N = buildAppPath(nl, { homeClientSlug: o });
+    window.location.pathname !== N && window.history.replaceState({}, "", N);
+  }, [C, publicShareType, nl, W]);
   V.useEffect(() => {
     const o = () => setIsWideViewport(window.innerWidth >= 1024);
     o();
@@ -1889,6 +1994,12 @@ function nh() {
         et(o),
         jt("REVIEW"));
     },
+    syncBrowserRoute = (o, N = {}, A = !0) => {
+      if (typeof window === "undefined" || publicShareType) return;
+      const vl = buildAppPath(o, N);
+      if (window.location.pathname === vl) return;
+      window.history[A ? "replaceState" : "pushState"]({}, "", vl);
+    },
     openClientShoppingGallery = (o, N = null) => {
       const A =
         N && typeof N == "object"
@@ -1914,6 +2025,8 @@ function nh() {
       setSectionTransitionStage("out");
       sectionSwitchTimerRef.current = setTimeout(() => {
         Ll(o);
+        pendingHomeClientRouteRef.current = null;
+        syncBrowserRoute(o, {}, !1);
         setSectionTransitionStage("in");
         sectionSwitchTimerRef.current = null;
         sectionSettleTimerRef.current = setTimeout(() => {
