@@ -4556,21 +4556,21 @@ function nh() {
     exportMissionCsv = (o) => {
       const N = (ae) => `"${String(ae ?? "").replaceAll('"', '""')}"`,
         A = ["Cliente", "Producto", "Store Price (USD)", "Final Price (MXN)", "Status", "Tienda", "Tags"].join(","),
-        vl = (o.clients_detail || []).flatMap((El) =>
-          (El.products || [])
-            .filter((Se) => Se.shopping === o.id)
-            .map((Se) =>
-              [
-                N(El.name),
-                N(Se.name),
-                N(Se.real_price),
-                N(Se.charged_price),
-                N(Se.status),
-                N((stores.find((ea) => ea.id === Se.store) || {}).name || ""),
-                N(Se.tags || ""),
-              ].join(","),
+        vl = ((o.products || []).map((El) =>
+          [
+            N(
+              ((clientLookupById.get(Number(El && El.client)) || {}).name ||
+                El.client_name ||
+                ""),
             ),
-        ),
+            N(El.name),
+            N(El.real_price),
+            N(El.charged_price),
+            N(El.status),
+            N((stores.find((ea) => ea.id === El.store) || {}).name || ""),
+            N(El.tags || ""),
+          ].join(","),
+        )),
         El = [A, ...vl].join("\n"),
         Se = new Blob([El], { type: "text/csv;charset=utf-8;" }),
         ea = URL.createObjectURL(Se),
@@ -5122,7 +5122,10 @@ function nh() {
         console.error("Failed resending review", A);
       }
     },
-    Rt = Kl.filter((o) => String(o.status || "").toLowerCase() === "active");
+    Rt = V.useMemo(
+      () => Kl.filter((o) => String(o.status || "").toLowerCase() === "active"),
+      [Kl],
+    );
   const toNumber = (o, N = 0) => {
       const A = parseFloat(o);
       return Number.isFinite(A) ? A : N;
@@ -5872,6 +5875,10 @@ function nh() {
     productCalcCompactInputClass =
       "calc-input w-full border rounded-lg bg-white dark:bg-gray-900 dark:border-gray-700 text-fuchsia-700 dark:text-fuchsia-200 caret-fuchsia-700 dark:caret-fuchsia-200 font-semibold focus:ring-2 focus:ring-primary outline-none",
     payerUserOptions = (users || []).filter((o) => !!(o && o.id)),
+    clientLookupById = V.useMemo(
+      () => new Map((Kl || []).map((o) => [Number(o.id), o])),
+      [Kl],
+    ),
     activeMissionPayerUser = payerUserOptions.find(
       (o) => String((o && o.id) || "") === String((w && w.payer) || ""),
     ),
@@ -5941,23 +5948,39 @@ function nh() {
       },
       { ...seenReviewItemMap },
     ),
-    activeMissionProducts = w
-      ? (Kl || []).flatMap((o) =>
-        (o.products || []).filter((N) => Number(N.shopping) === Number(w.id)),
-      )
-      : [],
-    activeMissionSummaryProducts = activeMissionProducts.filter((o) => {
-      const N = String((o && o.status) || "").toUpperCase();
-      return N === "ANNOTATED";
-    }),
-    requestAssignableClients = [...(Kl || [])].sort((o, N) =>
-      String(o.name || "").localeCompare(String(N.name || ""), "es", {
-        sensitivity: "base",
-      }),
+    activeMissionProducts = V.useMemo(
+      () =>
+        w
+          ? Array.isArray(w.products) && w.products.length
+            ? w.products
+            : (Kl || []).flatMap((o) =>
+                (o.products || []).filter(
+                  (N) => Number(N.shopping) === Number(w.id),
+                ),
+              )
+          : [],
+      [w, Kl],
+    ),
+    activeMissionSummaryProducts = V.useMemo(
+      () =>
+        activeMissionProducts.filter((o) => {
+          const N = String((o && o.status) || "").toUpperCase();
+          return N === "ANNOTATED";
+        }),
+      [activeMissionProducts],
+    ),
+    requestAssignableClients = V.useMemo(
+      () =>
+        [...(Kl || [])].sort((o, N) =>
+          String(o.name || "").localeCompare(String(N.name || ""), "es", {
+            sensitivity: "base",
+          }),
+        ),
+      [Kl],
     ),
     getClientNameById = (o) => {
       if (!o) return "";
-      const N = requestAssignableClients.find((A) => Number(A.id) === Number(o));
+      const N = clientLookupById.get(Number(o)) || null;
       return (N && N.name) || "";
     },
     filteredNewRequestClients = requestAssignableClients.filter((o) =>
@@ -5966,7 +5989,10 @@ function nh() {
     filteredEditingRequestClients = requestAssignableClients.filter((o) =>
       normalizeSearchText(o.name || "").includes(normalizeSearchText(editingRequestClientSearch)),
     ),
-    clientVisibleShoppingIdSet = W ? getClientVisibleShoppingIds(W) : new Set(),
+    clientVisibleShoppingIdSet = V.useMemo(
+      () => (W ? getClientVisibleShoppingIds(W) : new Set()),
+      [W],
+    ),
     clientGalleryHasMissionScope =
       clientGalleryMissionScopeId !== null &&
       typeof clientGalleryMissionScopeId !== "undefined" &&
@@ -6086,77 +6112,150 @@ function nh() {
       if (!Number.isFinite(vl)) return o;
       return o + vl * (1 + missionTaxPercentage / 100);
     }, 0),
-    homeClientMissionProductsMap = Rt.reduce((o, N) => {
-      o[N.id] = (N.products || []).filter((A) => Number(A.shopping) === Number(w && w.id));
-      return o;
-    }, {}),
-    homeClientReviewItemStates = Rt.reduce((o, N) => {
-      o[N.id] = ((homeClientMissionProductsMap[N.id] || []).reduce((A, vl) => {
-        A[vl.id] = String(latestReviewMessageTokenByProduct[vl.id] || "");
-        return A;
-      }, {}));
-      return o;
-    }, {}),
-    derivedHomeClientReviewUnreadMap = Rt.reduce((o, N) => {
-      const A = Object.entries(homeClientReviewItemStates[N.id] || {}).reduce(
-        (vl, [El, Se]) => {
-          const ea = String(Se || ""),
-            gl = String(mergedSeenReviewItemMap[El] || "");
-          if (isReviewTokenUnread(ea, gl)) vl[El] = ea;
-          return vl;
-        },
-        {},
-      );
-      o[N.id] = A;
-      return o;
-    }, {}),
-    backendHomeClientReviewUnreadMap = Rt.reduce((o, N) => {
-      const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
-      o[N.id] = (A && (A.product_ids || []).reduce((vl, El) => {
-        vl[El] = String(A.latest_activity_at || "");
-        return vl;
-      }, {})) || {};
-      return o;
-    }, {}),
-    effectiveHomeClientReviewUnreadMap = Object.keys(homeUnreadSummary || {}).length
-      ? backendHomeClientReviewUnreadMap
-      : derivedHomeClientReviewUnreadMap,
-    homeClientLatestUnreadActivityMap = Rt.reduce((o, N) => {
-      const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
-      if (A && A.latest_activity_at) {
-        o[N.id] = new Date(A.latest_activity_at).getTime();
-        return o;
-      }
-      const vl = Object.values(
-        derivedHomeClientReviewUnreadMap[N.id] || {},
-      ).reduce((El, Se) => {
-        const ea = String(Se || "").replace(/^REVIEW:/, "");
-        const gl = new Date(ea || 0).getTime();
-        return Number.isFinite(gl) && gl > El ? gl : El;
-      }, 0);
-      o[N.id] = vl;
-      return o;
-    }, {}),
-    homeClientReviewStates = Rt.reduce((o, N) => {
-      o[N.id] = getHomeClientReviewState(
-        homeClientMissionProductsMap[N.id] || [],
-        latestMissionReviewsByProduct,
-      );
-      return o;
-    }, {}),
-    filteredHomeClientsInMission = Rt.filter((o) =>
-      String(o.name || "").toLowerCase().includes(homeClientSearch.trim().toLowerCase()),
-    ).sort((o, N) => {
-      const A = Object.keys(effectiveHomeClientReviewUnreadMap[o.id] || {}).length,
-        vl = Object.keys(effectiveHomeClientReviewUnreadMap[N.id] || {}).length;
-      if (A !== vl) return vl - A;
-      const El = homeClientLatestUnreadActivityMap[o.id] || 0,
-        Se = homeClientLatestUnreadActivityMap[N.id] || 0;
-      if (El !== Se) return Se - El;
-      return String(o.name || "").localeCompare(String(N.name || ""), "es", {
-        sensitivity: "base",
+    homeClientMissionProductsMap = V.useMemo(() => {
+      const o = {};
+      activeMissionProducts.forEach((N) => {
+        const A = Number((N && N.client) || 0);
+        if (!Number.isFinite(A) || A <= 0) return;
+        o[A] || (o[A] = []);
+        o[A].push(N);
       });
-    }),
+      Rt.forEach((N) => {
+        o[N.id] || (o[N.id] = []);
+      });
+      return o;
+    }, [activeMissionProducts, Rt]),
+    homeClientReviewItemStates = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          o[N.id] = (homeClientMissionProductsMap[N.id] || []).reduce((A, vl) => {
+            A[vl.id] = String(latestReviewMessageTokenByProduct[vl.id] || "");
+            return A;
+          }, {});
+          return o;
+        }, {}),
+      [Rt, homeClientMissionProductsMap, latestReviewMessageTokenByProduct],
+    ),
+    derivedHomeClientReviewUnreadMap = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          const A = Object.entries(homeClientReviewItemStates[N.id] || {}).reduce(
+            (vl, [El, Se]) => {
+              const ea = String(Se || ""),
+                gl = String(mergedSeenReviewItemMap[El] || "");
+              if (isReviewTokenUnread(ea, gl)) vl[El] = ea;
+              return vl;
+            },
+            {},
+          );
+          o[N.id] = A;
+          return o;
+        }, {}),
+      [Rt, homeClientReviewItemStates, mergedSeenReviewItemMap],
+    ),
+    backendHomeClientReviewUnreadMap = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
+          o[N.id] = (A && (A.product_ids || []).reduce((vl, El) => {
+            vl[El] = String(A.latest_activity_at || "");
+            return vl;
+          }, {})) || {};
+          return o;
+        }, {}),
+      [Rt, homeUnreadSummary],
+    ),
+    effectiveHomeClientReviewUnreadMap = V.useMemo(
+      () =>
+        Object.keys(homeUnreadSummary || {}).length
+          ? backendHomeClientReviewUnreadMap
+          : derivedHomeClientReviewUnreadMap,
+      [
+        homeUnreadSummary,
+        backendHomeClientReviewUnreadMap,
+        derivedHomeClientReviewUnreadMap,
+      ],
+    ),
+    homeClientLatestUnreadActivityMap = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          const A = homeUnreadSummary[String(N.id)] || homeUnreadSummary[N.id] || null;
+          if (A && A.latest_activity_at) {
+            o[N.id] = new Date(A.latest_activity_at).getTime();
+            return o;
+          }
+          const vl = Object.values(
+            derivedHomeClientReviewUnreadMap[N.id] || {},
+          ).reduce((El, Se) => {
+            const ea = String(Se || "").replace(/^REVIEW:/, "");
+            const gl = new Date(ea || 0).getTime();
+            return Number.isFinite(gl) && gl > El ? gl : El;
+          }, 0);
+          o[N.id] = vl;
+          return o;
+        }, {}),
+      [Rt, homeUnreadSummary, derivedHomeClientReviewUnreadMap],
+    ),
+    homeClientReviewStates = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          o[N.id] = getHomeClientReviewState(
+            homeClientMissionProductsMap[N.id] || [],
+            latestMissionReviewsByProduct,
+          );
+          return o;
+        }, {}),
+      [Rt, homeClientMissionProductsMap, latestMissionReviewsByProduct],
+    ),
+    clientShoppingHistoryEntriesByClientId = V.useMemo(
+      () =>
+        (Kl || []).reduce((o, N) => {
+          o[N.id] = getClientShoppingHistoryEntries(N);
+          return o;
+        }, {}),
+      [Kl, Al],
+    ),
+    homeClientMissionTotalsMap = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          o[N.id] = getHomeClientTotals(homeClientMissionProductsMap[N.id] || []);
+          return o;
+        }, {}),
+      [Rt, homeClientMissionProductsMap],
+    ),
+    homeClientGlobalBalanceMap = V.useMemo(
+      () =>
+        Rt.reduce((o, N) => {
+          o[N.id] = (clientShoppingHistoryEntriesByClientId[N.id] || []).reduce(
+            (A, vl) => A + toNumber(vl && vl.balance, 0),
+            0,
+          );
+          return o;
+        }, {}),
+      [Rt, clientShoppingHistoryEntriesByClientId],
+    ),
+    filteredHomeClientsInMission = V.useMemo(
+      () =>
+        Rt.filter((o) =>
+          String(o.name || "").toLowerCase().includes(homeClientSearch.trim().toLowerCase()),
+        ).sort((o, N) => {
+          const A = Object.keys(effectiveHomeClientReviewUnreadMap[o.id] || {}).length,
+            vl = Object.keys(effectiveHomeClientReviewUnreadMap[N.id] || {}).length;
+          if (A !== vl) return vl - A;
+          const El = homeClientLatestUnreadActivityMap[o.id] || 0,
+            Se = homeClientLatestUnreadActivityMap[N.id] || 0;
+          if (El !== Se) return Se - El;
+          return String(o.name || "").localeCompare(String(N.name || ""), "es", {
+            sensitivity: "base",
+          });
+        }),
+      [
+        Rt,
+        homeClientSearch,
+        effectiveHomeClientReviewUnreadMap,
+        homeClientLatestUnreadActivityMap,
+      ],
+    ),
     currentConversationProductState = reviewConversationEntry
       ? getUnifiedReviewState(getProductReviewState(
           reviewConversationEntry.product ||
@@ -6172,26 +6271,47 @@ function nh() {
     currentConversationStatusActions = getChatStatusActionOptions(
       currentConversationProductState,
     ),
-    selectedClientHomeProducts = W ? getHomeVisibleProducts(W) : [],
+    selectedClientHomeProducts = V.useMemo(
+      () => (W ? getHomeVisibleProducts(W) : []),
+      [W],
+    ),
     selectedClientHomeScopeId = clientGalleryHasMissionScope
       ? Number(clientGalleryMissionScopeId || 0) || null
       : null,
-    selectedClientHomeAnnotatedProducts = W
-      ? ((W.products || []).filter(
-        (o) =>
-          (selectedClientHomeScopeId
-            ? Number((o && o.shopping) || 0) === Number(selectedClientHomeScopeId)
-            : clientVisibleShoppingIdSet.has(Number((o && o.shopping) || 0))) &&
-          String((o.status || "")).toUpperCase() === "ANNOTATED",
-      ))
-      : [],
-    selectedClientHomeAnnotatedTotals = selectedClientHomeScopeId
-      ? getHomeClientMissionAnnotatedTotals((W && W.products) || [], selectedClientHomeScopeId)
-      : getHomeClientTotals(selectedClientHomeAnnotatedProducts),
-    selectedClientHomeHistoryEntries = W ? getClientShoppingHistoryEntries(W) : [],
-    selectedClientHomeGlobalBalance = selectedClientHomeHistoryEntries.reduce(
-      (o, N) => o + toNumber(N && N.balance, 0),
-      0,
+    selectedClientHomeAnnotatedProducts = V.useMemo(
+      () =>
+        W
+          ? (W.products || []).filter(
+              (o) =>
+                (selectedClientHomeScopeId
+                  ? Number((o && o.shopping) || 0) === Number(selectedClientHomeScopeId)
+                  : clientVisibleShoppingIdSet.has(Number((o && o.shopping) || 0))) &&
+                String((o.status || "")).toUpperCase() === "ANNOTATED",
+            )
+          : [],
+      [W, selectedClientHomeScopeId, clientVisibleShoppingIdSet],
+    ),
+    selectedClientHomeAnnotatedTotals = V.useMemo(
+      () =>
+        selectedClientHomeScopeId
+          ? getHomeClientMissionAnnotatedTotals(
+              (W && W.products) || [],
+              selectedClientHomeScopeId,
+            )
+          : getHomeClientTotals(selectedClientHomeAnnotatedProducts),
+      [W, selectedClientHomeScopeId, selectedClientHomeAnnotatedProducts],
+    ),
+    selectedClientHomeHistoryEntries = V.useMemo(
+      () => (W ? clientShoppingHistoryEntriesByClientId[W.id] || [] : []),
+      [W, clientShoppingHistoryEntriesByClientId],
+    ),
+    selectedClientHomeGlobalBalance = V.useMemo(
+      () =>
+        selectedClientHomeHistoryEntries.reduce(
+          (o, N) => o + toNumber(N && N.balance, 0),
+          0,
+        ),
+      [selectedClientHomeHistoryEntries],
     ),
     galleryProducts = (((W && W.products) || []).filter((o) =>
       clientGalleryHasMissionScope
@@ -8349,12 +8469,8 @@ function nh() {
                 ? "pr-0 flex-1 min-h-0 overflow-y-auto overscroll-contain ios-scroll"
                 : "pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll",
               children: filteredHomeClientsInMission.map((o) => {
-                const N = getHomeClientMissionAnnotatedTotals(o.products || [], w.id),
-                  A = getClientShoppingHistoryEntries(o),
-                  vl = A.reduce(
-                    (El, Se) => El + toNumber(Se && Se.balance, 0),
-                    0,
-                  );
+                const N = homeClientMissionTotalsMap[o.id] || { usd: 0, sale: 0 },
+                  vl = homeClientGlobalBalanceMap[o.id] || 0;
                 return c.jsxs(
                   "div",
                   {
@@ -9138,11 +9254,18 @@ function nh() {
               }).map((A) => {
                 const vl = fn === A.id,
                   El = w && w.id === A.id,
-                  Se = A.clients_detail || [],
-                  qa = Se.filter((gl) =>
-                    (gl.products || []).some((ae) => ae.shopping === A.id),
+                  Se = A.products || [],
+                  gl = Array.from(
+                    new Set(
+                      Se.map((ae) => Number(ae && ae.client)).filter(
+                        (ae) => Number.isFinite(ae) && ae > 0,
+                      ),
+                    ),
                   ),
-                  ea = (A.products || []).filter((gl) =>
+                  qa = gl
+                    .map((ae) => clientLookupById.get(ae))
+                    .filter(Boolean),
+                  ea = Se.filter((gl) =>
                     A.status === "COMPLETED" ? gl.status === "ANNOTATED" : !0,
                   );
                 return c.jsxs(

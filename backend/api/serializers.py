@@ -418,7 +418,6 @@ class MissionSerializer(serializers.ModelSerializer):
     shopper_name = serializers.CharField(source='shopper.username', read_only=True)
     payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
-    clients_detail = ClientSerializer(source='clients', many=True, read_only=True)
     products = ProductItemSerializer(many=True, read_only=True)
 
     class Meta:
