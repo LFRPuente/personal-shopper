@@ -135,6 +135,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
     onEditClient,
     onToggleClientStatus,
     onOpenClientGallery,
+    getClientPhoneDisplay,
     formatAmount,
     user,
   } = ctx;
@@ -362,8 +363,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                         children: c.jsxs('div', {
                           className: 'border-t border-border-light dark:border-border-dark px-4 py-3',
                           children: [
-                            !!phoneDisplay(client) &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📱 ', phoneDisplay(client)] }),
+                            !!getClientPhoneDisplay(client) &&
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📱 ', getClientPhoneDisplay(client)] }),
                             client.email &&
                               c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📧 ', client.email] }),
                             client.shipping_address &&
