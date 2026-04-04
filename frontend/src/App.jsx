@@ -17,6 +17,7 @@
 import { AppProvider } from './AppContext.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
+const PaymentModal = V.lazy(() => import('./components/PaymentModal.jsx'));
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
@@ -279,6 +280,10 @@ function nh() {
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    shipmentsLoadedRef = V.useRef(!1),
+    storesLoadedRef = V.useRef(!1),
+    carrierRecommendationsLoadedRef = V.useRef(!1),
+    requestsLoadedRef = V.useRef(!1),
     coreRefreshTimerRef = V.useRef(null),
     coreRefreshPendingRef = V.useRef(!1),
     coreRefreshInFlightRef = V.useRef(!1),
@@ -374,17 +379,67 @@ function nh() {
         console.error("Failed loading data", o);
       }
     };
+    loadShipmentsData = async (o = !1) => {
+      if (!C || (shipmentsLoadedRef.current && !o)) return [];
+      try {
+        const N = await I("/shipments/");
+        setShipments((A) => mergeShipmentSummariesWithHydrated(A, N || []));
+        shipmentsLoadedRef.current = !0;
+        return N || [];
+      } catch (N) {
+        console.error("Failed loading shipments", N);
+        return [];
+      }
+    };
+    loadStoreData = async (o = !1) => {
+      if (!C || (storesLoadedRef.current && !o)) return;
+      try {
+        const [N, A] = await Promise.all([
+          I("/stores/"),
+          I("/store-recommendations/"),
+        ]);
+        setStores(N || []);
+        setStoreRecommendations(A || []);
+        storesLoadedRef.current = !0;
+      } catch (N) {
+        console.error("Failed loading store data", N);
+      }
+    };
+    loadCarrierRecommendations = async (o = !1) => {
+      if (!C || (carrierRecommendationsLoadedRef.current && !o)) return;
+      try {
+        const N = await I("/shipping-carrier-recommendations/");
+        setShippingCarrierRecommendations(N || []);
+        carrierRecommendationsLoadedRef.current = !0;
+      } catch (N) {
+        console.error("Failed loading carrier recommendations", N);
+      }
+    };
+    loadRequestsData = async (o = !1) => {
+      if (!C || (requestsLoadedRef.current && !o)) return [];
+      try {
+        const N = await I("/requests/");
+        setRequests(N || []);
+        requestsLoadedRef.current = !0;
+        return N || [];
+      } catch (N) {
+        console.error("Failed loading requests", N);
+        return [];
+      }
+    };
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
         const [N, A, yl] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
-          I("/shipments/"),
+          shipmentsLoadedRef.current || currentTabRef.current === "SHIPMENTS"
+            ? I("/shipments/")
+            : Promise.resolve(null),
         ]);
         _l(N || []);
         zl(A || []);
-        setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
+        yl && setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         const El = (A || []).find(
           (Se) => Se.status === "ACTIVE" || Se.status === "PAUSED",
         );
@@ -392,18 +447,10 @@ function nh() {
       } catch {}
     },
     loadAuxiliaryData = async () => {
-      try {
-        const [o, N, A] = await Promise.all([
-          I("/stores/"),
-          I("/store-recommendations/"),
-          I("/shipping-carrier-recommendations/"),
-        ]);
-        setStores(o || []);
-        setStoreRecommendations(N || []);
-        setShippingCarrierRecommendations(A || []);
-      } catch (o) {
-        console.error("Failed loading auxiliary data", o);
-      }
+      await Promise.all([
+        loadStoreData(!0),
+        loadCarrierRecommendations(!0),
+      ]);
     },
     refreshSelectedClient = async () => {
       const o = selectedClientIdRef.current;
@@ -885,6 +932,15 @@ function nh() {
   V.useEffect(() => {
     if (!C) {
       setSeenReviewItemMap({});
+      shipmentsLoadedRef.current = !1;
+      storesLoadedRef.current = !1;
+      carrierRecommendationsLoadedRef.current = !1;
+      requestsLoadedRef.current = !1;
+      setShipments([]);
+      setStores([]);
+      setStoreRecommendations([]);
+      setShippingCarrierRecommendations([]);
+      setRequests([]);
       return;
     }
     let cancelled = !1;
@@ -897,25 +953,15 @@ function nh() {
         setLayoutMode(
           o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
         );
-        const [N, A, yl, Vs, storesList, storeRecs, carrierRecs, requestsList] = await Promise.all([
+        const [N, A, Vs] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
-          I("/shipments/"),
           I("/users/"),
-          I("/stores/"),
-          I("/store-recommendations/"),
-          I("/shipping-carrier-recommendations/"),
-          I("/requests/"),
         ]);
         if (cancelled) return;
         _l(N || []);
         zl(A || []);
-        setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         setUsers(Vs || []);
-        setStores(storesList || []);
-        setStoreRecommendations(storeRecs || []);
-        setShippingCarrierRecommendations(carrierRecs || []);
-        setRequests(requestsList || []);
         const vl = (A || []).find(
           (El) => El.status === "ACTIVE" || El.status === "PAUSED",
         );
@@ -926,6 +972,32 @@ function nh() {
     })();
     return () => { cancelled = !0; };
   }, [C]);
+  V.useEffect(() => {
+    if (!C) return;
+    if (nl === "SHIPMENTS") {
+      loadShipmentsData().catch((o) => {
+        console.error("Failed lazy loading shipments", o);
+      });
+      loadCarrierRecommendations().catch((o) => {
+        console.error("Failed lazy loading carrier recommendations", o);
+      });
+      return;
+    }
+    if (nl === "HOME" || nl === "MISSIONS") {
+      loadStoreData().catch((o) => {
+        console.error("Failed lazy loading store data", o);
+      });
+      loadRequestsData().catch((o) => {
+        console.error("Failed lazy loading requests", o);
+      });
+      return;
+    }
+    if (nl === "CLIENTS") {
+      loadStoreData().catch((o) => {
+        console.error("Failed lazy loading store data", o);
+      });
+    }
+  }, [C, nl]);
   V.useEffect(
     () => () => {
       toastTimeoutsRef.current.forEach((o) => clearTimeout(o));
