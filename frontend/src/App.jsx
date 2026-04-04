@@ -16,6 +16,7 @@
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
+const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 function nh() {
@@ -11231,6 +11232,7 @@ function nh() {
       }
     };
   // Calculator section extracted to sections/CalculatorSection.jsx
+  // Missions section extracted to sections/MissionsSection.jsx
   // Profile section extracted to sections/ProfileSection.jsx
   // Shipments section extracted to sections/ShipmentsSection.jsx
   const appContextValue = V.useMemo(() => ({
@@ -11238,6 +11240,35 @@ function nh() {
     applyCalcModeChange, applyCalcFactorChange, applyCalcDiscountChange,
     applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
     notifySuccess, notifyError, notifyInfo,
+    // MissionsSection dependencies
+    missions: Al,
+    activeMission: w,
+    missionSearch,
+    setMissionSearch,
+    expandedMissionId: fn,
+    setExpandedMissionId: rn,
+    editingMissionId: pa,
+    editingMissionName: Sa,
+    setEditingMissionId: dn,
+    setEditingMissionName: uu,
+    openMissionStart,
+    pauseMission: be,
+    resumeMission: cu,
+    endMission: on,
+    saveEditedMission: Fe,
+    deleteMission: mn,
+    openMissionClientView: Ta,
+    copyMissionBreakdown,
+    copiedMissionClients,
+    clientLookupById,
+    getMissionSearchBlob,
+    getSearchTokens,
+    getMissionStoreLabel,
+    getTagClassName,
+    parseVisualTag,
+    getProductQuickFinalPrice,
+    formatProductQuickFinalPrice,
+    exportMissionCsv,
     // ProfileSection dependencies
     user: J,
     isDesktopLayout,
@@ -11297,6 +11328,7 @@ function nh() {
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
     J, isDesktopLayout, layoutMode, defaultBreakdownTemplate,
     profileSettingsForm, profileSettingsSaving,
+    Al, w, missionSearch, fn, pa, Sa, copiedMissionClients, clientLookupById,
     shipments, shipmentSearch, shipmentDetailLoadingIds, shipmentForm,
     shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
     shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
@@ -11405,7 +11437,7 @@ function nh() {
               nl === "HOME"
                 ? ta()
                 : nl === "MISSIONS"
-                  ? pe()
+                  ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(MissionsSection, {}) })
                   : nl === "CLIENTS"
                     ? Hl()
                     : nl === "SHIPMENTS"
