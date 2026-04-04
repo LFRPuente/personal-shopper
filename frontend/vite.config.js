@@ -6,6 +6,15 @@ const backendOrigin = process.env.VITE_DEV_BACKEND_ORIGIN || 'http://localhost:8
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
+        },
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     allowedHosts: true,

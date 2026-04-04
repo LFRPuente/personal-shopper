@@ -1,308 +1,23 @@
-import * as React from 'react';
-import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-
-const V = React;
-const c = { jsx, jsxs, Fragment };
-const IS_FIREFOX =
-  typeof navigator != "undefined" &&
-  /firefox/i.test(String(navigator.userAgent || ""));
-const ENABLE_REALTIME_UPDATES = !IS_FIREFOX;
-const scheduleIdleTask = (task, timeout = 250) => {
-  if (typeof window != "undefined" && typeof window.requestIdleCallback == "function") {
-    const handle = window.requestIdleCallback(task, { timeout });
-    return () => {
-      try {
-        window.cancelIdleCallback(handle);
-      } catch {}
-    };
-  }
-  const handle = window.setTimeout(task, timeout);
-  return () => window.clearTimeout(handle);
-};
-const optimizeMediaElementProps = (type, props) => {
-  if (!props || typeof props != "object") return props;
-  if (type === "img") {
-    const nextProps = { ...props };
-    typeof nextProps.loading == "undefined" && (nextProps.loading = "lazy");
-    typeof nextProps.decoding == "undefined" && (nextProps.decoding = "async");
-    return nextProps;
-  }
-  if (type === "video") {
-    const nextProps = { ...props };
-    typeof nextProps.preload == "undefined" &&
-      (nextProps.preload = "metadata");
-    typeof nextProps.playsInline == "undefined" &&
-      (nextProps.playsInline = !0);
-    return nextProps;
-  }
-  return props;
-};
-const jsxRuntimeOriginal = c.jsx;
-const jsxsRuntimeOriginal = c.jsxs;
-(c.jsx = (type, props, key) =>
-  jsxRuntimeOriginal(type, optimizeMediaElementProps(type, props), key)),
-  (c.jsxs = (type, props, key) =>
-    jsxsRuntimeOriginal(type, optimizeMediaElementProps(type, props), key));
-typeof document != "undefined" &&
-  document.documentElement &&
-  document.documentElement.classList.toggle("browser-firefox", IS_FIREFOX);
-
-const getStoredNumber = (key, fallback) => {
-  const raw = localStorage.getItem(key);
-  const parsed = raw === null ? Number.NaN : parseFloat(raw);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const getStoredPercent = (key, fallbackPercent) => {
-  const raw = localStorage.getItem(key);
-  const parsed = raw === null ? Number.NaN : parseFloat(raw);
-  if (!Number.isFinite(parsed)) return fallbackPercent;
-  // Backward compatibility: old values were stored as decimal ratios (e.g. 0.08).
-  if (parsed > 0 && parsed <= 1) return parsed * 100;
-  return parsed;
-};
-
-const clampNumber = (value, min, max) =>
-  Math.min(max, Math.max(min, value));
-
-const HOME_DESKTOP_LAYOUT_DEFAULTS = Object.freeze({
-  left_width_percent: 62,
-  top_height: 232,
-});
-
-const normalizeHomeDesktopLayout = (layout) => {
-  const source = layout && typeof layout === "object" ? layout : {};
-  const leftWidth = parseFloat(
-    source.left_width_percent ?? HOME_DESKTOP_LAYOUT_DEFAULTS.left_width_percent,
-  );
-  const topHeight = parseFloat(
-    source.top_height ?? HOME_DESKTOP_LAYOUT_DEFAULTS.top_height,
-  );
-  return {
-    left_width_percent: Math.round(
-      clampNumber(
-        Number.isFinite(leftWidth)
-          ? leftWidth
-          : HOME_DESKTOP_LAYOUT_DEFAULTS.left_width_percent,
-        44,
-        72,
-      ),
-    ),
-    top_height: Math.round(
-      clampNumber(
-        Number.isFinite(topHeight)
-          ? topHeight
-          : HOME_DESKTOP_LAYOUT_DEFAULTS.top_height,
-        188,
-        360,
-      ),
-    ),
-  };
-};
-
-const DEFAULT_PRODUCT_FORM = {
-  name: "",
-  real_price: "",
-  charged_price: "",
-  shopping: "",
-  payer: "",
-  tags: "",
-  store: "",
-  status: "ANNOTATED",
-};
-
-const createEmptyProductForm = (overrides = {}) => ({
-  ...DEFAULT_PRODUCT_FORM,
-  ...overrides,
-});
-
-const getDraftProductFlowState = (galleryState, role) =>
-  galleryState === "REVIEW" || galleryState === "REJECTED" || galleryState === "ANNOTATED"
-    ? galleryState
-    : role === "AV"
-      ? "REVIEW"
-      : "ANNOTATED";
-
-const normalizeProductModalStatus = (statusValue) => {
-  const normalized = String(statusValue || "").trim().toUpperCase();
-  if (!normalized) return "ANNOTATED";
-  return normalized === "REVIEW" || normalized === "PS_REVIEW" || normalized === "AV_REVIEW"
-    ? "IN_REVIEW"
-    : normalized;
-};
-
-const DARK_NATIVE_SELECT_STYLE = {
-  color: "#ffffff",
-  backgroundColor: "#0f172a",
-};
-
-const NATIVE_DROPDOWN_OPTION_STYLE = {
-  color: "#0f172a",
-  backgroundColor: "#ffffff",
-};
-
-// <-------- seccion 8: API base configurable por entorno (evita URLs de tunnel vencidas)
-const ENV_API_URL = (import.meta.env.VITE_API_URL || "").trim();
-const Zs = ENV_API_URL
-  ? ENV_API_URL.replace(/\/$/, "")
-  : window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8000/api"
-    : `${window.location.origin}/api`;
-// <-------- seccion 8: URL websocket derivada del backend API
-const WS_UPDATES_URL = `${Zs.replace("https://", "wss://").replace("http://", "ws://").replace(/\/api$/, "")}/ws/updates/`;
-// <-------- seccion 8: normaliza URLs de media para localhost/tunnel/https
-const BACKEND_ORIGIN = Zs.replace(/\/api$/, "");
-const isLocalHostName = (o) => o === "localhost" || o === "127.0.0.1";
-const resolveMediaUrl = (o) => {
-  if (!o || typeof o !== "string") return o;
-  const N = o.trim();
-  if (!N) return N;
-  if (N.startsWith("blob:") || N.startsWith("data:")) return N;
-  if (N.startsWith("//")) return `${window.location.protocol}${N}`;
-  if (N.startsWith("/")) return `${BACKEND_ORIGIN}${N}`;
-  if (N.startsWith("media/")) return `${BACKEND_ORIGIN}/${N}`;
-  if (!/^https?:\/\//i.test(N)) return N;
-  try {
-    const A = new URL(N),
-      vl = new URL(BACKEND_ORIGIN);
-    if (!isLocalHostName(window.location.hostname)) {
-      if (isLocalHostName(A.hostname)) {
-        return `${BACKEND_ORIGIN}${A.pathname}${A.search}${A.hash}`;
-      }
-      if (window.location.protocol === "https:" && A.protocol === "http:") {
-        A.protocol = "https:";
-        return A.toString();
-      }
-    }
-    return N;
-  } catch {
-    return N;
-  }
-};
-const revokeBlobUrl = (o) => {
-  const N = String(o || "").trim();
-  if (!N.startsWith("blob:")) return;
-  try {
-    URL.revokeObjectURL(N);
-  } catch {}
-};
-const toFormUserId = (o) =>
-  o === null || typeof o === "undefined" || o === ""
-    ? ""
-    : String(o);
-const toFormShoppingId = (o) =>
-  o === null || typeof o === "undefined" || o === ""
-    ? ""
-    : String(o);
-const getUserOptionLabel = (o) => {
-  if (!o) return "";
-  const N = String(
-    (o && o.profile && o.profile.display_name) || "",
-  ).trim();
-  const A = String((o && o.username) || "").trim();
-  const vl = N || A;
-  const El = String((o && o.profile && o.profile.role) || "").trim();
-  return vl && El ? `${vl} (${El})` : vl || El || "Usuario";
-};
-const normalizeClientCountryCode = (o) => {
-  const N = String(o || "").replace(/[^\d]/g, "");
-  return N ? `+${N.slice(0, 4)}` : "+52";
-};
-const normalizeClientPhoneDigits = (o) =>
-  String(o || "")
-    .replace(/\D/g, "")
-    .slice(0, 10);
-const sanitizeClientCountryCodeInput = (o) => {
-  const N = String(o || "")
-    .replace(/\D/g, "")
-    .slice(0, 7);
-  return N ? `+${N}` : "+";
-};
-const sanitizeClientPhoneInput = (o) =>
-  String(o || "")
-    .replace(/\D/g, "")
-    .slice(0, 10);
-const normalizeClientShippingAddresses = (o, N = "") => {
-  const A = Array.isArray(o) ? o : [];
-  const vl = String(N || "").trim();
-  const El = vl ? new Set([vl.toLowerCase()]) : new Set();
-  return A.reduce((Se, ea) => {
-    const gl = String(ea || "").trim();
-    if (!gl) return Se;
-    const ae = gl.toLowerCase();
-    if (El.has(ae)) return Se;
-    El.add(ae);
-    Se.push(gl);
-    return Se;
-  }, []);
-};
-const getClientPhoneDisplay = (o) => {
-  const N = normalizeClientPhoneDigits(o && o.phone);
-  if (!N) return "";
-  return `${normalizeClientCountryCode(o && o.phone_country_code)} ${N}`;
-};
-const normalizeShipmentStatusValue = (o) => {
-  const N = String(o || "").trim().toUpperCase();
-  return N === "SHIPPED"
-    ? "SHIPPED"
-    : N === "DELIVERED"
-      ? "DELIVERED"
-      : N === "CANCELLED"
-        ? "CANCELLED"
-        : "PENDING";
-};
-const getShipmentStatusLabel = (o) => {
-  const N = normalizeShipmentStatusValue(o);
-  return N === "SHIPPED"
-    ? "Enviado"
-    : N === "DELIVERED"
-      ? "Entregado"
-      : N === "CANCELLED"
-        ? "Cancelado"
-        : "Pendiente";
-};
-const getShipmentTrackingUrl = (carrier, trackingNumber) => {
-  const o = String(trackingNumber || "").trim();
-  const N = String(carrier || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  if (!o || !N) return "";
-  if (N.includes("estafeta")) {
-    return `https://cs.estafeta.com/es/Tracking/searchByGet?wayBillType=0&wayBill=${encodeURIComponent(o)}`;
-  }
-  if (N.includes("dhl")) {
-    return `https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=${encodeURIComponent(o)}&submit=1`;
-  }
-  return "";
-};
-const SHIPMENT_CARRIER_OPTIONS = [
-  { value: "", label: "Sin definir" },
-  { value: "Estafeta", label: "Estafeta" },
-  { value: "DHL", label: "DHL" },
-];
-const canEditShipmentBox = (shipment) => {
-  return normalizeShipmentStatusValue(shipment && shipment.status) === "PENDING";
-};
-const getPublicShareInfoFromPath = () => {
-  const o = window.location.pathname.match(/^\/share\/(client|shipment)\/([^/]+)\/?$/i);
-  return o
-    ? { type: String(o[1] || "").toLowerCase(), token: decodeURIComponent(o[2]) }
-    : { type: "", token: "" };
-};
-const getPublicShareFocusShipmentIdFromSearch = () => {
-  try {
-    const o = new URLSearchParams(window.location.search || ""),
-      N = String(o.get("focus_shipment_id") || o.get("shipment") || "").trim();
-    if (!N) return null;
-    const A = parseInt(N, 10);
-    return Number.isFinite(A) ? A : null;
-  } catch {
-    return null;
-  }
-};
+﻿import {
+  V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
+  getStoredNumber, getStoredPercent, clampNumber,
+  HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
+  DEFAULT_PRODUCT_FORM, createEmptyProductForm, getDraftProductFlowState, normalizeProductModalStatus,
+  DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE,
+  Zs, WS_UPDATES_URL, BACKEND_ORIGIN, resolveMediaUrl, revokeBlobUrl,
+  toFormUserId, toFormShoppingId, getUserOptionLabel,
+  normalizeClientCountryCode, normalizeClientPhoneDigits,
+  sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
+  normalizeClientShippingAddresses, getClientPhoneDisplay,
+  normalizeShipmentStatusValue, getShipmentStatusLabel, getShipmentTrackingUrl,
+  SHIPMENT_CARRIER_OPTIONS, canEditShipmentBox,
+  getPublicShareInfoFromPath, getPublicShareFocusShipmentIdFromSearch,
+  MODULE_NUMBER_FORMAT, MODULE_AMOUNT_FORMAT,
+} from './utils.js';
+import { AppProvider } from './AppContext.jsx';
+const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
+const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
+const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 function nh() {
   const publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
     publicClientShareToken = publicShareInfo.token,
@@ -312,7 +27,7 @@ function nh() {
       [],
     ),
     DEFAULT_BREAKDOWN_TEMPLATE =
-      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago ðŸ’³ ðŸ¤—\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.ðŸ’•",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
@@ -394,7 +109,6 @@ function nh() {
     [calcFactor, setCalcFactor] = V.useState(() =>
       getStoredNumber("calc_factor", 1.5),
     ),
-    [calcPrice, setCalcPrice] = V.useState(""),
     [calcTaxes, setCalcTaxes] = V.useState(() =>
       getStoredPercent("calc_taxes", 8),
     ),
@@ -416,7 +130,6 @@ function nh() {
       phone: "",
     }),
     [profileSettingsSaving, setProfileSettingsSaving] = V.useState(!1),
-    [calcCopied, setCalcCopied] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
     [users, setUsers] = V.useState([]),
     [stores, setStores] = V.useState([]),
@@ -605,7 +318,7 @@ function nh() {
         throw ea;
       }
       return El;
-    },
+    };
     publicApiFetch = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       N.body instanceof FormData && delete A["Content-Type"];
@@ -657,7 +370,7 @@ function nh() {
       } catch (o) {
         console.error("Failed loading data", o);
       }
-    },
+    };
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
@@ -711,11 +424,11 @@ function nh() {
         coreRefreshInFlightRef.current = !1;
         if (coreRefreshPendingRef.current) {
           coreRefreshPendingRef.current = !1;
-          queueCoreRefresh(180);
+          queueCoreRefresh(600);
         }
       }
     },
-    queueCoreRefresh = (o = 120) => {
+    queueCoreRefresh = (o = 500) => {
       coreRefreshPendingRef.current = !0;
       coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
       coreRefreshTimerRef.current = setTimeout(() => {
@@ -742,7 +455,7 @@ function nh() {
         }
       }
     },
-    queueSelectedClientRefresh = (o = 150) => {
+    queueSelectedClientRefresh = (o = 400) => {
       selectedClientRefreshPendingRef.current = !0;
       selectedClientRefreshTimerRef.current &&
         clearTimeout(selectedClientRefreshTimerRef.current);
@@ -1167,21 +880,48 @@ function nh() {
     Al,
   ]);
   V.useEffect(() => {
-    C && Ti();
-  }, [C]);
-  V.useEffect(() => {
-    if (!C) setSeenReviewItemMap({});
-  }, [C]);
-  V.useEffect(() => {
-    if (!C) return;
-    const cancel = scheduleIdleTask(() => {
-      loadAuxiliaryData().catch((o) => {
-        console.error("Failed scheduling auxiliary data load", o);
-      });
-    }, 450);
-    return () => {
-      cancel();
-    };
+    if (!C) {
+      setSeenReviewItemMap({});
+      return;
+    }
+    let cancelled = !1;
+    (async () => {
+      try {
+        const o = await I("/auth/me/");
+        if (cancelled) return;
+        b(o);
+        o.profile.role === "BOTH" ? H("PS") : H(o.profile.role);
+        setLayoutMode(
+          o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
+        );
+        const [N, A, yl, Vs, storesList, storeRecs, carrierRecs, requestsList] = await Promise.all([
+          I("/clients/"),
+          I("/shoppings/"),
+          I("/shipments/"),
+          I("/users/"),
+          I("/stores/"),
+          I("/store-recommendations/"),
+          I("/shipping-carrier-recommendations/"),
+          I("/requests/"),
+        ]);
+        if (cancelled) return;
+        _l(N || []);
+        zl(A || []);
+        setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
+        setUsers(Vs || []);
+        setStores(storesList || []);
+        setStoreRecommendations(storeRecs || []);
+        setShippingCarrierRecommendations(carrierRecs || []);
+        setRequests(requestsList || []);
+        const vl = (A || []).find(
+          (El) => El.status === "ACTIVE" || El.status === "PAUSED",
+        );
+        Dl(vl || null);
+      } catch (o) {
+        console.error("Failed loading data", o);
+      }
+    })();
+    return () => { cancelled = !0; };
   }, [C]);
   V.useEffect(
     () => () => {
@@ -1473,21 +1213,7 @@ function nh() {
   V.useEffect(() => {
     if (!C) {
       setRequests([]);
-      return;
     }
-    let isMounted = !0;
-    const cancel = scheduleIdleTask(async () => {
-      try {
-        const o = await I("/requests/");
-        isMounted && setRequests(o || []);
-      } catch (o) {
-        console.error("Failed loading requests", o);
-      }
-    }, 600);
-    return () => {
-      isMounted = !1;
-      cancel();
-    };
   }, [C]);
   // <-------- seccion 8: carga inicial de revisiones por cliente (sin polling)
   V.useEffect(() => {
@@ -1819,7 +1545,7 @@ function nh() {
         !(await confirmAction({
           title: "Eliminar cliente",
           message:
-            "Se eliminará el cliente y todos sus productos vinculados.",
+            "Se eliminarÃ¡ el cliente y todos sus productos vinculados.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -1932,7 +1658,7 @@ function nh() {
           setCalcDiscount(toNumber(o.discount_percentage, 0)));
       } catch (vl) {
         console.error("Failed creating shopping", vl);
-        notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
+        notifyError(`No se pudo iniciar la misiÃ³n. ${vl.message || ""}`.trim());
       }
     },
     be = async () => {
@@ -1969,8 +1695,8 @@ function nh() {
     mn = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar misión",
-          message: "¿Eliminar esta misión y su historial?",
+          title: "Eliminar misiÃ³n",
+          message: "Â¿Eliminar esta misiÃ³n y su historial?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -2154,7 +1880,7 @@ function nh() {
       try {
         const N = await readClipboardImages({ multiple: o.multiple });
         if (!N.length) {
-          notifyInfo("No se encontró ninguna imagen en el portapapeles.");
+          notifyInfo("No se encontrÃ³ ninguna imagen en el portapapeles.");
           return;
         }
         dispatchImageSelection(o.onSelect, N);
@@ -2193,10 +1919,10 @@ function nh() {
         });
         await refreshCoreData();
         W && (await Qt());
-        notifySuccess("Ticket de misión cargado y vinculado.");
+        notifySuccess("Ticket de misiÃ³n cargado y vinculado.");
       } catch (vl) {
         console.error("Shopping ticket upload failed", vl);
-        notifyError("No se pudo subir el ticket de misión.");
+        notifyError("No se pudo subir el ticket de misiÃ³n.");
       } finally {
         setMissionTicketUploading(!1);
         o.target.value = "";
@@ -2471,7 +2197,7 @@ function nh() {
       if (
         !(await confirmAction({
           title: "Eliminar producto",
-          message: "¿Seguro que quieres eliminar este item?",
+          message: "Â¿Seguro que quieres eliminar este item?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -2711,16 +2437,6 @@ function nh() {
         console.error("Error linking", o);
       }
     },
-    copyCalculatorValue = async (o) => {
-      if (!Number.isFinite(o)) return;
-      try {
-        (await navigator.clipboard.writeText(o.toFixed(2)),
-          setCalcCopied(!0),
-          setTimeout(() => setCalcCopied(!1), 1200));
-      } catch (N) {
-        console.error("Failed to copy calculator result", N);
-      }
-    },
     addModalTag = () => {
       const o = newModalTag.trim();
       if (!o) return;
@@ -2935,12 +2651,12 @@ function nh() {
       commissionPercentage = "",
       itemsCount = null,
     }) => {
-      const o = new Intl.NumberFormat("es-MX"),
+      const o = MODULE_NUMBER_FORMAT,
         N =
           itemsText ||
           (items.length > 0
             ? items
-                .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
+                .map((A) => `${itemBullet} ${A.name} â€“ $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
         A = Number.isFinite(itemsCount) ? itemsCount : items.length,
@@ -3069,7 +2785,7 @@ function nh() {
       if (!o) return;
       const A = resolveBreakdownShopping(o),
         vl = paymentLocalShoppingDiscount(A || o),
-        El = new Intl.NumberFormat("es-MX"),
+        El = MODULE_NUMBER_FORMAT,
         Se = N.map((ea) => {
           const gl = ((ea && ea.products) || []).filter((oi) => {
               const Nn = String(oi.status || "").toUpperCase();
@@ -3090,7 +2806,7 @@ function nh() {
           };
         }).filter((ea) => ea.items.length > 0);
       if (Se.length === 0) {
-        notifyInfo("No hay productos anotados para copiar en esta misión.");
+        notifyInfo("No hay productos anotados para copiar en esta misiÃ³n.");
         return;
       }
       const gl = Se.reduce((ea, oi) => ea + oi.subtotal, 0),
@@ -3103,7 +2819,7 @@ function nh() {
               (Ta) =>
                 `${Ta.name}:\n` +
                 Ta.items
-                  .map((qa) => `* ${qa.name} – $${El.format(qa.finalPrice)}`)
+                  .map((qa) => `* ${qa.name} â€“ $${El.format(qa.finalPrice)}`)
                   .join("\n") +
                 `\nTOTAL CLIENTE: $${El.format(Ta.total)}`,
             )
@@ -3627,7 +3343,7 @@ function nh() {
               { value: "__new__", label: "Crear envio nuevo" },
               ...N.map((vl) => ({
                 value: String(vl.id),
-                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` • ${vl.tracking_number}` : ""}`,
+                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` â€¢ ${vl.tracking_number}` : ""}`,
               })),
             ],
           },
@@ -4737,7 +4453,7 @@ function nh() {
         await I(`/store-recommendations/${o}/`, { method: "DELETE" });
         setStoreRecommendations((A) => A.filter((vl) => Number(vl.id) !== Number(o)));
         notifySuccess(
-          `Se quitó${N ? ` ${N}` : ""} de recomendaciones.`,
+          `Se quitÃ³${N ? ` ${N}` : ""} de recomendaciones.`,
         );
       } catch (A) {
         console.error("Failed deleting store recommendation", A);
@@ -4752,20 +4468,20 @@ function nh() {
     },
     pickRequestImage = () => {
       openImageSourcePicker(handleRequestImageSelection, {
-        title: "Agregar imagen a petición",
+        title: "Agregar imagen a peticiÃ³n",
       });
     },
     pickEditingRequestImage = () => {
       if (editingRequestSaving) return;
       openImageSourcePicker(handleEditingRequestImageSelection, {
-        title: "Cambiar imagen de petición",
+        title: "Cambiar imagen de peticiÃ³n",
       });
     },
     pickAlternativeUploadImages = () => {
       openImageSourcePicker(
         (o) => setAltUploadFiles(Array.from(o.target.files || [])),
         {
-          title: "Adjuntar imágenes",
+          title: "Adjuntar imÃ¡genes",
           multiple: !0,
         },
       );
@@ -4810,7 +4526,7 @@ function nh() {
           clearNewRequestImage());
       } catch (N) {
         (console.error("Failed creating request", N),
-          notifyError(`No se pudo crear la petición. ${N.message || ""}`.trim()));
+          notifyError(`No se pudo crear la peticiÃ³n. ${N.message || ""}`.trim()));
       }
     },
     updateMissionRequest = async (o, N, A = {}) => {
@@ -4831,7 +4547,7 @@ function nh() {
       } catch (El) {
         (setRequests(vl),
           console.error("Failed updating request", El),
-          notifyError(`No se pudo actualizar la petición. ${El.message || ""}`.trim()));
+          notifyError(`No se pudo actualizar la peticiÃ³n. ${El.message || ""}`.trim()));
       }
     },
     startRequestModify = (o) => {
@@ -4873,7 +4589,7 @@ function nh() {
           cancelRequestModify());
       } catch (vl) {
         (console.error("Failed modifying request", vl),
-          notifyError(`No se pudo modificar la petición. ${vl.message || ""}`.trim()));
+          notifyError(`No se pudo modificar la peticiÃ³n. ${vl.message || ""}`.trim()));
       } finally {
         setEditingRequestSaving(!1);
       }
@@ -4881,8 +4597,8 @@ function nh() {
     deleteMissionRequest = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar petición",
-          message: "¿Eliminar esta petición? Esta acción no se puede deshacer.",
+          title: "Eliminar peticiÃ³n",
+          message: "Â¿Eliminar esta peticiÃ³n? Esta acciÃ³n no se puede deshacer.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -4895,7 +4611,7 @@ function nh() {
       } catch (A) {
         (setRequests(N),
           console.error("Failed deleting request", A),
-          notifyError(`No se pudo eliminar la petición. ${A.message || ""}`.trim()));
+          notifyError(`No se pudo eliminar la peticiÃ³n. ${A.message || ""}`.trim()));
       }
     },
     // <-------- seccion 7: utilidades de revisiones y alternativas
@@ -4939,7 +4655,7 @@ function nh() {
             type: "select",
             value: "CHECK_OTHER",
             options: [
-              { value: "CHECK_SIZE", label: "Verificar talla/tamaño" },
+              { value: "CHECK_SIZE", label: "Verificar talla/tamaÃ±o" },
               { value: "CHECK_STOCK", label: "Verificar existencia" },
               { value: "CHECK_OTHER", label: "Otro" },
             ],
@@ -5163,11 +4879,7 @@ function nh() {
       return Number.isFinite(A) ? A : N;
     },
     hasValue = (o) => o !== null && typeof o !== "undefined" && o !== "",
-    amountFormatter = new Intl.NumberFormat("es-MX", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }),
-    formatAmount = (o) => amountFormatter.format(toNumber(o, 0)),
+    formatAmount = (o) => MODULE_AMOUNT_FORMAT.format(toNumber(o, 0)),
     hasShipmentTrackingReady = (o) =>
       !!String((o && o.carrier) || "").trim() &&
       !!String((o && o.tracking_number) || "").trim(),
@@ -5917,26 +5629,17 @@ function nh() {
     activeMissionPayerLabel = activeMissionPayerUser
       ? getUserOptionLabel(activeMissionPayerUser)
       : String((w && w.payer_username) || "").trim(),
-    filteredStores = stores
-      .filter((o) =>
-        o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
-      )
-      .sort((o, N) => o.name.localeCompare(N.name)),
-    latestReviewsByProduct = (productReviews || []).reduce((o, N) => {
-      if (!N.product) return o;
-      const A = o[N.product];
-      if (!A) {
-        o[N.product] = N;
-        return o;
-      }
-      const vl = getReviewActivityTime(N),
-        El = getReviewActivityTime(A);
-      vl >= El && (o[N.product] = N);
-      return o;
-    }, {}),
-    latestMissionReviewsByProduct = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
-      (o, N) => {
-        if (!N || !N.product) return o;
+    filteredStores = V.useMemo(
+      () => stores
+        .filter((o) =>
+          o.name.toLowerCase().includes(storeSearch.trim().toLowerCase()),
+        )
+        .sort((o, N) => o.name.localeCompare(N.name)),
+      [stores, storeSearch],
+    ),
+    latestReviewsByProduct = V.useMemo(
+      () => (productReviews || []).reduce((o, N) => {
+        if (!N.product) return o;
         const A = o[N.product];
         if (!A) {
           o[N.product] = N;
@@ -5946,39 +5649,66 @@ function nh() {
           El = getReviewActivityTime(A);
         vl >= El && (o[N.product] = N);
         return o;
-      },
-      {},
+      }, {}),
+      [productReviews],
     ),
-    latestReviewMessageTokenByProduct = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
-      (o, N) => {
-        if (!N || !N.product) return o;
-        const A = getLatestReviewMessageToken(N),
-          vl = String(o[N.product] || "");
-        if (!A) return o;
-        if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
-        return o;
-      },
-      {},
+    latestMissionReviewsByProduct = V.useMemo(
+      () => [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+        (o, N) => {
+          if (!N || !N.product) return o;
+          const A = o[N.product];
+          if (!A) {
+            o[N.product] = N;
+            return o;
+          }
+          const vl = getReviewActivityTime(N),
+            El = getReviewActivityTime(A);
+          vl >= El && (o[N.product] = N);
+          return o;
+        },
+        {},
+      ),
+      [missionReviewAlerts, productReviews],
     ),
-    serverSeenReviewItemMap = [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
-      (o, N) => {
-        if (!N || !N.product) return o;
-        const A = getServerSeenReviewToken(N),
-          vl = String(o[N.product] || "");
-        if (!A) return o;
-        if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
-        return o;
-      },
-      {},
+    latestReviewMessageTokenByProduct = V.useMemo(
+      () => [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+        (o, N) => {
+          if (!N || !N.product) return o;
+          const A = getLatestReviewMessageToken(N),
+            vl = String(o[N.product] || "");
+          if (!A) return o;
+          if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
+          return o;
+        },
+        {},
+      ),
+      [missionReviewAlerts, productReviews],
     ),
-    mergedSeenReviewItemMap = Object.entries(serverSeenReviewItemMap).reduce(
-      (o, [N, A]) => {
-        const vl = String(seenReviewItemMap[N] || ""),
-          El = String(A || "");
-        o[N] = vl && !isReviewTokenUnread(vl, El) ? vl : El;
-        return o;
-      },
-      { ...seenReviewItemMap },
+    serverSeenReviewItemMap = V.useMemo(
+      () => [...(missionReviewAlerts || []), ...(productReviews || [])].reduce(
+        (o, N) => {
+          if (!N || !N.product) return o;
+          const A = getServerSeenReviewToken(N),
+            vl = String(o[N.product] || "");
+          if (!A) return o;
+          if (!vl || isReviewTokenUnread(A, vl)) o[N.product] = A;
+          return o;
+        },
+        {},
+      ),
+      [missionReviewAlerts, productReviews],
+    ),
+    mergedSeenReviewItemMap = V.useMemo(
+      () => Object.entries(serverSeenReviewItemMap).reduce(
+        (o, [N, A]) => {
+          const vl = String(seenReviewItemMap[N] || ""),
+            El = String(A || "");
+          o[N] = vl && !isReviewTokenUnread(vl, El) ? vl : El;
+          return o;
+        },
+        { ...seenReviewItemMap },
+      ),
+      [serverSeenReviewItemMap, seenReviewItemMap],
     ),
     activeMissionProducts = V.useMemo(
       () =>
@@ -6066,10 +5796,13 @@ function nh() {
       : null,
     productModalCanChooseShopping =
       !!W && productModalMode === "create" && clientGalleryAllowsShoppingChoice,
-    productModalShoppingOptions = [...Al].sort(
-      (o, N) =>
-        new Date(N && N.start_time || 0).getTime() -
-        new Date(o && o.start_time || 0).getTime(),
+    productModalShoppingOptions = V.useMemo(
+      () => [...Al].sort(
+        (o, N) =>
+          new Date(N && N.start_time || 0).getTime() -
+          new Date(o && o.start_time || 0).getTime(),
+      ),
+      [Al],
     ),
     productModalShoppingSearchTokens = getSearchTokens(productModalShoppingSearch),
     productModalFilteredShoppingOptions = productModalCanChooseShopping
@@ -6094,56 +5827,74 @@ function nh() {
       toNumber(w && w.discount_percentage, toNumber(calcDiscount, 0)),
     ),
     missionProductsCount = activeMissionSummaryProducts.length,
-    missionPurchaseCost = activeMissionSummaryProducts.reduce((o, N) => {
-      const A = toNumber(N && N.real_price, Number.NaN);
-      return Number.isFinite(A) ? o + A : o;
-    }, 0),
-    missionPurchaseCostWithDiscount = missionDiscountPercentage > 0
-      ? activeMissionSummaryProducts.reduce((o, N) => {
+    missionPurchaseCost = V.useMemo(
+      () => activeMissionSummaryProducts.reduce((o, N) => {
         const A = toNumber(N && N.real_price, Number.NaN);
-        return Number.isFinite(A)
-          ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
-          : o;
-      }, 0)
-      : 0,
-    missionTotalWithTaxes = activeMissionSummaryProducts.reduce((o, N) => {
-      const A = toNumber(N.charged_price, Number.NaN);
-      if (Number.isFinite(A)) return o + A;
-      const vl = toNumber(N.real_price, Number.NaN);
-      if (!Number.isFinite(vl)) return o;
-      return o + vl * (1 + missionTaxPercentage / 100);
-    }, 0),
-    missionTotalWithDiscount = missionDiscountPercentage > 0
-      ? activeMissionSummaryProducts.reduce(
-        (o, N) =>
-          o + getProductPaymentAmount(N, missionDiscountPercentage),
-        0,
-      )
-      : 0,
-    filteredMissionSummaryProducts = activeMissionProducts.filter((o) =>
-      missionSummaryStatusFilter === "ALL"
-        ? !0
-        : String(o.status || "").toUpperCase() === missionSummaryStatusFilter,
-    ).sort((o, N) => {
-      if (missionSummaryStatusFilter !== "ALL") return 0;
-      const A = (vl) => {
-          const El = String(vl.status || "").toUpperCase();
-          return El === "REJECTED" ? 2 : El === "IN_REVIEW" ? 1 : 0;
-        },
-        vl = A(o),
-        El = A(N);
-      if (vl !== El) return vl - El;
-      return String(o.name || "").localeCompare(String(N.name || ""), "es", {
-        sensitivity: "base",
-      });
-    }),
-    filteredMissionSummaryTotal = filteredMissionSummaryProducts.reduce((o, N) => {
-      const A = toNumber(N.charged_price, Number.NaN);
-      if (Number.isFinite(A)) return o + A;
-      const vl = toNumber(N.real_price, Number.NaN);
-      if (!Number.isFinite(vl)) return o;
-      return o + vl * (1 + missionTaxPercentage / 100);
-    }, 0),
+        return Number.isFinite(A) ? o + A : o;
+      }, 0),
+      [activeMissionSummaryProducts],
+    ),
+    missionPurchaseCostWithDiscount = V.useMemo(
+      () => missionDiscountPercentage > 0
+        ? activeMissionSummaryProducts.reduce((o, N) => {
+          const A = toNumber(N && N.real_price, Number.NaN);
+          return Number.isFinite(A)
+            ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
+            : o;
+        }, 0)
+        : 0,
+      [activeMissionSummaryProducts, missionDiscountPercentage],
+    ),
+    missionTotalWithTaxes = V.useMemo(
+      () => activeMissionSummaryProducts.reduce((o, N) => {
+        const A = toNumber(N.charged_price, Number.NaN);
+        if (Number.isFinite(A)) return o + A;
+        const vl = toNumber(N.real_price, Number.NaN);
+        if (!Number.isFinite(vl)) return o;
+        return o + vl * (1 + missionTaxPercentage / 100);
+      }, 0),
+      [activeMissionSummaryProducts, missionTaxPercentage],
+    ),
+    missionTotalWithDiscount = V.useMemo(
+      () => missionDiscountPercentage > 0
+        ? activeMissionSummaryProducts.reduce(
+          (o, N) =>
+            o + getProductPaymentAmount(N, missionDiscountPercentage),
+          0,
+        )
+        : 0,
+      [activeMissionSummaryProducts, missionDiscountPercentage],
+    ),
+    filteredMissionSummaryProducts = V.useMemo(
+      () => activeMissionProducts.filter((o) =>
+        missionSummaryStatusFilter === "ALL"
+          ? !0
+          : String(o.status || "").toUpperCase() === missionSummaryStatusFilter,
+      ).sort((o, N) => {
+        if (missionSummaryStatusFilter !== "ALL") return 0;
+        const A = (vl) => {
+            const El = String(vl.status || "").toUpperCase();
+            return El === "REJECTED" ? 2 : El === "IN_REVIEW" ? 1 : 0;
+          },
+          vl = A(o),
+          El = A(N);
+        if (vl !== El) return vl - El;
+        return String(o.name || "").localeCompare(String(N.name || ""), "es", {
+          sensitivity: "base",
+        });
+      }),
+      [activeMissionProducts, missionSummaryStatusFilter],
+    ),
+    filteredMissionSummaryTotal = V.useMemo(
+      () => filteredMissionSummaryProducts.reduce((o, N) => {
+        const A = toNumber(N.charged_price, Number.NaN);
+        if (Number.isFinite(A)) return o + A;
+        const vl = toNumber(N.real_price, Number.NaN);
+        if (!Number.isFinite(vl)) return o;
+        return o + vl * (1 + missionTaxPercentage / 100);
+      }, 0),
+      [filteredMissionSummaryProducts, missionTaxPercentage],
+    ),
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
       activeMissionProducts.forEach((N) => {
@@ -6345,26 +6096,38 @@ function nh() {
         ),
       [selectedClientHomeHistoryEntries],
     ),
-    galleryProducts = (((W && W.products) || []).filter((o) =>
-      clientGalleryHasMissionScope
-        ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
-          (clientGalleryScopeMission &&
-          clientGalleryScopeMission.status === "COMPLETED"
-            ? o.status === "ANNOTATED"
-            : !0)
-        : clientVisibleShoppingIdSet.has(Number((o && (o.shopping || o.mission)) || 0)),
-    )),
-    galleryReviewProducts = clientGalleryHasMissionScope
-      ? []
-      : galleryProducts.filter((o) => o.status === "IN_REVIEW"),
-    galleryAnnotatedProducts = galleryProducts.filter((o) =>
-      clientGalleryHasMissionScope
-        ? o.status === "ANNOTATED"
-        : o.status === "ANNOTATED" || o.status === "BOUGHT",
+    galleryProducts = V.useMemo(
+      () => ((W && W.products) || []).filter((o) =>
+        clientGalleryHasMissionScope
+          ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
+            (clientGalleryScopeMission &&
+            clientGalleryScopeMission.status === "COMPLETED"
+              ? o.status === "ANNOTATED"
+              : !0)
+          : clientVisibleShoppingIdSet.has(Number((o && (o.shopping || o.mission)) || 0)),
+      ),
+      [W, clientGalleryHasMissionScope, clientGalleryMissionScopeId, clientGalleryScopeMission, clientVisibleShoppingIdSet],
     ),
-    galleryRejectedProducts = clientGalleryHasMissionScope
-      ? []
-      : galleryProducts.filter((o) => o.status === "REJECTED"),
+    galleryReviewProducts = V.useMemo(
+      () => clientGalleryHasMissionScope
+        ? []
+        : galleryProducts.filter((o) => o.status === "IN_REVIEW"),
+      [galleryProducts, clientGalleryHasMissionScope],
+    ),
+    galleryAnnotatedProducts = V.useMemo(
+      () => galleryProducts.filter((o) =>
+        clientGalleryHasMissionScope
+          ? o.status === "ANNOTATED"
+          : o.status === "ANNOTATED" || o.status === "BOUGHT",
+      ),
+      [galleryProducts, clientGalleryHasMissionScope],
+    ),
+    galleryRejectedProducts = V.useMemo(
+      () => clientGalleryHasMissionScope
+        ? []
+        : galleryProducts.filter((o) => o.status === "REJECTED"),
+      [galleryProducts, clientGalleryHasMissionScope],
+    ),
     galleryReviewCount = galleryReviewProducts.length,
     galleryAnnotatedCount = galleryAnnotatedProducts.length,
     galleryRejectedCount = galleryRejectedProducts.length,
@@ -6374,20 +6137,23 @@ function nh() {
         : wl === "REJECTED"
             ? galleryRejectedProducts
             : galleryAnnotatedProducts,
-    sortedVisibleGalleryProducts = [...visibleGalleryProducts].sort((o, N) => {
-      const A = latestReviewsByProduct[o.id],
-        vl = latestReviewsByProduct[N.id],
-        El = A && (A.status === "PENDING" || A.status === "ALTERNATIVE_SENT")
-          ? 0
-          : 1,
-        Se = vl && (vl.status === "PENDING" || vl.status === "ALTERNATIVE_SENT")
-          ? 0
-          : 1;
-      if (El !== Se) return El - Se;
-      const ea = A ? new Date(A.updated_at || A.created_at || 0).getTime() : 0,
-        gl = vl ? new Date(vl.updated_at || vl.created_at || 0).getTime() : 0;
-      return gl - ea;
-    }),
+    sortedVisibleGalleryProducts = V.useMemo(
+      () => [...visibleGalleryProducts].sort((o, N) => {
+        const A = latestReviewsByProduct[o.id],
+          vl = latestReviewsByProduct[N.id],
+          El = A && (A.status === "PENDING" || A.status === "ALTERNATIVE_SENT")
+            ? 0
+            : 1,
+          Se = vl && (vl.status === "PENDING" || vl.status === "ALTERNATIVE_SENT")
+            ? 0
+            : 1;
+        if (El !== Se) return El - Se;
+        const ea = A ? new Date(A.updated_at || A.created_at || 0).getTime() : 0,
+          gl = vl ? new Date(vl.updated_at || vl.created_at || 0).getTime() : 0;
+        return gl - ea;
+      }),
+      [visibleGalleryProducts, latestReviewsByProduct],
+    ),
     publicFocusedShipment =
       publicClientShareData &&
       (publicClientShareData.shipments || []).find(
@@ -6398,20 +6164,23 @@ function nh() {
       (publicClientShareData.shipments || []).find(
         (o) => Number(o.id) === Number(publicExpandedShipmentId),
       ),
-    publicOrderedShipments = publicClientShareData
-      ? [...(publicClientShareData.shipments || [])].sort((o, N) => {
-          const A = String((o && o.status) || "").toUpperCase() === "PENDING" ? 0 : 1,
-            vl = String((N && N.status) || "").toUpperCase() === "PENDING" ? 0 : 1;
-          if (A !== vl) return A - vl;
-          const El = new Date(
-              (o && (o.updated_at || o.created_at)) || 0,
-            ).getTime(),
-            Se = new Date(
-              (N && (N.updated_at || N.created_at)) || 0,
-            ).getTime();
-          return Se - El;
-        })
-      : [],
+    publicOrderedShipments = V.useMemo(
+      () => publicClientShareData
+        ? [...(publicClientShareData.shipments || [])].sort((o, N) => {
+            const A = String((o && o.status) || "").toUpperCase() === "PENDING" ? 0 : 1,
+              vl = String((N && N.status) || "").toUpperCase() === "PENDING" ? 0 : 1;
+            if (A !== vl) return A - vl;
+            const El = new Date(
+                (o && (o.updated_at || o.created_at)) || 0,
+              ).getTime(),
+              Se = new Date(
+                (N && (N.updated_at || N.created_at)) || 0,
+              ).getTime();
+            return Se - El;
+          })
+        : [],
+      [publicClientShareData],
+    ),
     publicSelectedShipmentTrackingUrl = publicSelectedShipment
       ? getShipmentTrackingUrl(
           publicSelectedShipment.carrier,
@@ -7154,7 +6923,7 @@ function nh() {
                 children: [
                   publicShareType === "shipment" && publicFocusedShipment
                     ? `Enfoque en envio #${publicFocusedShipment.id}`
-                    : `${(publicClientShareData.shipments || []).length || 0} envios • ${(
+                    : `${(publicClientShareData.shipments || []).length || 0} envios â€¢ ${(
                         publicClientShareData.receipts || []
                       ).length || 0} tickets`,
                 ],
@@ -7272,7 +7041,7 @@ function nh() {
                                 publicSelectedShipment.carrier ||
                                   "Paqueteria",
                                 publicSelectedShipment.tracking_number
-                                  ? ` • ${publicSelectedShipment.tracking_number}`
+                                  ? ` â€¢ ${publicSelectedShipment.tracking_number}`
                                   : "",
                               ],
                             }),
@@ -7903,8 +7672,8 @@ function nh() {
               className: "text-text-sub text-sm mb-6",
               children: w
                 ? w.status === "PAUSED"
-                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
-                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
+                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
+                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
                 : "Inicia un shopping al entrar a la tienda para comenzar a registrar compras.",
             }),
             w
@@ -8079,7 +7848,7 @@ function nh() {
                                                         "Sin cliente",
                                                         getClientNameById(editingRequestClientId)
                                                           ? ""
-                                                          : " ✓",
+                                                          : " âœ“",
                                                       ],
                                                     }),
                                                     c.jsx("div", {
@@ -8100,7 +7869,7 @@ function nh() {
                                                                     "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                                                   children:
                                                                     String(editingRequestClientId) === String(N.id)
-                                                                      ? `${N.name} ✓`
+                                                                      ? `${N.name} âœ“`
                                                                       : N.name,
                                                                 },
                                                                 `request-edit-client-${N.id}`,
@@ -8226,8 +7995,8 @@ function nh() {
                                                     o.created_by_username || o.created_by_name || "Usuario",
                                                     " (",
                                                     o.created_by_role || "AV",
-                                                    ") • ",
-                                                    o.client_name ? `${o.client_name} • ` : "",
+                                                    ") â€¢ ",
+                                                    o.client_name ? `${o.client_name} â€¢ ` : "",
                                                     getRelativeTime(o.updated_at || o.created_at),
                                                   ],
                                                 }),
@@ -8402,7 +8171,7 @@ function nh() {
                                     "mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800",
                                   children: [
                                     "Sin cliente",
-                                    getClientNameById(newRequestClientId) ? "" : " ✓",
+                                    getClientNameById(newRequestClientId) ? "" : " âœ“",
                                   ],
                                 }),
                                 c.jsx("div", {
@@ -8423,7 +8192,7 @@ function nh() {
                                                 "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                               children:
                                                 String(newRequestClientId) === String(o.id)
-                                                  ? `${o.name} ✓`
+                                                  ? `${o.name} âœ“`
                                                   : o.name,
                                             },
                                             `request-client-${o.id}`,
@@ -8443,7 +8212,7 @@ function nh() {
                           type: "text",
                           value: newRequestText,
                           onChange: (o) => setNewRequestText(o.target.value),
-                          placeholder: "Nueva petición...",
+                          placeholder: "Nueva peticiÃ³n...",
                           className:
                             "flex-1 min-w-[120px] px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                         }),
@@ -8808,8 +8577,8 @@ function nh() {
                               o.created_by_username || "Usuario",
                               " (",
                               o.created_by_role || "AV",
-                              ") • ",
-                              o.client_name ? `${o.client_name} • ` : "",
+                              ") â€¢ ",
+                              o.client_name ? `${o.client_name} â€¢ ` : "",
                               getRelativeTime(o.updated_at || o.created_at),
                             ],
                           }),
@@ -8907,7 +8676,7 @@ function nh() {
                       type: "text",
                       value: newRequestText,
                       onChange: (o) => setNewRequestText(o.target.value),
-                      placeholder: "Nueva petición...",
+                      placeholder: "Nueva peticiÃ³n...",
                       className:
                         "flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                     }),
@@ -8959,7 +8728,7 @@ function nh() {
                         ? "text-xs text-gray-500 truncate mt-0.5"
                         : "text-[10px] text-gray-500 truncate",
                       children: w
-                        ? `${getMissionStoreLabel(w)} • ${w.status}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}`
+                        ? `${getMissionStoreLabel(w)} â€¢ ${w.status}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}`
                         : "Sin shopping activo",
                     }),
                   ],
@@ -9184,13 +8953,13 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-[11px] font-bold text-primary hover:text-primary-dark",
-                      children: "Ver ticket de misión",
+                      children: "Ver ticket de misiÃ³n",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Ticket de misión pendiente.",
+                  children: "Ticket de misiÃ³n pendiente.",
                 }),
             }),
           ],
@@ -9243,7 +9012,7 @@ function nh() {
             type: "text",
             value: missionSearch,
             onChange: (A) => setMissionSearch(A.target.value),
-            placeholder: "Buscar misión o fecha...",
+            placeholder: "Buscar misiÃ³n o fecha...",
             className: isDesktopLayout
               ? "w-full max-w-2xl px-4 py-3 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary"
               : "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
@@ -9339,7 +9108,7 @@ function nh() {
                                       c.jsx("button", {
                                         onClick: () => dn(null),
                                         className: "text-xs text-gray-500",
-                                        children: "✕",
+                                        children: "âœ•",
                                       }),
                                     ],
                                   })
@@ -9361,11 +9130,11 @@ function nh() {
                                           ).toLocaleDateString(),
                                           A.store_name &&
                                           c.jsxs(c.Fragment, {
-                                            children: [" • ", A.store_name],
+                                            children: [" â€¢ ", A.store_name],
                                           }),
-                                          " • ",
+                                          " â€¢ ",
                                           qa.length,
-                                          " clients • ",
+                                          " clients â€¢ ",
                                           ea.length,
                                           " products",
                                         ],
@@ -9460,13 +9229,13 @@ function nh() {
                                     onClick: () => setFullscreenImage(resolveMediaUrl(A.ticket_image)),
                                     className:
                                       "text-[11px] font-bold text-primary hover:text-primary-dark",
-                                    children: "Ver ticket de esta misión",
+                                    children: "Ver ticket de esta misiÃ³n",
                                   }),
                                 ],
                               })
                               : c.jsx("p", {
                                 className: "text-[11px] text-gray-500",
-                                children: "Sin ticket cargado para esta misión.",
+                                children: "Sin ticket cargado para esta misiÃ³n.",
                               }),
                           }),
                           qa.length > 0 &&
@@ -9512,7 +9281,7 @@ function nh() {
                                                 "text-[10px] text-gray-500",
                                               children: [
                                                 oi.length,
-                                                " items • ",
+                                                " items â€¢ ",
                                                 (gl.receipts || [])
                                                   .length,
                                                 " tickets",
@@ -9897,7 +9666,7 @@ function nh() {
                               className: "text-xs text-gray-500",
                               children: [
                                 totalClientItems,
-                                " items • ",
+                                " items â€¢ ",
                                 (N.receipts || []).length,
                                 " tickets",
                               ],
@@ -10086,17 +9855,17 @@ function nh() {
                         !!getClientPhoneDisplay(N) &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["📱 ", getClientPhoneDisplay(N)],
+                          children: ["ðŸ“± ", getClientPhoneDisplay(N)],
                         }),
                         N.email &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["📧 ", N.email],
+                          children: ["ðŸ“§ ", N.email],
                         }),
                         N.shipping_address &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-2",
-                          children: ["📦 ", N.shipping_address],
+                          children: ["ðŸ“¦ ", N.shipping_address],
                         }),
                         Array.isArray(N.shipping_addresses) &&
                         N.shipping_addresses.length > 0 &&
@@ -10107,7 +9876,7 @@ function nh() {
                               "p",
                               {
                                 className: "text-[10px] text-gray-500",
-                                children: ["📍 ", o],
+                                children: ["ðŸ“ ", o],
                               },
                               `client-extra-shipping-${N.id}-${A}`,
                             ),
@@ -10167,7 +9936,7 @@ function nh() {
                                                     ea.payments.length > 0 &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " • ",
+                                                        " â€¢ ",
                                                         ea.payments.length,
                                                         " pago(s)",
                                                       ],
@@ -10175,7 +9944,7 @@ function nh() {
                                                     ea.date &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " • ",
+                                                        " â€¢ ",
                                                         new Date(
                                                           ea.date,
                                                         ).toLocaleDateString(),
@@ -10256,7 +10025,7 @@ function nh() {
                                                   },
                                                   className:
                                                     "w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
-                                                  title: "Copiar desglose de esta misión",
+                                                  title: "Copiar desglose de esta misiÃ³n",
                                                   children: c.jsx("span", {
                                                     className:
                                                       "material-symbols-outlined text-[14px]",
@@ -11460,433 +11229,92 @@ function nh() {
       } finally {
         setProfileSettingsSaving(!1);
       }
-    },
-    du = () =>
-      c.jsxs("div", {
-        className: isDesktopLayout
-          ? "grid gap-6 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] items-start"
-          : "space-y-6",
-        children: [
-          c.jsxs("div", {
-            className:
-              isDesktopLayout
-                ? "bg-surface-light p-6 rounded-3xl border shadow-card text-center xl:sticky xl:top-6"
-                : "bg-surface-light p-6 rounded-2xl border shadow-card text-center",
-            children: [
-              c.jsx("div", {
-                className:
-                  "w-24 h-24 mx-auto rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-4xl mb-4 border-4 border-white shadow-sm",
-                children: String(
-                  (profileSettingsForm.display_name || "").trim() || J.username,
-                )
-                  .charAt(0)
-                  .toUpperCase(),
-              }),
-              c.jsx("h2", {
-                className: "text-2xl font-bold text-center",
-                children:
-                  String((profileSettingsForm.display_name || "").trim()) ||
-                  J.username,
-              }),
-              c.jsxs("p", {
-                className: "mt-1 text-center text-sm text-text-sub",
-                children: ["@", J.username],
-              }),
-              c.jsx("span", {
-                className:
-                  "inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-xs uppercase rounded-full",
-                children: J.profile.role,
-              }),
-              !!String((profileSettingsForm.phone || "").trim()) &&
-                c.jsxs("p", {
-                  className: "mt-4 text-sm text-text-main text-center",
-                  children: ["Tel: ", String((profileSettingsForm.phone || "").trim())],
-                }),
-            ],
-          }),
-          c.jsxs("div", {
-            className: isDesktopLayout
-              ? "bg-surface-light p-5 rounded-3xl border shadow-card space-y-4"
-              : "bg-surface-light p-4 rounded-2xl border shadow-card space-y-3",
-            children: [
-              c.jsxs("div", {
-                className: "space-y-1 pb-1 border-b border-border-light dark:border-border-dark",
-                children: [
-                  c.jsx("h3", {
-                    className: "text-base font-bold text-text-main",
-                    children: "Configuraciones",
-                  }),
-                  c.jsx("p", {
-                    className: "text-xs text-text-sub",
-                    children:
-                      "Tabla base del perfil para ir agregando ajustes por seccion.",
-                  }),
-                ],
-              }),
-              c.jsxs("div", {
-                className: "space-y-3",
-                children: [
-                  c.jsxs("div", {
-                    children: [
-                      c.jsx("h3", {
-                        className: "text-sm font-bold text-text-main",
-                        children: "Datos del perfil",
-                      }),
-                      c.jsx("p", {
-                        className: "text-xs text-text-sub mt-1",
-                        children: "Nombre visible y telefono del usuario.",
-                      }),
-                    ],
-                  }),
-                  c.jsxs("div", {
-                    className: "grid gap-3 md:grid-cols-2",
-                    children: [
-                      c.jsxs("label", {
-                        className: "block",
-                        children: [
-                          c.jsx("span", {
-                            className:
-                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Nombre",
-                          }),
-                          c.jsx("input", {
-                            type: "text",
-                            value: profileSettingsForm.display_name,
-                            onChange: (o) =>
-                              setProfileSettingsForm((N) => ({
-                                ...N,
-                                display_name: o.target.value,
-                              })),
-                            placeholder: J.username,
-                            className:
-                              "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
-                          }),
-                        ],
-                      }),
-                      c.jsxs("label", {
-                        className: "block",
-                        children: [
-                          c.jsx("span", {
-                            className:
-                              "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Telefono",
-                          }),
-                          c.jsx("input", {
-                            type: "text",
-                            value: profileSettingsForm.phone,
-                            onChange: (o) =>
-                              setProfileSettingsForm((N) => ({
-                                ...N,
-                                phone: o.target.value,
-                              })),
-                            placeholder: "5512345678",
-                            className:
-                              "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                  c.jsxs("div", {
-                    className: "flex flex-wrap items-center gap-2",
-                    children: [
-                      c.jsxs("span", {
-                        className:
-                          "inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-[11px] font-semibold text-text-sub",
-                        children: ["Usuario: @", J.username],
-                      }),
-                      c.jsx("button", {
-                        type: "button",
-                        onClick: saveProfileSettings,
-                        disabled:
-                          profileSettingsSaving ||
-                          (String((profileSettingsForm.display_name || "")).trim() ===
-                            String((J.profile && J.profile.display_name) || "").trim() &&
-                            String((profileSettingsForm.phone || "")).trim() ===
-                              String((J.profile && J.profile.phone) || "").trim()),
-                        className:
-                          `px-4 py-2 rounded-xl text-xs font-bold transition ${
-                            profileSettingsSaving ||
-                            (String((profileSettingsForm.display_name || "")).trim() ===
-                              String((J.profile && J.profile.display_name) || "").trim() &&
-                              String((profileSettingsForm.phone || "")).trim() ===
-                                String((J.profile && J.profile.phone) || "").trim())
-                              ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
-                              : "bg-primary text-white hover:bg-primary-dark"
-                          }`,
-                        children: profileSettingsSaving
-                          ? "Guardando..."
-                          : "Guardar datos",
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              c.jsxs("div", {
-                className: "space-y-2",
-                children: [
-                  c.jsxs("div", {
-                    children: [
-                      c.jsx("h3", {
-                        className: "text-sm font-bold text-text-main",
-                        children: "Vista de la app",
-                      }),
-                      c.jsx("p", {
-                        className: "text-xs text-text-sub mt-1",
-                        children:
-                          "Esta preferencia se guarda por perfil y se aplica al iniciar sesión.",
-                      }),
-                    ],
-                  }),
-                  c.jsxs("div", {
-                    className:
-                      "grid grid-cols-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
-                    children: [
-                      c.jsx("button", {
-                        type: "button",
-                        onClick: () => saveLayoutMode("MOBILE"),
-                        className:
-                          `rounded-xl px-3 py-2 text-xs font-bold transition ${layoutMode === "MOBILE" ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
-                        children: "Movil",
-                      }),
-                      c.jsx("button", {
-                        type: "button",
-                        onClick: () => saveLayoutMode("WEB"),
-                        className:
-                          `rounded-xl px-3 py-2 text-xs font-bold transition ${layoutMode === "WEB" ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
-                        children: "Web",
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              c.jsxs("div", {
-                children: [
-                  c.jsx("h3", {
-                    className: "text-sm font-bold text-text-main",
-                    children: "Configuracion de desglose",
-                  }),
-                  c.jsx("p", {
-                    className: "mt-1 text-xs text-text-sub",
-                    children:
-                      "Editor libre del texto por default. Ya no usa bloques visuales.",
-                  }),
-                ],
-              }),
-              c.jsx("p", {
-                className: "text-[11px] text-text-sub",
-                children:
-                  "Variables disponibles: {title} • {items} • {total} • {subtotal} • {discount_percentage} • {discount_amount} • {client_name} • {shopping_name}",
-              }),
-              c.jsx("textarea", {
-                value: defaultBreakdownTemplate,
-                onChange: (o) => {
-                  persistDefaultBreakdownTemplate(o.target.value);
-                },
-                rows: 10,
-                className:
-                  "w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 px-3 py-3 text-xs text-text-main dark:text-white outline-none focus:ring-2 focus:ring-primary/40 whitespace-pre-wrap",
-              }),
-              c.jsxs("div", {
-                className: "flex items-center gap-2",
-                children: [
-                  c.jsx("button", {
-                    type: "button",
-                    onClick: () =>
-                      persistDefaultBreakdownTemplate(
-                        DEFAULT_BREAKDOWN_TEMPLATE,
-                      ),
-                    className:
-                      "px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-bold",
-                    children: "Reset",
-                  }),
-                  c.jsx("p", {
-                    className: "text-[11px] text-text-sub",
-                    children:
-                      "Se guarda en este navegador y puedes editarlo manualmente.",
-                  }),
-                ],
-              }),
-              c.jsxs("div", {
-                className:
-                  "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-4",
-                children: [
-                  c.jsx("h3", {
-                    className: "text-sm font-bold text-text-main",
-                    children: "Por definir",
-                  }),
-                  c.jsx("p", {
-                    className: "mt-1 text-xs text-text-sub",
-                    children:
-                      "Espacio reservado para mas cambios dentro de esta tabla de configuraciones.",
-                  }),
-                ],
-              }),
-            ],
-          }),
-          c.jsxs("button", {
-            onClick: iu,
-            className:
-              "w-full py-4 text-red-600 bg-red-50 hover:bg-red-100 font-bold rounded-xl transition flex justify-center items-center gap-2",
-            children: [
-              c.jsx("span", {
-                className: "material-symbols-outlined",
-                children: "logout",
-              }),
-              "Logout",
-            ],
-          }),
-        ],
-      });
-  const hu = () => {
-    const o = parseFloat(calcPrice),
-      N = Number.isFinite(o),
-      A = N ? o * calcFactor * Math.max(0, 1 - calcDiscount / 100) : Number.NaN,
-      vl = N
-        ? o *
-          Math.max(0, 1 - calcDiscount / 100) *
-          (1 + calcCommission / 100) *
-          (1 + calcTaxes / 100) *
-          calcExchangeRate
-        : Number.NaN,
-      El = calcMode === "FACTOR" ? A : vl,
-      Se = new Intl.NumberFormat("es-MX", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    return (
-      <div className="space-y-4">
-        <div className="rounded-2xl p-4 border border-border-light dark:border-border-dark bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 shadow-sm">
-          <h2 className="text-lg font-bold text-text-main dark:text-white">Calculadora</h2>
-          <p className="text-xs text-text-sub dark:text-slate-300 mt-1">
-            Cambia entre Factor y Porcentaje. Toca el resultado para copiar.
-          </p>
-          <div className="mt-4 grid grid-cols-2 rounded-xl p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => applyCalcModeChange("FACTOR")}
-              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
-            >
-              Factor
-            </button>
-            <button
-              onClick={() => applyCalcModeChange("PERCENTAGE")}
-              className={`py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
-            >
-              Porcentaje
-            </button>
-          </div>
-        </div>
-
-        {calcMode === "FACTOR" ? (
-          <div className="rounded-2xl p-4 border border-amber-100 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-amber-950/30 shadow-sm space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Precio</label>
-              <input
-                type="number"
-                step="0.01"
-                value={calcPrice}
-                onChange={(e) => setCalcPrice(e.target.value)}
-                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Factor</label>
-              <input
-                type="number"
-                step="0.01"
-                value={calcFactor}
-                onChange={(e) => applyCalcFactorChange(e.target.value)}
-                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Descuento (%)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={calcDiscount}
-                onChange={(e) => applyCalcDiscountChange(e.target.value)}
-                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-amber-300"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-emerald-950/30 shadow-sm space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Monto</label>
-              <input
-                type="number"
-                step="0.01"
-                value={calcPrice}
-                onChange={(e) => setCalcPrice(e.target.value)}
-                className="calc-input mt-1 w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
-                placeholder="0.00"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Descuento (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calcDiscount}
-                  onChange={(e) => applyCalcDiscountChange(e.target.value)}
-                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Taxes (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calcTaxes}
-                  onChange={(e) => applyCalcTaxesChange(e.target.value)}
-                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Comision (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calcCommission}
-                  onChange={(e) => applyCalcCommissionChange(e.target.value)}
-                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Tipo de Cambio</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calcExchangeRate}
-                  onChange={(e) => applyCalcExchangeRateChange(e.target.value)}
-                  className="calc-input mt-1 w-full px-2 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white caret-gray-900 dark:caret-white outline-none focus:ring-2 focus:ring-emerald-300"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={() => copyCalculatorValue(El)}
-          className="w-full rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition text-left"
-        >
-          <p className="text-[10px] uppercase font-bold tracking-wide text-gray-500 dark:text-gray-400">Resultado</p>
-          <p className="text-3xl font-black mt-1 text-gray-900 dark:text-white">
-            {Number.isFinite(El) ? `$${Se.format(El)}` : "--"}
-          </p>
-          <p className={`text-xs mt-2 font-semibold transition ${calcCopied ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>
-            {calcCopied ? "Copiado ✓" : "Toca para copiar"}
-          </p>
-        </button>
-      </div>
-    );
-  };
-  return c.jsxs("div", {
+    };
+  // Calculator section extracted to sections/CalculatorSection.jsx
+  // Profile section extracted to sections/ProfileSection.jsx
+  // Shipments section extracted to sections/ShipmentsSection.jsx
+  const appContextValue = V.useMemo(() => ({
+    calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
+    applyCalcModeChange, applyCalcFactorChange, applyCalcDiscountChange,
+    applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
+    notifySuccess, notifyError, notifyInfo,
+    // ProfileSection dependencies
+    user: J,
+    isDesktopLayout,
+    layoutMode,
+    saveLayoutMode,
+    defaultBreakdownTemplate,
+    persistDefaultBreakdownTemplate,
+    profileSettingsForm,
+    setProfileSettingsForm,
+    profileSettingsSaving,
+    saveProfileSettings,
+    handleLogout: iu,
+    // ShipmentsSection dependencies
+    shipments,
+    shipmentSearch,
+    setShipmentSearch,
+    openShipmentEditor,
+    isShipmentExpanded,
+    shipmentHasHydratedDetail,
+    shipmentDetailLoadingIds,
+    shipmentForm,
+    getShipmentFormState,
+    shipmentSelectedProducts,
+    toggleExpandedShipment,
+    openShipmentEvidencePicker,
+    shipmentEvidenceUploadingId,
+    copyClientShipmentHistoryLink,
+    copiedClientShareLinks,
+    deleteShipment,
+    formatAmount,
+    getShipmentSalePriceAmount,
+    updateShipmentForm,
+    resetExpandedShipmentForm,
+    shipmentSaving,
+    saveShipmentEditor,
+    getClientShipmentAddressOptions,
+    toggleShipmentProductSelection,
+    openShipmentEvidenceMenuId,
+    setOpenShipmentEvidenceMenuId,
+    getShipmentEvidenceKind,
+    openShipmentEvidenceReplacePicker,
+    shipmentEvidenceReplacingId,
+    deleteShipmentEvidence,
+    shipmentEvidenceDeletingId,
+    setFullscreenImage,
+    openProductStatusId,
+    setOpenProductStatusId,
+    setOpenProductMenuId,
+    setOpenProductInfoId,
+    setShipmentProductPickerOpen,
+    getProductStatusChipClassName,
+    getProductStatusLabel,
+    productStatusUpdatingId,
+    setShipmentProductStatusQuick,
+    getProductPaymentAmount,
+  }), [
+    calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
+    J, isDesktopLayout, layoutMode, defaultBreakdownTemplate,
+    profileSettingsForm, profileSettingsSaving,
+    shipments, shipmentSearch, shipmentDetailLoadingIds, shipmentForm,
+    shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
+    shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
+    shipmentEvidenceDeletingId, openProductStatusId, productStatusUpdatingId,
+    Kl, Al, publicClientShareToken, C,
+  ]);
+  const lazySectionFallback = c.jsxs("div", {
+    className:
+      "rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-6 text-sm text-text-sub flex items-center gap-3",
+    children: [
+      c.jsx("span", {
+        className: "material-symbols-outlined animate-spin text-base",
+        children: "progress_activity",
+      }),
+      "Cargando seccion...",
+    ],
+  });
+  return c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
       : "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
@@ -11981,11 +11409,11 @@ function nh() {
                   : nl === "CLIENTS"
                     ? Hl()
                     : nl === "SHIPMENTS"
-                      ? xu()
+                      ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ShipmentsSection, {}) })
                       : nl === "CALCULATOR"
-                        ? hu()
+                        ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
                         : nl === "PROFILE"
-                          ? du()
+                          ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
                           : null,
           }, nl),
           c.jsx("div", {
@@ -12061,7 +11489,7 @@ function nh() {
                                       className:
                                         "absolute right-3 top-1/2 -translate-y-1/2 z-10 text-[18px] font-bold leading-none text-black/50 dark:text-white/60 hover:text-rose-600",
                                       "aria-label": `Quitar ${o.name} de recomendaciones`,
-                                      children: "×",
+                                      children: "Ã—",
                                     }),
                                     c.jsxs("button", {
                                       type: "button",
@@ -12374,19 +11802,19 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-xs font-bold text-primary hover:text-primary-dark",
-                      children: "Abrir ticket de misión",
+                      children: "Abrir ticket de misiÃ³n",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Esta misión todavía no tiene ticket cargado.",
+                  children: "Esta misiÃ³n todavÃ­a no tiene ticket cargado.",
                 }),
             }),
             filteredMissionSummaryProducts.length === 0
               ? c.jsx("p", {
                 className: "text-xs text-gray-500 text-center py-6",
-                children: "No hay productos para ese filtro en la misión activa.",
+                children: "No hay productos para ese filtro en la misiÃ³n activa.",
               })
               : c.jsx("div", {
                 className: "grid grid-cols-3 gap-1.5",
@@ -14007,9 +13435,9 @@ function nh() {
                         children: [
                           "Anotado: ",
                           galleryAnnotatedCount,
-                          " • Revision: ",
+                          " â€¢ Revision: ",
                           galleryReviewCount,
-                          " • Rechazado: ",
+                          " â€¢ Rechazado: ",
                           galleryRejectedCount,
                         ],
                       }),
@@ -14582,7 +14010,7 @@ function nh() {
                                           c.jsx("span", {
                                             className:
                                               "text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100",
-                                            children: "Ship ✓",
+                                            children: "Ship âœ“",
                                           }),
                                         ],
                                       }),
@@ -15402,7 +14830,7 @@ function nh() {
                         clientPaymentModalClient
                           ? clientPaymentModalClient.name
                           : "Cliente",
-                        " • se abona del shopping mas antiguo al mas reciente",
+                        " â€¢ se abona del shopping mas antiguo al mas reciente",
                       ],
                     }),
                   ],
@@ -15508,7 +14936,7 @@ function nh() {
                                                 o.date
                                                   ? new Date(o.date).toLocaleDateString()
                                                   : "Sin fecha",
-                                                " • ",
+                                                " â€¢ ",
                                                 Number.isFinite(o.annotatedCount)
                                                   ? o.annotatedCount
                                                   : o.items.length,
@@ -16971,7 +16399,7 @@ function nh() {
                                             "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                           children:
                                             String(shipmentForm.client) === String(o.id)
-                                              ? `${o.name} ✓`
+                                              ? `${o.name} âœ“`
                                               : o.name,
                                         },
                                         `shipment-client-option-${o.id}`,
@@ -17588,7 +17016,7 @@ function nh() {
                                       "font-semibold text-slate-700 dark:text-slate-100",
                                     children: [
                                       o.sender_username || "Usuario",
-                                      " • ",
+                                      " â€¢ ",
                                       o.sender_role || "AV",
                                     ],
                                   }),
@@ -18008,7 +17436,7 @@ function nh() {
         }),
       }),
     ],
-  });
+  })});
 }
 
 export default nh;

@@ -1,0 +1,1084 @@
+import {
+  V,
+  c,
+  SHIPMENT_CARRIER_OPTIONS,
+  canEditShipmentBox,
+  DARK_NATIVE_SELECT_STYLE,
+  NATIVE_DROPDOWN_OPTION_STYLE,
+  getShipmentStatusLabel,
+  resolveMediaUrl,
+} from '../utils.js';
+import { useApp } from '../AppContext.jsx';
+
+export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
+  'shipments',
+  'shipmentSearch',
+  'setShipmentSearch',
+  'isDesktopLayout',
+  'openShipmentEditor',
+  'isShipmentExpanded',
+  'shipmentHasHydratedDetail',
+  'shipmentDetailLoadingIds',
+  'shipmentForm',
+  'getShipmentFormState',
+  'shipmentSelectedProducts',
+  'toggleExpandedShipment',
+  'openShipmentEvidencePicker',
+  'shipmentEvidenceUploadingId',
+  'copyClientShipmentHistoryLink',
+  'copiedClientShareLinks',
+  'deleteShipment',
+  'formatAmount',
+  'getShipmentSalePriceAmount',
+  'updateShipmentForm',
+  'resetExpandedShipmentForm',
+  'shipmentSaving',
+  'saveShipmentEditor',
+  'getClientShipmentAddressOptions',
+  'toggleShipmentProductSelection',
+  'openShipmentEvidenceMenuId',
+  'setOpenShipmentEvidenceMenuId',
+  'getShipmentEvidenceKind',
+  'openShipmentEvidenceReplacePicker',
+  'shipmentEvidenceReplacingId',
+  'deleteShipmentEvidence',
+  'shipmentEvidenceDeletingId',
+  'setFullscreenImage',
+  'openProductStatusId',
+  'setOpenProductStatusId',
+  'setOpenProductMenuId',
+  'setOpenProductInfoId',
+  'setShipmentProductPickerOpen',
+  'getProductStatusChipClassName',
+  'getProductStatusLabel',
+  'productStatusUpdatingId',
+  'setShipmentProductStatusQuick',
+  'getProductPaymentAmount',
+];
+
+const DEFAULT_CONTEXT = {
+  shipments: [],
+  shipmentSearch: '',
+  setShipmentSearch: () => {},
+  isDesktopLayout: false,
+  openShipmentEditor: () => {},
+  isShipmentExpanded: () => false,
+  shipmentHasHydratedDetail: () => false,
+  shipmentDetailLoadingIds: [],
+  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', shipping_address: '', product_ids: [] },
+  getShipmentFormState: () => null,
+  shipmentSelectedProducts: [],
+  toggleExpandedShipment: () => {},
+  openShipmentEvidencePicker: () => {},
+  shipmentEvidenceUploadingId: null,
+  copyClientShipmentHistoryLink: () => {},
+  copiedClientShareLinks: [],
+  deleteShipment: () => {},
+  formatAmount: (value) => String(value ?? ''),
+  getShipmentSalePriceAmount: () => 0,
+  updateShipmentForm: () => {},
+  resetExpandedShipmentForm: () => {},
+  shipmentSaving: false,
+  saveShipmentEditor: () => {},
+  getClientShipmentAddressOptions: () => [],
+  toggleShipmentProductSelection: () => {},
+  openShipmentEvidenceMenuId: null,
+  setOpenShipmentEvidenceMenuId: () => {},
+  getShipmentEvidenceKind: () => 'IMAGE',
+  openShipmentEvidenceReplacePicker: () => {},
+  shipmentEvidenceReplacingId: null,
+  deleteShipmentEvidence: () => {},
+  shipmentEvidenceDeletingId: null,
+  setFullscreenImage: () => {},
+  openProductStatusId: null,
+  setOpenProductStatusId: () => {},
+  setOpenProductMenuId: () => {},
+  setOpenProductInfoId: () => {},
+  setShipmentProductPickerOpen: () => {},
+  getProductStatusChipClassName: () => '',
+  getProductStatusLabel: (value) => String(value || ''),
+  productStatusUpdatingId: null,
+  setShipmentProductStatusQuick: () => {},
+  getProductPaymentAmount: () => Number.NaN,
+};
+
+function ShipmentProductsGrid({
+  shipment,
+  canEditBox,
+  selectedProducts,
+  formatAmount,
+  resolveMediaUrl: resolveMedia,
+  getProductPaymentAmount,
+  openProductStatusId,
+  setOpenProductStatusId,
+  setOpenProductMenuId,
+  setOpenProductInfoId,
+  setShipmentProductPickerOpen,
+  getProductStatusChipClassName,
+  getProductStatusLabel,
+  productStatusUpdatingId,
+  setShipmentProductStatusQuick,
+  setFullscreenImage,
+  toggleShipmentProductSelection,
+}) {
+  return c.jsxs('div', {
+    className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
+    children: [
+      c.jsxs('div', {
+        className: 'flex items-center justify-between gap-2',
+        children: [
+          c.jsxs('p', {
+            className:
+              'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
+            children: ['Productos (', selectedProducts.length || 0, ')'],
+          }),
+          canEditBox &&
+            c.jsxs('button', {
+              type: 'button',
+              onClick: () => setShipmentProductPickerOpen(true),
+              className:
+                'inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 dark:text-sky-300',
+              children: [
+                c.jsx('span', {
+                  className: 'material-symbols-outlined text-[13px]',
+                  children: 'photo_library',
+                }),
+                'Galeria',
+              ],
+            }),
+        ],
+      }),
+      selectedProducts.length > 0
+        ? c.jsx('div', {
+            className: 'mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2',
+            children: selectedProducts.map((product) => {
+              const productPrice = getProductPaymentAmount(product);
+              const productStatusValue = String(
+                (product && product.status) || 'ANNOTATED',
+              ).toUpperCase();
+              const shipmentDisplayStatusValue =
+                productStatusValue === 'BOUGHT' ? 'ANNOTATED' : productStatusValue;
+              const shipmentProductStatusActions = [
+                { value: 'ANNOTATED', label: 'Anotado', icon: 'edit_note' },
+                { value: 'SHIPPED', label: 'Enviado', icon: 'local_shipping' },
+              ];
+
+              return c.jsx(
+                'div',
+                {
+                  className:
+                    'relative overflow-visible rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80 ui-media-card',
+                  children: c.jsxs('div', {
+                    className: 'relative text-left w-full',
+                    children: [
+                      c.jsxs('div', {
+                        className: `absolute top-2 left-2 ${openProductStatusId === product.id ? 'z-50' : 'z-20'}`,
+                        'data-product-status': '1',
+                        children: [
+                          c.jsx('button', {
+                            type: 'button',
+                            onClick: (event) => {
+                              event.stopPropagation();
+                              setOpenProductMenuId(null);
+                              setOpenProductInfoId(null);
+                              setOpenProductStatusId((currentId) =>
+                                currentId === product.id ? null : product.id,
+                              );
+                            },
+                            className: `w-6 h-6 rounded-full border shadow-sm backdrop-blur-[2px] flex items-center justify-center ${getProductStatusChipClassName(shipmentDisplayStatusValue)} ${productStatusUpdatingId === product.id ? 'opacity-70 cursor-wait' : ''}`,
+                            title: `Cambiar status (${getProductStatusLabel(shipmentDisplayStatusValue)})`,
+                            children: c.jsx('span', {
+                              className: `material-symbols-outlined text-[12px] ${productStatusUpdatingId === product.id ? 'animate-spin' : ''}`,
+                              children:
+                                productStatusUpdatingId === product.id
+                                  ? 'progress_activity'
+                                  : shipmentDisplayStatusValue === 'SHIPPED'
+                                    ? 'local_shipping'
+                                    : 'edit_note',
+                            }),
+                          }),
+                          openProductStatusId === product.id &&
+                            c.jsxs('div', {
+                              className:
+                                'absolute left-0 top-8 z-40 min-w-[118px] rounded-xl border border-slate-200/90 bg-white/96 p-1 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/96',
+                              children: [
+                                c.jsx('div', {
+                                  className:
+                                    'px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400',
+                                  children: 'Cambiar status',
+                                }),
+                                shipmentProductStatusActions.map((action) =>
+                                  c.jsxs(
+                                    'button',
+                                    {
+                                      type: 'button',
+                                      onClick: (event) => {
+                                        event.stopPropagation();
+                                        setOpenProductStatusId(null);
+                                        setShipmentProductStatusQuick(
+                                          product.id,
+                                          action.value,
+                                        );
+                                      },
+                                      disabled:
+                                        productStatusUpdatingId === product.id,
+                                      className:
+                                        'w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[11px] text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80 disabled:opacity-60 disabled:cursor-wait',
+                                      children: [
+                                        c.jsx('span', { children: action.label }),
+                                        c.jsx('span', {
+                                          className:
+                                            'material-symbols-outlined text-[13px]',
+                                          children: action.icon,
+                                        }),
+                                      ],
+                                    },
+                                    `shipment-status-${product.id}-${action.value}`,
+                                  ),
+                                ),
+                              ],
+                            }),
+                        ],
+                      }),
+                      product.image
+                        ? c.jsx('img', {
+                            src: resolveMedia(product.image),
+                            className:
+                              'w-full aspect-[4/5] object-cover cursor-zoom-in rounded-t-xl',
+                            onClick: (event) => {
+                              event.stopPropagation();
+                              setFullscreenImage({
+                                url: resolveMedia(product.image),
+                                copyOnClick: true,
+                                copyMessage: 'Imagen copiada.',
+                              });
+                            },
+                            title: 'Abrir imagen',
+                          })
+                        : c.jsx('div', {
+                            className:
+                              'w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 rounded-t-xl',
+                            children: c.jsx('span', {
+                              className: 'material-symbols-outlined text-[18px]',
+                              children: 'image',
+                            }),
+                          }),
+                      Number.isFinite(productPrice) &&
+                        c.jsx('div', {
+                          className:
+                            'absolute inset-x-0 bottom-2 z-20 flex justify-center pointer-events-none',
+                          children: c.jsxs('span', {
+                            className:
+                              'inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md',
+                            children: ['$', formatAmount(productPrice)],
+                          }),
+                        }),
+                      c.jsx('div', {
+                        className:
+                          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-2 pb-8',
+                        children: [
+                          c.jsx('p', {
+                            className: 'text-[10px] font-bold text-white truncate',
+                            children: product.name,
+                          }),
+                          c.jsxs('div', {
+                            className: 'mt-1 flex flex-wrap items-center gap-1',
+                            children: [
+                              c.jsx('span', {
+                                className:
+                                  'inline-flex max-w-full truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm',
+                                children:
+                                  product.shopping_name ||
+                                  product.mission_name ||
+                                  product.store_name ||
+                                  'Sin shopping',
+                              }),
+                              (product.shopping_date || product.mission_date) &&
+                                c.jsx('span', {
+                                  className:
+                                    'inline-flex shrink-0 rounded-full bg-white/14 px-1.5 py-0.5 text-[9px] font-semibold text-white/80 backdrop-blur-sm',
+                                  children: new Date(
+                                    product.shopping_date || product.mission_date,
+                                  ).toLocaleDateString(),
+                                }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      canEditBox &&
+                        c.jsx('button', {
+                          type: 'button',
+                          onClick: (event) => {
+                            event.stopPropagation();
+                            toggleShipmentProductSelection(product);
+                          },
+                          className:
+                            'absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/70',
+                          children: c.jsx('span', {
+                            className: 'material-symbols-outlined text-[14px]',
+                            children: 'close',
+                          }),
+                        }),
+                    ],
+                  }),
+                },
+                `shipment-inline-product-${shipment.id}-${product.id}`,
+              );
+            }),
+          })
+        : c.jsx('p', {
+            className: 'mt-1 text-xs text-sky-700/80 dark:text-sky-300/80',
+            children: canEditBox
+              ? 'Abre la galeria para elegir productos.'
+              : 'Sin productos asignados.',
+          }),
+    ],
+  });
+}
+
+function ShipmentEvidenceGrid({
+  shipment,
+  openShipmentEvidencePicker,
+  shipmentEvidenceUploadingId,
+  openShipmentEvidenceMenuId,
+  setOpenShipmentEvidenceMenuId,
+  getShipmentEvidenceKind,
+  openShipmentEvidenceReplacePicker,
+  shipmentEvidenceReplacingId,
+  deleteShipmentEvidence,
+  shipmentEvidenceDeletingId,
+  setFullscreenImage,
+}) {
+  return c.jsxs('div', {
+    className: 'rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-1.5',
+    children: [
+      c.jsxs('div', {
+        className: 'flex items-center justify-between gap-2',
+        children: [
+          c.jsx('p', {
+            className:
+              'text-[10px] uppercase font-bold text-violet-700 dark:text-violet-300',
+            children: 'Evidencia',
+          }),
+          c.jsxs('button', {
+            type: 'button',
+            onClick: () => openShipmentEvidencePicker(shipment),
+            disabled: shipmentEvidenceUploadingId === shipment.id,
+            className:
+              'inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 dark:text-violet-300 disabled:opacity-60',
+            children: [
+              c.jsx('span', {
+                className: `material-symbols-outlined text-[13px] ${shipmentEvidenceUploadingId === shipment.id ? 'animate-spin' : ''}`,
+                children:
+                  shipmentEvidenceUploadingId === shipment.id
+                    ? 'progress_activity'
+                    : 'add',
+              }),
+              'Agregar',
+            ],
+          }),
+        ],
+      }),
+      (shipment.evidence || []).length > 0
+        ? c.jsx('div', {
+            className: 'mt-2 grid grid-cols-3 sm:grid-cols-4 gap-1.5',
+            children: (shipment.evidence || []).map((evidenceItem) => {
+              const evidenceKind = getShipmentEvidenceKind(evidenceItem);
+              return c.jsxs(
+                'div',
+                {
+                  className:
+                    'relative overflow-visible rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80',
+                  children: [
+                    c.jsxs('div', {
+                      className: 'absolute top-1.5 right-1.5 z-20',
+                      'data-shipment-evidence-menu': '1',
+                      children: [
+                        c.jsx('button', {
+                          type: 'button',
+                          onClick: (event) => {
+                            event.stopPropagation();
+                            setOpenShipmentEvidenceMenuId((currentId) =>
+                              currentId === evidenceItem.id ? null : evidenceItem.id,
+                            );
+                          },
+                          className:
+                            'w-5 h-5 rounded-full bg-white/38 text-gray-700 hover:bg-white/56 border border-white/35 shadow-sm backdrop-blur-[2px] flex items-center justify-center',
+                          title: 'Opciones de evidencia',
+                          children: c.jsx('span', {
+                            className: 'material-symbols-outlined text-[12px]',
+                            children: 'more_vert',
+                          }),
+                        }),
+                        openShipmentEvidenceMenuId === evidenceItem.id &&
+                          c.jsxs('div', {
+                            className:
+                              'absolute right-0 top-7 z-30 w-36 rounded-xl border border-slate-200 bg-white shadow-lg p-1 dark:border-slate-700 dark:bg-slate-900',
+                            children: [
+                              c.jsxs('button', {
+                                type: 'button',
+                                onClick: (event) => {
+                                  event.stopPropagation();
+                                  openShipmentEvidenceReplacePicker(
+                                    shipment,
+                                    evidenceItem,
+                                  );
+                                },
+                                disabled:
+                                  shipmentEvidenceReplacingId === evidenceItem.id,
+                                className: `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-blue-700 dark:text-blue-200 ${shipmentEvidenceReplacingId === evidenceItem.id ? 'opacity-60 cursor-wait bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-blue-50 dark:hover:bg-blue-950/30'}`,
+                                children: [
+                                  c.jsx('span', {
+                                    className: `material-symbols-outlined text-[14px] ${shipmentEvidenceReplacingId === evidenceItem.id ? 'animate-spin' : ''}`,
+                                    children:
+                                      shipmentEvidenceReplacingId === evidenceItem.id
+                                        ? 'progress_activity'
+                                        : 'edit',
+                                  }),
+                                  shipmentEvidenceReplacingId === evidenceItem.id
+                                    ? 'Cambiando'
+                                    : 'Cambiar',
+                                ],
+                              }),
+                              c.jsxs('button', {
+                                type: 'button',
+                                onClick: (event) => {
+                                  event.stopPropagation();
+                                  deleteShipmentEvidence(shipment, evidenceItem.id);
+                                },
+                                disabled:
+                                  shipmentEvidenceDeletingId === evidenceItem.id,
+                                className: `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-red-700 dark:text-red-300 ${shipmentEvidenceDeletingId === evidenceItem.id ? 'opacity-60 cursor-wait bg-red-50 dark:bg-red-950/30' : 'hover:bg-red-50 dark:hover:bg-red-950/30'}`,
+                                children: [
+                                  c.jsx('span', {
+                                    className: `material-symbols-outlined text-[14px] ${shipmentEvidenceDeletingId === evidenceItem.id ? 'animate-spin' : ''}`,
+                                    children:
+                                      shipmentEvidenceDeletingId === evidenceItem.id
+                                        ? 'progress_activity'
+                                        : 'delete',
+                                  }),
+                                  shipmentEvidenceDeletingId === evidenceItem.id
+                                    ? 'Eliminando'
+                                    : 'Eliminar',
+                                ],
+                              }),
+                            ],
+                          }),
+                      ],
+                    }),
+                    evidenceKind === 'VIDEO'
+                      ? c.jsx('video', {
+                          src: resolveMediaUrl(evidenceItem.file),
+                          controls: true,
+                          preload: 'metadata',
+                          className: 'w-full aspect-square bg-black object-cover',
+                        })
+                      : c.jsx('img', {
+                          src: resolveMediaUrl(evidenceItem.file),
+                          onClick: () =>
+                            setFullscreenImage({
+                              url: resolveMediaUrl(evidenceItem.file),
+                              copyOnClick: true,
+                              copyMessage: 'Evidencia copiada.',
+                            }),
+                          className: 'w-full aspect-square object-cover cursor-zoom-in',
+                        }),
+                    c.jsxs('div', {
+                      className:
+                        'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-1.5 py-1 flex items-end justify-between gap-1',
+                      children: [
+                        c.jsx('span', {
+                          className: 'text-[9px] font-bold uppercase text-white/90',
+                          children: evidenceKind === 'VIDEO' ? 'Video' : 'Imagen',
+                        }),
+                        c.jsx('span', { className: 'inline-flex h-5 w-5 shrink-0' }),
+                      ],
+                    }),
+                  ],
+                },
+                `shipment-evidence-${shipment.id}-${evidenceItem.id}`,
+              );
+            }),
+          })
+        : c.jsx('p', {
+            className: 'mt-1 text-xs text-violet-700/80 dark:text-violet-300/80',
+            children: 'Sin evidencia cargada.',
+          }),
+    ],
+  });
+}
+
+function ShipmentExpandedPanel(props) {
+  const {
+    shipment,
+    hasHydratedDetail,
+    isLoadingDetail,
+    formState,
+    canEditBox,
+    selectedProducts,
+    updateShipmentForm,
+    getClientShipmentAddressOptions,
+    resetExpandedShipmentForm,
+    shipmentSaving,
+    saveShipmentEditor,
+  } = props;
+
+  if (!hasHydratedDetail) {
+    return c.jsxs('div', {
+      className: 'space-y-2.5 pt-2 pb-1 text-xs text-text-sub',
+      children: [
+        c.jsxs('div', {
+          className:
+            'rounded-xl border border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-900/40 px-3 py-3 flex items-center gap-2',
+          children: [
+            c.jsx('span', {
+              className: `material-symbols-outlined text-[16px] ${isLoadingDetail ? 'animate-spin' : ''}`,
+              children: isLoadingDetail ? 'progress_activity' : 'hourglass_top',
+            }),
+            c.jsx('span', {
+              children: isLoadingDetail
+                ? 'Cargando detalle del envio...'
+                : 'Preparando detalle del envio...',
+            }),
+          ],
+        }),
+      ],
+    });
+  }
+
+  return c.jsxs('div', {
+    className: 'space-y-2.5 pt-0.5',
+    children: [
+      c.jsxs('div', {
+        className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
+        children: [
+          c.jsxs('label', {
+            className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className: 'text-[10px] uppercase font-bold text-text-sub',
+                children: 'Paqueteria',
+              }),
+              c.jsx('select', {
+                value: formState.carrier,
+                onChange: (event) =>
+                  updateShipmentForm('carrier', event.target.value),
+                className:
+                  'mt-1 w-full bg-transparent text-xs font-semibold outline-none',
+                children: SHIPMENT_CARRIER_OPTIONS.map((option) =>
+                  c.jsx(
+                    'option',
+                    { value: option.value, children: option.label },
+                    `shipment-inline-carrier-${option.value || 'empty'}`,
+                  ),
+                ),
+              }),
+            ],
+          }),
+          c.jsxs('label', {
+            className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className: 'text-[10px] uppercase font-bold text-text-sub',
+                children: 'Guia',
+              }),
+              c.jsx('input', {
+                type: 'text',
+                value: formState.tracking_number,
+                onChange: (event) =>
+                  updateShipmentForm('tracking_number', event.target.value),
+                placeholder: 'Numero de rastreo',
+                className:
+                  'mt-1 w-full bg-transparent text-xs font-semibold outline-none',
+              }),
+            ],
+          }),
+        ],
+      }),
+      c.jsxs('div', {
+        className: 'grid grid-cols-1 sm:grid-cols-4 gap-2',
+        children: [
+          c.jsxs('label', {
+            className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className: 'text-[10px] uppercase font-bold text-text-sub',
+                children: 'Status',
+              }),
+              c.jsx('select', {
+                value: formState.status,
+                onChange: (event) =>
+                  updateShipmentForm('status', event.target.value),
+                style: DARK_NATIVE_SELECT_STYLE,
+                className:
+                  'mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-primary/40',
+                children: [
+                  c.jsx(
+                    'option',
+                    {
+                      value: 'PENDING',
+                      style: NATIVE_DROPDOWN_OPTION_STYLE,
+                      children: 'Pendiente',
+                    },
+                    'shipment-inline-status-pending',
+                  ),
+                  c.jsx(
+                    'option',
+                    {
+                      value: 'SHIPPED',
+                      style: NATIVE_DROPDOWN_OPTION_STYLE,
+                      children: 'Enviado',
+                    },
+                    'shipment-inline-status-shipped',
+                  ),
+                  c.jsx(
+                    'option',
+                    {
+                      value: 'DELIVERED',
+                      style: NATIVE_DROPDOWN_OPTION_STYLE,
+                      children: 'Entregado',
+                    },
+                    'shipment-inline-status-delivered',
+                  ),
+                  c.jsx(
+                    'option',
+                    {
+                      value: 'CANCELLED',
+                      style: NATIVE_DROPDOWN_OPTION_STYLE,
+                      children: 'Cancelado',
+                    },
+                    'shipment-inline-status-cancelled',
+                  ),
+                ],
+              }),
+            ],
+          }),
+          c.jsxs('label', {
+            className: 'rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300',
+                children: 'Costo de compra',
+              }),
+              c.jsx('input', {
+                type: 'text',
+                inputMode: 'decimal',
+                value: formState.guide_price,
+                onChange: (event) =>
+                  updateShipmentForm('guide_price', event.target.value),
+                placeholder: '0.00',
+                className:
+                  'mt-1 w-full bg-transparent text-xs font-semibold text-amber-800 dark:text-amber-200 outline-none',
+              }),
+            ],
+          }),
+          c.jsxs('label', {
+            className:
+              'rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300',
+                children: 'Costo de venta',
+              }),
+              c.jsx('input', {
+                type: 'text',
+                inputMode: 'decimal',
+                value: formState.client_price,
+                onChange: (event) =>
+                  updateShipmentForm('client_price', event.target.value),
+                placeholder: '0.00',
+                className:
+                  'mt-1 w-full bg-transparent text-xs font-semibold text-emerald-800 dark:text-emerald-200 outline-none',
+              }),
+            ],
+          }),
+          c.jsxs('div', {
+            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
+                children: 'Items',
+              }),
+              c.jsxs('p', {
+                className:
+                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
+                children: [selectedProducts.length || 0, ' producto(s)'],
+              }),
+            ],
+          }),
+        ],
+      }),
+      c.jsxs('label', {
+        className:
+          'block rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2.5 py-2',
+        children: [
+          c.jsx('p', {
+            className: 'text-[10px] uppercase font-bold text-text-sub',
+            children: 'Direccion de envio',
+          }),
+          getClientShipmentAddressOptions(formState.client).length > 1 &&
+            c.jsxs('select', {
+              value: formState.shipping_address,
+              onChange: (event) =>
+                updateShipmentForm('shipping_address', event.target.value),
+              style: DARK_NATIVE_SELECT_STYLE,
+              className:
+                'mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-primary/40',
+              children: getClientShipmentAddressOptions(formState.client).map(
+                (address, index) =>
+                  c.jsx(
+                    'option',
+                    {
+                      value: address,
+                      style: NATIVE_DROPDOWN_OPTION_STYLE,
+                      children: address,
+                    },
+                    `shipment-inline-address-${index}`,
+                  ),
+              ),
+            }),
+          c.jsx('textarea', {
+            rows: 2,
+            value: formState.shipping_address,
+            onChange: (event) =>
+              updateShipmentForm('shipping_address', event.target.value),
+            className:
+              'mt-1 w-full bg-transparent text-xs text-text-main dark:text-slate-200 outline-none resize-none whitespace-pre-wrap',
+            placeholder: 'Sin direccion capturada',
+          }),
+        ],
+      }),
+      c.jsx(ShipmentProductsGrid, props),
+      c.jsxs('div', {
+        className: 'flex items-center gap-2',
+        children: [
+          c.jsx('button', {
+            type: 'button',
+            onClick: () => resetExpandedShipmentForm(shipment),
+            disabled: shipmentSaving,
+            className:
+              'flex-1 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-60',
+            children: 'Restablecer',
+          }),
+          c.jsx('button', {
+            type: 'button',
+            onClick: saveShipmentEditor,
+            disabled: shipmentSaving,
+            className:
+              'flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-xs font-semibold disabled:opacity-60',
+            children: shipmentSaving ? 'Guardando...' : 'Guardar cambios',
+          }),
+        ],
+      }),
+      c.jsx(ShipmentEvidenceGrid, props),
+    ],
+  });
+}
+
+const ShipmentsSection = V.memo(function ShipmentsSection() {
+  const ctx = useApp() || DEFAULT_CONTEXT;
+  const {
+    shipments,
+    shipmentSearch,
+    setShipmentSearch,
+    isDesktopLayout,
+    openShipmentEditor,
+    isShipmentExpanded,
+    shipmentHasHydratedDetail,
+    shipmentDetailLoadingIds,
+    shipmentForm,
+    getShipmentFormState,
+    shipmentSelectedProducts,
+    toggleExpandedShipment,
+    openShipmentEvidencePicker,
+    shipmentEvidenceUploadingId,
+    copyClientShipmentHistoryLink,
+    copiedClientShareLinks,
+    deleteShipment,
+    formatAmount,
+    getShipmentSalePriceAmount,
+    updateShipmentForm,
+    resetExpandedShipmentForm,
+    shipmentSaving,
+    saveShipmentEditor,
+    getClientShipmentAddressOptions,
+    toggleShipmentProductSelection,
+    openShipmentEvidenceMenuId,
+    setOpenShipmentEvidenceMenuId,
+    getShipmentEvidenceKind,
+    openShipmentEvidenceReplacePicker,
+    shipmentEvidenceReplacingId,
+    deleteShipmentEvidence,
+    shipmentEvidenceDeletingId,
+    setFullscreenImage,
+    openProductStatusId,
+    setOpenProductStatusId,
+    setOpenProductMenuId,
+    setOpenProductInfoId,
+    setShipmentProductPickerOpen,
+    getProductStatusChipClassName,
+    getProductStatusLabel,
+    productStatusUpdatingId,
+    setShipmentProductStatusQuick,
+    getProductPaymentAmount,
+  } = { ...DEFAULT_CONTEXT, ...ctx };
+
+  const filteredShipments = V.useMemo(() => {
+    const query = String(shipmentSearch || '').trim().toLowerCase();
+    if (!query) return shipments || [];
+    return (shipments || []).filter((shipment) =>
+      [
+        shipment.client_name,
+        shipment.shopping_name || shipment.mission_name,
+        ...((shipment.shopping_names || shipment.mission_names || [])),
+        shipment.carrier,
+        shipment.tracking_number,
+        shipment.shipping_address,
+        ...((shipment.products_detail || []).map((product) => product.name)),
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }, [shipmentSearch, shipments]);
+
+  return c.jsxs('div', {
+    className: 'space-y-4',
+    children: [
+      c.jsxs('div', {
+        className: 'flex items-center justify-between mb-2',
+        children: [
+          c.jsxs('div', {
+            children: [
+              c.jsx('h2', {
+                className: 'text-lg font-bold text-text-main',
+                children: 'Shipments',
+              }),
+              c.jsxs('p', {
+                className: 'text-xs text-text-sub',
+                children: ['Total: ', (shipments || []).length],
+              }),
+            ],
+          }),
+          c.jsxs('button', {
+            onClick: () => openShipmentEditor(),
+            className:
+              'bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
+            children: [
+              c.jsx('span', {
+                className: 'material-symbols-outlined text-[18px]',
+                children: 'add',
+              }),
+              ' New',
+            ],
+          }),
+        ],
+      }),
+      c.jsxs('div', {
+        className: 'relative',
+        children: [
+          c.jsx('span', {
+            className:
+              'material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400',
+            children: 'search',
+          }),
+          c.jsx('input', {
+            type: 'text',
+            placeholder: 'Buscar envio, cliente o guia...',
+            value: shipmentSearch,
+            onChange: (event) => setShipmentSearch(event.target.value),
+            className:
+              'w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+          }),
+        ],
+      }),
+      filteredShipments.length === 0
+        ? c.jsx('div', {
+            className:
+              'text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed',
+            children: c.jsx('p', {
+              className: 'text-gray-500 text-sm',
+              children: 'No hay envios definidos o coincidentes.',
+            }),
+          })
+        : c.jsx('div', {
+            className: isDesktopLayout
+              ? 'grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
+              : 'space-y-2',
+            children: filteredShipments.map((shipment) => {
+              const isExpanded = isShipmentExpanded(shipment.id);
+              const hasHydratedDetail = shipmentHasHydratedDetail(shipment);
+              const isLoadingDetail = shipmentDetailLoadingIds.includes(Number(shipment.id));
+              const formState = isExpanded
+                ? hasHydratedDetail && Number(shipmentForm.id) === Number(shipment.id)
+                  ? shipmentForm
+                  : hasHydratedDetail
+                    ? getShipmentFormState(shipment)
+                    : null
+                : null;
+              const canEditBox = canEditShipmentBox(shipment);
+              const selectedProducts = isExpanded
+                ? hasHydratedDetail && Number(shipmentForm.id) === Number(shipment.id)
+                  ? shipmentSelectedProducts
+                  : hasHydratedDetail
+                    ? shipment.products_detail || []
+                    : []
+                : [];
+
+              return c.jsxs(
+                'div',
+                {
+                  className: `rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm h-full ${isDesktopLayout ? 'rounded-2xl' : ''}`,
+                  children: [
+                    c.jsxs('div', {
+                      className: isDesktopLayout
+                        ? 'flex items-start justify-between gap-3'
+                        : 'flex items-start justify-between gap-2',
+                      children: [
+                        c.jsxs('div', {
+                          className: 'min-w-0',
+                          children: [
+                            c.jsx('p', {
+                              className: isDesktopLayout
+                                ? 'text-base font-bold text-text-main dark:text-white truncate'
+                                : 'text-sm font-bold text-text-main dark:text-white truncate',
+                              children: shipment.client_name || 'Cliente',
+                            }),
+                            c.jsxs('p', {
+                              className: isDesktopLayout
+                                ? 'text-[12px] text-text-sub truncate'
+                                : 'text-[11px] text-text-sub truncate',
+                              children: [
+                                shipment.carrier || 'Paqueteria sin definir',
+                                ' - ',
+                                shipment.product_count || 0,
+                                ' items - ',
+                                shipment.created_at
+                                  ? new Date(shipment.created_at).toLocaleDateString()
+                                  : 'Sin fecha',
+                              ],
+                            }),
+                            c.jsxs('div', {
+                              className: 'mt-1 flex items-center gap-2 text-[11px]',
+                              children: [
+                                c.jsx('span', {
+                                  className:
+                                    'font-bold uppercase text-sky-700 dark:text-sky-300',
+                                  children: getShipmentStatusLabel(shipment.status),
+                                }),
+                                c.jsxs('span', {
+                                  className: 'text-text-sub',
+                                  children:
+                                    getShipmentSalePriceAmount(shipment) <= 0
+                                      ? 'Gratis'
+                                      : ['$', formatAmount(getShipmentSalePriceAmount(shipment))],
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        c.jsxs('div', {
+                          className: 'flex items-center gap-1',
+                          children: [
+                            c.jsx('button', {
+                              type: 'button',
+                              onClick: () => toggleExpandedShipment(shipment),
+                              className:
+                                'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
+                              children: c.jsx('span', {
+                                className: `material-symbols-outlined text-[16px] ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
+                                children: 'expand_more',
+                              }),
+                            }),
+                            c.jsx('button', {
+                              type: 'button',
+                              onClick: () => openShipmentEvidencePicker(shipment),
+                              disabled: shipmentEvidenceUploadingId === shipment.id,
+                              className:
+                                'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60',
+                              title: 'Agregar evidencia',
+                              children: c.jsx('span', {
+                                className: `material-symbols-outlined text-[16px] ${shipmentEvidenceUploadingId === shipment.id ? 'animate-spin' : ''}`,
+                                children: shipmentEvidenceUploadingId === shipment.id ? 'progress_activity' : 'add',
+                              }),
+                            }),
+                            c.jsx('button', {
+                              type: 'button',
+                              onClick: () => copyClientShipmentHistoryLink(shipment),
+                              className:
+                                'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
+                              title: 'Copiar link del cliente con este envio abierto',
+                              children: c.jsx('span', {
+                                className: 'material-symbols-outlined text-[16px]',
+                                children: copiedClientShareLinks.includes(`shipment-client-history-share-${shipment.id}`)
+                                  ? 'done'
+                                  : 'link',
+                              }),
+                            }),
+                            c.jsx('button', {
+                              onClick: () => deleteShipment(shipment),
+                              className:
+                                'w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30',
+                              children: c.jsx('span', {
+                                className: 'material-symbols-outlined text-[16px]',
+                                children: 'delete',
+                              }),
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    isExpanded &&
+                      c.jsxs('div', {
+                        className: 'mt-3 space-y-2',
+                        children: [
+                          c.jsx(ShipmentExpandedPanel, {
+                            shipment,
+                            hasHydratedDetail,
+                            isLoadingDetail,
+                            formState,
+                            canEditBox,
+                            selectedProducts,
+                            updateShipmentForm,
+                            getClientShipmentAddressOptions,
+                            resetExpandedShipmentForm,
+                            shipmentSaving,
+                            saveShipmentEditor,
+                            openShipmentEvidencePicker,
+                            shipmentEvidenceUploadingId,
+                            openShipmentEvidenceMenuId,
+                            setOpenShipmentEvidenceMenuId,
+                            getShipmentEvidenceKind,
+                            openShipmentEvidenceReplacePicker,
+                            shipmentEvidenceReplacingId,
+                            deleteShipmentEvidence,
+                            shipmentEvidenceDeletingId,
+                            setFullscreenImage,
+                            formatAmount,
+                            getProductPaymentAmount,
+                            openProductStatusId,
+                            setOpenProductStatusId,
+                            setOpenProductMenuId,
+                            setOpenProductInfoId,
+                            setShipmentProductPickerOpen,
+                            getProductStatusChipClassName,
+                            getProductStatusLabel,
+                            productStatusUpdatingId,
+                            setShipmentProductStatusQuick,
+                            toggleShipmentProductSelection,
+                          }),
+                        ],
+                      }),
+                  ],
+                },
+                shipment.id,
+              );
+            }),
+          }),
+    ],
+  });
+});
+
+export default ShipmentsSection;
