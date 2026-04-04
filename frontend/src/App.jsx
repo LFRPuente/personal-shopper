@@ -515,7 +515,7 @@ function nh() {
       } catch (o) {
         console.error("Failed loading data", o);
       }
-    };
+    },
     loadShipmentsData = async (o = !1) => {
       if (!C || (shipmentsLoadedRef.current && !o)) return [];
       try {
@@ -527,7 +527,7 @@ function nh() {
         console.error("Failed loading shipments", N);
         return [];
       }
-    };
+    },
     loadStoreData = async (o = !1) => {
       if (!C || (storesLoadedRef.current && !o)) return;
       try {
@@ -541,7 +541,7 @@ function nh() {
       } catch (N) {
         console.error("Failed loading store data", N);
       }
-    };
+    },
     loadCarrierRecommendations = async (o = !1) => {
       if (!C || (carrierRecommendationsLoadedRef.current && !o)) return;
       try {
@@ -551,7 +551,7 @@ function nh() {
       } catch (N) {
         console.error("Failed loading carrier recommendations", N);
       }
-    };
+    },
     loadRequestsData = async (o = !1) => {
       if (!C || (requestsLoadedRef.current && !o)) return [];
       try {
@@ -563,7 +563,7 @@ function nh() {
         console.error("Failed loading requests", N);
         return [];
       }
-    };
+    },
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
@@ -8482,9 +8482,9 @@ function nh() {
           onToggleProductMenu: setOpenProductMenuId,
           onToggleProductInfo: setOpenProductInfoId,
           onToggleProductStatus: setOpenProductStatusId,
-          onEditProduct: Xe,
-          onChangeProductPhoto: jn,
-          onDeleteProduct: Mn,
+          onEditProduct: hn,
+          onChangeProductPhoto: Xt,
+          onDeleteProduct: xe,
           onOpenConversation: openProductConversation,
           onSetProductStatus: setGalleryProductStatus,
           getUnifiedReviewState,
@@ -8920,4 +8920,3 @@ function nh() {
 }
 
 export default nh;
-
