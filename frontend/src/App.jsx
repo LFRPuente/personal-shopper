@@ -3221,6 +3221,8 @@ function nh() {
     },
     getShipmentFormState = (o = null, N = null) => {
       const A = String((N && N.client) || (o && o.client) || ((Kl[0] || {}).id || ""));
+      const Se =
+        (o && (o.products_detail || o.products)) || (N && N.id ? [N] : []);
       const vl =
           o && o.guide_price !== null && typeof o.guide_price != "undefined"
             ? String(o.guide_price)
@@ -3245,13 +3247,11 @@ function nh() {
           (o && o.shipping_address) ||
           getClientShipmentAddressOptions(A)[0] ||
           ((N && (N.shipping_address || "")) || ""),
-        product_ids:
-          ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
-            Number(Se),
+        product_ids: Se.map((qa) =>
+            Number(typeof qa == "object" ? qa.id : qa),
           ),
-        initial_product_ids:
-          ((o && (o.products || [])) || (N && N.id ? [N.id] : [])).map((Se) =>
-            Number(Se),
+        initial_product_ids: Se.map((qa) =>
+            Number(typeof qa == "object" ? qa.id : qa),
           ),
       };
     },
@@ -3652,9 +3652,22 @@ function nh() {
         .filter(Boolean)
         .some((A) => String(A).toLowerCase().includes(N));
     }),
-    shipmentSelectedProducts = shipmentModalClientProducts.filter((o) =>
-      (shipmentForm.product_ids || []).includes(Number(o.id)),
-    ),
+    shipmentSelectedProducts = (() => {
+      const o = new Map();
+      shipmentModalClientProducts.forEach((N) => {
+        o.set(Number(N.id), N);
+      });
+      const N = shipments.find(
+        (A) => Number(A.id) === Number(shipmentForm.id || 0),
+      );
+      ((N && (N.products_detail || [])) || []).forEach((A) => {
+        const vl = Number(A.id);
+        o.has(vl) || o.set(vl, A);
+      });
+      return (shipmentForm.product_ids || [])
+        .map((A) => o.get(Number(A)))
+        .filter(Boolean);
+    })(),
     paymentLocalToNumber = (o, N = 0) => {
       const A = parseFloat(o);
       return Number.isFinite(A) ? A : N;
