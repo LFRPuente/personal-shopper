@@ -397,7 +397,7 @@ function nh() {
     [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
     [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null),
     [openShipmentEvidenceMenuId, setOpenShipmentEvidenceMenuId] = V.useState(null),
-    [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
+    [expandedShipmentIds, setExpandedShipmentIds] = V.useState([]),
     [shipmentSaving, setShipmentSaving] = V.useState(!1),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
     [shipmentClientPickerOpen, setShipmentClientPickerOpen] = V.useState(!1),
@@ -3261,15 +3261,19 @@ function nh() {
       setShipmentProductSearch("");
       setShipmentProductPickerOpen(!1);
     },
+    isShipmentExpanded = (o) =>
+      (expandedShipmentIds || []).includes(Number((o && o.id) || o || 0)),
     toggleExpandedShipment = (o) => {
       if (!o) return;
       const N = Number(o.id);
-      if (Number(expandedShipmentId) === N) {
-        setExpandedShipmentId(null);
+      if (isShipmentExpanded(N)) {
+        setExpandedShipmentIds((A) =>
+          (A || []).filter((vl) => Number(vl) !== N),
+        );
         return;
       }
       loadShipmentForm(o);
-      setExpandedShipmentId(N);
+      setExpandedShipmentIds((A) => [...new Set([...(A || []), N])]);
     },
     resetExpandedShipmentForm = (o) => {
       if (!o) return;
@@ -3385,7 +3389,9 @@ function nh() {
         setShipmentModalOpen(!1);
         setShipmentProductPickerOpen(!1);
         setPublicExpandedShipmentId(Number(El.id));
-        setExpandedShipmentId(Number(El.id));
+        setExpandedShipmentIds((gl) => [
+          ...new Set([...(gl || []), Number(El.id)]),
+        ]);
         upsertShipmentListItem(ea);
         setShipmentForm(getShipmentFormState(ea));
         notifySuccess(shipmentForm.id ? "Envio actualizado." : "Envio creado.");
@@ -10135,7 +10141,7 @@ function nh() {
                   ? "grid gap-4 xl:grid-cols-2 2xl:grid-cols-3"
                   : "space-y-2",
                 children: o.map((N) => {
-                  const A = Number(expandedShipmentId) === Number(N.id),
+                  const A = isShipmentExpanded(N.id),
                     vl =
                       Number(shipmentForm.id) === Number(N.id)
                         ? shipmentForm
@@ -10212,7 +10218,7 @@ function nh() {
                                     className:
                                       "material-symbols-outlined text-[16px]",
                                     children:
-                                      Number(expandedShipmentId) === Number(N.id)
+                                      isShipmentExpanded(N.id)
                                         ? "expand_less"
                                         : "expand_more",
                                   }),
