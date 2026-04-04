@@ -5992,6 +5992,20 @@ function nh() {
       (publicClientShareData.shipments || []).find(
         (o) => Number(o.id) === Number(publicExpandedShipmentId),
       ),
+    publicOrderedShipments = publicClientShareData
+      ? [...(publicClientShareData.shipments || [])].sort((o, N) => {
+          const A = String((o && o.status) || "").toUpperCase() === "PENDING" ? 0 : 1,
+            vl = String((N && N.status) || "").toUpperCase() === "PENDING" ? 0 : 1;
+          if (A !== vl) return A - vl;
+          const El = new Date(
+              (o && (o.updated_at || o.created_at)) || 0,
+            ).getTime(),
+            Se = new Date(
+              (N && (N.updated_at || N.created_at)) || 0,
+            ).getTime();
+          return Se - El;
+        })
+      : [],
     publicSelectedShipmentTrackingUrl = publicSelectedShipment
       ? getShipmentTrackingUrl(
           publicSelectedShipment.carrier,
@@ -7063,7 +7077,7 @@ function nh() {
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
-                        "order-1 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
+                        "order-3 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
@@ -7174,7 +7188,7 @@ function nh() {
                     }),
                     c.jsxs("div", {
                       className:
-                        "order-3 rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                        "order-1 rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("button", {
                           type: "button",
@@ -7194,7 +7208,7 @@ function nh() {
                                 c.jsxs("p", {
                                   className: "text-[11px] text-text-sub",
                                   children: [
-                                    (publicClientShareData.shipments || []).length,
+                                    publicOrderedShipments.length,
                                     " total",
                                   ],
                                 }),
@@ -7219,10 +7233,10 @@ function nh() {
                           }`,
                           children: c.jsx("div", {
                             className: "ui-disclosure-inner",
-                            children: (publicClientShareData.shipments || []).length > 0
+                            children: publicOrderedShipments.length > 0
                           ? c.jsx("div", {
                               className: "space-y-2",
-                              children: (publicClientShareData.shipments || []).map((o) =>
+                              children: publicOrderedShipments.map((o) =>
                                 c.jsxs(
                                   "button",
                                   {
