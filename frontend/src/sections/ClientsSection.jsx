@@ -1,0 +1,500 @@
+import { V, c, MODULE_AMOUNT_FORMAT, getClientPhoneDisplay } from '../utils.js';
+import { useApp } from '../AppContext.jsx';
+
+export const CLIENTS_SECTION_REQUIRED_CONTEXT = [
+  'clients',
+  'clientSearch',
+  'selectedClientId',
+  'currentShopping',
+  'isDesktopLayout',
+  'getHomeVisibleProducts',
+  'getHomeClientTotals',
+  'getClientShoppingHistoryEntries',
+  'copyClientMissionShareLink',
+  'openClientShoppingGallery',
+  'openClientPaymentModal',
+  'openPaymentModal',
+  'deletePayment',
+  'onOpenClientCreate',
+  'onEditClient',
+  'onToggleClientStatus',
+  'onOpenClientGallery',
+];
+
+const DEFAULT_CONTEXT = {
+  clients: [],
+  clientSearch: '',
+  selectedClientId: null,
+  currentShopping: null,
+  isDesktopLayout: false,
+  getHomeVisibleProducts: (client) =>
+    (Array.isArray(client?.products) ? client.products : []).filter(
+      (product) =>
+        product &&
+        product.shopping != null &&
+        String(product.status || '').toUpperCase() !== 'IN_REVIEW' &&
+        String(product.status || '').toUpperCase() !== 'REJECTED',
+    ),
+  getHomeClientTotals: (products) =>
+    (Array.isArray(products) ? products : []).reduce(
+      (acc, product) => ({
+        usd: acc.usd + (Number(product?.real_price) || 0),
+        sale: acc.sale + (Number(product?.charged_price) || 0),
+      }),
+      { usd: 0, sale: 0 },
+    ),
+  getClientShoppingHistoryEntries: (client) => {
+    const products = Array.isArray(client?.products) ? client.products : [];
+    const payments = Array.isArray(client?.payments) ? client.payments : [];
+    const grouped = new Map();
+    const ensure = (key, seed = {}) => {
+      const id = Number(key) || 0;
+      if (!grouped.has(id)) {
+        grouped.set(id, {
+          key: id,
+          title: seed.shopping_name || seed.mission_name || seed.store_name || `Shopping #${id}`,
+          date: seed.shopping_date || seed.mission_date || seed.created_at || '',
+          items: [],
+          payments: [],
+          productsTotal: 0,
+          paymentsTotal: 0,
+          balance: 0,
+          annotatedCount: 0,
+          shopping: seed.shopping || seed.mission || null,
+        });
+      }
+      return grouped.get(id);
+    };
+    products.forEach((product) => {
+      const key = Number(product?.shopping || product?.mission || product?.shopping_id || product?.mission_id);
+      if (!key) return;
+      const entry = ensure(key, product);
+      entry.items.push(product);
+      entry.productsTotal += Number(product?.charged_price ?? product?.real_price ?? 0) || 0;
+      entry.annotatedCount += String(product?.status || '').toUpperCase() === 'ANNOTATED' ? 1 : 0;
+      if (!entry.date) entry.date = product.shopping_date || product.mission_date || product.created_at || '';
+    });
+    payments.forEach((payment) => {
+      const key = Number(payment?.shopping || payment?.mission || payment?.shopping_id || payment?.mission_id);
+      if (!key) return;
+      const entry = ensure(key, payment);
+      entry.payments.push(payment);
+      entry.paymentsTotal += Number(payment?.amount || 0) || 0;
+      if (!entry.date) entry.date = payment.created_at || payment.updated_at || '';
+    });
+    return Array.from(grouped.values())
+      .map((entry) => ({ ...entry, balance: entry.productsTotal - entry.paymentsTotal }))
+      .sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+  },
+  getClientPhoneDisplay,
+  copyClientMissionShareLink: () => {},
+  openClientShoppingGallery: () => {},
+  openClientPaymentModal: () => {},
+  openPaymentModal: () => {},
+  deletePayment: () => {},
+  onOpenClientCreate: () => {},
+  onEditClient: () => {},
+  onToggleClientStatus: () => {},
+  onOpenClientGallery: () => {},
+  formatAmount: (value) => MODULE_AMOUNT_FORMAT.format(Number.isFinite(Number(value)) ? Number(value) : 0),
+  user: null,
+  role: '',
+};
+
+const normalizeText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const getTokens = (value) =>
+  normalizeText(value).split(' ').filter(Boolean);
+
+const getEntryTitle = (entry) =>
+  String(entry?.title || entry?.shopping_name || entry?.mission_name || entry?.store_name || `Shopping #${entry?.key || ''}`).trim();
+
+const ClientsSection = V.memo(function ClientsSection(props = {}) {
+  const app = useApp();
+  const ctx = { ...DEFAULT_CONTEXT, ...(app || {}), ...props };
+  const {
+    clients,
+    clientSearch,
+    currentShopping,
+    isDesktopLayout,
+    getHomeVisibleProducts,
+    getHomeClientTotals,
+    getClientShoppingHistoryEntries,
+    copyClientMissionShareLink,
+    openClientShoppingGallery,
+    openClientPaymentModal,
+    openPaymentModal,
+    deletePayment,
+    onOpenClientCreate,
+    onEditClient,
+    onToggleClientStatus,
+    onOpenClientGallery,
+    formatAmount,
+    user,
+  } = ctx;
+
+  const role = String(user?.profile?.role || ctx.role || '').toUpperCase();
+  const canCreateClient = ['AV', 'PS', 'BOTH'].includes(role);
+  const [search, setSearch] = V.useState(String(clientSearch || ''));
+  const [expandedClientId, setExpandedClientId] = V.useState(null);
+  const [expandedHistoryByClient, setExpandedHistoryByClient] = V.useState({});
+
+  const filteredClients = V.useMemo(() => {
+    const tokens = getTokens(search);
+    return [...(Array.isArray(clients) ? clients : [])]
+      .filter((client) => {
+        if (!tokens.length) return true;
+        const blob = normalizeText(
+          [
+            client?.name,
+            client?.tags,
+            client?.phone,
+            client?.phone_country_code,
+            client?.shipping_address,
+            ...(Array.isArray(client?.shipping_addresses) ? client.shipping_addresses : []),
+          ]
+            .filter(Boolean)
+            .join(' '),
+        );
+        return tokens.every((token) => blob.includes(token));
+      })
+      .sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
+  }, [clients, search]);
+
+  return c.jsxs('section', {
+    className: isDesktopLayout ? 'space-y-6' : 'space-y-4',
+    children: [
+      c.jsxs('div', {
+        className: isDesktopLayout
+          ? 'flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mb-2'
+          : 'flex items-center justify-between mb-2',
+        children: [
+          c.jsxs('div', {
+            children: [
+              c.jsx('h2', { className: 'text-lg font-bold text-text-main', children: 'Clients' }),
+              c.jsxs('p', { className: 'text-xs text-text-sub', children: ['Total: ', filteredClients.length] }),
+            ],
+          }),
+          canCreateClient &&
+            c.jsxs('button', {
+              onClick: onOpenClientCreate,
+              className:
+                'bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
+              children: [
+                c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
+                ' New',
+              ],
+            }),
+        ],
+      }),
+      c.jsx('input', {
+        type: 'text',
+        placeholder: 'Search by name or tags...',
+        value: search,
+        onChange: (event) => setSearch(event.target.value),
+        className: isDesktopLayout
+          ? 'w-full max-w-2xl pl-4 pr-4 py-3.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow'
+          : 'w-full pl-4 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+      }),
+      filteredClients.length === 0
+        ? c.jsx('div', {
+            className:
+              'text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed',
+            children: c.jsx('p', { className: 'text-gray-500 text-sm', children: 'No clients defined or matched search.' }),
+          })
+        : c.jsx('div', {
+            className: isDesktopLayout ? 'grid grid-cols-1 xl:grid-cols-2 gap-3' : 'space-y-3',
+            children: filteredClients.map((client) => {
+              const isExpanded = expandedClientId === client.id;
+              const visibleProducts = getHomeVisibleProducts(client);
+              const totals = getHomeClientTotals(visibleProducts);
+              const history = getClientShoppingHistoryEntries(client);
+              const itemsTotal = history.reduce(
+                (sum, entry) => sum + (Number.isFinite(entry.annotatedCount) ? entry.annotatedCount : (entry.items || []).length),
+                0,
+              );
+              const saleTotal = history.reduce((sum, entry) => sum + Number(entry.productsTotal || 0), 0);
+              const balanceTotal = history.reduce((sum, entry) => sum + Number(entry.balance || 0), 0);
+
+              return c.jsxs('div', {
+                className:
+                  'rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-hidden group shadow-card ui-card-quiet',
+                children: [
+                  c.jsxs('div', {
+                    className: 'px-3 py-3 sm:px-4 sm:py-4 flex flex-wrap items-start gap-3 relative',
+                    children: [
+                      c.jsx('div', {
+                        className:
+                          'w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base uppercase border border-primary/15',
+                        children: String(client.name || '?').charAt(0).toUpperCase(),
+                      }),
+                      c.jsxs('div', {
+                        className: 'flex-1 basis-0 min-w-0 cursor-pointer',
+                        onClick: () => setExpandedClientId((current) => (Number(current) === Number(client.id) ? null : client.id)),
+                        children: [
+                          c.jsx('h3', { className: 'font-bold text-sm', children: client.name || 'Cliente' }),
+                          c.jsxs('p', {
+                            className: 'text-xs text-gray-500',
+                            children: [itemsTotal, ' items - ', (client.receipts || []).length, ' tickets'],
+                          }),
+                          c.jsxs('div', {
+                            className: 'mt-2 grid grid-cols-2 gap-2 w-full max-w-none sm:max-w-[18rem] min-w-0',
+                            children: [
+                              c.jsxs('div', {
+                                className:
+                                  `rounded-xl border px-2 py-2 min-w-0 overflow-hidden ${balanceTotal < 0 ? 'border-emerald-200 bg-emerald-50/90' : balanceTotal > 0 ? 'border-slate-300 bg-slate-100/95' : 'border-slate-200 bg-slate-50/95'}`,
+                                children: [
+                                  c.jsx('p', {
+                                    className:
+                                      `text-[9px] font-black uppercase tracking-[0.08em] ${balanceTotal < 0 ? 'text-emerald-700/75' : balanceTotal > 0 ? 'text-slate-700/75' : 'text-slate-500/75'}`,
+                                    children: balanceTotal < 0 ? 'A favor' : 'Deuda',
+                                  }),
+                                  c.jsxs('p', {
+                                    className:
+                                      `mt-0.5 text-[11px] sm:text-[13px] font-extrabold leading-none truncate tabular-nums ${balanceTotal < 0 ? 'text-emerald-800' : balanceTotal > 0 ? 'text-slate-800' : 'text-slate-600'}`,
+                                    children: ['$', formatAmount(Math.abs(balanceTotal))],
+                                  }),
+                                ],
+                              }),
+                              c.jsxs('div', {
+                                className:
+                                  'rounded-xl border border-blue-200 bg-blue-50/95 px-2 py-2 shadow-[0_14px_24px_-22px_rgba(37,99,235,0.48)] min-w-0 overflow-hidden',
+                                children: [
+                                  c.jsx('p', {
+                                    className: 'text-[9px] font-black uppercase tracking-[0.08em] text-blue-700/75',
+                                    children: 'Venta',
+                                  }),
+                                  c.jsxs('p', {
+                                    className:
+                                      'mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 leading-none truncate tabular-nums',
+                                    children: ['$', formatAmount(saleTotal || totals.sale)],
+                                  }),
+                                ],
+                              }),
+                            ],
+                          }),
+                          client.tags &&
+                            c.jsx('p', {
+                              className: 'text-[10px] text-gray-400 mt-0.5 max-w-[150px] truncate',
+                              children: client.tags,
+                            }),
+                        ],
+                      }),
+                      c.jsxs('div', {
+                        className:
+                          'w-full sm:w-auto shrink-0 self-start flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1.5 pt-0.5',
+                        children: [
+                          currentShopping
+                            ? c.jsx('div', {
+                                onClick: () => typeof onToggleClientStatus === 'function' && onToggleClientStatus(client),
+                                className:
+                                  `px-2.5 py-1 rounded-full text-[8px] font-bold uppercase leading-none tracking-[0.08em] whitespace-nowrap transition cursor-pointer ${String(client.status || '') === 'Active' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`,
+                                children: String(client.status || '') === 'Active' ? 'In Shopping' : 'Idle',
+                              })
+                            : null,
+                          c.jsxs('div', {
+                            className: 'flex items-center justify-end gap-0.5 shrink-0',
+                            children: [
+                              c.jsx('button', {
+                                onClick: () => copyClientMissionShareLink(null, client),
+                                className:
+                                  'w-7 h-7 rounded-full flex items-center justify-center hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30',
+                                children: c.jsx('span', {
+                                  className: 'material-symbols-outlined text-[15px]',
+                                  children: 'share',
+                                }),
+                              }),
+                              c.jsx('button', {
+                                onClick: () =>
+                                  typeof onOpenClientGallery === 'function'
+                                    ? onOpenClientGallery(client)
+                                    : openClientShoppingGallery(client, null),
+                                className:
+                                  'w-7 h-7 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary dark:text-violet-300 dark:hover:bg-violet-950/30',
+                                title: 'Open Full Gallery',
+                                children: c.jsx('span', {
+                                  className: 'material-symbols-outlined text-[15px]',
+                                  children: 'photo_library',
+                                }),
+                              }),
+                              c.jsx('button', {
+                                onClick: () => openClientPaymentModal(client),
+                                className:
+                                  'w-7 h-7 rounded-full flex items-center justify-center hover:bg-emerald-100 text-emerald-600 dark:text-emerald-300 dark:hover:bg-emerald-950/30',
+                                title: 'Pago del cliente',
+                                children: c.jsx('span', {
+                                  className: 'material-symbols-outlined text-[15px]',
+                                  children: 'payments',
+                                }),
+                              }),
+                              c.jsx('button', {
+                                onClick: () => typeof onEditClient === 'function' && onEditClient(client),
+                                className:
+                                  'w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center',
+                                children: c.jsx('span', {
+                                  className: 'material-symbols-outlined text-[15px]',
+                                  children: 'more_vert',
+                                }),
+                              }),
+                              c.jsx('span', {
+                                className:
+                                  `material-symbols-outlined text-gray-400 text-[15px] cursor-pointer ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
+                                onClick: () => setExpandedClientId((current) => (Number(current) === Number(client.id) ? null : client.id)),
+                                children: 'expand_more',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                  isExpanded &&
+                    c.jsx('div', {
+                      className: 'ui-disclosure-panel ui-disclosure-panel-open',
+                      children: c.jsx('div', {
+                        className: 'ui-disclosure-inner',
+                        children: c.jsxs('div', {
+                          className: 'border-t border-border-light dark:border-border-dark px-4 py-3',
+                          children: [
+                            !!phoneDisplay(client) &&
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📱 ', phoneDisplay(client)] }),
+                            client.email &&
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📧 ', client.email] }),
+                            client.shipping_address &&
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-2', children: ['📦 ', client.shipping_address] }),
+                            Array.isArray(client.shipping_addresses) && client.shipping_addresses.length > 0 &&
+                              c.jsx('div', {
+                                className: 'mb-2 space-y-1',
+                                children: client.shipping_addresses.map((address, index) =>
+                                  c.jsxs('p', { className: 'text-[10px] text-gray-500', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
+                                ),
+                              }),
+                            visibleProducts.length === 0 && (client.payments || []).length === 0
+                              ? c.jsx('p', { className: 'text-xs text-gray-400 text-center py-4', children: 'No purchases yet for this client.' })
+                              : c.jsxs(c.Fragment, {
+                                  children: [
+                                    c.jsxs('h4', {
+                                      className: 'text-xs font-bold text-text-sub uppercase mb-2',
+                                      children: ['Shopping History (', history.length, ')'],
+                                    }),
+                                    c.jsx('div', {
+                                      className: 'space-y-1.5 max-h-[300px] overflow-y-auto',
+                                      children: history.map((entry) =>
+                                        c.jsxs('div', {
+                                          className: 'rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden',
+                                          children: [
+                                            c.jsxs('div', {
+                                              className: 'px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-700/40 transition',
+                                              onClick: () => openClientShoppingGallery(client, entry),
+                                              children: [
+                                                c.jsxs('div', {
+                                                  className: 'min-w-0 flex-1',
+                                                  children: [
+                                                    c.jsx('p', { className: 'font-semibold text-xs truncate', children: getEntryTitle(entry) }),
+                                                    c.jsxs('p', {
+                                                      className: 'text-[10px] text-gray-500',
+                                                      children: [
+                                                        Number.isFinite(entry.annotatedCount) ? entry.annotatedCount : (entry.items || []).length,
+                                                        ' item(s)',
+                                                        (entry.payments || []).length > 0 ? c.jsxs(c.Fragment, { children: [' • ', entry.payments.length, ' pago(s)'] }) : null,
+                                                        entry.date ? c.jsxs(c.Fragment, { children: [' • ', new Date(entry.date).toLocaleDateString()] }) : null,
+                                                      ],
+                                                    }),
+                                                    c.jsxs('div', {
+                                                      className: 'mt-1 flex flex-wrap gap-1',
+                                                      children: [
+                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700', children: ['Venta: $', formatAmount(entry.productsTotal)] }),
+                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700', children: ['Pagado: $', formatAmount(entry.paymentsTotal)] }),
+                                                        c.jsxs('span', {
+                                                          className: `inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold ${entry.balance < 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`,
+                                                          children: [entry.balance < 0 ? 'A favor: $' : 'Deuda: $', formatAmount(entry.balance < 0 ? Math.abs(entry.balance) : entry.balance)],
+                                                        }),
+                                                      ],
+                                                    }),
+                                                  ],
+                                                }),
+                                                c.jsxs('div', {
+                                                  className: 'ml-2 flex items-center gap-0.5 shrink-0',
+                                                  children: [
+                                                    c.jsx('button', {
+                                                      type: 'button',
+                                                      onClick: (event) => {
+                                                        event.stopPropagation();
+                                                        openPaymentModal(client, entry.shopping || { id: Number(entry.key) });
+                                                      },
+                                                      className: 'w-7 h-7 rounded-md bg-violet-100 text-violet-700 hover:bg-violet-200 transition flex items-center justify-center',
+                                                      title: 'Registrar pago',
+                                                      children: c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'payments' }),
+                                                    }),
+                                                    c.jsx('button', {
+                                                      type: 'button',
+                                                      onClick: (event) => {
+                                                        event.stopPropagation();
+                                                        copyClientMissionShareLink(entry.shopping || { id: Number(entry.key) }, client);
+                                                      },
+                                                      className: 'w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center',
+                                                      title: 'Copiar desglose de esta shopping',
+                                                      children: c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'receipt_long' }),
+                                                    }),
+                                                    c.jsx('button', {
+                                                      type: 'button',
+                                                      onClick: (event) => {
+                                                        event.stopPropagation();
+                                                        setExpandedHistoryByClient((state) => ({
+                                                          ...state,
+                                                          [client.id]: state[client.id] === entry.key ? null : entry.key,
+                                                        }));
+                                                      },
+                                                      className: 'w-7 h-7 rounded-md text-gray-500 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 flex items-center justify-center',
+                                                      title: 'Ver desglose',
+                                                      children: c.jsx('span', {
+                                                        className: `material-symbols-outlined text-[14px] ui-disclosure-chevron ${expandedHistoryByClient[client.id] === entry.key ? 'ui-disclosure-chevron-open' : ''}`,
+                                                        children: 'expand_more',
+                                                      }),
+                                                    }),
+                                                  ],
+                                                }),
+                                              ],
+                                            }),
+                                            expandedHistoryByClient[client.id] === entry.key &&
+                                              c.jsx('div', {
+                                                className: 'ui-disclosure-panel ui-disclosure-panel-open',
+                                                children: c.jsx('div', {
+                                                  className: 'ui-disclosure-inner',
+                                                  children: c.jsx('div', {
+                                                    className: 'border-t border-gray-200 dark:border-gray-700 px-2 py-1.5 space-y-1',
+                                                    children: c.jsx('p', {
+                                                      className: 'text-[10px] text-text-sub',
+                                                      children:
+                                                        entry.payments.length > 0
+                                                          ? `Hay ${entry.payments.length} abono(s) y ${entry.items.length} producto(s).`
+                                                          : 'Detalle pendiente de integrar.',
+                                                    }),
+                                                  }),
+                                                }),
+                                              }),
+                                          ],
+                                        }, entry.key),
+                                      ),
+                                    }),
+                                  ],
+                                }),
+                          ],
+                        }),
+                      }),
+                    }),
+                ],
+              }, client.id);
+            }),
+          }),
+    ],
+  });
+});
+
+export default ClientsSection;

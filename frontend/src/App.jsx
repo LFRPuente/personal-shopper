@@ -16,7 +16,9 @@
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
+const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
+const HomeSection = V.lazy(() => import('./sections/HomeSection.jsx'));
 const PaymentModal = V.lazy(() => import('./components/PaymentModal.jsx'));
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
@@ -1608,6 +1610,33 @@ function nh() {
         shipping_address,
       ),
     }),
+    openCreateClientModal = () => {
+      Yt("");
+      it("");
+      setClientPhoneCountryCode("+52");
+      z("");
+      sl("");
+      d("");
+      setClientShippingAddresses([]);
+      k(!0);
+    },
+    openEditClientModal = (o) => {
+      if (!o) return;
+      Y(o);
+      hl({
+        name: o.name,
+        tags: o.tags || "",
+        status: o.status,
+        phone_country_code: o.phone_country_code || "+52",
+        phone: o.phone || "",
+        email: o.email || "",
+        shipping_address: o.shipping_address || "",
+        shipping_addresses: Array.isArray(o.shipping_addresses)
+          ? o.shipping_addresses
+          : [],
+      });
+      tl(!0);
+    },
     Na = async (o) => {
       if ((o.preventDefault(), !!Vl))
         try {
@@ -11442,6 +11471,50 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
+    // HomeSection dependencies
+    homeDesktopGridRef,
+    homeDesktopLayout,
+    startHomeDesktopResize,
+    requests,
+    setMissionSummaryOpen,
+    openMissionTicketPicker,
+    missionTicketUploading,
+    activeMissionPayerLabel,
+    missionProductsCount,
+    missionPurchaseCost,
+    missionPurchaseCostWithDiscount,
+    missionTotalWithTaxes,
+    missionTotalWithDiscount,
+    newRequestText,
+    setNewRequestText,
+    newRequestImagePreview,
+    newRequestImageFile,
+    clearNewRequestImage,
+    pickRequestImage,
+    createMissionRequest,
+    filteredHomeClientsInMission,
+    homeClientSearch,
+    setHomeClientSearch,
+    homeClientMissionTotalsMap,
+    homeClientGlobalBalanceMap,
+    homeClientMissionProductsMap,
+    effectiveHomeClientReviewUnreadMap,
+    openClientFullGallery: Ta,
+    setCopiedClientShareLinks,
+    setCopiedMissionClients,
+    updateMissionRequest,
+    deleteMissionRequest,
+    startRequestModify,
+    // ClientsSection dependencies
+    clients: Kl,
+    clientSearch: j,
+    selectedClientId: W ? W.id : null,
+    currentShopping: w,
+    deletePayment,
+    onOpenClientCreate: openCreateClientModal,
+    onEditClient: openEditClientModal,
+    onToggleClientStatus: Jt,
+    onOpenClientGallery: Ta,
   }), [
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
     J, isDesktopLayout, layoutMode, defaultBreakdownTemplate,
@@ -11451,7 +11524,17 @@ function nh() {
     shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
     shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
     shipmentEvidenceDeletingId, openProductStatusId, productStatusUpdatingId,
-    Kl, Al, publicClientShareToken, C,
+    startHomeDesktopResize, openMissionTicketPicker,
+    clearNewRequestImage, pickRequestImage, createMissionRequest,
+    updateMissionRequest, deleteMissionRequest, startRequestModify,
+    Ta, deletePayment, openCreateClientModal, openEditClientModal, Jt,
+    homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
+    missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
+    missionTotalWithTaxes, missionTotalWithDiscount, newRequestText,
+    newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
+    homeClientSearch, homeClientMissionTotalsMap, homeClientGlobalBalanceMap,
+    homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap,
+    Kl, j, W, publicClientShareToken, C,
   ]);
   const lazySectionFallback = c.jsxs("div", {
     className:
@@ -11553,11 +11636,11 @@ function nh() {
             className: sectionStageClass,
             children:
               nl === "HOME"
-                ? ta()
+                ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(HomeSection, {}) })
                 : nl === "MISSIONS"
                   ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(MissionsSection, {}) })
                   : nl === "CLIENTS"
-                    ? Hl()
+                    ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ClientsSection, {}) })
                     : nl === "SHIPMENTS"
                       ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ShipmentsSection, {}) })
                       : nl === "CALCULATOR"
