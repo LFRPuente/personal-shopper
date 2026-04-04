@@ -390,6 +390,7 @@ function nh() {
     [publicPendingShipmentSelection, setPublicPendingShipmentSelection] = V.useState([]),
     [publicBuildingShipment, setPublicBuildingShipment] = V.useState(!1),
     [publicShipmentInfoOpen, setPublicShipmentInfoOpen] = V.useState(!1),
+    [publicShipmentHistoryExpanded, setPublicShipmentHistoryExpanded] = V.useState(!1),
     [requests, setRequests] = V.useState([]),
     [shipments, setShipments] = V.useState([]),
     [shipmentSearch, setShipmentSearch] = V.useState(""),
@@ -6117,6 +6118,7 @@ function nh() {
         : publicFocusShipmentIdFromSearch || publicClientShareData.focus_shipment_id;
     if (o) {
       setPublicExpandedShipmentId(Number(o));
+      setPublicShipmentHistoryExpanded(!0);
       return;
     }
     setPublicExpandedShipmentId(null);
@@ -7037,94 +7039,6 @@ function nh() {
                         }),
                       ],
                     }),
-                    (publicClientShareData.shipments || []).length > 0 &&
-                    c.jsxs("div", {
-                      className:
-                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
-                      children: [
-                        c.jsxs("div", {
-                          className: "flex items-center justify-between gap-2",
-                          children: [
-                            c.jsx("h3", {
-                              className: "text-sm font-bold text-text-main dark:text-white",
-                              children: "Historial de envios",
-                            }),
-                            c.jsxs("span", {
-                              className: "text-[11px] text-text-sub",
-                              children: [
-                                (publicClientShareData.shipments || []).length,
-                                " total",
-                              ],
-                            }),
-                          ],
-                        }),
-                        c.jsx("div", {
-                          className: "space-y-2",
-                          children: (publicClientShareData.shipments || []).map((o) =>
-                            c.jsxs(
-                              "button",
-                              {
-                                type: "button",
-                                onClick: () =>
-                                  setPublicExpandedShipmentId(Number(o.id)),
-                                className:
-                                  `w-full text-left rounded-xl border px-3 py-2 transition ${Number(publicExpandedShipmentId) === Number(o.id) || Number(publicClientShareData.focus_shipment_id) === Number(o.id) ? "border-primary bg-primary/5" : "border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-800/50"}`,
-                                children: [
-                                  c.jsxs("div", {
-                                    className: "flex items-center justify-between gap-2",
-                                    children: [
-                                      c.jsxs("div", {
-                                        className: "min-w-0",
-                                        children: [
-                                          c.jsx("p", {
-                                            className: "text-xs font-bold text-text-main dark:text-white truncate",
-                                            children:
-                                              o.tracking_number ||
-                                              o.carrier ||
-                                              `Envio #${o.id}`,
-                                          }),
-                                          getPublicShipmentSalePriceSummary(o) &&
-                                          c.jsx("p", {
-                                            className:
-                                              "mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
-                                            children: getPublicShipmentSalePriceSummary(o),
-                                          }),
-                                        ],
-                                      }),
-                                      c.jsxs("div", {
-                                        className: "flex items-center gap-2 shrink-0",
-                                        children: [
-                                          c.jsx("span", {
-                                            className: "text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300",
-                                            children: getShipmentStatusLabel(o.status),
-                                          }),
-                                          c.jsx("span", {
-                                            className: "material-symbols-outlined text-[18px] text-text-sub",
-                                            children: "chevron_right",
-                                          }),
-                                        ],
-                                      }),
-                                    ],
-                                  }),
-                                  o.shipping_address &&
-                                  c.jsx("p", {
-                                    className: "mt-1 text-[11px] text-text-sub line-clamp-2",
-                                    children: o.shipping_address,
-                                  }),
-                                ],
-                              },
-                              `public-shipment-${o.id}`,
-                            ),
-                          ),
-                        }),
-                      ],
-                    }),
-                    (publicClientShareData.shipments || []).length === 0 &&
-                    c.jsx("div", {
-                      className:
-                        "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-10 text-center text-sm text-text-sub",
-                      children: "No hay envios para mostrar.",
-                    }),
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
@@ -7235,6 +7149,116 @@ function nh() {
                             ),
                           ),
                         }),
+                      ],
+                    }),
+                    c.jsxs("div", {
+                      className:
+                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                      children: [
+                        c.jsxs("button", {
+                          type: "button",
+                          onClick: () =>
+                            setPublicShipmentHistoryExpanded((o) => !o),
+                          className:
+                            "w-full flex items-center justify-between gap-2 text-left",
+                          children: [
+                            c.jsxs("div", {
+                              className: "min-w-0",
+                              children: [
+                                c.jsx("h3", {
+                                  className:
+                                    "text-sm font-bold text-text-main dark:text-white",
+                                  children: "Historial de envios",
+                                }),
+                                c.jsxs("p", {
+                                  className: "text-[11px] text-text-sub",
+                                  children: [
+                                    (publicClientShareData.shipments || []).length,
+                                    " total",
+                                  ],
+                                }),
+                              ],
+                            }),
+                            c.jsx("span", {
+                              className:
+                                "material-symbols-outlined text-[18px] text-text-sub",
+                              children: publicShipmentHistoryExpanded
+                                ? "expand_less"
+                                : "expand_more",
+                            }),
+                          ],
+                        }),
+                        publicShipmentHistoryExpanded &&
+                        ((publicClientShareData.shipments || []).length > 0
+                          ? c.jsx("div", {
+                              className: "space-y-2",
+                              children: (publicClientShareData.shipments || []).map((o) =>
+                                c.jsxs(
+                                  "button",
+                                  {
+                                    type: "button",
+                                    onClick: () =>
+                                      setPublicExpandedShipmentId(Number(o.id)),
+                                    className:
+                                      `w-full text-left rounded-xl border px-3 py-2 transition ${Number(publicExpandedShipmentId) === Number(o.id) || Number(publicClientShareData.focus_shipment_id) === Number(o.id) ? "border-primary bg-primary/5" : "border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-800/50"}`,
+                                    children: [
+                                      c.jsxs("div", {
+                                        className: "flex items-center justify-between gap-2",
+                                        children: [
+                                          c.jsxs("div", {
+                                            className: "min-w-0",
+                                            children: [
+                                              c.jsx("p", {
+                                                className:
+                                                  "text-xs font-bold text-text-main dark:text-white truncate",
+                                                children:
+                                                  o.tracking_number ||
+                                                  o.carrier ||
+                                                  `Envio #${o.id}`,
+                                              }),
+                                              getPublicShipmentSalePriceSummary(o) &&
+                                              c.jsx("p", {
+                                                className:
+                                                  "mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300",
+                                                children:
+                                                  getPublicShipmentSalePriceSummary(o),
+                                              }),
+                                            ],
+                                          }),
+                                          c.jsxs("div", {
+                                            className: "flex items-center gap-2 shrink-0",
+                                            children: [
+                                              c.jsx("span", {
+                                                className:
+                                                  "text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300",
+                                                children: getShipmentStatusLabel(o.status),
+                                              }),
+                                              c.jsx("span", {
+                                                className:
+                                                  "material-symbols-outlined text-[18px] text-text-sub",
+                                                children: "chevron_right",
+                                              }),
+                                            ],
+                                          }),
+                                        ],
+                                      }),
+                                      o.shipping_address &&
+                                      c.jsx("p", {
+                                        className:
+                                          "mt-1 text-[11px] text-text-sub line-clamp-2",
+                                        children: o.shipping_address,
+                                      }),
+                                    ],
+                                  },
+                                  `public-shipment-${o.id}`,
+                                ),
+                              ),
+                            })
+                          : c.jsx("div", {
+                              className:
+                                "rounded-xl border border-dashed border-border-light dark:border-border-dark px-4 py-8 text-center text-sm text-text-sub",
+                              children: "No hay envios para mostrar.",
+                            })),
                       ],
                     }),
                     publicShareType === "shipment" &&
