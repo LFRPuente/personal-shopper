@@ -1,4 +1,4 @@
-import {
+﻿import {
   V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
@@ -19,12 +19,16 @@ const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'
 const ClientPaymentModal = V.lazy(() => import('./components/ClientPaymentModal.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
+const EditTicketModal = V.lazy(() => import('./components/EditTicketModal.jsx'));
 const FullscreenImageModal = V.lazy(() => import('./components/FullscreenImageModal.jsx'));
 const HomeSection = V.lazy(() => import('./sections/HomeSection.jsx'));
+const ImageSourceDialog = V.lazy(() => import('./components/ImageSourceDialog.jsx'));
 const InputDialog = V.lazy(() => import('./components/InputDialog.jsx'));
 const PaymentModal = V.lazy(() => import('./components/PaymentModal.jsx'));
+const ProductModal = V.lazy(() => import('./components/ProductModal.jsx'));
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
+const ReviewConversationModal = V.lazy(() => import('./components/ReviewConversationModal.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 
@@ -12704,851 +12708,84 @@ function nh() {
             }),
           ],
         }),
-      }),
-      me &&
-      he &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[95] bg-black/50 flex items-end sm:items-center justify-center overflow-y-auto p-2 sm:p-4 ui-backdrop",
-          "edit-product",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            `bg-surface-light dark:bg-surface-dark w-full ${isDesktopLayout ? "sm:max-w-5xl rounded-3xl max-h-[92vh] overflow-y-auto" : "sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"} p-6 shadow-2xl ui-sheet`,
-            "edit-product",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsx("h3", {
-              className: "text-xl font-bold mb-4",
-              children:
-                productModalMode === "create"
-                  ? "Agregar producto"
-                  : "Edit Product Info",
-            }),
-            c.jsxs("form", {
-              onSubmit: zi,
-              className: isDesktopLayout
-                ? "grid grid-cols-2 gap-5 items-start"
-                : "space-y-4",
-              children: [
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-2" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Product Name",
-                    }),
-                    c.jsx("input", {
-                      type: "text",
-                      value: st.name,
-                      onChange: (o) => Gt({ ...st, name: o.target.value }),
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                      required: !0,
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-2" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Quien paga",
-                    }),
-                    c.jsxs("select", {
-                      value: st.payer,
-                      onChange: (o) => Gt({ ...st, payer: o.target.value }),
-                      className:
-                        "w-full px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                      children: [
-                        c.jsx("option", {
-                          value: "",
-                          disabled: !0,
-                          children: payerUserOptions.length
-                            ? "Selecciona quien pagara"
-                            : "Sin usuarios disponibles",
-                        }),
-                        payerUserOptions.map((o) =>
-                          c.jsx(
-                            "option",
-                            {
-                              value: o.id,
-                              children: getUserOptionLabel(o),
-                            },
-                            `product-payer-${o.id}`,
-                          ),
-                        ),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: isDesktopLayout
-                    ? "col-span-2 grid grid-cols-2 gap-4"
-                    : "grid grid-cols-2 gap-4",
-                  children: [
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Store Price (USD)",
-                        }),
-                        c.jsx("input", {
-                          type: "number",
-                          step: "0.01",
-                          value: st.real_price,
-                          onChange: (o) => {
-                            setProductPriceSyncSource("real");
-                            Gt({ ...st, real_price: o.target.value });
-                          },
-                          className: productStoreInputClass,
-                          required: !0,
-                        }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Final Price (MXN)",
-                        }),
-                        c.jsx("input", {
-                          type: "number",
-                          step: "0.01",
-                          value: st.charged_price,
-                          onChange: (o) => {
-                            setProductPriceSyncSource("charged");
-                            Gt({ ...st, charged_price: o.target.value });
-                          },
-                          className: productFinalInputClass,
-                          required: !0,
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className:
-                    `${isDesktopLayout ? "col-span-2 " : ""}flex items-center justify-between gap-3 rounded-xl px-1 py-1`,
-                  children: [
-                    c.jsxs("div", {
-                      className: "flex items-center gap-2 min-w-0",
-                      children: [
-                        c.jsx("span", {
-                          className:
-                            "text-xs font-semibold text-text-sub dark:text-slate-300 truncate",
-                          children: "Calculo automatico",
-                        }),
-                        c.jsxs("div", {
-                          className: "relative shrink-0",
-                          onMouseEnter: () => setProductPriceAutoInfoOpen(!0),
-                          onMouseLeave: () => setProductPriceAutoInfoOpen(!1),
-                          children: [
-                            c.jsx("button", {
-                              type: "button",
-                              onClick: () =>
-                                setProductPriceAutoInfoOpen((o) => !o),
-                              onFocus: () => setProductPriceAutoInfoOpen(!0),
-                              onBlur: () => setProductPriceAutoInfoOpen(!1),
-                              title:
-                                "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
-                              className:
-                                "w-5 h-5 rounded-full border border-fuchsia-200 text-fuchsia-700 dark:border-fuchsia-800 dark:text-fuchsia-300 inline-flex items-center justify-center hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 transition",
-                              "aria-label": "Info de calculo automatico",
-                              "aria-expanded": productPriceAutoInfoOpen,
-                              "aria-describedby": "product-price-auto-info",
-                              children: c.jsx("span", {
-                                className: "material-symbols-outlined text-[12px] leading-none",
-                                children: "info",
-                              }),
-                            }),
-                            productPriceAutoInfoOpen &&
-                            c.jsx("div", {
-                              id: "product-price-auto-info",
-                              className:
-                                "absolute left-1/2 top-full z-10 mt-2 w-64 -translate-x-1/2 rounded-2xl border border-fuchsia-200 bg-white/98 px-3 py-2 text-[11px] leading-5 text-fuchsia-900 shadow-xl dark:border-fuchsia-900 dark:bg-slate-950 dark:text-fuchsia-100",
-                              children:
-                                "Si esta activo, al cambiar Store Price o Final Price se recalcula el otro segun el factor o porcentaje. Si lo desactivas, ambos precios se editan por separado.",
-                            }),
-                          ],
-                        }),
-                      ],
-                    }),
-                    c.jsx("button", {
-                      type: "button",
-                      role: "switch",
-                      "aria-checked": productPriceAutoSync,
-                      onClick: () => setProductPriceAutoSync((o) => !o),
-                      className:
-                        `relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${productPriceAutoSync ? "bg-primary border-primary" : "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700"}`,
-                      children: c.jsx("span", {
-                        className:
-                          `inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${productPriceAutoSync ? "translate-x-6" : "translate-x-1"}`,
-                      }),
-                    }),
-                  ],
-                }),
-                showProductDiscountFields &&
-                c.jsxs("div", {
-                  className:
-                    `${isDesktopLayout ? "col-span-2 " : ""}grid grid-cols-2 gap-4`,
-                  children: [
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
-                          children: "Store Price con descuento (USD)",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          readOnly: !0,
-                          value: Number.isFinite(productStoreDiscountedPrice)
-                            ? productStoreDiscountedPrice.toFixed(2)
-                            : "",
-                          className:
-                            "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1",
-                          children: "Final Price con descuento (MXN)",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          readOnly: !0,
-                          value: Number.isFinite(productFinalDiscountedPrice)
-                            ? productFinalDiscountedPrice.toFixed(2)
-                            : "",
-                          className:
-                            "w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-1" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Modo de Calculo",
-                    }),
-                    c.jsxs("div", {
-                      className:
-                        "grid grid-cols-2 rounded-xl p-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
-                      children: [
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: () => applyCalcModeChange("FACTOR"),
-                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
-                          children: "Factor",
-                        }),
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: () => applyCalcModeChange("PERCENTAGE"),
-                          className: `py-2 text-xs font-bold rounded-lg transition ${calcMode === "PERCENTAGE" ? "bg-emerald-600 text-white" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
-                          children: "Porcentaje",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                calcMode === "FACTOR"
-                  ? c.jsxs("div", {
-                    className: isDesktopLayout ? "col-span-1" : "",
-                    children: [
-                      c.jsxs("div", {
-                        className: "grid grid-cols-2 gap-3",
-                        children: [
-                          c.jsxs("div", {
-                            children: [
-                              c.jsx("label", {
-                                className:
-                                  "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                                children: "Factor",
-                              }),
-                              c.jsx("input", {
-                                type: "number",
-                                step: "0.01",
-                                value: calcFactor,
-                                onChange: (o) => applyCalcFactorChange(o.target.value),
-                                className:
-                                  `${productCalcInputClass} px-4 py-2`,
-                              }),
-                            ],
-                          }),
-                          c.jsxs("div", {
-                            children: [
-                              c.jsx("label", {
-                                className:
-                                  "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                                children: "Descuento (%)",
-                              }),
-                              c.jsx("input", {
-                                type: "number",
-                                step: "0.01",
-                                value: calcDiscount,
-                                onChange: (o) => applyCalcDiscountChange(o.target.value),
-                                className:
-                                  `${productCalcInputClass} px-4 py-2`,
-                              }),
-                            ],
-                          }),
-                        ],
-                      }),
-                    ],
-                  })
-                  : c.jsxs("div", {
-                    className: isDesktopLayout
-                      ? "col-span-1 grid grid-cols-2 gap-2"
-                      : "grid grid-cols-2 gap-2",
-                    children: [
-                      c.jsxs("div", {
-                        children: [
-                          c.jsx("label", {
-                            className:
-                              "block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Descuento (%)",
-                          }),
-                          c.jsx("input", {
-                            type: "number",
-                            step: "0.01",
-                            value: calcDiscount,
-                            onChange: (o) => applyCalcDiscountChange(o.target.value),
-                            className:
-                              `${productCalcCompactInputClass} px-2 py-2`,
-                          }),
-                        ],
-                      }),
-                      c.jsxs("div", {
-                        children: [
-                          c.jsx("label", {
-                            className:
-                              "block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Taxes (%)",
-                          }),
-                          c.jsx("input", {
-                            type: "number",
-                            step: "0.01",
-                            value: calcTaxes,
-                            onChange: (o) => applyCalcTaxesChange(o.target.value),
-                            className:
-                              `${productCalcCompactInputClass} px-2 py-2`,
-                          }),
-                        ],
-                      }),
-                      c.jsxs("div", {
-                        children: [
-                          c.jsx("label", {
-                            className:
-                              "block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Comision (%)",
-                          }),
-                          c.jsx("input", {
-                            type: "number",
-                            step: "0.01",
-                            value: calcCommission,
-                            onChange: (o) => applyCalcCommissionChange(o.target.value),
-                            className:
-                              `${productCalcCompactInputClass} px-2 py-2`,
-                          }),
-                        ],
-                      }),
-                      c.jsxs("div", {
-                        children: [
-                          c.jsx("label", {
-                            className:
-                              "block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1",
-                            children: "Tipo Cambio",
-                          }),
-                          c.jsx("input", {
-                            type: "number",
-                            step: "0.01",
-                            value: calcExchangeRate,
-                            onChange: (o) => applyCalcExchangeRateChange(o.target.value),
-                            className:
-                              `${productCalcCompactInputClass} px-2 py-2`,
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-1" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Tags",
-                    }),
-                    c.jsx("div", {
-                      className: "flex flex-wrap gap-2 mb-2",
-                      children:
-                        modalTags.length === 0
-                          ? c.jsx("span", {
-                            className: "text-xs text-gray-400",
-                            children: "Sin tags",
-                          })
-                          : modalTags.map((o) =>
-                            c.jsxs(
-                              "span",
-                              {
-                                className:
-                                  "text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-1 flex items-center gap-1",
-                                children: [
-                                  o,
-                                  c.jsx("button", {
-                                    type: "button",
-                                    onClick: () => removeModalTag(o),
-                                    className:
-                                      "material-symbols-outlined text-[14px] leading-none hover:text-red-500",
-                                    children: "close",
-                                  }),
-                                ],
-                              },
-                              o,
-                            ),
-                          ),
-                    }),
-                    c.jsxs("div", {
-                      className: "flex gap-2",
-                      children: [
-                        c.jsx("input", {
-                          type: "text",
-                          value: newModalTag,
-                          onChange: (o) => setNewModalTag(o.target.value),
-                          placeholder: "Agregar tag",
-                          className:
-                            "flex-1 px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                        }),
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: addModalTag,
-                          className:
-                            "px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
-                          children: "+ Add",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-1" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children:
-                        productModalCanChooseShopping || productModalPinnedShopping
-                          ? "Shopping"
-                          : "Store",
-                    }),
-                    productModalCanChooseShopping
-                      ? c.jsxs("div", {
-                        className:
-                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-3 dark:border-sky-800 dark:bg-sky-950/30 space-y-2",
-                        children: [
-                          c.jsx("input", {
-                            type: "text",
-                            value: productModalShoppingSearch,
-                            onChange: (o) =>
-                              setProductModalShoppingSearch(o.target.value),
-                            placeholder: "Buscar shopping o fecha...",
-                            className:
-                              "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                          }),
-                          productModalSelectedShopping &&
-                          c.jsxs("div", {
-                            className:
-                              "rounded-xl border border-sky-300/60 bg-white/80 px-3 py-2 dark:border-sky-700 dark:bg-slate-900/60",
-                            children: [
-                              c.jsx("p", {
-                                className:
-                                  "text-sm font-semibold text-sky-900 dark:text-sky-100",
-                                children:
-                                  getMissionStoreLabel(productModalSelectedShopping) ||
-                                  productModalSelectedShopping.name ||
-                                  "Sin shopping asignada",
-                              }),
-                              c.jsx("p", {
-                                className:
-                                  "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
-                                children: productModalSelectedShopping.start_time
-                                  ? new Date(productModalSelectedShopping.start_time).toLocaleDateString()
-                                  : "Sin fecha",
-                              }),
-                            ],
-                          }),
-                          c.jsx("div", {
-                            className:
-                              "max-h-36 overflow-y-auto ios-scroll space-y-1 pr-1",
-                            children: productModalFilteredShoppingOptions.length > 0
-                              ? productModalFilteredShoppingOptions
-                                .slice(0, 6)
-                                .map((o) =>
-                                  c.jsxs(
-                                    "button",
-                                    {
-                                      type: "button",
-                                      onClick: () => {
-                                        Gt({
-                                          ...st,
-                                          shopping: String(o.id),
-                                          store:
-                                            o && o.store !== null &&
-                                            typeof o.store !== "undefined"
-                                              ? String(o.store)
-                                              : "",
-                                        });
-                                        setProductModalShoppingSearch("");
-                                      },
-                                      className:
-                                        `w-full text-left rounded-xl border px-3 py-2 transition ${
-                                          Number(st.shopping || 0) === Number(o.id)
-                                            ? "border-primary bg-primary/10 text-primary"
-                                            : "border-sky-200 bg-white/80 text-slate-700 hover:border-primary/40 hover:bg-white dark:border-sky-900 dark:bg-slate-900/60 dark:text-slate-100 dark:hover:border-primary/50 dark:hover:bg-slate-900"
-                                        }`,
-                                      children: [
-                                        c.jsx("p", {
-                                          className: "text-sm font-semibold truncate",
-                                          children:
-                                            getMissionStoreLabel(o) ||
-                                            o.name ||
-                                            `Shopping #${o.id}`,
-                                        }),
-                                        c.jsx("p", {
-                                          className:
-                                            "mt-0.5 text-[11px] text-slate-500 dark:text-slate-400",
-                                          children: o.start_time
-                                            ? new Date(o.start_time).toLocaleDateString()
-                                            : "Sin fecha",
-                                        }),
-                                      ],
-                                    },
-                                    `product-shopping-search-${o.id}`,
-                                  ),
-                                )
-                              : c.jsx("p", {
-                                className:
-                                  "px-1 py-2 text-xs text-sky-700/80 dark:text-sky-300/80",
-                                children: productModalShoppingOptions.length
-                                  ? "Sin coincidencias."
-                                  : "Sin shoppings disponibles.",
-                              }),
-                          }),
-                        ],
-                      })
-                      : productModalPinnedShopping
-                      ? c.jsxs("div", {
-                        className:
-                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
-                        children: [
-                          c.jsx("p", {
-                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
-                            children:
-                              getMissionStoreLabel(productModalPinnedShopping) ||
-                              productModalPinnedShopping.name ||
-                              "Sin shopping asignada",
-                          }),
-                          productModalPinnedShopping.start_time &&
-                          c.jsx("p", {
-                            className:
-                              "mt-1 text-[11px] text-sky-700/80 dark:text-sky-300/80",
-                            children: new Date(
-                              productModalPinnedShopping.start_time,
-                            ).toLocaleDateString(),
-                          }),
-                        ],
-                      })
-                      : w
-                      ? c.jsxs("div", {
-                        className:
-                          "rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/30",
-                        children: [
-                          c.jsx("p", {
-                            className: "text-sm font-semibold text-sky-900 dark:text-sky-100",
-                            children: getMissionStoreLabel(w) || "Sin tienda asignada",
-                          }),
-                        ],
-                      })
-                      : c.jsxs(c.Fragment, {
-                        children: [
-                          c.jsx("input", {
-                            type: "text",
-                            value: storeSearch,
-                            onChange: (o) => setStoreSearch(o.target.value),
-                            placeholder: "Buscar tienda...",
-                            className:
-                              "w-full px-3 py-2 border rounded-xl mb-2 dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                          }),
-                          c.jsxs("select", {
-                            value: st.store || "",
-                            onChange: (o) => Gt({ ...st, store: o.target.value }),
-                            className:
-                              "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                            children: [
-                              c.jsx("option", {
-                                value: "",
-                                children: "Selecciona tienda",
-                              }),
-                              filteredStores.map((o) =>
-                                c.jsx(
-                                  "option",
-                                  { value: o.id, children: o.name },
-                                  o.id,
-                                ),
-                              ),
-                            ],
-                          }),
-                          X === "AV" &&
-                          c.jsxs("div", {
-                            className: "mt-2",
-                            children: [
-                              c.jsx("button", {
-                                type: "button",
-                                onClick: () =>
-                                  setShowAddStoreInput((o) => !o),
-                                className:
-                                  "text-xs font-semibold text-primary hover:text-primary-dark",
-                                children: "+ Add Store",
-                              }),
-                              showAddStoreInput &&
-                              c.jsxs("div", {
-                                className: "flex gap-2 mt-2",
-                                children: [
-                                  c.jsx("input", {
-                                    type: "text",
-                                    value: newStoreName,
-                                    onChange: (o) =>
-                                      setNewStoreName(o.target.value),
-                                    placeholder: "Nombre de tienda",
-                                    className:
-                                      "flex-1 px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",
-                                  }),
-                                  c.jsx("button", {
-                                    type: "button",
-                                    onClick: createStoreFromModal,
-                                    className:
-                                      "px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark",
-                                    children: "Guardar",
-                                  }),
-                                ],
-                              }),
-                            ],
-                          }),
-                        ],
-                      }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: isDesktopLayout ? "col-span-1" : "",
-                  children: [
-                    c.jsx("label", {
-                      className:
-                        "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Status",
-                    }),
-                    c.jsxs("div", {
-                      className: "grid grid-cols-3 gap-2",
-                      children: [
-                        ["ANNOTATED", "Anotado"],
-                        ["REVIEW", "Revision"],
-                        ["REJECTED", "Rechazado"],
-                      ].map(([o, N]) =>
-                        c.jsx(
-                          "button",
-                          {
-                            type: "button",
-                            onClick: () => Gt({ ...st, status: o }),
-                            className: `px-2 py-2 rounded-xl text-[11px] leading-tight font-bold border transition ${st.status === o ? "bg-primary text-white border-primary" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary/50"}`,
-                            children: N,
-                          },
-                          o,
-                        ),
-                      ),
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: `${isDesktopLayout ? "col-span-2" : ""} flex gap-3 pt-4`,
-                  children: [
-                    c.jsx("button", {
-                      type: "button",
-                      onClick: () => dismissActiveOverlayRef.current(),
-                      disabled: newProductUploading,
-                      className:
-                        `flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`,
-                      children: "Cancel",
-                    }),
-                    c.jsx("button", {
-                      type: "submit",
-                      disabled:
-                        (productModalMode === "create" && newProductUploading) ||
-                        !modalHasRequiredProductFields,
-                      className:
-                        `flex-1 py-3 font-semibold rounded-xl ui-btn-primary ${(productModalMode === "create" && newProductUploading) || !modalHasRequiredProductFields ? "opacity-75 cursor-not-allowed" : ""}`,
-                      children:
-                        productModalMode === "create"
-                          ? newProductUploading
-                            ? "Creando..."
-                            : "Crear producto"
-                          : "Save Changes",
-                    }),
-                  ],
-                }),
-                !modalHasRequiredProductFields &&
-                c.jsx("p", {
-                  className: `${isDesktopLayout ? "col-span-2" : ""} text-xs font-medium text-rose-600 dark:text-rose-300`,
-                  children:
-                    "Debes capturar el nombre, Store Price (USD) y Final Price (MXN) para guardar este producto. Cancelar sigue disponible.",
-                }),
-              ],
-            }),
-          ],
+      }),      me &&
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(ProductModal, {
+          open: me,
+          selectedProduct: he,
+          productForm: st,
+          setProductForm: Gt,
+          onSubmit: zi,
+          onClose: () => dismissActiveOverlayRef.current(),
+          productModalMode,
+          isDesktopLayout,
+          payerUserOptions,
+          productStoreInputClass,
+          productFinalInputClass,
+          productPriceAutoInfoOpen,
+          setProductPriceAutoInfoOpen,
+          productPriceAutoSync,
+          setProductPriceAutoSync,
+          setProductPriceSyncSource,
+          showProductDiscountFields,
+          productStoreDiscountedPrice,
+          productFinalDiscountedPrice,
+          calcMode,
+          applyCalcModeChange,
+          calcFactor,
+          applyCalcFactorChange,
+          calcDiscount,
+          applyCalcDiscountChange,
+          calcTaxes,
+          applyCalcTaxesChange,
+          calcCommission,
+          applyCalcCommissionChange,
+          calcExchangeRate,
+          applyCalcExchangeRateChange,
+          productCalcInputClass,
+          productCalcCompactInputClass,
+          modalTags,
+          newModalTag,
+          setNewModalTag,
+          addModalTag,
+          removeModalTag,
+          productModalCanChooseShopping,
+          productModalPinnedShopping,
+          productModalSelectedShopping,
+          productModalShoppingSearch,
+          setProductModalShoppingSearch,
+          productModalShoppingOptionsCount: productModalShoppingOptions.length,
+          productModalFilteredShoppingOptions,
+          getMissionStoreLabel,
+          activeShopping: w,
+          storeSearch,
+          setStoreSearch,
+          filteredStores,
+          userRole: X,
+          showAddStoreInput,
+          setShowAddStoreInput,
+          newStoreName,
+          setNewStoreName,
+          createStoreFromModal,
+          newProductUploading,
+          modalHasRequiredProductFields,
+          overlayBackdropClass,
+          overlaySheetClass,
         }),
       }),
       ji &&
-      Je &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center ui-backdrop",
-          "edit-ticket",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl ui-sheet",
-            "edit-ticket",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("h3", {
-              className: "text-xl font-bold mb-4",
-              children: ["Edit Ticket #", Je.id, " Data"],
-            }),
-            c.jsxs("form", {
-              onSubmit: _i,
-              className: "space-y-4",
-              children: [
-                c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-4",
-                  children: [
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Store Total",
-                        }),
-                        c.jsx("input", {
-                          type: "number",
-                          step: "0.01",
-                          value: Ol.total_real_price,
-                          onChange: (o) =>
-                            $e({ ...Ol, total_real_price: o.target.value }),
-                          className:
-                            "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Charged Total",
-                        }),
-                        c.jsx("input", {
-                          type: "number",
-                          step: "0.01",
-                          value: Ol.total_charged_price,
-                          onChange: (o) =>
-                            $e({
-                              ...Ol,
-                              total_charged_price: o.target.value,
-                            }),
-                          className:
-                            "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-4",
-                  children: [
-                    c.jsxs("div", {
-                      children: [
-                        c.jsx("label", {
-                          className:
-                            "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                          children: "Tax %",
-                        }),
-                        c.jsx("input", {
-                          type: "number",
-                          step: "0.01",
-                          value: Ol.tax_percentage,
-                          onChange: (o) =>
-                            $e({ ...Ol, tax_percentage: o.target.value }),
-                          className:
-                            "w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700",
-                        }),
-                      ],
-                    }),
-                    c.jsx("div", {
-                      className: "flex flex-col justify-end pb-2",
-                      children: c.jsxs("label", {
-                        className: "flex items-center gap-2 cursor-pointer",
-                        children: [
-                          c.jsx("input", {
-                            type: "checkbox",
-                            checked: Ol.shipping_paid,
-                            onChange: (o) =>
-                              $e({ ...Ol, shipping_paid: o.target.checked }),
-                            className: "w-5 h-5 text-primary rounded",
-                          }),
-                          c.jsx("span", {
-                            className: "text-sm font-medium",
-                            children: "Shipping Paid",
-                          }),
-                        ],
-                      }),
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: "flex gap-3 pt-4",
-                  children: [
-                    c.jsx("button", {
-                      type: "button",
-                      onClick: () => dismissActiveOverlayRef.current(),
-                      className:
-                        "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
-                      children: "Cancel",
-                    }),
-                    c.jsx("button", {
-                      type: "submit",
-                      className:
-                        "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
-                      children: "Save",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-          ],
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(EditTicketModal, {
+          open: ji,
+          ticket: Je,
+          ticketForm: Ol,
+          setTicketForm: $e,
+          onSubmit: _i,
+          dismissActiveOverlayRef,
+          overlayBackdropClass,
+          overlaySheetClass,
         }),
       }),
       W &&
@@ -14729,272 +13966,18 @@ function nh() {
             o.id,
           ),
         ),
-      }),
-      imageSourceDialog &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[99] bg-black/50 flex items-end sm:items-center justify-center p-4 ui-backdrop",
-          "image-source",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 sm:p-6 ui-sheet overflow-hidden",
-            "image-source",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("div", {
-              className:
-                "relative overflow-hidden rounded-3xl border border-sky-200/70 dark:border-sky-500/20 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.16),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,248,252,0.96))] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_46%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(10,15,29,0.98))] p-4 sm:p-5 flex items-start gap-3",
-              children: [
-                c.jsx("div", {
-                  className:
-                    "w-11 h-11 rounded-2xl grid place-items-center bg-white/90 dark:bg-sky-500/14 text-sky-700 dark:text-sky-300 shadow-sm",
-                  children: c.jsx("span", {
-                    className:
-                      "material-symbols-outlined inline-flex items-center justify-center leading-none text-[22px]",
-                    children: "imagesmode",
-                  }),
-                }),
-                c.jsxs("div", {
-                  className: "flex-1",
-                  children: [
-                    c.jsx("p", {
-                      className:
-                        "text-[10px] font-black uppercase tracking-[0.18em] text-sky-700/75 dark:text-sky-300/75",
-                      children: imageSourceDialog.eyebrow || "Fuente de imagen",
-                    }),
-                    c.jsxs("div", {
-                      className: "mt-1 flex items-center gap-2",
-                      children: [
-                        c.jsx("h3", {
-                          className:
-                            "text-lg font-black text-text-main dark:text-white leading-tight",
-                          children: imageSourceDialog.title || "Seleccionar imagen",
-                        }),
-                        c.jsx("button", {
-                          type: "button",
-                          onClick: () =>
-                            setImageSourceInfoOpen((o) =>
-                              o === "header" ? null : "header",
-                            ),
-                          title:
-                            imageSourceDialog.description ||
-                            "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
-                          className:
-                            "shrink-0 w-5 h-5 rounded-full border border-sky-200 text-sky-700 dark:border-sky-700 dark:text-sky-300 inline-flex items-center justify-center hover:bg-sky-50 dark:hover:bg-sky-950/40 transition",
-                          "aria-label": "Informacion del selector",
-                          "aria-expanded": imageSourceInfoOpen === "header",
-                          children: c.jsx("span", {
-                            className:
-                              "material-symbols-outlined text-[12px] leading-none",
-                            children: "info",
-                          }),
-                        }),
-                      ],
-                    }),
-                    imageSourceInfoOpen === "header" &&
-                    c.jsx("div", {
-                      className:
-                        "mt-2 rounded-2xl border border-sky-200/80 bg-white/92 px-3 py-2 text-[11px] leading-5 text-sky-900 shadow-sm dark:border-sky-800 dark:bg-slate-950/80 dark:text-sky-100",
-                      children:
-                        imageSourceDialog.description ||
-                        "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className: "mt-5 grid grid-cols-1 gap-3",
-              children: [
-                c.jsxs("button", {
-                  type: "button",
-                  onClick: pickImageFromDevice,
-                  className:
-                    "group w-full rounded-3xl border border-border-light dark:border-border-dark px-4 py-4 text-left bg-white/88 dark:bg-slate-900/75 hover:bg-white dark:hover:bg-slate-900 transition flex items-center gap-3 shadow-sm hover:shadow-md",
-                  children: [
-                    c.jsx("span", {
-                      className:
-                        "shrink-0 w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-500/14 text-violet-700 dark:text-violet-300 grid place-items-center",
-                      children: c.jsx("span", {
-                        className:
-                          "material-symbols-outlined inline-flex items-center justify-center leading-none text-[24px]",
-                        children: "folder_open",
-                      }),
-                    }),
-                    c.jsxs("span", {
-                      className: "flex-1 flex flex-col min-w-0",
-                      children: [
-                        c.jsxs("span", {
-                          className: "flex items-center gap-2 min-w-0",
-                          children: [
-                            c.jsx("span", {
-                              className:
-                                "text-sm font-bold text-text-main dark:text-white truncate",
-                              children:
-                                imageSourceDialog.deviceLabel ||
-                                "Elegir del dispositivo",
-                            }),
-                            c.jsx("span", {
-                              role: "button",
-                              tabIndex: 0,
-                              onClick: (o) => {
-                                o.stopPropagation(),
-                                  setImageSourceInfoOpen((N) =>
-                                    N === "device" ? null : "device",
-                                  );
-                              },
-                              onKeyDown: (o) => {
-                                (o.key === "Enter" || o.key === " ") &&
-                                  (o.preventDefault(),
-                                  setImageSourceInfoOpen((N) =>
-                                    N === "device" ? null : "device",
-                                  ));
-                              },
-                              title:
-                                imageSourceDialog.deviceDescription ||
-                                (imageSourceDialog.multiple
-                                  ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
-                                  : "Abre tu galeria o archivos y selecciona una imagen."),
-                              className:
-                                "shrink-0 w-5 h-5 rounded-full border border-violet-200 text-violet-700 dark:border-violet-800 dark:text-violet-300 inline-flex items-center justify-center hover:bg-violet-50 dark:hover:bg-violet-950/40 transition cursor-pointer",
-                              children: c.jsx("span", {
-                                className:
-                                  "material-symbols-outlined text-[12px] leading-none",
-                                children: "info",
-                              }),
-                            }),
-                          ],
-                        }),
-                        c.jsx("span", {
-                          className:
-                            "hidden",
-                          children:
-                            imageSourceDialog.multiple
-                              ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
-                              : "Abre tu galeria o archivos y selecciona una imagen.",
-                        }),
-                        imageSourceInfoOpen === "device" &&
-                        c.jsx("span", {
-                          className:
-                            "mt-2 rounded-2xl border border-violet-200 bg-white/92 px-3 py-2 text-[11px] leading-5 text-violet-900 shadow-sm dark:border-violet-900 dark:bg-slate-950/80 dark:text-violet-100",
-                          children:
-                            imageSourceDialog.deviceDescription ||
-                            (imageSourceDialog.multiple
-                              ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
-                              : "Abre tu galeria o archivos y selecciona una imagen."),
-                        }),
-                      ],
-                    }),
-                    c.jsx("span", {
-                      className:
-                        "material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500 transition-transform group-hover:translate-x-0.5",
-                      children: "arrow_forward_ios",
-                    }),
-                  ],
-                }),
-                c.jsxs("button", {
-                  type: "button",
-                  onClick: pickImageFromClipboard,
-                  className:
-                    "group w-full rounded-3xl border border-border-light dark:border-border-dark px-4 py-4 text-left bg-white/88 dark:bg-slate-900/75 hover:bg-white dark:hover:bg-slate-900 transition flex items-center gap-3 shadow-sm hover:shadow-md",
-                  children: [
-                    c.jsx("span", {
-                      className:
-                        "shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 grid place-items-center",
-                      children: c.jsx("span", {
-                        className:
-                          "material-symbols-outlined inline-flex items-center justify-center leading-none text-[24px]",
-                        children: "content_paste",
-                      }),
-                    }),
-                    c.jsxs("span", {
-                      className: "flex-1 flex flex-col min-w-0",
-                      children: [
-                        c.jsxs("span", {
-                          className: "flex items-center gap-2 min-w-0",
-                          children: [
-                            c.jsx("span", {
-                              className:
-                                "text-sm font-bold text-text-main dark:text-white truncate",
-                              children:
-                                imageSourceDialog.clipboardLabel ||
-                                "Usar portapapeles",
-                            }),
-                            c.jsx("span", {
-                              role: "button",
-                              tabIndex: 0,
-                              onClick: (o) => {
-                                o.stopPropagation(),
-                                  setImageSourceInfoOpen((N) =>
-                                    N === "clipboard" ? null : "clipboard",
-                                  );
-                              },
-                              onKeyDown: (o) => {
-                                (o.key === "Enter" || o.key === " ") &&
-                                  (o.preventDefault(),
-                                  setImageSourceInfoOpen((N) =>
-                                    N === "clipboard" ? null : "clipboard",
-                                  ));
-                              },
-                              title:
-                                imageSourceDialog.clipboardDescription ||
-                                "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
-                              className:
-                                "shrink-0 w-5 h-5 rounded-full border border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300 inline-flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition cursor-pointer",
-                              children: c.jsx("span", {
-                                className:
-                                  "material-symbols-outlined text-[12px] leading-none",
-                                children: "info",
-                              }),
-                            }),
-                          ],
-                        }),
-                        c.jsx("span", {
-                          className:
-                            "hidden",
-                          children:
-                            "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
-                        }),
-                        imageSourceInfoOpen === "clipboard" &&
-                        c.jsx("span", {
-                          className:
-                            "mt-2 rounded-2xl border border-emerald-200 bg-white/92 px-3 py-2 text-[11px] leading-5 text-emerald-900 shadow-sm dark:border-emerald-900 dark:bg-slate-950/80 dark:text-emerald-100",
-                          children:
-                            imageSourceDialog.clipboardDescription ||
-                            "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
-                        }),
-                      ],
-                    }),
-                    c.jsx("span", {
-                      className:
-                        "material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500 transition-transform group-hover:translate-x-0.5",
-                      children: "arrow_forward_ios",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            c.jsx("button", {
-              type: "button",
-              onClick: () => dismissActiveOverlayRef.current(),
-              className:
-                "mt-4 w-full py-2.5 rounded-2xl border border-border-light dark:border-border-dark bg-white/75 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-sm font-semibold text-text-main dark:text-white transition",
-              children: "Cerrar",
-            }),
-          ],
-        }),
-      }),
+      }),      imageSourceDialog &&
       c.jsx(V.Suspense, {
         fallback: null,
-        children: c.jsx(ConfirmDialog, {
-          confirmDialog,
+        children: c.jsx(ImageSourceDialog, {
+          imageSourceDialog,
+          imageSourceInfoOpen,
+          setImageSourceInfoOpen,
           overlayBackdropClass,
           overlaySheetClass,
-          onDismiss: () => dismissActiveOverlayRef.current(),
-          onConfirm: () => closeConfirmDialog(!0),
+          dismissActiveOverlayRef,
+          pickImageFromDevice,
+          pickImageFromClipboard,
         }),
       }),
       inputDialog &&
@@ -15321,255 +14304,27 @@ function nh() {
             }),
           ],
         }),
-      }),
-      reviewConversationEntry &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[79] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-          "review-conversation",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "w-full sm:max-w-lg max-h-[82vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
-            "review-conversation",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("div", {
-              className:
-                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-start justify-between gap-3",
-              children: [
-                c.jsx("p", {
-                  className: "text-[11px] text-gray-500 dark:text-slate-400",
-                  children:
-                    (reviewConversationEntry.product &&
-                      reviewConversationEntry.product.name) ||
-                    "Producto",
-                }),
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  className:
-                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
-                  children: c.jsx("span", {
-                    className: "material-symbols-outlined text-[18px]",
-                    children: "close",
-                  }),
-                }),
-              ],
-            }),
-            c.jsx("div", {
-              ref: reviewConversationScrollRef,
-              className: "px-3 py-2 flex-1 overflow-y-auto ios-scroll",
-              children:
-                reviewConversationEntry.review &&
-                (reviewConversationEntry.review.messages || []).length > 0
-                  ? [...(reviewConversationEntry.review.messages || [])]
-                    .sort(
-                      (o, N) =>
-                        new Date(o.created_at || 0).getTime() -
-                        new Date(N.created_at || 0).getTime(),
-                    )
-                    .map((o) => {
-                    const N =
-                      (J && o.sender && Number(o.sender) === Number(J.id)) ||
-                      (J &&
-                        o.sender_username &&
-                        String(o.sender_username).toLowerCase() ===
-                          String(J.username || "").toLowerCase());
-                    return (
-                    c.jsxs(
-                      "div",
-                      {
-                        className: `w-full flex ${N ? "justify-end" : "justify-start"} ${N ? "mt-1" : "mt-0.5"}`,
-                        children: [
-                          c.jsxs("div", {
-                            className:
-                              `max-w-[88%] rounded-2xl px-3 py-2 ${N ? "ml-auto bg-primary text-white rounded-br-md" : "mr-auto bg-white/90 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-bl-md"}`,
-                            children: [
-                              c.jsxs("div", {
-                                className:
-                                  `flex items-center gap-2 text-[10px] mb-0.5 ${N ? "justify-end text-white/70" : "justify-between text-slate-400 dark:text-slate-500"}`,
-                                children: [
-                                  !N &&
-                                  c.jsxs("span", {
-                                    className:
-                                      "font-semibold text-slate-700 dark:text-slate-100",
-                                    children: [
-                                      o.sender_username || "Usuario",
-                                      " • ",
-                                      o.sender_role || "AV",
-                                    ],
-                                  }),
-                                  c.jsx("span", {
-                                    className: N ? "inline-flex items-center gap-1 text-white/70" : "",
-                                    children: N
-                                      ? [
-                                          o.created_at
-                                            ? new Date(o.created_at).toLocaleString()
-                                            : "",
-                                          c.jsx(
-                                            "span",
-                                            {
-                                              className:
-                                                "material-symbols-outlined text-[12px] leading-none",
-                                              children: o.seen_by_other ? "done_all" : "done",
-                                            },
-                                            `${o.id}-seen-status`,
-                                          ),
-                                        ]
-                                      : o.created_at
-                                        ? new Date(o.created_at).toLocaleString()
-                                        : "",
-                                  }),
-                                ],
-                              }),
-                              (o.from_status || o.to_status) &&
-                              c.jsx("p", {
-                                className:
-                                  `mb-1 text-[10px] font-semibold ${N ? "text-white/80 text-right" : "text-primary/80 dark:text-sky-300/80"}`,
-                                children:
-                                  o.from_status &&
-                                  o.to_status &&
-                                  o.from_status !== o.to_status
-                                    ? `${getReviewFlowLabel(o.from_status)} -> ${getReviewFlowLabel(o.to_status)}`
-                                    : getReviewFlowLabel(
-                                        o.to_status || o.from_status,
-                                      ),
-                              }),
-                              o.message &&
-                              c.jsx("p", {
-                                className:
-                                  `text-[12px] leading-relaxed whitespace-pre-wrap break-words ${N ? "text-white text-right" : "text-slate-700 dark:text-slate-200"}`,
-                                children: o.message,
-                              }),
-                              (o.attachments || []).length > 0 &&
-                              c.jsx("div", {
-                                className: `mt-1.5 flex flex-wrap gap-1.5 ${N ? "justify-end" : ""}`,
-                                children: (o.attachments || []).map((A) =>
-                                  c.jsx(
-                                    "button",
-                                    {
-                                      onClick: () =>
-                                        setFullscreenImage({
-                                          url: resolveMediaUrl(A.file),
-                                          copyOnClick: !0,
-                                          copyMessage: "Imagen copiada.",
-                                        }),
-                                      className:
-                                        "w-14 h-14 overflow-hidden rounded-lg border border-white/20 dark:border-slate-700 bg-white dark:bg-slate-950",
-                                      children: c.jsx("img", {
-                                        src: resolveMediaUrl(A.file),
-                                        className: "w-full h-full object-cover",
-                                      }),
-                                    },
-                                    A.id,
-                                  ),
-                                ),
-                              }),
-                            ],
-                          }),
-                        ],
-                      },
-                      o.id,
-                    )
-                    );
-                  })
-                  : c.jsx("p", {
-                    className:
-                      "text-sm text-center text-gray-500 dark:text-slate-400 py-8",
-                    children: "No hay mensajes guardados en esta revision.",
-                  }),
-            }),
-            c.jsxs("div", {
-              className:
-                "border-t border-border-light dark:border-border-dark px-3 py-3 bg-white/88 dark:bg-slate-950/40 space-y-2.5",
-              children: [
-                c.jsxs("div", {
-                  className: "flex items-center justify-between gap-2",
-                  children: [
-                    c.jsx("div", {
-                      className: "flex items-center gap-1.5",
-                      children: currentConversationStatusActions.map((o) =>
-                        c.jsx(
-                          "button",
-                          {
-                            type: "button",
-                            onClick: () => setAltUploadTargetStatus(o.value),
-                            className:
-                              `px-2.5 py-1.5 rounded-full text-[11px] font-medium border ${
-                                altUploadTargetStatus === o.value
-                                  ? "bg-primary text-white border-primary"
-                                  : "bg-white/92 dark:bg-slate-900/92 text-slate-600 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-                              }`,
-                            children: o.label,
-                          },
-                          o.value,
-                        ),
-                      ),
-                    }),
-                    c.jsxs("button", {
-                      type: "button",
-                      onClick: pickAlternativeUploadImages,
-                      className:
-                        "shrink-0 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/92 dark:bg-slate-900/92 text-[11px] font-medium text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
-                      children: [
-                        "Adjuntar",
-                        altUploadFiles.length > 0 ? ` (${altUploadFiles.length})` : "",
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsx("textarea", {
-                  rows: 1,
-                  value: altUploadDescription,
-                  onChange: (o) => setAltUploadDescription(o.target.value),
-                  onKeyDown: (o) => {
-                    if (o.key !== "Enter" || o.shiftKey) return;
-                    o.preventDefault();
-                    sendReviewAlternatives({ closeAfterSave: !1 });
-                  },
-                  onInput: (o) => {
-                    o.target.style.height = "0px";
-                    o.target.style.height = `${Math.min(o.target.scrollHeight, 128)}px`;
-                  },
-                  placeholder: "Comentario opcional para este cambio",
-                  className:
-                    "w-full min-h-[38px] max-h-32 px-3 py-2 text-xs border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto ios-scroll",
-                }),
-                c.jsxs("div", {
-                  className:
-                    "flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-slate-400",
-                  children: [
-                    c.jsx("span", {
-                      children: "Comentario opcional",
-                    }),
-                    altUploadFiles.length > 0 &&
-                    c.jsxs("span", {
-                      children: ["Archivos: ", altUploadFiles.length],
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: "grid grid-cols-2 gap-2",
-                  children: [
-                    c.jsx("button", {
-                      onClick: () => dismissActiveOverlayRef.current(),
-                      className:
-                        "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 text-xs font-semibold",
-                      children: "Cerrar",
-                    }),
-                    c.jsx("button", {
-                      onClick: () => sendReviewAlternatives({ closeAfterSave: !1 }),
-                      className:
-                        "py-2 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-dark",
-                      children: "Enviar",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-          ],
+      }),      reviewConversationEntry &&
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(ReviewConversationModal, {
+          reviewConversationEntry,
+          reviewConversationScrollRef,
+          dismissActiveOverlayRef,
+          overlayBackdropClass,
+          overlaySheetClass,
+          J,
+          currentConversationStatusActions,
+          altUploadTargetStatus,
+          setAltUploadTargetStatus,
+          altUploadDescription,
+          setAltUploadDescription,
+          altUploadFiles,
+          pickAlternativeUploadImages,
+          sendReviewAlternatives,
+          setFullscreenImage,
+          resolveMediaUrl,
+          getReviewFlowLabel,
         }),
       }),
       getFullscreenImageUrl(fullscreenImage) &&
@@ -15777,5 +14532,7 @@ function nh() {
 }
 
 export default nh;
+
+
 
 
