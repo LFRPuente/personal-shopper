@@ -174,12 +174,60 @@ const HomeSection = V.memo(function HomeSection() {
                         children: c.jsx('img', { src: resolveMediaUrl(request.image), className: 'w-full h-full object-cover' }),
                       }),
                       c.jsx('div', {
-                        className: 'flex flex-wrap gap-1',
+                        className: 'flex flex-wrap gap-1.5',
                         children: [
-                          c.jsx('button', { onClick: () => updateMissionRequest(request.id, request.status === 'ACKNOWLEDGED' ? 'PENDING' : 'ACKNOWLEDGED'), className: 'text-[10px] px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200', children: 'Enterado' }),
-                          c.jsx('button', { onClick: () => updateMissionRequest(request.id, request.status === 'NO_STOCK' ? 'PENDING' : 'NO_STOCK'), className: 'text-[10px] px-2 py-1 rounded bg-red-100 text-red-700 font-semibold hover:bg-red-200', children: 'No Existencia' }),
-                          c.jsx('button', { onClick: () => startRequestModify(request), className: 'text-[10px] px-2 py-1 rounded bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200', children: 'Modificar' }),
-                          c.jsx('button', { onClick: () => deleteMissionRequest(request.id), className: 'text-[10px] px-2 py-1 rounded bg-rose-100 text-rose-700 font-semibold hover:bg-rose-200', children: 'Borrar' }),
+                          c.jsx('button', {
+                            onClick: () =>
+                              updateMissionRequest(
+                                request.id,
+                                request.status === 'ACKNOWLEDGED'
+                                  ? 'PENDING'
+                                  : 'ACKNOWLEDGED',
+                              ),
+                            className:
+                              'w-8 h-8 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center',
+                            title: 'Enterado',
+                            children: c.jsx('span', {
+                              className: 'material-symbols-outlined text-[14px]',
+                              children: 'check',
+                            }),
+                          }),
+                          c.jsx('button', {
+                            onClick: () =>
+                              updateMissionRequest(
+                                request.id,
+                                request.status === 'NO_STOCK'
+                                  ? 'PENDING'
+                                  : 'NO_STOCK',
+                              ),
+                            className:
+                              'w-8 h-8 rounded-md border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/35 dark:text-red-200 dark:hover:bg-red-900/60 flex items-center justify-center',
+                            title: 'No existencia',
+                            children: c.jsx('span', {
+                              className: 'material-symbols-outlined text-[14px]',
+                              children: 'block',
+                            }),
+                          }),
+                          c.jsx('button', {
+                            onClick: () => startRequestModify(request),
+                            className:
+                              'w-8 h-8 rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/35 dark:text-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center',
+                            title: 'Modificar',
+                            children: c.jsx('span', {
+                              className: 'material-symbols-outlined text-[14px]',
+                              children: 'edit',
+                            }),
+                          }),
+                          c.jsx('button', {
+                            onClick: () => deleteMissionRequest(request.id),
+                            className:
+                              'w-8 h-8 rounded-md border border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-900/35 dark:text-rose-200 dark:hover:bg-rose-900/60 flex items-center justify-center',
+                            title: 'Eliminar',
+                            children: c.jsx('span', {
+                              className: 'material-symbols-outlined text-[14px]',
+                              children: 'delete_forever',
+                            }),
+                          }),
                         ],
                       }),
                     ],
