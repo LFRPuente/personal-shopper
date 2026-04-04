@@ -1103,6 +1103,21 @@ function nh() {
           (El) => El.status === "ACTIVE" || El.status === "PAUSED",
         );
         Dl(vl || null);
+        // Inline calc sync to avoid extra render cycle from the calc sync effect
+        if (vl) {
+          const cm = String(vl.calc_mode || "FACTOR").toUpperCase();
+          (cm === "FACTOR" || cm === "PERCENTAGE") && setCalcMode(cm);
+          const fv = parseFloat(vl.factor_value);
+          Number.isFinite(fv) && setCalcFactor(fv);
+          const tp = parseFloat(vl.tax_percentage);
+          Number.isFinite(tp) && setCalcTaxes(tp);
+          const cp = parseFloat(vl.commission_percentage);
+          Number.isFinite(cp) && setCalcCommission(cp);
+          const er = parseFloat(vl.exchange_rate);
+          Number.isFinite(er) && setCalcExchangeRate(er);
+          const dp = parseFloat(vl.discount_percentage);
+          Number.isFinite(dp) && setCalcDiscount(dp);
+        }
       } catch (o) {
         console.error("Failed loading data", o);
       }
@@ -8554,6 +8569,17 @@ function nh() {
           dismissActiveOverlayRef,
           pickImageFromDevice,
           pickImageFromClipboard,
+        }),
+      }),
+      confirmDialog &&
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(ConfirmDialog, {
+          confirmDialog,
+          overlayBackdropClass,
+          overlaySheetClass,
+          onDismiss: () => closeConfirmDialog(!1),
+          onConfirm: () => closeConfirmDialog(!0),
         }),
       }),
       inputDialog &&

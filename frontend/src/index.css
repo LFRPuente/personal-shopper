@@ -86,7 +86,6 @@
       color 0.22s ease,
       border-color 0.22s ease,
       opacity 0.22s ease;
-    will-change: transform;
   }
 
   button:not(:disabled):active {
@@ -481,17 +480,53 @@
 .browser-firefox .ui-sheet,
 .browser-firefox .ui-pop,
 .browser-firefox .ui-disclosure-panel,
-.browser-firefox .ui-section-stage {
+.browser-firefox .ui-section-stage,
+.browser-firefox .ui-nav-item,
+.browser-firefox .ui-card-quiet,
+.browser-firefox .ui-icon-button {
   will-change: auto;
+}
+
+.browser-firefox button {
+  will-change: auto;
+  transition:
+    background-color 0.22s ease,
+    color 0.22s ease,
+    opacity 0.22s ease;
+}
+
+.browser-firefox .ui-backdrop {
+  backdrop-filter: none;
+}
+
+/* Suppress all transitions/animations during initial page load in Firefox */
+.browser-firefox.ff-loading,
+.browser-firefox.ff-loading * {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
 }
 
 .browser-firefox .ui-media-card {
   contain-intrinsic-size: 220px 300px;
 }
 
+.browser-firefox .ui-disclosure-chevron {
+  will-change: auto;
+}
+
 .browser-firefox .review-pending,
 .browser-firefox .review-item-alert {
   animation: none !important;
+}
+
+.browser-firefox .ui-card-quiet {
+  transition: box-shadow 0.22s ease;
+}
+
+.browser-firefox input,
+.browser-firefox textarea,
+.browser-firefox select {
+  transition: border-color 0.18s ease;
 }
 
 .dark .ui-icon-button {
