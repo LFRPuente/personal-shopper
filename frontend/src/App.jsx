@@ -6,6 +6,7 @@ const c = { jsx, jsxs, Fragment };
 const IS_FIREFOX =
   typeof navigator != "undefined" &&
   /firefox/i.test(String(navigator.userAgent || ""));
+const ENABLE_REALTIME_UPDATES = !IS_FIREFOX;
 const optimizeMediaElementProps = (type, props) => {
   if (!props || typeof props != "object") return props;
   if (type === "img") {
@@ -1205,6 +1206,16 @@ function nh() {
       }
       return;
     }
+    if (!ENABLE_REALTIME_UPDATES) {
+      wsStoppedRef.current = !0;
+      wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
+      wsReconnectTimerRef.current = null;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      return;
+    }
     wsStoppedRef.current = !1;
     let reconnectAttempt = 0;
     const refreshRequestsForMission = async () => {
@@ -1463,68 +1474,72 @@ function nh() {
   }, [C]);
   // <-------- seccion 8: carga inicial de revisiones por cliente (sin polling)
   V.useEffect(() => {
-    if (!C || !W) {
+    const o = W && W.id ? Number(W.id) : null;
+    if (!C || !o) {
       setProductReviews([]);
       return;
     }
     let isMounted = !0;
     const loadProductReviews = async () => {
       try {
-        const o = await I(`/reviews/?client=${W.id}`);
-        isMounted && setProductReviews(o || []);
-      } catch (o) {
-        console.error("Failed loading product reviews", o);
+        const N = await I(`/reviews/?client=${o}`);
+        isMounted && setProductReviews(N || []);
+      } catch (N) {
+        console.error("Failed loading product reviews", N);
       }
     };
     loadProductReviews();
     return () => {
       isMounted = !1;
     };
-  }, [C, W]);
+  }, [C, W && W.id]);
   V.useEffect(() => {
-    if (!C || !w || !w.id) {
+    const o = w && w.id ? Number(w.id) : null;
+    if (!C || !o) {
       setHomeUnreadSummary({});
       return;
     }
     let isMounted = !0;
     const loadUnreadSummary = async () => {
       try {
-        const o = await I(`/reviews/unread-summary/?shopping=${w.id}`);
-        isMounted && setHomeUnreadSummary(o || {});
-      } catch (o) {
-        console.error("Failed loading unread review summary", o);
+        const N = await I(`/reviews/unread-summary/?shopping=${o}`);
+        isMounted && setHomeUnreadSummary(N || {});
+      } catch (N) {
+        console.error("Failed loading unread review summary", N);
       }
     };
     loadUnreadSummary();
     return () => {
       isMounted = !1;
     };
-  }, [C, w]);
+  }, [C, w && w.id]);
   // <-------- seccion 8: carga inicial de alertas de revision por mision
   V.useEffect(() => {
-    if (!C || !w || (w.status !== "ACTIVE" && w.status !== "PAUSED")) {
+    const o = w && w.id ? Number(w.id) : null,
+      N = String((w && w.status) || "");
+    if (!C || !o || (N !== "ACTIVE" && N !== "PAUSED")) {
       setMissionReviewAlerts([]);
       return;
     }
     let isMounted = !0;
     const loadMissionReviews = async () => {
       try {
-        const o = await I(`/reviews/?shopping=${w.id}`);
+        const A = await I(`/reviews/?shopping=${o}`);
         isMounted &&
           setMissionReviewAlerts(
-            (o || []).filter(
-              (N) => N.status === "PENDING" || N.status === "ALTERNATIVE_SENT",
+            (A || []).filter(
+              (vl) => vl.status === "PENDING" || vl.status === "ALTERNATIVE_SENT",
             ),
           );
-      } catch (o) {
-        console.error("Failed loading shopping reviews", o);
+      } catch (A) {
+        console.error("Failed loading shopping reviews", A);
       }
     };
     loadMissionReviews();
     return () => {
       isMounted = !1;
     };
-  }, [C, w]);
+  }, [C, w && w.id, w && w.status]);
   // <-------- seccion 9: sincroniza calculadora con configuracion de mision activa
   V.useEffect(() => {
     if (!w) return;

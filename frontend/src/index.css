@@ -489,6 +489,11 @@
   contain-intrinsic-size: 220px 300px;
 }
 
+.browser-firefox .review-pending,
+.browser-firefox .review-item-alert {
+  animation: none !important;
+}
+
 .dark .ui-icon-button {
   border-color: rgba(46, 37, 69, 0.62);
   background: rgba(12, 10, 20, 0.7);
