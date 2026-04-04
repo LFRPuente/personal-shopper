@@ -7859,8 +7859,7 @@ function nh() {
       publicShipmentProductPickerOverlay,
       ],
     });
-  if (!C || !J)
-    return c.jsxs("div", {
+  const authScreen = c.jsxs("div", {
       className:
         "w-full max-w-[480px] min-h-screen bg-surface-light dark:bg-surface-dark flex flex-col justify-center p-8 border-x border-border-light relative animate-in fade-in",
       children: [
@@ -8167,6 +8166,7 @@ function nh() {
       "Cargando seccion...",
     ],
   });
+  if (!C || !J) return authScreen;
   return c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
