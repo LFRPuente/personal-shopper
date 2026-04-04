@@ -10406,15 +10406,17 @@ function nh() {
                   : "space-y-2",
                 children: o.map((N) => {
                   const A = isShipmentExpanded(N.id),
-                    vl =
-                      Number(shipmentForm.id) === Number(N.id)
+                    vl = A
+                      ? Number(shipmentForm.id) === Number(N.id)
                         ? shipmentForm
-                        : getShipmentFormState(N),
+                        : getShipmentFormState(N)
+                      : null,
                     El = canEditShipmentBox(N),
-                    Se =
-                      A && Number(shipmentForm.id) === Number(N.id)
+                    Se = A
+                      ? Number(shipmentForm.id) === Number(N.id)
                         ? shipmentSelectedProducts
-                        : N.products_detail || [];
+                        : N.products_detail || []
+                      : [];
                   return c.jsxs(
                     "div",
                     {
@@ -10533,10 +10535,9 @@ function nh() {
                             }),
                           ],
                         }),
+                        A &&
                         c.jsx("div", {
-                          className: `ui-disclosure-panel ${
-                            A ? "ui-disclosure-panel-open" : ""
-                          }`,
+                          className: "ui-disclosure-panel ui-disclosure-panel-open",
                           children: c.jsx("div", {
                             className: "ui-disclosure-inner",
                             children: c.jsxs("div", {
