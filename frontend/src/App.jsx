@@ -435,6 +435,7 @@ function nh() {
     [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
     [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null),
     [openShipmentEvidenceMenuId, setOpenShipmentEvidenceMenuId] = V.useState(null),
+    [shipmentDetailLoadingIds, setShipmentDetailLoadingIds] = V.useState([]),
     [expandedShipmentIds, setExpandedShipmentIds] = V.useState([]),
     [shipmentSaving, setShipmentSaving] = V.useState(!1),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
@@ -635,7 +636,7 @@ function nh() {
         ]);
         _l(N || []);
         zl(A || []);
-        setShipments(yl || []);
+        setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         setShippingCarrierRecommendations(qs || []);
         setUsers(Vs || []);
         const vl = A.find(
@@ -669,7 +670,7 @@ function nh() {
         _l(N || []);
         zl(A || []);
         setStoreRecommendations(vl || []);
-        setShipments(yl || []);
+        setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         setShippingCarrierRecommendations(qs || []);
         const El = (A || []).find(
           (Se) => Se.status === "ACTIVE" || Se.status === "PAUSED",
@@ -3408,8 +3409,33 @@ function nh() {
         );
         return;
       }
-      loadShipmentForm(o);
       setExpandedShipmentIds((A) => [...new Set([...(A || []), N])]);
+      if (shipmentHasHydratedDetail(o)) {
+        loadShipmentForm(o);
+        return;
+      }
+      setShipmentForm((A) => ({
+        ...A,
+        id: N,
+        client: String((o && o.client) || ""),
+        carrier: String((o && o.carrier) || "").trim(),
+        status: normalizeShipmentStatusValue((o && o.status) || "PENDING"),
+        tracking_number: (o && o.tracking_number) || "",
+        guide_price:
+          o && o.guide_price !== null && typeof o.guide_price != "undefined"
+            ? String(o.guide_price)
+            : "",
+        client_price:
+          o && o.client_price !== null && typeof o.client_price != "undefined"
+            ? String(o.client_price)
+            : "",
+        shipping_address: (o && o.shipping_address) || "",
+        product_ids: [],
+        initial_product_ids: [],
+      }));
+      fetchShipmentDetail(N).then((A) => {
+        A && loadShipmentForm(A);
+      });
     },
     resetExpandedShipmentForm = (o) => {
       if (!o) return;
@@ -5158,6 +5184,55 @@ function nh() {
         El[vl] = { ...El[vl], ...o };
         return El;
       });
+    },
+    shipmentHasHydratedDetail = (o = null) =>
+      !!(
+        o &&
+        Array.isArray(o.products_detail) &&
+        Array.isArray(o.evidence) &&
+        Array.isArray(o.client_shipping_addresses)
+      ),
+    mergeShipmentSummariesWithHydrated = (o = [], N = []) => {
+      const A = new Map(
+        (Array.isArray(o) ? o : [])
+          .filter((vl) => shipmentHasHydratedDetail(vl))
+          .map((vl) => [Number(vl.id), vl]),
+      );
+      return (Array.isArray(N) ? N : []).map((vl) => {
+        const El = A.get(Number(vl && vl.id));
+        if (!El) return vl;
+        return {
+          ...El,
+          ...vl,
+          products_detail: El.products_detail,
+          evidence: El.evidence,
+          client_shipping_addresses: El.client_shipping_addresses,
+        };
+      });
+    },
+    fetchShipmentDetail = async (o, N = {}) => {
+      const A = Number((o && o.id) || o || 0);
+      if (!Number.isFinite(A) || A <= 0) return null;
+      const vl =
+        shipments.find((El) => Number(El && El.id) === A) ||
+        (o && typeof o === "object" ? o : null);
+      if (!N.force && shipmentHasHydratedDetail(vl)) return vl;
+      setShipmentDetailLoadingIds((El) =>
+        El.includes(A) ? El : [...El, A],
+      );
+      try {
+        const El = await I(`/shipments/${A}/`);
+        El && El.id && upsertShipmentListItem(El);
+        return El || null;
+      } catch (El) {
+        console.error("Failed loading shipment detail", El);
+        notifyError("No se pudo cargar el detalle del envio.");
+        return null;
+      } finally {
+        setShipmentDetailLoadingIds((El) =>
+          El.filter((Se) => Number(Se) !== A),
+        );
+      }
     },
     getHomeVisibleProducts = (o) =>
       (o.products || []).filter(
@@ -10406,16 +10481,22 @@ function nh() {
                   : "space-y-2",
                 children: o.map((N) => {
                   const A = isShipmentExpanded(N.id),
+                    vlHydrated = shipmentHasHydratedDetail(N),
+                    ElLoading = shipmentDetailLoadingIds.includes(Number(N.id)),
                     vl = A
-                      ? Number(shipmentForm.id) === Number(N.id)
+                      ? vlHydrated && Number(shipmentForm.id) === Number(N.id)
                         ? shipmentForm
-                        : getShipmentFormState(N)
+                        : vlHydrated
+                          ? getShipmentFormState(N)
+                          : null
                       : null,
                     El = canEditShipmentBox(N),
                     Se = A
-                      ? Number(shipmentForm.id) === Number(N.id)
+                      ? vlHydrated && Number(shipmentForm.id) === Number(N.id)
                         ? shipmentSelectedProducts
-                        : N.products_detail || []
+                        : vlHydrated
+                          ? N.products_detail || []
+                          : []
                       : [];
                   return c.jsxs(
                     "div",
@@ -10540,9 +10621,34 @@ function nh() {
                           className: "ui-disclosure-panel ui-disclosure-panel-open",
                           children: c.jsx("div", {
                             className: "ui-disclosure-inner",
-                            children: c.jsxs("div", {
-                              className: "space-y-2.5 pt-0.5",
-                              children: [
+                            children: !vlHydrated
+                              ? c.jsxs("div", {
+                                  className:
+                                    "space-y-2.5 pt-2 pb-1 text-xs text-text-sub",
+                                  children: [
+                                    c.jsxs("div", {
+                                      className:
+                                        "rounded-xl border border-border-light dark:border-border-dark bg-slate-50/70 dark:bg-slate-900/40 px-3 py-3 flex items-center gap-2",
+                                      children: [
+                                        c.jsx("span", {
+                                          className:
+                                            `material-symbols-outlined text-[16px] ${ElLoading ? "animate-spin" : ""}`,
+                                          children: ElLoading
+                                            ? "progress_activity"
+                                            : "hourglass_top",
+                                        }),
+                                        c.jsx("span", {
+                                          children: ElLoading
+                                            ? "Cargando detalle del envio..."
+                                            : "Preparando detalle del envio...",
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                })
+                              : c.jsxs("div", {
+                                  className: "space-y-2.5 pt-0.5",
+                                  children: [
                             c.jsxs("div", {
                               className: "grid grid-cols-1 sm:grid-cols-2 gap-2",
                               children: [

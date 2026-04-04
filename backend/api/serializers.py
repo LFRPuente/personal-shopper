@@ -811,6 +811,50 @@ class ShipmentSerializer(serializers.ModelSerializer):
         }
 
 
+class ShipmentListSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.name', read_only=True)
+    shopping = serializers.PrimaryKeyRelatedField(
+        source='mission',
+        queryset=Mission.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    product_count = serializers.IntegerField(read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        client = getattr(instance, 'client', None)
+        data['shipping_address'] = (
+            (getattr(instance, 'shipping_address', '') or '')
+            or (getattr(client, 'shipping_address', '') or '')
+            if client is not None
+            else (getattr(instance, 'shipping_address', '') or '')
+        )
+        return data
+
+    class Meta:
+        model = Shipment
+        fields = [
+            'id',
+            'client',
+            'client_name',
+            'shopping',
+            'shopping_name',
+            'mission_name',
+            'carrier',
+            'tracking_number',
+            'guide_price',
+            'client_price',
+            'shipping_address',
+            'status',
+            'product_count',
+            'created_at',
+            'updated_at',
+        ]
+
+
 class ShipmentEvidenceSerializer(serializers.ModelSerializer):
     file = RelativeMediaField(required=False, allow_null=True)
     uploaded_by_username = serializers.CharField(

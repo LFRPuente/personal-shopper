@@ -5,7 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Count, F, Q
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.http import Http404
@@ -54,6 +54,7 @@ from .serializers import (
     ClientMissionShareProductSerializer,
     ShoppingPaymentSerializer,
     ShipmentSerializer,
+    ShipmentListSerializer,
     ShipmentEvidenceSerializer,
     ShipmentShareLinkSerializer,
     PublicClientReceiptSerializer,
@@ -1802,10 +1803,25 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShipmentListSerializer
+        return ShipmentSerializer
+
     def get_queryset(self):
-        queryset = Shipment.objects.select_related(
-            'client', 'product', 'mission', 'created_by'
-        ).prefetch_related('products', 'evidence', 'evidence__uploaded_by').all().order_by('-updated_at', '-id')
+        if self.action == 'list':
+            queryset = (
+                Shipment.objects.select_related(
+                    'client', 'product', 'mission', 'created_by'
+                )
+                .annotate(product_count=Count('products', distinct=True))
+                .all()
+                .order_by('-updated_at', '-id')
+            )
+        else:
+            queryset = Shipment.objects.select_related(
+                'client', 'product', 'mission', 'created_by'
+            ).prefetch_related('products', 'evidence', 'evidence__uploaded_by').all().order_by('-updated_at', '-id')
         client_id = self.request.query_params.get('client')
         mission_id = get_shopping_query_param(self.request)
         product_id = self.request.query_params.get('product')
