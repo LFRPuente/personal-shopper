@@ -198,7 +198,13 @@ class ProductItemSerializer(serializers.ModelSerializer):
 class ShipmentProductSummarySerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    shopping_date = serializers.DateTimeField(
+        source='mission.start_time', read_only=True, default=None
+    )
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    mission_date = serializers.DateTimeField(
+        source='mission.start_time', read_only=True, default=None
+    )
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
     payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
 
@@ -214,7 +220,9 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
             'payer_username',
             'status',
             'shopping_name',
+            'shopping_date',
             'mission_name',
+            'mission_date',
             'store_name',
         ]
 
