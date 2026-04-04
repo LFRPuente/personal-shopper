@@ -518,6 +518,12 @@ function nh() {
     currentTabRef = V.useRef("HOME"),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    coreRefreshTimerRef = V.useRef(null),
+    coreRefreshPendingRef = V.useRef(!1),
+    coreRefreshInFlightRef = V.useRef(!1),
+    selectedClientRefreshTimerRef = V.useRef(null),
+    selectedClientRefreshPendingRef = V.useRef(!1),
+    selectedClientRefreshInFlightRef = V.useRef(!1),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
@@ -653,6 +659,61 @@ function nh() {
       } catch (N) {
         console.error("Failed refreshing selected client", N);
       }
+    },
+    runQueuedCoreRefresh = async () => {
+      if (coreRefreshInFlightRef.current) {
+        coreRefreshPendingRef.current = !0;
+        return;
+      }
+      coreRefreshInFlightRef.current = !0;
+      try {
+        await refreshCoreData();
+      } finally {
+        coreRefreshInFlightRef.current = !1;
+        if (coreRefreshPendingRef.current) {
+          coreRefreshPendingRef.current = !1;
+          queueCoreRefresh(180);
+        }
+      }
+    },
+    queueCoreRefresh = (o = 120) => {
+      coreRefreshPendingRef.current = !0;
+      coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
+      coreRefreshTimerRef.current = setTimeout(() => {
+        coreRefreshTimerRef.current = null;
+        coreRefreshPendingRef.current = !1;
+        runQueuedCoreRefresh().catch((N) => {
+          console.error("Failed queued core refresh", N);
+        });
+      }, o);
+    },
+    runQueuedSelectedClientRefresh = async () => {
+      if (selectedClientRefreshInFlightRef.current) {
+        selectedClientRefreshPendingRef.current = !0;
+        return;
+      }
+      selectedClientRefreshInFlightRef.current = !0;
+      try {
+        await refreshSelectedClient();
+      } finally {
+        selectedClientRefreshInFlightRef.current = !1;
+        if (selectedClientRefreshPendingRef.current) {
+          selectedClientRefreshPendingRef.current = !1;
+          queueSelectedClientRefresh(220);
+        }
+      }
+    },
+    queueSelectedClientRefresh = (o = 150) => {
+      selectedClientRefreshPendingRef.current = !0;
+      selectedClientRefreshTimerRef.current &&
+        clearTimeout(selectedClientRefreshTimerRef.current);
+      selectedClientRefreshTimerRef.current = setTimeout(() => {
+        selectedClientRefreshTimerRef.current = null;
+        selectedClientRefreshPendingRef.current = !1;
+        runQueuedSelectedClientRefresh().catch((N) => {
+          console.error("Failed queued selected client refresh", N);
+        });
+      }, o);
     },
     // <-------- seccion 8: helper de recarga y update robusto para peticiones
     getMissionRequestDetailPath = (o) => `/requests/${o}/`,
@@ -804,6 +865,14 @@ function nh() {
   V.useEffect(() => {
     closingOverlayKeyRef.current = closingOverlayKey;
   }, [closingOverlayKey]);
+  V.useEffect(
+    () => () => {
+      coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
+      selectedClientRefreshTimerRef.current &&
+        clearTimeout(selectedClientRefreshTimerRef.current);
+    },
+    [],
+  );
   V.useEffect(() => {
     activeOverlayKeyRef.current = activeOverlayKey;
     const o = () => {
@@ -1178,18 +1247,20 @@ function nh() {
             Se();
           }
           if (vl === "clients" || vl === "shoppings") {
-            await refreshCoreData();
+            queueCoreRefresh();
             return;
           }
           if (vl === "shipments") {
-            await refreshCoreData();
-            await refreshSelectedClient();
+            queueCoreRefresh();
+            queueSelectedClientRefresh();
             return;
           }
           if (vl === "products" || vl === "receipts") {
-            await refreshCoreData();
-            await refreshSelectedClient();
-            await refreshUnreadSummaryForActiveMission();
+            queueCoreRefresh();
+            queueSelectedClientRefresh();
+            refreshUnreadSummaryForActiveMission().catch((ea) => {
+              console.error("Failed refreshing unread summary", ea);
+            });
             return;
           }
           if (vl === "requests") {
@@ -1197,10 +1268,14 @@ function nh() {
             return;
           }
           if (vl === "reviews") {
-            await refreshCoreData();
-            await refreshSelectedClient();
-            await refreshReviewsForCurrentContext();
-            await refreshUnreadSummaryForActiveMission();
+            queueCoreRefresh();
+            queueSelectedClientRefresh();
+            refreshReviewsForCurrentContext().catch((ea) => {
+              console.error("Failed refreshing reviews", ea);
+            });
+            refreshUnreadSummaryForActiveMission().catch((ea) => {
+              console.error("Failed refreshing unread summary", ea);
+            });
             return;
           }
           if (vl === "stores") {
@@ -3421,12 +3496,8 @@ function nh() {
         upsertShipmentListItem(ea);
         setShipmentForm(getShipmentFormState(ea));
         notifySuccess(shipmentForm.id ? "Envio actualizado." : "Envio creado.");
-        refreshCoreData().catch((gl) => {
-          console.error("Failed refreshing core data after saving shipment", gl);
-        });
-        refreshSelectedClient().catch((gl) => {
-          console.error("Failed refreshing selected client after saving shipment", gl);
-        });
+        queueCoreRefresh(260);
+        queueSelectedClientRefresh(320);
         publicClientShareToken &&
           reloadPublicShareData().catch((gl) => {
             console.error("Failed refreshing public share after saving shipment", gl);
@@ -3483,8 +3554,8 @@ function nh() {
             product: o.id,
           }),
         });
-        await refreshCoreData();
-        await refreshSelectedClient();
+        queueCoreRefresh(120);
+        queueSelectedClientRefresh(180);
         notifySuccess("Envio asignado.");
       } catch (vl) {
         console.error("Failed assigning existing shipment", vl);
@@ -3503,8 +3574,12 @@ function nh() {
       if (!N) return;
       try {
         await I(`/shipments/${o.id}/`, { method: "DELETE" });
-        await refreshCoreData();
-        await refreshSelectedClient();
+        setShipments((A) => (A || []).filter((vl) => Number(vl.id) !== Number(o.id)));
+        setExpandedShipmentIds((A) =>
+          (A || []).filter((vl) => Number(vl) !== Number(o.id)),
+        );
+        queueCoreRefresh(180);
+        queueSelectedClientRefresh(240);
         notifySuccess("Envio eliminado.");
       } catch (A) {
         console.error("Failed deleting shipment", A);
@@ -3547,8 +3622,8 @@ function nh() {
           method: "POST",
           body: A,
         });
-        await refreshCoreData();
-        await refreshSelectedClient();
+        queueCoreRefresh(180);
+        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
         notifySuccess("Evidencia agregada.");
       } catch (A) {
@@ -3596,8 +3671,8 @@ function nh() {
           method: "POST",
           body: vl,
         });
-        await refreshCoreData();
-        await refreshSelectedClient();
+        queueCoreRefresh(180);
+        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
         notifySuccess("Evidencia actualizada.");
       } catch (vl) {
@@ -3623,8 +3698,8 @@ function nh() {
         await I(`/shipments/${o.id}/evidence/${N}/`, {
           method: "DELETE",
         });
-        await refreshCoreData();
-        await refreshSelectedClient();
+        queueCoreRefresh(180);
+        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
         notifySuccess("Evidencia eliminada.");
       } catch (vl) {
