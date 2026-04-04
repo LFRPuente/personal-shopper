@@ -1,4 +1,4 @@
-﻿import {
+import {
   V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
@@ -20,6 +20,7 @@ const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
+const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 function nh() {
   const publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
     publicClientShareToken = publicShareInfo.token,
@@ -29,7 +30,7 @@ function nh() {
       [],
     ),
     DEFAULT_BREAKDOWN_TEMPLATE =
-      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago ðŸ’³ ðŸ¤—\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.ðŸ’•",
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
@@ -955,6 +956,12 @@ function nh() {
   }, []);
   // <-------- seccion 8: conexion websocket + reconexion automatica
   V.useEffect(() => {
+    const isRealtimeView = (view) =>
+      view === "HOME" ||
+      view === "MISSIONS" ||
+      view === "CLIENTS" ||
+      view === "SHIPMENTS";
+    const currentView = currentTabRef.current;
     if (!C) {
       wsStoppedRef.current = !0;
       wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
@@ -965,7 +972,7 @@ function nh() {
       }
       return;
     }
-    if (!ENABLE_REALTIME_UPDATES) {
+    if (!ENABLE_REALTIME_UPDATES || !isRealtimeView(currentView)) {
       wsStoppedRef.current = !0;
       wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
       wsReconnectTimerRef.current = null;
@@ -1039,9 +1046,13 @@ function nh() {
           const A = JSON.parse(N.data || "{}");
           const vl = A.model,
             El = String(A.action || "changed").toLowerCase(),
+            currentView = currentTabRef.current,
             Se = () => {
               if (currentTabRef.current !== "HOME") setHomeNeedsAttention(!0);
             };
+          if (!isRealtimeView(currentView)) {
+            return;
+          }
           if (
             (vl === "clients" || vl === "requests" || vl === "reviews") &&
             El === "created"
@@ -1049,44 +1060,78 @@ function nh() {
             Se();
           }
           if (vl === "clients" || vl === "shoppings") {
-            queueCoreRefresh();
+            if (
+              currentView === "HOME" ||
+              currentView === "MISSIONS" ||
+              currentView === "CLIENTS" ||
+              currentView === "SHIPMENTS"
+            ) {
+              queueCoreRefresh();
+              if (currentView === "HOME" || currentView === "CLIENTS") {
+                queueSelectedClientRefresh();
+              }
+            }
             return;
           }
           if (vl === "shipments") {
-            queueCoreRefresh();
-            queueSelectedClientRefresh();
+            if (currentView === "SHIPMENTS") {
+              queueCoreRefresh();
+            }
             return;
           }
           if (vl === "products" || vl === "receipts") {
-            queueCoreRefresh();
-            queueSelectedClientRefresh();
-            refreshUnreadSummaryForActiveMission().catch((ea) => {
-              console.error("Failed refreshing unread summary", ea);
-            });
+            if (
+              currentView === "HOME" ||
+              currentView === "MISSIONS" ||
+              currentView === "CLIENTS" ||
+              currentView === "SHIPMENTS"
+            ) {
+              queueCoreRefresh();
+            }
+            if (currentView === "HOME" || currentView === "CLIENTS") {
+              queueSelectedClientRefresh();
+            }
+            if (currentView === "HOME" || currentView === "MISSIONS") {
+              refreshUnreadSummaryForActiveMission().catch((ea) => {
+                console.error("Failed refreshing unread summary", ea);
+              });
+            }
             return;
           }
           if (vl === "requests") {
-            await refreshRequestsForMission();
+            if (currentView === "HOME" || currentView === "MISSIONS") {
+              await refreshRequestsForMission();
+            }
             return;
           }
           if (vl === "reviews") {
-            queueCoreRefresh();
-            queueSelectedClientRefresh();
-            refreshReviewsForCurrentContext().catch((ea) => {
-              console.error("Failed refreshing reviews", ea);
-            });
-            refreshUnreadSummaryForActiveMission().catch((ea) => {
-              console.error("Failed refreshing unread summary", ea);
-            });
+            if (currentView === "HOME" || currentView === "MISSIONS" || currentView === "CLIENTS") {
+              queueCoreRefresh();
+            }
+            if (currentView === "HOME" || currentView === "CLIENTS") {
+              queueSelectedClientRefresh();
+            }
+            if (currentView === "HOME" || currentView === "MISSIONS" || currentView === "CLIENTS") {
+              refreshReviewsForCurrentContext().catch((ea) => {
+                console.error("Failed refreshing reviews", ea);
+              });
+            }
+            if (currentView === "HOME" || currentView === "MISSIONS") {
+              refreshUnreadSummaryForActiveMission().catch((ea) => {
+                console.error("Failed refreshing unread summary", ea);
+              });
+            }
             return;
           }
           if (vl === "stores") {
-            const [ea, gl] = await Promise.all([
-              I("/stores/"),
-              I("/store-recommendations/"),
-            ]);
-            setStores(ea || []);
-            setStoreRecommendations(gl || []);
+            if (currentView === "HOME" || currentView === "MISSIONS") {
+              const [ea, gl] = await Promise.all([
+                I("/stores/"),
+                I("/store-recommendations/"),
+              ]);
+              setStores(ea || []);
+              setStoreRecommendations(gl || []);
+            }
             return;
           }
         } catch (A) {
@@ -1115,7 +1160,7 @@ function nh() {
         wsRef.current = null;
       }
     };
-  }, [C]);
+  }, [C, nl]);
   V.useEffect(() => {
     localStorage.setItem("calc_mode", calcMode);
   }, [calcMode]);
@@ -1547,7 +1592,7 @@ function nh() {
         !(await confirmAction({
           title: "Eliminar cliente",
           message:
-            "Se eliminarÃ¡ el cliente y todos sus productos vinculados.",
+            "Se eliminará el cliente y todos sus productos vinculados.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -1660,7 +1705,7 @@ function nh() {
           setCalcDiscount(toNumber(o.discount_percentage, 0)));
       } catch (vl) {
         console.error("Failed creating shopping", vl);
-        notifyError(`No se pudo iniciar la misiÃ³n. ${vl.message || ""}`.trim());
+        notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
       }
     },
     be = async () => {
@@ -1697,8 +1742,8 @@ function nh() {
     mn = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar misiÃ³n",
-          message: "Â¿Eliminar esta misiÃ³n y su historial?",
+          title: "Eliminar misión",
+          message: "¿Eliminar esta misión y su historial?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -1882,7 +1927,7 @@ function nh() {
       try {
         const N = await readClipboardImages({ multiple: o.multiple });
         if (!N.length) {
-          notifyInfo("No se encontrÃ³ ninguna imagen en el portapapeles.");
+          notifyInfo("No se encontró ninguna imagen en el portapapeles.");
           return;
         }
         dispatchImageSelection(o.onSelect, N);
@@ -1921,10 +1966,10 @@ function nh() {
         });
         await refreshCoreData();
         W && (await Qt());
-        notifySuccess("Ticket de misiÃ³n cargado y vinculado.");
+        notifySuccess("Ticket de misión cargado y vinculado.");
       } catch (vl) {
         console.error("Shopping ticket upload failed", vl);
-        notifyError("No se pudo subir el ticket de misiÃ³n.");
+        notifyError("No se pudo subir el ticket de misión.");
       } finally {
         setMissionTicketUploading(!1);
         o.target.value = "";
@@ -2199,7 +2244,7 @@ function nh() {
       if (
         !(await confirmAction({
           title: "Eliminar producto",
-          message: "Â¿Seguro que quieres eliminar este item?",
+          message: "¿Seguro que quieres eliminar este item?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -2658,7 +2703,7 @@ function nh() {
           itemsText ||
           (items.length > 0
             ? items
-                .map((A) => `${itemBullet} ${A.name} â€“ $${o.format(A.finalPrice)}`)
+                .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
         A = Number.isFinite(itemsCount) ? itemsCount : items.length,
@@ -2808,7 +2853,7 @@ function nh() {
           };
         }).filter((ea) => ea.items.length > 0);
       if (Se.length === 0) {
-        notifyInfo("No hay productos anotados para copiar en esta misiÃ³n.");
+        notifyInfo("No hay productos anotados para copiar en esta misión.");
         return;
       }
       const gl = Se.reduce((ea, oi) => ea + oi.subtotal, 0),
@@ -2821,7 +2866,7 @@ function nh() {
               (Ta) =>
                 `${Ta.name}:\n` +
                 Ta.items
-                  .map((qa) => `* ${qa.name} â€“ $${El.format(qa.finalPrice)}`)
+                  .map((qa) => `* ${qa.name} – $${El.format(qa.finalPrice)}`)
                   .join("\n") +
                 `\nTOTAL CLIENTE: $${El.format(Ta.total)}`,
             )
@@ -3345,7 +3390,7 @@ function nh() {
               { value: "__new__", label: "Crear envio nuevo" },
               ...N.map((vl) => ({
                 value: String(vl.id),
-                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` â€¢ ${vl.tracking_number}` : ""}`,
+                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` • ${vl.tracking_number}` : ""}`,
               })),
             ],
           },
@@ -4455,7 +4500,7 @@ function nh() {
         await I(`/store-recommendations/${o}/`, { method: "DELETE" });
         setStoreRecommendations((A) => A.filter((vl) => Number(vl.id) !== Number(o)));
         notifySuccess(
-          `Se quitÃ³${N ? ` ${N}` : ""} de recomendaciones.`,
+          `Se quitó${N ? ` ${N}` : ""} de recomendaciones.`,
         );
       } catch (A) {
         console.error("Failed deleting store recommendation", A);
@@ -4470,20 +4515,20 @@ function nh() {
     },
     pickRequestImage = () => {
       openImageSourcePicker(handleRequestImageSelection, {
-        title: "Agregar imagen a peticiÃ³n",
+        title: "Agregar imagen a petición",
       });
     },
     pickEditingRequestImage = () => {
       if (editingRequestSaving) return;
       openImageSourcePicker(handleEditingRequestImageSelection, {
-        title: "Cambiar imagen de peticiÃ³n",
+        title: "Cambiar imagen de petición",
       });
     },
     pickAlternativeUploadImages = () => {
       openImageSourcePicker(
         (o) => setAltUploadFiles(Array.from(o.target.files || [])),
         {
-          title: "Adjuntar imÃ¡genes",
+          title: "Adjuntar imágenes",
           multiple: !0,
         },
       );
@@ -4528,7 +4573,7 @@ function nh() {
           clearNewRequestImage());
       } catch (N) {
         (console.error("Failed creating request", N),
-          notifyError(`No se pudo crear la peticiÃ³n. ${N.message || ""}`.trim()));
+          notifyError(`No se pudo crear la petición. ${N.message || ""}`.trim()));
       }
     },
     updateMissionRequest = async (o, N, A = {}) => {
@@ -4549,7 +4594,7 @@ function nh() {
       } catch (El) {
         (setRequests(vl),
           console.error("Failed updating request", El),
-          notifyError(`No se pudo actualizar la peticiÃ³n. ${El.message || ""}`.trim()));
+          notifyError(`No se pudo actualizar la petición. ${El.message || ""}`.trim()));
       }
     },
     startRequestModify = (o) => {
@@ -4591,7 +4636,7 @@ function nh() {
           cancelRequestModify());
       } catch (vl) {
         (console.error("Failed modifying request", vl),
-          notifyError(`No se pudo modificar la peticiÃ³n. ${vl.message || ""}`.trim()));
+          notifyError(`No se pudo modificar la petición. ${vl.message || ""}`.trim()));
       } finally {
         setEditingRequestSaving(!1);
       }
@@ -4599,8 +4644,8 @@ function nh() {
     deleteMissionRequest = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar peticiÃ³n",
-          message: "Â¿Eliminar esta peticiÃ³n? Esta acciÃ³n no se puede deshacer.",
+          title: "Eliminar petición",
+          message: "¿Eliminar esta petición? Esta acción no se puede deshacer.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -4613,7 +4658,7 @@ function nh() {
       } catch (A) {
         (setRequests(N),
           console.error("Failed deleting request", A),
-          notifyError(`No se pudo eliminar la peticiÃ³n. ${A.message || ""}`.trim()));
+          notifyError(`No se pudo eliminar la petición. ${A.message || ""}`.trim()));
       }
     },
     // <-------- seccion 7: utilidades de revisiones y alternativas
@@ -4657,7 +4702,7 @@ function nh() {
             type: "select",
             value: "CHECK_OTHER",
             options: [
-              { value: "CHECK_SIZE", label: "Verificar talla/tamaÃ±o" },
+              { value: "CHECK_SIZE", label: "Verificar talla/tamaño" },
               { value: "CHECK_STOCK", label: "Verificar existencia" },
               { value: "CHECK_OTHER", label: "Otro" },
             ],
@@ -6925,7 +6970,7 @@ function nh() {
                 children: [
                   publicShareType === "shipment" && publicFocusedShipment
                     ? `Enfoque en envio #${publicFocusedShipment.id}`
-                    : `${(publicClientShareData.shipments || []).length || 0} envios â€¢ ${(
+                    : `${(publicClientShareData.shipments || []).length || 0} envios • ${(
                         publicClientShareData.receipts || []
                       ).length || 0} tickets`,
                 ],
@@ -7043,7 +7088,7 @@ function nh() {
                                 publicSelectedShipment.carrier ||
                                   "Paqueteria",
                                 publicSelectedShipment.tracking_number
-                                  ? ` â€¢ ${publicSelectedShipment.tracking_number}`
+                                  ? ` • ${publicSelectedShipment.tracking_number}`
                                   : "",
                               ],
                             }),
@@ -7674,8 +7719,8 @@ function nh() {
               className: "text-text-sub text-sm mb-6",
               children: w
                 ? w.status === "PAUSED"
-                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
-                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
+                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
+                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
                 : "Inicia un shopping al entrar a la tienda para comenzar a registrar compras.",
             }),
             w
@@ -7850,7 +7895,7 @@ function nh() {
                                                         "Sin cliente",
                                                         getClientNameById(editingRequestClientId)
                                                           ? ""
-                                                          : " âœ“",
+                                                          : " ✓",
                                                       ],
                                                     }),
                                                     c.jsx("div", {
@@ -7871,7 +7916,7 @@ function nh() {
                                                                     "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                                                   children:
                                                                     String(editingRequestClientId) === String(N.id)
-                                                                      ? `${N.name} âœ“`
+                                                                      ? `${N.name} ✓`
                                                                       : N.name,
                                                                 },
                                                                 `request-edit-client-${N.id}`,
@@ -7997,8 +8042,8 @@ function nh() {
                                                     o.created_by_username || o.created_by_name || "Usuario",
                                                     " (",
                                                     o.created_by_role || "AV",
-                                                    ") â€¢ ",
-                                                    o.client_name ? `${o.client_name} â€¢ ` : "",
+                                                    ") • ",
+                                                    o.client_name ? `${o.client_name} • ` : "",
                                                     getRelativeTime(o.updated_at || o.created_at),
                                                   ],
                                                 }),
@@ -8173,7 +8218,7 @@ function nh() {
                                     "mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800",
                                   children: [
                                     "Sin cliente",
-                                    getClientNameById(newRequestClientId) ? "" : " âœ“",
+                                    getClientNameById(newRequestClientId) ? "" : " ✓",
                                   ],
                                 }),
                                 c.jsx("div", {
@@ -8194,7 +8239,7 @@ function nh() {
                                                 "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                               children:
                                                 String(newRequestClientId) === String(o.id)
-                                                  ? `${o.name} âœ“`
+                                                  ? `${o.name} ✓`
                                                   : o.name,
                                             },
                                             `request-client-${o.id}`,
@@ -8214,7 +8259,7 @@ function nh() {
                           type: "text",
                           value: newRequestText,
                           onChange: (o) => setNewRequestText(o.target.value),
-                          placeholder: "Nueva peticiÃ³n...",
+                          placeholder: "Nueva petición...",
                           className:
                             "flex-1 min-w-[120px] px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                         }),
@@ -8579,8 +8624,8 @@ function nh() {
                               o.created_by_username || "Usuario",
                               " (",
                               o.created_by_role || "AV",
-                              ") â€¢ ",
-                              o.client_name ? `${o.client_name} â€¢ ` : "",
+                              ") • ",
+                              o.client_name ? `${o.client_name} • ` : "",
                               getRelativeTime(o.updated_at || o.created_at),
                             ],
                           }),
@@ -8678,7 +8723,7 @@ function nh() {
                       type: "text",
                       value: newRequestText,
                       onChange: (o) => setNewRequestText(o.target.value),
-                      placeholder: "Nueva peticiÃ³n...",
+                      placeholder: "Nueva petición...",
                       className:
                         "flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                     }),
@@ -8730,7 +8775,7 @@ function nh() {
                         ? "text-xs text-gray-500 truncate mt-0.5"
                         : "text-[10px] text-gray-500 truncate",
                       children: w
-                        ? `${getMissionStoreLabel(w)} â€¢ ${w.status}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}`
+                        ? `${getMissionStoreLabel(w)} • ${w.status}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}`
                         : "Sin shopping activo",
                     }),
                   ],
@@ -8955,13 +9000,13 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-[11px] font-bold text-primary hover:text-primary-dark",
-                      children: "Ver ticket de misiÃ³n",
+                      children: "Ver ticket de misión",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Ticket de misiÃ³n pendiente.",
+                  children: "Ticket de misión pendiente.",
                 }),
             }),
           ],
@@ -9014,7 +9059,7 @@ function nh() {
             type: "text",
             value: missionSearch,
             onChange: (A) => setMissionSearch(A.target.value),
-            placeholder: "Buscar misiÃ³n o fecha...",
+            placeholder: "Buscar misión o fecha...",
             className: isDesktopLayout
               ? "w-full max-w-2xl px-4 py-3 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary"
               : "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
@@ -9110,7 +9155,7 @@ function nh() {
                                       c.jsx("button", {
                                         onClick: () => dn(null),
                                         className: "text-xs text-gray-500",
-                                        children: "âœ•",
+                                        children: "✕",
                                       }),
                                     ],
                                   })
@@ -9132,11 +9177,11 @@ function nh() {
                                           ).toLocaleDateString(),
                                           A.store_name &&
                                           c.jsxs(c.Fragment, {
-                                            children: [" â€¢ ", A.store_name],
+                                            children: [" • ", A.store_name],
                                           }),
-                                          " â€¢ ",
+                                          " • ",
                                           qa.length,
-                                          " clients â€¢ ",
+                                          " clients • ",
                                           ea.length,
                                           " products",
                                         ],
@@ -9231,13 +9276,13 @@ function nh() {
                                     onClick: () => setFullscreenImage(resolveMediaUrl(A.ticket_image)),
                                     className:
                                       "text-[11px] font-bold text-primary hover:text-primary-dark",
-                                    children: "Ver ticket de esta misiÃ³n",
+                                    children: "Ver ticket de esta misión",
                                   }),
                                 ],
                               })
                               : c.jsx("p", {
                                 className: "text-[11px] text-gray-500",
-                                children: "Sin ticket cargado para esta misiÃ³n.",
+                                children: "Sin ticket cargado para esta misión.",
                               }),
                           }),
                           qa.length > 0 &&
@@ -9283,7 +9328,7 @@ function nh() {
                                                 "text-[10px] text-gray-500",
                                               children: [
                                                 oi.length,
-                                                " items â€¢ ",
+                                                " items • ",
                                                 (gl.receipts || [])
                                                   .length,
                                                 " tickets",
@@ -9668,7 +9713,7 @@ function nh() {
                               className: "text-xs text-gray-500",
                               children: [
                                 totalClientItems,
-                                " items â€¢ ",
+                                " items • ",
                                 (N.receipts || []).length,
                                 " tickets",
                               ],
@@ -9857,17 +9902,17 @@ function nh() {
                         !!getClientPhoneDisplay(N) &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["ðŸ“± ", getClientPhoneDisplay(N)],
+                          children: ["📱 ", getClientPhoneDisplay(N)],
                         }),
                         N.email &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["ðŸ“§ ", N.email],
+                          children: ["📧 ", N.email],
                         }),
                         N.shipping_address &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-2",
-                          children: ["ðŸ“¦ ", N.shipping_address],
+                          children: ["📦 ", N.shipping_address],
                         }),
                         Array.isArray(N.shipping_addresses) &&
                         N.shipping_addresses.length > 0 &&
@@ -9878,7 +9923,7 @@ function nh() {
                               "p",
                               {
                                 className: "text-[10px] text-gray-500",
-                                children: ["ðŸ“ ", o],
+                                children: ["📍 ", o],
                               },
                               `client-extra-shipping-${N.id}-${A}`,
                             ),
@@ -9938,7 +9983,7 @@ function nh() {
                                                     ea.payments.length > 0 &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " â€¢ ",
+                                                        " • ",
                                                         ea.payments.length,
                                                         " pago(s)",
                                                       ],
@@ -9946,7 +9991,7 @@ function nh() {
                                                     ea.date &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " â€¢ ",
+                                                        " • ",
                                                         new Date(
                                                           ea.date,
                                                         ).toLocaleDateString(),
@@ -10027,7 +10072,7 @@ function nh() {
                                                   },
                                                   className:
                                                     "w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
-                                                  title: "Copiar desglose de esta misiÃ³n",
+                                                  title: "Copiar desglose de esta misión",
                                                   children: c.jsx("span", {
                                                     className:
                                                       "material-symbols-outlined text-[14px]",
@@ -11522,7 +11567,7 @@ function nh() {
                                       className:
                                         "absolute right-3 top-1/2 -translate-y-1/2 z-10 text-[18px] font-bold leading-none text-black/50 dark:text-white/60 hover:text-rose-600",
                                       "aria-label": `Quitar ${o.name} de recomendaciones`,
-                                      children: "Ã—",
+                                      children: "×",
                                     }),
                                     c.jsxs("button", {
                                       type: "button",
@@ -11835,19 +11880,19 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-xs font-bold text-primary hover:text-primary-dark",
-                      children: "Abrir ticket de misiÃ³n",
+                      children: "Abrir ticket de misión",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Esta misiÃ³n todavÃ­a no tiene ticket cargado.",
+                  children: "Esta misión todavía no tiene ticket cargado.",
                 }),
             }),
             filteredMissionSummaryProducts.length === 0
               ? c.jsx("p", {
                 className: "text-xs text-gray-500 text-center py-6",
-                children: "No hay productos para ese filtro en la misiÃ³n activa.",
+                children: "No hay productos para ese filtro en la misión activa.",
               })
               : c.jsx("div", {
                 className: "grid grid-cols-3 gap-1.5",
@@ -13468,9 +13513,9 @@ function nh() {
                         children: [
                           "Anotado: ",
                           galleryAnnotatedCount,
-                          " â€¢ Revision: ",
+                          " • Revision: ",
                           galleryReviewCount,
-                          " â€¢ Rechazado: ",
+                          " • Rechazado: ",
                           galleryRejectedCount,
                         ],
                       }),
@@ -14043,7 +14088,7 @@ function nh() {
                                           c.jsx("span", {
                                             className:
                                               "text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100",
-                                            children: "Ship âœ“",
+                                            children: "Ship ✓",
                                           }),
                                         ],
                                       }),
@@ -14809,7 +14854,7 @@ function nh() {
                         clientPaymentModalClient
                           ? clientPaymentModalClient.name
                           : "Cliente",
-                        " â€¢ se abona del shopping mas antiguo al mas reciente",
+                        " • se abona del shopping mas antiguo al mas reciente",
                       ],
                     }),
                   ],
@@ -14915,7 +14960,7 @@ function nh() {
                                                 o.date
                                                   ? new Date(o.date).toLocaleDateString()
                                                   : "Sin fecha",
-                                                " â€¢ ",
+                                                " • ",
                                                 Number.isFinite(o.annotatedCount)
                                                   ? o.annotatedCount
                                                   : o.items.length,
@@ -16272,441 +16317,29 @@ function nh() {
         }),
       }),
       shipmentModalOpen &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-          "shipment-modal",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
-            "shipment-modal",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("div", {
-              className:
-                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
-              children: [
-                c.jsxs("div", {
-                  className: "min-w-0",
-                  children: [
-                    c.jsx("h3", {
-                      className: "text-base font-bold text-text-main",
-                      children: shipmentForm.id ? "Editar envio" : "Nuevo envio",
-                    }),
-                    c.jsx("p", {
-                      className: "text-[11px] text-text-sub mt-0.5",
-                      children: "Selecciona cliente y productos.",
-                    }),
-                  ],
-                }),
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  className:
-                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
-                  children: c.jsx("span", {
-                    className: "material-symbols-outlined text-[18px]",
-                    children: "close",
-                  }),
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className: "flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-4",
-              children: [
-                c.jsxs("label", {
-                  className: "block",
-                  children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
-                      children: "Cliente",
-                    }),
-                    c.jsxs("div", {
-                      className: "relative mt-1",
-                      children: [
-                        c.jsxs("button", {
-                          type: "button",
-                          onClick: () =>
-                            setShipmentClientPickerOpen((o) => !o),
-                          className:
-                            "w-full px-3 py-2.5 text-sm border rounded-xl bg-white dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40 flex items-center justify-between gap-3 text-left",
-                          children: [
-                            c.jsx("span", {
-                              className: shipmentModalClient
-                                ? "text-text-main dark:text-white"
-                                : "text-text-sub",
-                              children: shipmentModalClient
-                                ? shipmentModalClient.name
-                                : "Selecciona un cliente",
-                            }),
-                            c.jsx("span", {
-                              className:
-                                "material-symbols-outlined text-[18px] text-text-sub",
-                              children: shipmentClientPickerOpen
-                                ? "expand_less"
-                                : "expand_more",
-                            }),
-                          ],
-                        }),
-                        shipmentClientPickerOpen &&
-                        c.jsxs("div", {
-                          className:
-                            "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2",
-                          children: [
-                            c.jsx("input", {
-                              type: "text",
-                              value: shipmentClientSearch,
-                              onChange: (o) =>
-                                setShipmentClientSearch(o.target.value),
-                              placeholder: "Buscar cliente...",
-                              className:
-                                "w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
-                            }),
-                            c.jsx("div", {
-                              className: "mt-2 max-h-56 overflow-y-auto ios-scroll",
-                              children:
-                                filteredShipmentClients.length > 0
-                                  ? filteredShipmentClients.map((o) =>
-                                      c.jsx(
-                                        "button",
-                                        {
-                                          type: "button",
-                                          onClick: () => selectShipmentClient(o.id),
-                                          className:
-                                            "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
-                                          children:
-                                            String(shipmentForm.client) === String(o.id)
-                                              ? `${o.name} âœ“`
-                                              : o.name,
-                                        },
-                                        `shipment-client-option-${o.id}`,
-                                      ),
-                                    )
-                                  : c.jsx("p", {
-                                      className:
-                                        "px-2.5 py-3 text-[11px] text-gray-400 text-center",
-                                      children: "Sin coincidencias",
-                                    }),
-                            }),
-                          ],
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("label", {
-                  className: "block",
-                  children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
-                      children: "Paqueteria",
-                    }),
-                    c.jsx("select", {
-                      value: shipmentForm.carrier,
-                      onChange: (o) =>
-                        updateShipmentForm("carrier", o.target.value),
-                      style: DARK_NATIVE_SELECT_STYLE,
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
-                      children: SHIPMENT_CARRIER_OPTIONS.map((o) =>
-                        c.jsx(
-                          "option",
-                          {
-                            value: o.value,
-                            style: NATIVE_DROPDOWN_OPTION_STYLE,
-                            children: o.label,
-                          },
-                          `shipment-carrier-option-${o.value || "empty"}`,
-                        ),
-                      ),
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className: "grid grid-cols-1 sm:grid-cols-4 gap-3",
-                  children: [
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Status de envio",
-                        }),
-                        c.jsx("select", {
-                          value: shipmentForm.status,
-                          onChange: (o) =>
-                            updateShipmentForm("status", o.target.value),
-                          style: DARK_NATIVE_SELECT_STYLE,
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
-                          children: [
-                            c.jsx("option", { value: "PENDING", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Pendiente" }, "shipment-status-pending"),
-                            c.jsx("option", { value: "SHIPPED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Enviado" }, "shipment-status-shipped"),
-                            c.jsx("option", { value: "DELIVERED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Entregado" }, "shipment-status-delivered"),
-                            c.jsx("option", { value: "CANCELLED", style: NATIVE_DROPDOWN_OPTION_STYLE, children: "Cancelado" }, "shipment-status-cancelled"),
-                          ],
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Guia",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          value: shipmentForm.tracking_number,
-                          onChange: (o) =>
-                            updateShipmentForm("tracking_number", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Costo de compra",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          inputMode: "decimal",
-                          value: shipmentForm.guide_price,
-                          onChange: (o) =>
-                            updateShipmentForm("guide_price", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                    c.jsxs("label", {
-                      className: "block",
-                      children: [
-                        c.jsx("span", {
-                          className: "text-[11px] font-semibold text-text-sub",
-                          children: "Costo de venta",
-                        }),
-                        c.jsx("input", {
-                          type: "text",
-                          inputMode: "decimal",
-                          value: shipmentForm.client_price,
-                          onChange: (o) =>
-                            updateShipmentForm("client_price", o.target.value),
-                          className:
-                            "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsxs("label", {
-                  className: "block",
-                  children: [
-                    c.jsx("span", {
-                      className: "text-[11px] font-semibold text-text-sub",
-                      children: "Direccion de envio",
-                    }),
-                    getClientShipmentAddressOptions(shipmentForm.client).length > 1 &&
-                    c.jsxs("select", {
-                      value: shipmentForm.shipping_address,
-                      onChange: (o) =>
-                        updateShipmentForm("shipping_address", o.target.value),
-                      style: DARK_NATIVE_SELECT_STYLE,
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
-                      children: getClientShipmentAddressOptions(shipmentForm.client).map((o, N) =>
-                        c.jsx(
-                          "option",
-                          {
-                            value: o,
-                            style: NATIVE_DROPDOWN_OPTION_STYLE,
-                            children: o,
-                          },
-                          `shipment-address-${N}`,
-                        ),
-                      ),
-                    }),
-                    c.jsx("textarea", {
-                      rows: 3,
-                      value: shipmentForm.shipping_address,
-                      onChange: (o) =>
-                        updateShipmentForm("shipping_address", o.target.value),
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                    }),
-                  ],
-                }),
-                c.jsxs("div", {
-                  className:
-                    "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3",
-                  children: [
-                    c.jsxs("div", {
-                      className: "flex items-center justify-between gap-3",
-                      children: [
-                        c.jsxs("div", {
-                          className: "min-w-0",
-                          children: [
-                            c.jsx("p", {
-                              className: "text-xs font-bold text-text-main",
-                              children: "Productos del envio",
-                            }),
-                            c.jsxs("p", {
-                              className: "text-[11px] text-text-sub",
-                              children: [
-                                shipmentSelectedProducts.length,
-                                " seleccionados",
-                              ],
-                            }),
-                          ],
-                        }),
-                        c.jsxs("button", {
-                          type: "button",
-                          onClick: () => setShipmentProductPickerOpen(!0),
-                          className:
-                            "shrink-0 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1.5",
-                          children: [
-                            c.jsx("span", {
-                              className:
-                                "material-symbols-outlined text-[15px]",
-                              children: "photo_library",
-                            }),
-                            "Galeria",
-                          ],
-                        }),
-                      ],
-                    }),
-                    shipmentSelectedProducts.length > 0
-                      ? c.jsx("div", {
-                          className: "grid grid-cols-2 sm:grid-cols-3 gap-2",
-                          children: shipmentSelectedProducts.map((o) => {
-                            const N = getProductPaymentAmount(o);
-                            return c.jsxs(
-                              "button",
-                              {
-                                type: "button",
-                                onClick: () => toggleShipmentProductSelection(o),
-                                className:
-                                  "relative overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 text-left",
-                                children: [
-                                  o.image
-                                    ? c.jsx("img", {
-                                        src: resolveMediaUrl(o.image),
-                                        className: "w-full aspect-[4/5] object-cover",
-                                      })
-                                    : c.jsx("div", {
-                                        className:
-                                          "w-full aspect-[4/5] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400",
-                                        children: c.jsx("span", {
-                                          className:
-                                            "material-symbols-outlined text-[20px]",
-                                          children: "image",
-                                        }),
-                                      }),
-                                  Number.isFinite(N) &&
-                                  c.jsx("div", {
-                                    className:
-                                      "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
-                                    children: c.jsxs("span", {
-                                      className:
-                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                      children: ["$", formatAmount(N)],
-                                    }),
-                                  }),
-                                  c.jsx("div", {
-                                    className:
-                                      "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent",
-                                    children: c.jsxs("div", {
-                                      className: "space-y-0.5",
-                                      children: [
-                                        c.jsx("p", {
-                                          className:
-                                            "text-[11px] font-semibold text-white truncate",
-                                          children: o.name,
-                                        }),
-                                        c.jsx("p", {
-                                          className:
-                                            "text-[10px] text-white/80 truncate",
-                                          children:
-                                            o.shopping_name ||
-                                            o.mission_name ||
-                                            o.store_name ||
-                                            "Sin shopping",
-                                        }),
-                                      ],
-                                    }),
-                                  }),
-                                  c.jsx("div", {
-                                    className:
-                                      "absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center",
-                                    children: c.jsx("span", {
-                                      className:
-                                        "material-symbols-outlined text-[14px]",
-                                      children: "close",
-                                    }),
-                                  }),
-                                ],
-                              },
-                              `shipment-picked-${o.id}`,
-                            );
-                          }),
-                        })
-                      : c.jsx("p", {
-                          className: "text-xs text-text-sub",
-                          children:
-                            "Abre la galeria para elegir productos de todas las shoppings de este cliente.",
-                        }),
-                  ],
-                }),
-                shipmentModalClient &&
-                c.jsxs("div", {
-                  className:
-                    "rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2",
-                  children: [
-                    c.jsx("p", {
-                      className:
-                        "text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300",
-                      children: "Cliente",
-                    }),
-                    c.jsx("p", {
-                      className:
-                        "text-xs text-amber-800 dark:text-amber-100 mt-0.5",
-                      children: shipmentModalClient.name,
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className:
-                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
-              children: [
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  disabled: shipmentSaving,
-                  className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
-                  children: "Cancelar",
-                }),
-                c.jsx("button", {
-                  onClick: saveShipmentEditor,
-                  disabled: shipmentSaving,
-                  className:
-                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-60",
-                  children: shipmentSaving
-                    ? "Guardando..."
-                    : shipmentForm.id
-                      ? "Guardar"
-                      : "Crear",
-                }),
-              ],
-            }),
-          ],
+      c.jsx(V.Suspense, {
+        fallback: lazySectionFallback,
+        children: c.jsx(ShipmentModal, {
+          shipmentForm,
+          shipmentSaving,
+          shipmentModalClient,
+          shipmentClientPickerOpen,
+          shipmentClientSearch,
+          filteredShipmentClients,
+          shipmentSelectedProducts,
+          formatAmount,
+          getClientShipmentAddressOptions,
+          dismissActiveOverlayRef,
+          overlayBackdropClass,
+          overlaySheetClass,
+          getProductPaymentAmount,
+          setShipmentClientPickerOpen,
+          setShipmentClientSearch,
+          setShipmentProductPickerOpen,
+          selectShipmentClient,
+          toggleShipmentProductSelection,
+          updateShipmentForm,
+          saveShipmentEditor,
         }),
       }),
       shipmentProductPickerOpen &&
@@ -16995,7 +16628,7 @@ function nh() {
                                       "font-semibold text-slate-700 dark:text-slate-100",
                                     children: [
                                       o.sender_username || "Usuario",
-                                      " â€¢ ",
+                                      " • ",
                                       o.sender_role || "AV",
                                     ],
                                   }),
