@@ -6801,13 +6801,19 @@ function nh() {
                   ],
                 })
               : c.jsxs("div", {
-                  className: "px-4 py-4 space-y-3",
+                  className: "px-4 py-4 flex flex-col gap-3",
                   children: [
-                    publicSelectedShipment &&
-                    c.jsxs("div", {
-                      className:
-                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
-                      children: [
+                    c.jsx("div", {
+                      className: `order-2 ui-disclosure-panel ${
+                        publicSelectedShipment ? "ui-disclosure-panel-open" : ""
+                      }`,
+                      children: c.jsx("div", {
+                        className: "ui-disclosure-inner",
+                        children: publicSelectedShipment &&
+                        c.jsxs("div", {
+                          className:
+                            "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                          children: [
                         publicShareType !== "shipment" &&
                         c.jsx("button", {
                           type: "button",
@@ -7050,12 +7056,14 @@ function nh() {
                             }),
                           ],
                         }),
-                      ],
+                          ],
+                        }),
+                      }),
                     }),
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
-                        "rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
+                        "order-1 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
@@ -7166,7 +7174,7 @@ function nh() {
                     }),
                     c.jsxs("div", {
                       className:
-                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                        "order-3 rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("button", {
                           type: "button",
@@ -7194,15 +7202,24 @@ function nh() {
                             }),
                             c.jsx("span", {
                               className:
-                                "material-symbols-outlined text-[18px] text-text-sub",
-                              children: publicShipmentHistoryExpanded
-                                ? "expand_less"
-                                : "expand_more",
+                                `material-symbols-outlined text-[18px] text-text-sub ui-disclosure-chevron ${
+                                  publicShipmentHistoryExpanded
+                                    ? "ui-disclosure-chevron-open"
+                                    : ""
+                                }`,
+                              children: "expand_more",
                             }),
                           ],
                         }),
-                        publicShipmentHistoryExpanded &&
-                        ((publicClientShareData.shipments || []).length > 0
+                        c.jsx("div", {
+                          className: `ui-disclosure-panel ${
+                            publicShipmentHistoryExpanded
+                              ? "ui-disclosure-panel-open"
+                              : ""
+                          }`,
+                          children: c.jsx("div", {
+                            className: "ui-disclosure-inner",
+                            children: (publicClientShareData.shipments || []).length > 0
                           ? c.jsx("div", {
                               className: "space-y-2",
                               children: (publicClientShareData.shipments || []).map((o) =>
@@ -7271,7 +7288,9 @@ function nh() {
                               className:
                                 "rounded-xl border border-dashed border-border-light dark:border-border-dark px-4 py-8 text-center text-sm text-text-sub",
                               children: "No hay envios para mostrar.",
-                            })),
+                            }),
+                          }),
+                        }),
                       ],
                     }),
                     publicShareType === "shipment" &&
@@ -10252,12 +10271,10 @@ function nh() {
                                   className:
                                     "w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
                                   children: c.jsx("span", {
-                                    className:
-                                      "material-symbols-outlined text-[16px]",
-                                    children:
-                                      isShipmentExpanded(N.id)
-                                        ? "expand_less"
-                                        : "expand_more",
+                                    className: `material-symbols-outlined text-[16px] ui-disclosure-chevron ${
+                                      A ? "ui-disclosure-chevron-open" : ""
+                                    }`,
+                                    children: "expand_more",
                                   }),
                                 }),
                                 c.jsx("button", {
@@ -10308,10 +10325,15 @@ function nh() {
                             }),
                           ],
                         }),
-                        A &&
-                        c.jsxs("div", {
-                          className: "mt-3 space-y-2.5",
-                          children: [
+                        c.jsx("div", {
+                          className: `ui-disclosure-panel ${
+                            A ? "ui-disclosure-panel-open" : ""
+                          }`,
+                          children: c.jsx("div", {
+                            className: "ui-disclosure-inner",
+                            children: c.jsxs("div", {
+                              className: "space-y-2.5 pt-0.5",
+                              children: [
                             c.jsxs("div", {
                               className: "grid grid-cols-1 sm:grid-cols-2 gap-2",
                               children: [
@@ -10930,10 +10952,12 @@ function nh() {
                             }),
                           ],
                         }),
-                      ],
-                    },
-                    N.id,
-                  );
+                      }),
+                    }),
+                  ],
+                },
+                N.id,
+              );
                 }),
               }),
         ],
@@ -11982,8 +12006,8 @@ function nh() {
                                 }),
                               ],
                             }),
-                          ],
-                        }),
+                              ],
+                            }),
                         o.tags &&
                         c.jsx("div", {
                           className:
