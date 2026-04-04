@@ -47,6 +47,57 @@ const APP_SECTION_PATHS = {
   PROFILE: "/profile",
 };
 
+class SectionErrorBoundary extends V.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Section render crashed", error, info);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return c.jsxs("div", {
+        className:
+          "rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-800 shadow-sm",
+        children: [
+          c.jsx("p", {
+            className: "text-sm font-bold",
+            children: "Esta vista fallo al renderizar.",
+          }),
+          c.jsx("p", {
+            className: "mt-1 text-xs text-rose-700/90",
+            children:
+              this.state.error && this.state.error.message
+                ? this.state.error.message
+                : "Error desconocido.",
+          }),
+          c.jsx("button", {
+            type: "button",
+            onClick: () => this.setState({ error: null }),
+            className:
+              "mt-3 rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700",
+            children: "Intentar otra vez",
+          }),
+        ],
+      });
+    }
+    return this.props.children;
+  }
+}
+
 function slugifyRouteToken(value) {
   return String(value || "")
     .toLowerCase()
@@ -412,7 +463,7 @@ function nh() {
         throw ea;
       }
       return El;
-    };
+    },
     publicApiFetch = async (o, N = {}) => {
       const A = { "Content-Type": "application/json" };
       N.body instanceof FormData && delete A["Content-Type"];
@@ -8058,8 +8109,11 @@ function nh() {
     homeClientMissionProductsMap,
     effectiveHomeClientReviewUnreadMap,
     openClientFullGallery: Ta,
+    copyClientMissionShareLink,
+    openPaymentModal,
     setCopiedClientShareLinks,
     setCopiedMissionClients,
+    copyAnnotatedMissionBreakdown,
     updateMissionRequest,
     deleteMissionRequest,
     startRequestModify,
@@ -8068,6 +8122,11 @@ function nh() {
     clientSearch: j,
     selectedClientId: W ? W.id : null,
     currentShopping: w,
+    getHomeVisibleProducts,
+    getHomeClientTotals,
+    getClientShoppingHistoryEntries,
+    openClientShoppingGallery,
+    openClientPaymentModal,
     deletePayment,
     onOpenClientCreate: openCreateClientModal,
     onEditClient: openEditClientModal,
@@ -8086,6 +8145,9 @@ function nh() {
     clearNewRequestImage, pickRequestImage, createMissionRequest,
     updateMissionRequest, deleteMissionRequest, startRequestModify,
     Ta, deletePayment, openCreateClientModal, openEditClientModal, Jt,
+    copyClientMissionShareLink, openPaymentModal, copyAnnotatedMissionBreakdown,
+    getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
+    openClientShoppingGallery, openClientPaymentModal,
     homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
     missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
     missionTotalWithTaxes, missionTotalWithDiscount, newRequestText,
@@ -8190,23 +8252,26 @@ function nh() {
           ? "flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark ml-20"
           : "flex-1 overflow-y-auto p-5 bg-background-light dark:bg-background-dark",
         children: [
-          c.jsx("div", {
-            className: sectionStageClass,
-            children:
-              nl === "HOME"
-                ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(HomeSection, {}) })
-                : nl === "MISSIONS"
-                  ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(MissionsSection, {}) })
-                  : nl === "CLIENTS"
-                    ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ClientsSection, {}) })
-                    : nl === "SHIPMENTS"
-                      ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ShipmentsSection, {}) })
-                      : nl === "CALCULATOR"
-                        ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
-                        : nl === "PROFILE"
-                          ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
-                          : null,
-          }, nl),
+          c.jsx(SectionErrorBoundary, {
+            resetKey: nl,
+            children: c.jsx("div", {
+              className: sectionStageClass,
+              children:
+                nl === "HOME"
+                  ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(HomeSection, {}) })
+                  : nl === "MISSIONS"
+                    ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(MissionsSection, {}) })
+                    : nl === "CLIENTS"
+                      ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ClientsSection, {}) })
+                      : nl === "SHIPMENTS"
+                        ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ShipmentsSection, {}) })
+                        : nl === "CALCULATOR"
+                          ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
+                          : nl === "PROFILE"
+                            ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
+                            : null,
+            }, nl),
+          }),
           c.jsx("div", {
             className: "shrink-0",
             style: isDesktopLayout
@@ -8855,7 +8920,4 @@ function nh() {
 }
 
 export default nh;
-
-
-
 
