@@ -1,6 +1,6 @@
 # Project Context
 
-This file is the current project context and the working agreement for this repo as of 2026-03-26.
+This file is the current project context and the working agreement for this repo as of 2026-04-04.
 
 ## Current product state
 
@@ -11,37 +11,94 @@ This file is the current project context and the working agreement for this repo
 - Desktop web mode exists and is stored per user profile as a layout preference
 - Payments by client and by shopping are already implemented
 - Overpayments are treated as client credit
+- UI copy now prefers `a favor` instead of `credito`
 - Public `share/client/...` shows only positive net credit, never debt
 - Public `share/client/...` no longer shows tickets
 - Public shipment share supports DHL and Estafeta tracking links
+- Frontend is no longer a single monolithic section tree:
+  - main app sections are split into lazy-loaded section chunks
+  - major overlays and modals are split into lazy-loaded component chunks
+  - app routes now exist for section-level views such as `/home`, `/clients`, `/shipments`, `/shoppings`, `/calculator`, `/profile`
+  - deep link support exists for `home` client views such as `/home/clients/:slug`
+- WebSocket updates are now scoped by active section instead of always running everywhere
+- Firefox-specific startup mitigations are in place:
+  - non-blocking Google Fonts loading
+  - reduced compositor-heavy transitions
+  - temporary `ff-loading` class during startup
+  - no realtime websocket on Firefox
 
 ## Recent deployed changes
 
 Latest known production commits:
 
-- `0527432` Expose net client credit on public share
-- `a3286ae` Show overpayments as client credit
-- `f5597ca` Fix clients card action layout
-- `76a9b1b` Tighten clients action buttons
-- `e413b52` Fix payment modal init order
-- `f1bfc25` Add shopping mission metadata migration
-- `7788ebd` Add shopping payment tracking
-- `d2d0602` Rename app missions to shoppings
-- `eb4c083` Tighten desktop home layout
-- `a5d00a0` Refine desktop home layout
+- `d838f05` Centralize Firefox loading class bootstrap
+- `2c12a5b` Restore confirm dialog and tune Firefox startup
+- `d12be2d` Fix shipments section media resolver
+- `55f5ba7` Fix hook order crash on app boot
+- `1b89c4a` Fix split runtime references in app boot
+- `171dd99` Fix root boot crash after frontend split
+- `64d28fe` Fix clients section phone display crash
+- `4d6ca14` Split remaining app overlays and drop dead sections
+- `4e9ad6a` Extract product and review overlays
+- `d9191cd` Extract client payment modal
+- `39e1e80` Extract input dialog and fullscreen image overlays
+- `e7f5754` Add section routes and lazy home clients views
+
+## Current frontend split status
+
+The frontend refactor is already in production and is the current base state.
+
+- `frontend/src/App.jsx` was reduced significantly and now coordinates:
+  - auth/session bootstrap
+  - section routing
+  - shared state/context
+  - lazy section and modal mounts
+- Extracted section chunks currently include:
+  - `frontend/src/sections/HomeSection.jsx`
+  - `frontend/src/sections/ClientsSection.jsx`
+  - `frontend/src/sections/MissionsSection.jsx`
+  - `frontend/src/sections/ShipmentsSection.jsx`
+  - `frontend/src/sections/CalculatorSection.jsx`
+  - `frontend/src/sections/ProfileSection.jsx`
+- Extracted overlay/modal chunks currently include:
+  - `frontend/src/components/ProductModal.jsx`
+  - `frontend/src/components/PaymentModal.jsx`
+  - `frontend/src/components/ClientPaymentModal.jsx`
+  - `frontend/src/components/ShipmentModal.jsx`
+  - `frontend/src/components/ShipmentProductPickerModal.jsx`
+  - `frontend/src/components/HomeClientOverlay.jsx`
+  - `frontend/src/components/ConfirmDialog.jsx`
+  - `frontend/src/components/InputDialog.jsx`
+  - `frontend/src/components/FullscreenImageModal.jsx`
+  - mission/client/review dialogs extracted during the split
+- Shared app helpers/context live in:
+  - `frontend/src/utils.js`
+  - `frontend/src/AppContext.jsx`
+
+## Current troubleshooting notes
+
+- If the app goes blank after a refactor deploy, check browser console first for runtime chunk errors from extracted sections before touching backend.
+- The Cloudflare beacon error:
+  - `https://static.cloudflareinsights.com/beacon.min.js ... ERR_ADDRESS_INVALID`
+  is external noise and not the primary app crash signal.
+- During frontend deploys, `https://ps.servidorfs.com/api/` may return a brief `502` while containers are being recreated; recheck after services settle.
+- For rollback, these commits are important recent restore points:
+  - `55f5ba7` stable boot fix after split
+  - `d12be2d` shipments lazy chunk crash fix
+  - `d838f05` current production Firefox/startup baseline
 
 ## Working model
 
 The source of truth is the local Windows repo. The Mac Mini is the deploy target.
 
 1. Make code changes locally in:
-   - `C:\Users\luis_\Desktop\personal_shopper`
+   - `C:\Users\luis_\OneDrive\Desktop\personal-shopper`
 2. Validate locally before pushing:
-   - Frontend changes: `npm.cmd run build`
+   - Frontend changes: `npm.cmd run build` or `npx vite build`
    - Backend changes: `python -m py_compile <files>`
 3. Commit locally.
-4. Push from Windows to GitHub:
-   - `git push new-origin main`
+4. Push from Windows to GitHub using the active remote for this clone:
+   - usually `git push origin main`
 5. SSH from Windows into the Mac Mini through Cloudflare Access.
 6. On the Mac Mini, pull the latest code:
    - `git pull origin main`
@@ -55,9 +112,10 @@ Do not edit production code directly on the Mac Mini unless the user explicitly 
 
 ### Windows
 
-- Repo path: `C:\Users\luis_\Desktop\personal_shopper`
-- Push remote: `new-origin`
-- `new-origin` URL: `https://github.com/LFRPuente/personal-shopper.git`
+- Repo path: `C:\Users\luis_\OneDrive\Desktop\personal-shopper`
+- Active push remote in this clone: `origin`
+- `origin` URL:
+  - `https://github.com/LFRPuente/personal-shopper.git`
 
 ### Mac Mini
 
@@ -72,8 +130,8 @@ Do not edit production code directly on the Mac Mini unless the user explicitly 
 
 These two files are the canonical operational references and should be read before any deploy:
 
-- [deploy.md](C:/Users/luis_/Desktop/personal_shopper/.agents/workflows/deploy.md)
-- [DOCKER_AGENT_GUIDE.md](C:/Users/luis_/Desktop/personal_shopper/DOCKER_AGENT_GUIDE.md)
+- [deploy.md](C:/Users/luis_/OneDrive/Desktop/personal-shopper/.agents/workflows/deploy.md)
+- [DOCKER_AGENT_GUIDE.md](C:/Users/luis_/OneDrive/Desktop/personal-shopper/DOCKER_AGENT_GUIDE.md)
 
 ## Credentials and tooling
 
@@ -353,7 +411,7 @@ Do not commit or copy any Docker auth material into this repo.
 Typical commands:
 
 ```powershell
-cd C:\Users\luis_\Desktop\personal_shopper
+cd C:\Users\luis_\OneDrive\Desktop\personal-shopper
 npm.cmd run build
 python -m py_compile backend/api/views.py backend/api/serializers.py backend/api/models.py backend/api/urls.py
 git status --short
@@ -365,7 +423,7 @@ Use only the validations that match the files you changed.
 
 The deploy is:
 
-1. `git push new-origin main`
+1. `git push origin main`
 2. SSH to `homeserver@ssh.servidorfs.com`
 3. `cd /Users/homeserver/Documents/personal-shopper`
 4. `git pull origin main`
