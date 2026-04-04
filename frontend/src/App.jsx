@@ -3,6 +3,36 @@ import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 
 const V = React;
 const c = { jsx, jsxs, Fragment };
+const IS_FIREFOX =
+  typeof navigator != "undefined" &&
+  /firefox/i.test(String(navigator.userAgent || ""));
+const optimizeMediaElementProps = (type, props) => {
+  if (!props || typeof props != "object") return props;
+  if (type === "img") {
+    const nextProps = { ...props };
+    typeof nextProps.loading == "undefined" && (nextProps.loading = "lazy");
+    typeof nextProps.decoding == "undefined" && (nextProps.decoding = "async");
+    return nextProps;
+  }
+  if (type === "video") {
+    const nextProps = { ...props };
+    typeof nextProps.preload == "undefined" &&
+      (nextProps.preload = "metadata");
+    typeof nextProps.playsInline == "undefined" &&
+      (nextProps.playsInline = !0);
+    return nextProps;
+  }
+  return props;
+};
+const jsxRuntimeOriginal = c.jsx;
+const jsxsRuntimeOriginal = c.jsxs;
+(c.jsx = (type, props, key) =>
+  jsxRuntimeOriginal(type, optimizeMediaElementProps(type, props), key)),
+  (c.jsxs = (type, props, key) =>
+    jsxsRuntimeOriginal(type, optimizeMediaElementProps(type, props), key));
+typeof document != "undefined" &&
+  document.documentElement &&
+  document.documentElement.classList.toggle("browser-firefox", IS_FIREFOX);
 
 const getStoredNumber = (key, fallback) => {
   const raw = localStorage.getItem(key);
@@ -7059,7 +7089,7 @@ function nh() {
                                     "div",
                                     {
                                       className:
-                                        "overflow-hidden rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80",
+                                        "overflow-hidden rounded-xl border border-violet-100 dark:border-violet-900 bg-white/90 dark:bg-slate-900/80 ui-media-card",
                                       children:
                                         N === "VIDEO"
                                           ? c.jsx("video", {
@@ -7117,7 +7147,7 @@ function nh() {
                                     "div",
                                     {
                                       className:
-                                        "rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 p-2 flex gap-2 items-start",
+                                        "rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 p-2 flex gap-2 items-start ui-media-card",
                                       children: [
                                         o.image
                                           ? c.jsx("img", {
@@ -10701,7 +10731,7 @@ function nh() {
                                           "div",
                                           {
                                             className:
-                                              "relative overflow-visible rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80",
+                                              "relative overflow-visible rounded-xl border border-sky-100 dark:border-sky-900 bg-white/90 dark:bg-slate-900/80 ui-media-card",
                                             children: [
                                               c.jsxs("div", {
                                                 className: "relative text-left w-full",
@@ -13705,7 +13735,7 @@ function nh() {
                         return c.jsxs(
                           "div",
                           {
-                            className: `bg-surface-light dark:bg-surface-dark ${isDesktopLayout ? "rounded-2xl" : "rounded-lg"} overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ${hasPulse ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
+                            className: `bg-surface-light dark:bg-surface-dark ${isDesktopLayout ? "rounded-2xl" : "rounded-lg"} overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ui-media-card ${hasPulse ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
                             children: [
                               hasPulse &&
                               c.jsx("span", {
