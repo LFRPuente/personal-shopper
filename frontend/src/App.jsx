@@ -1,4 +1,4 @@
-﻿import {
+import {
   V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
@@ -16,6 +16,7 @@
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
+const ClientPaymentModal = V.lazy(() => import('./components/ClientPaymentModal.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
 const FullscreenImageModal = V.lazy(() => import('./components/FullscreenImageModal.jsx'));
@@ -105,7 +106,7 @@ function nh() {
       [],
     ),
     DEFAULT_BREAKDOWN_TEMPLATE =
-      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago ðŸ’³ ðŸ¤—\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.ðŸ’•",
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
@@ -1800,7 +1801,7 @@ function nh() {
         !(await confirmAction({
           title: "Eliminar cliente",
           message:
-            "Se eliminarÃ¡ el cliente y todos sus productos vinculados.",
+            "Se eliminará el cliente y todos sus productos vinculados.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -1913,7 +1914,7 @@ function nh() {
           setCalcDiscount(toNumber(o.discount_percentage, 0)));
       } catch (vl) {
         console.error("Failed creating shopping", vl);
-        notifyError(`No se pudo iniciar la misiÃ³n. ${vl.message || ""}`.trim());
+        notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
       }
     },
     be = async () => {
@@ -1950,8 +1951,8 @@ function nh() {
     mn = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar misiÃ³n",
-          message: "Â¿Eliminar esta misiÃ³n y su historial?",
+          title: "Eliminar misión",
+          message: "¿Eliminar esta misión y su historial?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -2143,7 +2144,7 @@ function nh() {
       try {
         const N = await readClipboardImages({ multiple: o.multiple });
         if (!N.length) {
-          notifyInfo("No se encontrÃ³ ninguna imagen en el portapapeles.");
+          notifyInfo("No se encontró ninguna imagen en el portapapeles.");
           return;
         }
         dispatchImageSelection(o.onSelect, N);
@@ -2182,10 +2183,10 @@ function nh() {
         });
         await refreshCoreData();
         W && (await Qt());
-        notifySuccess("Ticket de misiÃ³n cargado y vinculado.");
+        notifySuccess("Ticket de misión cargado y vinculado.");
       } catch (vl) {
         console.error("Shopping ticket upload failed", vl);
-        notifyError("No se pudo subir el ticket de misiÃ³n.");
+        notifyError("No se pudo subir el ticket de misión.");
       } finally {
         setMissionTicketUploading(!1);
         o.target.value = "";
@@ -2460,7 +2461,7 @@ function nh() {
       if (
         !(await confirmAction({
           title: "Eliminar producto",
-          message: "Â¿Seguro que quieres eliminar este item?",
+          message: "¿Seguro que quieres eliminar este item?",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -2919,7 +2920,7 @@ function nh() {
           itemsText ||
           (items.length > 0
             ? items
-                .map((A) => `${itemBullet} ${A.name} â€“ $${o.format(A.finalPrice)}`)
+                .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
         A = Number.isFinite(itemsCount) ? itemsCount : items.length,
@@ -3069,7 +3070,7 @@ function nh() {
           };
         }).filter((ea) => ea.items.length > 0);
       if (Se.length === 0) {
-        notifyInfo("No hay productos anotados para copiar en esta misiÃ³n.");
+        notifyInfo("No hay productos anotados para copiar en esta misión.");
         return;
       }
       const gl = Se.reduce((ea, oi) => ea + oi.subtotal, 0),
@@ -3082,7 +3083,7 @@ function nh() {
               (Ta) =>
                 `${Ta.name}:\n` +
                 Ta.items
-                  .map((qa) => `* ${qa.name} â€“ $${El.format(qa.finalPrice)}`)
+                  .map((qa) => `* ${qa.name} – $${El.format(qa.finalPrice)}`)
                   .join("\n") +
                 `\nTOTAL CLIENTE: $${El.format(Ta.total)}`,
             )
@@ -3606,7 +3607,7 @@ function nh() {
               { value: "__new__", label: "Crear envio nuevo" },
               ...N.map((vl) => ({
                 value: String(vl.id),
-                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` â€¢ ${vl.tracking_number}` : ""}`,
+                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` • ${vl.tracking_number}` : ""}`,
               })),
             ],
           },
@@ -4716,7 +4717,7 @@ function nh() {
         await I(`/store-recommendations/${o}/`, { method: "DELETE" });
         setStoreRecommendations((A) => A.filter((vl) => Number(vl.id) !== Number(o)));
         notifySuccess(
-          `Se quitÃ³${N ? ` ${N}` : ""} de recomendaciones.`,
+          `Se quitó${N ? ` ${N}` : ""} de recomendaciones.`,
         );
       } catch (A) {
         console.error("Failed deleting store recommendation", A);
@@ -4731,20 +4732,20 @@ function nh() {
     },
     pickRequestImage = () => {
       openImageSourcePicker(handleRequestImageSelection, {
-        title: "Agregar imagen a peticiÃ³n",
+        title: "Agregar imagen a petición",
       });
     },
     pickEditingRequestImage = () => {
       if (editingRequestSaving) return;
       openImageSourcePicker(handleEditingRequestImageSelection, {
-        title: "Cambiar imagen de peticiÃ³n",
+        title: "Cambiar imagen de petición",
       });
     },
     pickAlternativeUploadImages = () => {
       openImageSourcePicker(
         (o) => setAltUploadFiles(Array.from(o.target.files || [])),
         {
-          title: "Adjuntar imÃ¡genes",
+          title: "Adjuntar imágenes",
           multiple: !0,
         },
       );
@@ -4789,7 +4790,7 @@ function nh() {
           clearNewRequestImage());
       } catch (N) {
         (console.error("Failed creating request", N),
-          notifyError(`No se pudo crear la peticiÃ³n. ${N.message || ""}`.trim()));
+          notifyError(`No se pudo crear la petición. ${N.message || ""}`.trim()));
       }
     },
     updateMissionRequest = async (o, N, A = {}) => {
@@ -4810,7 +4811,7 @@ function nh() {
       } catch (El) {
         (setRequests(vl),
           console.error("Failed updating request", El),
-          notifyError(`No se pudo actualizar la peticiÃ³n. ${El.message || ""}`.trim()));
+          notifyError(`No se pudo actualizar la petición. ${El.message || ""}`.trim()));
       }
     },
     startRequestModify = (o) => {
@@ -4852,7 +4853,7 @@ function nh() {
           cancelRequestModify());
       } catch (vl) {
         (console.error("Failed modifying request", vl),
-          notifyError(`No se pudo modificar la peticiÃ³n. ${vl.message || ""}`.trim()));
+          notifyError(`No se pudo modificar la petición. ${vl.message || ""}`.trim()));
       } finally {
         setEditingRequestSaving(!1);
       }
@@ -4860,8 +4861,8 @@ function nh() {
     deleteMissionRequest = async (o) => {
       if (
         !(await confirmAction({
-          title: "Eliminar peticiÃ³n",
-          message: "Â¿Eliminar esta peticiÃ³n? Esta acciÃ³n no se puede deshacer.",
+          title: "Eliminar petición",
+          message: "¿Eliminar esta petición? Esta acción no se puede deshacer.",
           confirmLabel: "Eliminar",
           tone: "danger",
         }))
@@ -4874,7 +4875,7 @@ function nh() {
       } catch (A) {
         (setRequests(N),
           console.error("Failed deleting request", A),
-          notifyError(`No se pudo eliminar la peticiÃ³n. ${A.message || ""}`.trim()));
+          notifyError(`No se pudo eliminar la petición. ${A.message || ""}`.trim()));
       }
     },
     // <-------- seccion 7: utilidades de revisiones y alternativas
@@ -4918,7 +4919,7 @@ function nh() {
             type: "select",
             value: "CHECK_OTHER",
             options: [
-              { value: "CHECK_SIZE", label: "Verificar talla/tamaÃ±o" },
+              { value: "CHECK_SIZE", label: "Verificar talla/tamaño" },
               { value: "CHECK_STOCK", label: "Verificar existencia" },
               { value: "CHECK_OTHER", label: "Otro" },
             ],
@@ -7186,7 +7187,7 @@ function nh() {
                 children: [
                   publicShareType === "shipment" && publicFocusedShipment
                     ? `Enfoque en envio #${publicFocusedShipment.id}`
-                    : `${(publicClientShareData.shipments || []).length || 0} envios â€¢ ${(
+                    : `${(publicClientShareData.shipments || []).length || 0} envios • ${(
                         publicClientShareData.receipts || []
                       ).length || 0} tickets`,
                 ],
@@ -7304,7 +7305,7 @@ function nh() {
                                 publicSelectedShipment.carrier ||
                                   "Paqueteria",
                                 publicSelectedShipment.tracking_number
-                                  ? ` â€¢ ${publicSelectedShipment.tracking_number}`
+                                  ? ` • ${publicSelectedShipment.tracking_number}`
                                   : "",
                               ],
                             }),
@@ -7935,8 +7936,8 @@ function nh() {
               className: "text-text-sub text-sm mb-6",
               children: w
                 ? w.status === "PAUSED"
-                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
-                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}.`
+                  ? `Shopping pausado en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
+                  : `Comprando en ${getMissionStoreLabel(w)}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}.`
                 : "Inicia un shopping al entrar a la tienda para comenzar a registrar compras.",
             }),
             w
@@ -8111,7 +8112,7 @@ function nh() {
                                                         "Sin cliente",
                                                         getClientNameById(editingRequestClientId)
                                                           ? ""
-                                                          : " âœ“",
+                                                          : " ✓",
                                                       ],
                                                     }),
                                                     c.jsx("div", {
@@ -8132,7 +8133,7 @@ function nh() {
                                                                     "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                                                   children:
                                                                     String(editingRequestClientId) === String(N.id)
-                                                                      ? `${N.name} âœ“`
+                                                                      ? `${N.name} ✓`
                                                                       : N.name,
                                                                 },
                                                                 `request-edit-client-${N.id}`,
@@ -8258,8 +8259,8 @@ function nh() {
                                                     o.created_by_username || o.created_by_name || "Usuario",
                                                     " (",
                                                     o.created_by_role || "AV",
-                                                    ") â€¢ ",
-                                                    o.client_name ? `${o.client_name} â€¢ ` : "",
+                                                    ") • ",
+                                                    o.client_name ? `${o.client_name} • ` : "",
                                                     getRelativeTime(o.updated_at || o.created_at),
                                                   ],
                                                 }),
@@ -8434,7 +8435,7 @@ function nh() {
                                     "mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800",
                                   children: [
                                     "Sin cliente",
-                                    getClientNameById(newRequestClientId) ? "" : " âœ“",
+                                    getClientNameById(newRequestClientId) ? "" : " ✓",
                                   ],
                                 }),
                                 c.jsx("div", {
@@ -8455,7 +8456,7 @@ function nh() {
                                                 "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
                                               children:
                                                 String(newRequestClientId) === String(o.id)
-                                                  ? `${o.name} âœ“`
+                                                  ? `${o.name} ✓`
                                                   : o.name,
                                             },
                                             `request-client-${o.id}`,
@@ -8475,7 +8476,7 @@ function nh() {
                           type: "text",
                           value: newRequestText,
                           onChange: (o) => setNewRequestText(o.target.value),
-                          placeholder: "Nueva peticiÃ³n...",
+                          placeholder: "Nueva petición...",
                           className:
                             "flex-1 min-w-[120px] px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                         }),
@@ -8840,8 +8841,8 @@ function nh() {
                               o.created_by_username || "Usuario",
                               " (",
                               o.created_by_role || "AV",
-                              ") â€¢ ",
-                              o.client_name ? `${o.client_name} â€¢ ` : "",
+                              ") • ",
+                              o.client_name ? `${o.client_name} • ` : "",
                               getRelativeTime(o.updated_at || o.created_at),
                             ],
                           }),
@@ -8939,7 +8940,7 @@ function nh() {
                       type: "text",
                       value: newRequestText,
                       onChange: (o) => setNewRequestText(o.target.value),
-                      placeholder: "Nueva peticiÃ³n...",
+                      placeholder: "Nueva petición...",
                       className:
                         "flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full",
                     }),
@@ -8991,7 +8992,7 @@ function nh() {
                         ? "text-xs text-gray-500 truncate mt-0.5"
                         : "text-[10px] text-gray-500 truncate",
                       children: w
-                        ? `${getMissionStoreLabel(w)} â€¢ ${w.status}${activeMissionPayerLabel ? ` â€¢ Paga: ${activeMissionPayerLabel}` : ""}`
+                        ? `${getMissionStoreLabel(w)} • ${w.status}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ""}`
                         : "Sin shopping activo",
                     }),
                   ],
@@ -9216,13 +9217,13 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-[11px] font-bold text-primary hover:text-primary-dark",
-                      children: "Ver ticket de misiÃ³n",
+                      children: "Ver ticket de misión",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Ticket de misiÃ³n pendiente.",
+                  children: "Ticket de misión pendiente.",
                 }),
             }),
           ],
@@ -9275,7 +9276,7 @@ function nh() {
             type: "text",
             value: missionSearch,
             onChange: (A) => setMissionSearch(A.target.value),
-            placeholder: "Buscar misiÃ³n o fecha...",
+            placeholder: "Buscar misión o fecha...",
             className: isDesktopLayout
               ? "w-full max-w-2xl px-4 py-3 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary"
               : "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary",
@@ -9371,7 +9372,7 @@ function nh() {
                                       c.jsx("button", {
                                         onClick: () => dn(null),
                                         className: "text-xs text-gray-500",
-                                        children: "âœ•",
+                                        children: "✕",
                                       }),
                                     ],
                                   })
@@ -9393,11 +9394,11 @@ function nh() {
                                           ).toLocaleDateString(),
                                           A.store_name &&
                                           c.jsxs(c.Fragment, {
-                                            children: [" â€¢ ", A.store_name],
+                                            children: [" • ", A.store_name],
                                           }),
-                                          " â€¢ ",
+                                          " • ",
                                           qa.length,
-                                          " clients â€¢ ",
+                                          " clients • ",
                                           ea.length,
                                           " products",
                                         ],
@@ -9492,13 +9493,13 @@ function nh() {
                                     onClick: () => setFullscreenImage(resolveMediaUrl(A.ticket_image)),
                                     className:
                                       "text-[11px] font-bold text-primary hover:text-primary-dark",
-                                    children: "Ver ticket de esta misiÃ³n",
+                                    children: "Ver ticket de esta misión",
                                   }),
                                 ],
                               })
                               : c.jsx("p", {
                                 className: "text-[11px] text-gray-500",
-                                children: "Sin ticket cargado para esta misiÃ³n.",
+                                children: "Sin ticket cargado para esta misión.",
                               }),
                           }),
                           qa.length > 0 &&
@@ -9544,7 +9545,7 @@ function nh() {
                                                 "text-[10px] text-gray-500",
                                               children: [
                                                 oi.length,
-                                                " items â€¢ ",
+                                                " items • ",
                                                 (gl.receipts || [])
                                                   .length,
                                                 " tickets",
@@ -9929,7 +9930,7 @@ function nh() {
                               className: "text-xs text-gray-500",
                               children: [
                                 totalClientItems,
-                                " items â€¢ ",
+                                " items • ",
                                 (N.receipts || []).length,
                                 " tickets",
                               ],
@@ -10118,17 +10119,17 @@ function nh() {
                         !!getClientPhoneDisplay(N) &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["ðŸ“± ", getClientPhoneDisplay(N)],
+                          children: ["📱 ", getClientPhoneDisplay(N)],
                         }),
                         N.email &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-1",
-                          children: ["ðŸ“§ ", N.email],
+                          children: ["📧 ", N.email],
                         }),
                         N.shipping_address &&
                         c.jsxs("p", {
                           className: "text-[10px] text-gray-500 mb-2",
-                          children: ["ðŸ“¦ ", N.shipping_address],
+                          children: ["📦 ", N.shipping_address],
                         }),
                         Array.isArray(N.shipping_addresses) &&
                         N.shipping_addresses.length > 0 &&
@@ -10139,7 +10140,7 @@ function nh() {
                               "p",
                               {
                                 className: "text-[10px] text-gray-500",
-                                children: ["ðŸ“ ", o],
+                                children: ["📍 ", o],
                               },
                               `client-extra-shipping-${N.id}-${A}`,
                             ),
@@ -10199,7 +10200,7 @@ function nh() {
                                                     ea.payments.length > 0 &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " â€¢ ",
+                                                        " • ",
                                                         ea.payments.length,
                                                         " pago(s)",
                                                       ],
@@ -10207,7 +10208,7 @@ function nh() {
                                                     ea.date &&
                                                     c.jsxs(c.Fragment, {
                                                       children: [
-                                                        " â€¢ ",
+                                                        " • ",
                                                         new Date(
                                                           ea.date,
                                                         ).toLocaleDateString(),
@@ -10288,7 +10289,7 @@ function nh() {
                                                   },
                                                   className:
                                                     "w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center",
-                                                  title: "Copiar desglose de esta misiÃ³n",
+                                                  title: "Copiar desglose de esta misión",
                                                   children: c.jsx("span", {
                                                     className:
                                                       "material-symbols-outlined text-[14px]",
@@ -11837,7 +11838,7 @@ function nh() {
                                       className:
                                         "absolute right-3 top-1/2 -translate-y-1/2 z-10 text-[18px] font-bold leading-none text-black/50 dark:text-white/60 hover:text-rose-600",
                                       "aria-label": `Quitar ${o.name} de recomendaciones`,
-                                      children: "Ã—",
+                                      children: "×",
                                     }),
                                     c.jsxs("button", {
                                       type: "button",
@@ -12150,19 +12151,19 @@ function nh() {
                       onClick: () => setFullscreenImage(resolveMediaUrl(w.ticket_image)),
                       className:
                         "text-xs font-bold text-primary hover:text-primary-dark",
-                      children: "Abrir ticket de misiÃ³n",
+                      children: "Abrir ticket de misión",
                     }),
                   ],
                 })
                 : c.jsx("p", {
                   className: "text-[11px] text-gray-500",
-                  children: "Esta misiÃ³n todavÃ­a no tiene ticket cargado.",
+                  children: "Esta misión todavía no tiene ticket cargado.",
                 }),
             }),
             filteredMissionSummaryProducts.length === 0
               ? c.jsx("p", {
                 className: "text-xs text-gray-500 text-center py-6",
-                children: "No hay productos para ese filtro en la misiÃ³n activa.",
+                children: "No hay productos para ese filtro en la misión activa.",
               })
               : c.jsx("div", {
                 className: "grid grid-cols-3 gap-1.5",
@@ -13783,9 +13784,9 @@ function nh() {
                         children: [
                           "Anotado: ",
                           galleryAnnotatedCount,
-                          " â€¢ Revision: ",
+                          " • Revision: ",
                           galleryReviewCount,
-                          " â€¢ Rechazado: ",
+                          " • Rechazado: ",
                           galleryRejectedCount,
                         ],
                       }),
@@ -14358,7 +14359,7 @@ function nh() {
                                           c.jsx("span", {
                                             className:
                                               "text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100",
-                                            children: "Ship âœ“",
+                                            children: "Ship ✓",
                                           }),
                                         ],
                                       }),
@@ -15009,678 +15010,39 @@ function nh() {
         }),
       }),
       clientPaymentModalOpen &&
-      c.jsx("div", {
-        className: overlayBackdropClass(
-          "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
-          "client-payment-modal",
-        ),
-        onClick: () => dismissActiveOverlayRef.current(),
-        children: c.jsxs("div", {
-          className: overlaySheetClass(
-            "bg-surface-light dark:bg-surface-dark w-full sm:max-w-6xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
-            "client-payment-modal",
-          ),
-          onClick: (o) => o.stopPropagation(),
-          children: [
-            c.jsxs("div", {
-              className:
-                "px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between gap-3",
-              children: [
-                c.jsxs("div", {
-                  className: "min-w-0",
-                  children: [
-                    c.jsx("h3", {
-                      className: "text-base font-bold text-text-main",
-                      children: "Pago del cliente",
-                    }),
-                    c.jsxs("p", {
-                      className: "text-[11px] text-text-sub mt-0.5",
-                      children: [
-                        clientPaymentModalClient
-                          ? clientPaymentModalClient.name
-                          : "Cliente",
-                        " â€¢ se abona del shopping mas antiguo al mas reciente",
-                      ],
-                    }),
-                  ],
-                }),
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  className:
-                    "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",
-                  children: c.jsx("span", {
-                    className: "material-symbols-outlined text-[18px]",
-                    children: "close",
-                  }),
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className: "flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-4",
-              children: [
-                c.jsxs("div", {
-                  className:
-                    "grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)] gap-4",
-                  children: [
-                    c.jsxs("div", {
-                      className:
-                        "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 overflow-hidden",
-                      children: [
-                        c.jsxs("div", {
-                          className:
-                            "px-4 py-3 border-b border-border-light dark:border-border-dark space-y-3",
-                          children: [
-                            c.jsxs("div", {
-                              className:
-                                "flex items-center justify-between gap-3",
-                              children: [
-                                c.jsxs("div", {
-                                  className: "min-w-0",
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        "text-sm font-bold text-text-main",
-                                      children: "Shoppings del pago",
-                                    }),
-                                    c.jsxs("p", {
-                                      className:
-                                        "text-[11px] text-text-sub mt-0.5",
-                                      children: [
-                                        clientPaymentReceivingTargets.length,
-                                        " de ",
-                                        clientPaymentTargets.length,
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                                c.jsxs("span", {
-                                  className:
-                                    "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
-                                  children: [
-                                    "Abono: $",
-                                    formatAmount(clientPaymentAllocatedTotal),
-                                  ],
-                                }),
-                              ],
-                            }),
-                          ],
-                        }),
-                        clientPaymentTargets.length === 0
-                          ? c.jsx("div", {
-                            className:
-                              "px-4 py-10 text-sm text-center text-text-sub",
-                            children:
-                              "Este cliente no tiene shoppings con deuda pendiente.",
-                          })
-                          : c.jsx("div", {
-                            className:
-                              "max-h-[52vh] overflow-y-auto ios-scroll p-3 space-y-2",
-                            children: clientPaymentPlan.map((o) =>
-                              c.jsxs(
-                                "div",
-                                {
-                                  className:
-                                    `rounded-2xl border px-3 py-3 transition ${
-                                      o.isReceiving
-                                        ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
-                                        : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50"
-                                    }`,
-                                  children: [
-                                    c.jsxs("div", {
-                                      className:
-                                        "flex items-start justify-between gap-3",
-                                      children: [
-                                        c.jsxs("div", {
-                                          className: "min-w-0 flex-1",
-                                          children: [
-                                            c.jsx("p", {
-                                              className:
-                                                "text-sm font-semibold truncate text-text-main dark:text-white",
-                                              children: o.title,
-                                            }),
-                                            c.jsxs("p", {
-                                              className:
-                                                "text-[11px] text-text-sub mt-0.5",
-                                              children: [
-                                                o.date
-                                                  ? new Date(o.date).toLocaleDateString()
-                                                  : "Sin fecha",
-                                                " â€¢ ",
-                                                Number.isFinite(o.annotatedCount)
-                                                  ? o.annotatedCount
-                                                  : o.items.length,
-                                                " item(s)",
-                                              ],
-                                            }),
-                                            c.jsxs("div", {
-                                              className:
-                                                "mt-2 flex flex-wrap gap-1",
-                                              children: [
-                                                c.jsxs("span", {
-                                                  className:
-                                                    "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
-                                                  children: [
-                                                    "Venta: $",
-                                                    formatAmount(o.productsTotal),
-                                                  ],
-                                                }),
-                                                c.jsxs("span", {
-                                                  className:
-                                                    "inline-flex rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
-                                                  children: [
-                                                    "Pagado: $",
-                                                    formatAmount(o.paymentsTotal),
-                                                  ],
-                                                }),
-                                                c.jsxs("span", {
-                                                  className:
-                                                    "inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-700",
-                                                  children: [
-                                                    "Deuda: $",
-                                                    formatAmount(o.debtAmount),
-                                                  ],
-                                                }),
-                                              ],
-                                            }),
-                                          ],
-                                        }),
-                                        c.jsxs("div", {
-                                          className:
-                                            "shrink-0 text-right flex flex-col items-end gap-1",
-                                          children: [
-                                            o.isReceiving
-                                              ? c.jsx("span", {
-                                                className:
-                                                  "inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700",
-                                                children:
-                                                  c.jsx("span", {
-                                                    className:
-                                                      "material-symbols-outlined text-[16px]",
-                                                    children: "check_circle",
-                                                  }),
-                                              })
-                                              : null,
-                                            o.isReceiving &&
-                                            c.jsxs("span", {
-                                              className:
-                                                "text-[11px] font-bold text-violet-700 dark:text-violet-300",
-                                              children: [
-                                                "Abona $",
-                                                formatAmount(o.appliedAmount),
-                                              ],
-                                            }),
-                                          ],
-                                        }),
-                                      ],
-                                    }),
-                                  ],
-                                },
-                                `client-payment-shopping-${o.key}`,
-                              ),
-                            ),
-                          }),
-                      ],
-                    }),
-                    c.jsxs("div", {
-                      className: "space-y-4",
-                      children: [
-                        c.jsxs("div", {
-                          className:
-                            "rounded-3xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-slate-900/45 p-4 space-y-4",
-                          children: [
-                            c.jsxs("label", {
-                              className: "block",
-                              children: [
-                                c.jsx("span", {
-                                  className:
-                                    "text-[11px] font-semibold text-text-sub",
-                                  children: "Monto del pago",
-                                }),
-                                c.jsx("input", {
-                                  type: "number",
-                                  step: "0.01",
-                                  inputMode: "decimal",
-                                  value: clientPaymentForm.amount,
-                                  onChange: (o) => {
-                                    setClientPaymentAmountManual(!0);
-                                    setClientPaymentForm((N) => ({
-                                      ...N,
-                                      amount: o.target.value,
-                                    }));
-                                  },
-                                  placeholder: "0.00",
-                                  className:
-                                    "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                                }),
-                                c.jsxs("div", {
-                                  className:
-                                    "mt-1 flex items-center justify-between gap-2",
-                                  children: [
-                                    c.jsx("span", {
-                                      className:
-                                        "text-[11px] font-medium text-emerald-700/80 dark:text-emerald-300/80",
-                                      children: `Deuda total: $${formatAmount(clientPaymentTotalDebt)}`,
-                                    }),
-                                    c.jsx("button", {
-                                      type: "button",
-                                      onClick: () => {
-                                        setClientPaymentAmountManual(!1);
-                                        setClientPaymentForm((N) => ({
-                                          ...N,
-                                          amount:
-                                            clientPaymentTotalDebt > 0
-                                              ? clientPaymentTotalDebt.toFixed(2)
-                                              : "",
-                                        }));
-                                      },
-                                      className:
-                                        "text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200",
-                                      children: "Usar deuda",
-                                    }),
-                                  ],
-                                }),
-                              ],
-                            }),
-                            c.jsxs("div", {
-                              className:
-                                "rounded-3xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-950/30 px-4 py-3.5 space-y-3",
-                              children: [
-                                c.jsxs("div", {
-                                  className:
-                                    "flex items-center justify-between gap-2",
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        "text-xs font-bold uppercase tracking-wide text-text-sub",
-                                      children: "Historial de abonos",
-                                    }),
-                                    c.jsxs("span", {
-                                      className:
-                                        "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
-                                      children: [
-                                        clientPaymentHistoryRows.length,
-                                        " movimiento(s)",
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                                clientPaymentHistoryRows.length === 0
-                                  ? c.jsx("p", {
-                                    className:
-                                      "text-[11px] leading-5 text-text-sub",
-                                    children:
-                                      "Aun no hay abonos guardados para este cliente.",
-                                  })
-                                  : c.jsx("div", {
-                                    className: "space-y-2 max-h-56 overflow-y-auto ios-scroll pr-1",
-                                    children: clientPaymentHistoryRows.map((o) => {
-                                      const N =
-                                          String(clientPaymentEntryEditingId || "") ===
-                                          String(o.id),
-                                        A = Array.isArray(o.shopping_allocations)
-                                          ? o.shopping_allocations
-                                          : [],
-                                        vl =
-                                          String((o && o.entry_kind) || "").toUpperCase() ===
-                                          "CLIENT_BATCH";
-                                      return c.jsxs(
-                                        "div",
-                                        {
-                                          className:
-                                            "rounded-2xl border border-violet-100 dark:border-violet-900/60 bg-violet-50/60 dark:bg-violet-950/20 px-3 py-2.5",
-                                          children: [
-                                            c.jsxs("div", {
-                                              className:
-                                                "flex items-start justify-between gap-2",
-                                              children: [
-                                                c.jsxs("div", {
-                                                  className: "min-w-0",
-                                                  children: [
-                                                    c.jsx("p", {
-                                                      className:
-                                                        "text-[11px] font-bold text-violet-700 dark:text-violet-200 truncate",
-                                                      children:
-                                                        o.shopping_title ||
-                                                        `Shopping #${o.shopping_id}`,
-                                                    }),
-                                                    A.length > 0 &&
-                                                    c.jsx("div", {
-                                                      className:
-                                                        "mt-1 flex flex-wrap gap-1",
-                                                      children: A.map((El) =>
-                                                        c.jsxs(
-                                                          "span",
-                                                          {
-                                                            className:
-                                                              "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
-                                                            children: [
-                                                              El.shopping_title,
-                                                              " $",
-                                                              formatAmount(
-                                                                Math.abs(
-                                                                  paymentLocalToNumber(
-                                                                    El.amount,
-                                                                    0,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          },
-                                                          `client-payment-history-tag-${o.id}-${El.shopping_id}`,
-                                                        ),
-                                                      ),
-                                                    }),
-                                                    N
-                                                      ? c.jsxs("div", {
-                                                        className:
-                                                          "mt-1 flex items-center gap-1.5",
-                                                        children: [
-                                                          c.jsx("input", {
-                                                            type: "number",
-                                                            step: "0.01",
-                                                            inputMode: "decimal",
-                                                            value:
-                                                              clientPaymentEntryDraftAmount,
-                                                            onChange: (El) =>
-                                                              setClientPaymentEntryDraftAmount(
-                                                                El.target.value,
-                                                              ),
-                                                            className:
-                                                              "w-28 px-2.5 py-1.5 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                                                          }),
-                                                          c.jsx("button", {
-                                                            type: "button",
-                                                            onClick: () =>
-                                                              saveClientPaymentHistoryRow(
-                                                                o,
-                                                              ),
-                                                            disabled:
-                                                              clientPaymentEntrySavingId ===
-                                                              String(o.id),
-                                                            className:
-                                                              "w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
-                                                            children: c.jsx(
-                                                              "span",
-                                                              {
-                                                                className:
-                                                                  `material-symbols-outlined text-[14px] ${clientPaymentEntrySavingId === String(o.id) ? "animate-spin" : ""}`,
-                                                                children:
-                                                                  clientPaymentEntrySavingId ===
-                                                                  String(o.id)
-                                                                    ? "progress_activity"
-                                                                    : "check",
-                                                              },
-                                                            ),
-                                                          }),
-                                                          c.jsx("button", {
-                                                            type: "button",
-                                                            onClick:
-                                                              cancelEditingClientPaymentEntry,
-                                                            disabled:
-                                                              clientPaymentEntrySavingId ===
-                                                              String(o.id),
-                                                            className:
-                                                              "w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
-                                                            children: c.jsx(
-                                                              "span",
-                                                              {
-                                                                className:
-                                                                  "material-symbols-outlined text-[14px]",
-                                                                children:
-                                                                  "close",
-                                                              },
-                                                            ),
-                                                          }),
-                                                        ],
-                                                      })
-                                                      : c.jsxs("p", {
-                                                        className:
-                                                          "text-[12px] font-bold mt-0.5 text-emerald-700 dark:text-emerald-300",
-                                                        children: [
-                                                          paymentLocalToNumber(
-                                                            o.amount,
-                                                            0,
-                                                          ) < 0
-                                                            ? "-$"
-                                                            : "+$",
-                                                          formatAmount(
-                                                            Math.abs(
-                                                              paymentLocalToNumber(
-                                                                o.amount,
-                                                                0,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      }),
-                                                    c.jsxs("p", {
-                                                      className:
-                                                        "text-[10px] text-text-sub mt-0.5",
-                                                      children: [
-                                                        o.created_at
-                                                          ? new Date(
-                                                            o.created_at,
-                                                          ).toLocaleString()
-                                                          : "Sin fecha",
-                                                        o.created_by_username
-                                                          ? ` - ${o.created_by_username}`
-                                                          : "",
-                                                      ],
-                                                    }),
-                                                  ],
-                                                }),
-                                                c.jsxs("div", {
-                                                  className:
-                                                    "text-right shrink-0 space-y-1",
-                                                  children: [
-                                                    c.jsxs("p", {
-                                                      className:
-                                                        "text-[10px] font-bold text-violet-700 dark:text-violet-200",
-                                                      children: [
-                                                        vl ? "Global $" : "Total $",
-                                                        formatAmount(
-                                                          paymentLocalToNumber(
-                                                            o.total_after,
-                                                            0,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    }),
-                                                    !N &&
-                                                    c.jsxs("div", {
-                                                      className:
-                                                        "flex items-center justify-end gap-1",
-                                                      children: [
-                                                        c.jsx("button", {
-                                                          type: "button",
-                                                          onClick: () =>
-                                                            startEditingClientPaymentEntry(
-                                                              o,
-                                                            ),
-                                                          disabled:
-                                                            clientPaymentEntrySavingId ===
-                                                            String(o.id),
-                                                          className:
-                                                            "w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
-                                                          children: c.jsx(
-                                                            "span",
-                                                            {
-                                                              className:
-                                                                "material-symbols-outlined text-[14px]",
-                                                              children:
-                                                                "edit",
-                                                            },
-                                                          ),
-                                                        }),
-                                                        c.jsx("button", {
-                                                          type: "button",
-                                                          onClick: () =>
-                                                            deleteClientPaymentHistoryRow(
-                                                              o,
-                                                            ),
-                                                          disabled:
-                                                            clientPaymentEntrySavingId ===
-                                                            String(o.id),
-                                                          className:
-                                                            "w-7 h-7 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
-                                                          children: c.jsx(
-                                                            "span",
-                                                            {
-                                                              className:
-                                                                `material-symbols-outlined text-[14px] ${clientPaymentEntrySavingId === String(o.id) ? "animate-spin" : ""}`,
-                                                              children:
-                                                                clientPaymentEntrySavingId ===
-                                                                String(o.id)
-                                                                  ? "progress_activity"
-                                                                  : "delete",
-                                                            },
-                                                          ),
-                                                        }),
-                                                      ],
-                                                    }),
-                                                  ],
-                                                }),
-                                              ],
-                                            }),
-                                          ],
-                                        },
-                                        `client-payment-history-entry-${o.id}`,
-                                      );
-                                    }),
-                                  }),
-                              ],
-                            }),
-                            c.jsxs("div", {
-                              className: "grid grid-cols-1 sm:grid-cols-3 gap-2",
-                              children: [
-                                c.jsxs("div", {
-                                  className:
-                                    "rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2",
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        "text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300",
-                                      children: "Deuda",
-                                    }),
-                                    c.jsxs("p", {
-                                      className:
-                                        "text-lg font-bold text-blue-700 dark:text-blue-100 mt-1",
-                                      children: [
-                                        "$",
-                                        formatAmount(clientPaymentTotalDebt),
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                                c.jsxs("div", {
-                                  className:
-                                    "rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 px-3 py-2",
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                      children: "Pago",
-                                    }),
-                                    c.jsxs("p", {
-                                      className:
-                                        "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
-                                      children: [
-                                        "$",
-                                        formatAmount(clientPaymentAllocatedTotal),
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                                c.jsxs("div", {
-                                  className:
-                                    `rounded-2xl border px-3 py-2 ${
-                                      clientPaymentBalance < 0
-                                        ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
-                                        : clientPaymentBalance > 0
-                                          ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
-                                          : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"
-                                    }`,
-                                  children: [
-                                    c.jsx("p", {
-                                      className:
-                                        `text-[10px] uppercase font-bold ${
-                                          clientPaymentBalance < 0
-                                            ? "text-emerald-700 dark:text-emerald-300"
-                                            : clientPaymentBalance > 0
-                                              ? "text-slate-700 dark:text-slate-300"
-                                              : "text-emerald-700 dark:text-emerald-300"
-                                        }`,
-                                      children:
-                                        clientPaymentBalance < 0
-                                          ? "A favor"
-                                          : "Deuda",
-                                    }),
-                                    c.jsxs("p", {
-                                      className:
-                                        `text-lg font-bold mt-1 ${
-                                          clientPaymentBalance < 0
-                                            ? "text-emerald-700 dark:text-emerald-100"
-                                            : clientPaymentBalance > 0
-                                              ? "text-slate-700 dark:text-slate-100"
-                                              : "text-emerald-700 dark:text-emerald-100"
-                                        }`,
-                                      children: [
-                                        "$",
-                                        formatAmount(
-                                          clientPaymentBalance < 0
-                                            ? Math.abs(clientPaymentBalance)
-                                            : clientPaymentBalance,
-                                        ),
-                                      ],
-                                    }),
-                                  ],
-                                }),
-                              ],
-                            }),
-                            c.jsx("p", {
-                              className:
-                                "text-[11px] leading-5 text-text-sub",
-                              children:
-                                clientPaymentReceivingTargets.length > 0
-                                  ? "El abono se reparte automaticamente empezando por la shopping mas antigua."
-                                  : "Captura un monto para repartirlo automaticamente entre las shoppings con deuda.",
-                            }),
-                          ],
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            c.jsxs("div", {
-              className:
-                "px-4 py-3 border-t border-border-light dark:border-border-dark bg-white/92 dark:bg-slate-950/70 grid grid-cols-2 gap-2",
-              children: [
-                c.jsx("button", {
-                  onClick: () => dismissActiveOverlayRef.current(),
-                  disabled: clientPaymentSaving,
-                  className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
-                  children: "Cancelar",
-                }),
-                c.jsx("button", {
-                  onClick: saveClientPayment,
-                  disabled:
-                    clientPaymentSaving ||
-                    clientPaymentTargets.length === 0 ||
-                    !Number.isFinite(clientPaymentAmountValue) ||
-                    clientPaymentAmountValue <= 0,
-                  className:
-                    "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-70",
-                  children: clientPaymentSaving ? "Guardando..." : "Guardar",
-                }),
-              ],
-            }),
-          ],
+      c.jsx(V.Suspense, {
+        fallback: lazySectionFallback,
+        children: c.jsx(ClientPaymentModal, {
+          clientPaymentModalOpen,
+          clientPaymentModalClient,
+          clientPaymentReceivingTargets,
+          clientPaymentTargets,
+          clientPaymentAllocatedTotal,
+          clientPaymentPlan,
+          clientPaymentForm,
+          setClientPaymentAmountManual,
+          setClientPaymentForm,
+          clientPaymentTotalDebt,
+          clientPaymentHistoryRows,
+          clientPaymentEntryEditingId,
+          clientPaymentEntryDraftAmount,
+          setClientPaymentEntryDraftAmount,
+          saveClientPaymentHistoryRow,
+          clientPaymentEntrySavingId,
+          cancelEditingClientPaymentEntry,
+          paymentLocalToNumber,
+          formatAmount,
+          startEditingClientPaymentEntry,
+          deleteClientPaymentHistoryRow,
+          clientPaymentBalance,
+          clientPaymentSaving,
+          saveClientPayment,
+          clientPaymentAmountValue,
+          onDismiss: () => dismissActiveOverlayRef.current(),
+          overlayBackdropClass,
+          overlaySheetClass,
         }),
-      }),
-      paymentModalOpen &&
+      }),      paymentModalOpen &&
       c.jsx(V.Suspense, {
         fallback: lazySectionFallback,
         children: c.jsx(PaymentModal, {
@@ -16035,7 +15397,7 @@ function nh() {
                                       "font-semibold text-slate-700 dark:text-slate-100",
                                     children: [
                                       o.sender_username || "Usuario",
-                                      " â€¢ ",
+                                      " • ",
                                       o.sender_role || "AV",
                                     ],
                                   }),
@@ -16415,4 +15777,5 @@ function nh() {
 }
 
 export default nh;
+
 
