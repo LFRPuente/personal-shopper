@@ -16360,7 +16360,7 @@ function nh() {
                           children: [
                             c.jsx("span", {
                               className: shipmentModalClient
-                                ? "text-text-main"
+                                ? "text-text-main dark:text-white"
                                 : "text-text-sub",
                               children: shipmentModalClient
                                 ? shipmentModalClient.name
