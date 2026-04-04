@@ -400,6 +400,8 @@ function nh() {
     [expandedShipmentId, setExpandedShipmentId] = V.useState(null),
     [shipmentSaving, setShipmentSaving] = V.useState(!1),
     [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
+    [shipmentClientPickerOpen, setShipmentClientPickerOpen] = V.useState(!1),
+    [shipmentClientSearch, setShipmentClientSearch] = V.useState(""),
     [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
     [shipmentProductSearch, setShipmentProductSearch] = V.useState(""),
     [shipmentForm, setShipmentForm] = V.useState({
@@ -3254,6 +3256,8 @@ function nh() {
     },
     loadShipmentForm = (o = null, N = null) => {
       setShipmentForm(getShipmentFormState(o, N));
+      setShipmentClientPickerOpen(!1);
+      setShipmentClientSearch("");
       setShipmentProductSearch("");
       setShipmentProductPickerOpen(!1);
     },
@@ -3289,6 +3293,11 @@ function nh() {
         }
         return vl;
       });
+    },
+    selectShipmentClient = (o) => {
+      updateShipmentForm("client", String(o || ""));
+      setShipmentClientPickerOpen(!1);
+      setShipmentClientSearch("");
     },
     toggleShipmentProductSelection = (o) => {
       if (!o) return;
@@ -3587,6 +3596,10 @@ function nh() {
     shipmentModalClient = Kl.find(
       (o) => String(o.id) === String(shipmentForm.client || ""),
     ),
+    filteredShipmentClients = Kl.filter((o) => {
+      const N = String(shipmentClientSearch || "").trim().toLowerCase();
+      return !N || String(o.name || "").toLowerCase().includes(N);
+    }),
     shipmentModalClientProducts = getShipmentClientProducts(
       shipmentForm.client,
     ),
@@ -16335,19 +16348,76 @@ function nh() {
                       className: "text-[11px] font-semibold text-text-sub",
                       children: "Cliente",
                     }),
-                    c.jsx("select", {
-                      value: shipmentForm.client,
-                      onChange: (o) =>
-                        updateShipmentForm("client", o.target.value),
-                      className:
-                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
-                      children: Kl.map((o) =>
-                        c.jsx(
-                          "option",
-                          { value: String(o.id), children: o.name },
-                          `shipment-client-${o.id}`,
-                        ),
-                      ),
+                    c.jsxs("div", {
+                      className: "relative mt-1",
+                      children: [
+                        c.jsxs("button", {
+                          type: "button",
+                          onClick: () =>
+                            setShipmentClientPickerOpen((o) => !o),
+                          className:
+                            "w-full px-3 py-2.5 text-sm border rounded-xl bg-white dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40 flex items-center justify-between gap-3 text-left",
+                          children: [
+                            c.jsx("span", {
+                              className: shipmentModalClient
+                                ? "text-text-main"
+                                : "text-text-sub",
+                              children: shipmentModalClient
+                                ? shipmentModalClient.name
+                                : "Selecciona un cliente",
+                            }),
+                            c.jsx("span", {
+                              className:
+                                "material-symbols-outlined text-[18px] text-text-sub",
+                              children: shipmentClientPickerOpen
+                                ? "expand_less"
+                                : "expand_more",
+                            }),
+                          ],
+                        }),
+                        shipmentClientPickerOpen &&
+                        c.jsxs("div", {
+                          className:
+                            "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2",
+                          children: [
+                            c.jsx("input", {
+                              type: "text",
+                              value: shipmentClientSearch,
+                              onChange: (o) =>
+                                setShipmentClientSearch(o.target.value),
+                              placeholder: "Buscar cliente...",
+                              className:
+                                "w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                            }),
+                            c.jsx("div", {
+                              className: "mt-2 max-h-56 overflow-y-auto ios-scroll",
+                              children:
+                                filteredShipmentClients.length > 0
+                                  ? filteredShipmentClients.map((o) =>
+                                      c.jsx(
+                                        "button",
+                                        {
+                                          type: "button",
+                                          onClick: () => selectShipmentClient(o.id),
+                                          className:
+                                            "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
+                                          children:
+                                            String(shipmentForm.client) === String(o.id)
+                                              ? `${o.name} ✓`
+                                              : o.name,
+                                        },
+                                        `shipment-client-option-${o.id}`,
+                                      ),
+                                    )
+                                  : c.jsx("p", {
+                                      className:
+                                        "px-2.5 py-3 text-[11px] text-gray-400 text-center",
+                                      children: "Sin coincidencias",
+                                    }),
+                            }),
+                          ],
+                        }),
+                      ],
                     }),
                   ],
                 }),
