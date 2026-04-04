@@ -48,7 +48,9 @@ const jsxsRuntimeOriginal = c.jsxs;
     jsxsRuntimeOriginal(type, optimizeMediaElementProps(type, props), key));
 typeof document != "undefined" &&
   document.documentElement &&
-  document.documentElement.classList.toggle("browser-firefox", IS_FIREFOX);
+  (document.documentElement.classList.toggle("browser-firefox", IS_FIREFOX),
+   IS_FIREFOX && (document.documentElement.classList.add("ff-loading"),
+     setTimeout(() => document.documentElement.classList.remove("ff-loading"), 3000)));
 
 export const getStoredNumber = (key, fallback) => {
   const raw = localStorage.getItem(key);
