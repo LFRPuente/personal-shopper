@@ -429,7 +429,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                   ),
                                                 className:
                                                   'w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center',
-                                                title: 'Copiar desglose',
+                                                title: 'Enviar desglose por WhatsApp',
                                                 children: c.jsx('span', {
                                                   className:
                                                     'material-symbols-outlined text-[16px]',

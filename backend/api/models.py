@@ -18,6 +18,11 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=4, choices=Role.choices, default=Role.AV)
     display_name = models.CharField(max_length=255, blank=True, default='')
     phone = models.CharField(max_length=30, blank=True, default='')
+    waha_api_url = models.URLField(max_length=500, blank=True, default='')
+    waha_api_key = models.CharField(max_length=500, blank=True, default='')
+    waha_session = models.CharField(max_length=120, blank=True, default='')
+    waha_phone_prefix = models.CharField(max_length=12, blank=True, default='521')
+    waha_chat_id_suffix = models.CharField(max_length=30, blank=True, default='@c.us')
     layout_mode = models.CharField(
         max_length=6,
         choices=LayoutMode.choices,

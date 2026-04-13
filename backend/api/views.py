@@ -15,6 +15,9 @@ from asgiref.sync import async_to_sync
 from decimal import Decimal
 import hashlib
 import secrets
+import json
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 from .models import (
     Client,
     ProductItem,
@@ -132,6 +135,10 @@ def build_public_client_share_url(request, raw_token):
 def build_public_shipment_share_url(request, raw_token):
     base_url = os.getenv('PUBLIC_SHARE_BASE_URL', 'https://ps.servidorfs.com').rstrip('/')
     return f'{base_url}/share/shipment/{raw_token}/'
+
+
+def normalize_digits(value):
+    return ''.join(ch for ch in str(value or '') if ch.isdigit())
 
 
 PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
@@ -404,6 +411,41 @@ def me(request):
             if profile.phone != normalized_phone:
                 profile.phone = normalized_phone
                 update_fields.append('phone')
+        waha_api_url = request.data.get('waha_api_url')
+        if waha_api_url is not None:
+            normalized_waha_api_url = str(waha_api_url).strip()
+            if normalized_waha_api_url and not normalized_waha_api_url.lower().startswith(('http://', 'https://')):
+                return Response(
+                    {'error': 'WAHA API URL must start with http:// or https://.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if profile.waha_api_url != normalized_waha_api_url:
+                profile.waha_api_url = normalized_waha_api_url
+                update_fields.append('waha_api_url')
+        waha_api_key = request.data.get('waha_api_key')
+        if waha_api_key is not None:
+            normalized_waha_api_key = str(waha_api_key).strip()
+            if profile.waha_api_key != normalized_waha_api_key:
+                profile.waha_api_key = normalized_waha_api_key
+                update_fields.append('waha_api_key')
+        waha_session = request.data.get('waha_session')
+        if waha_session is not None:
+            normalized_waha_session = str(waha_session).strip()
+            if profile.waha_session != normalized_waha_session:
+                profile.waha_session = normalized_waha_session
+                update_fields.append('waha_session')
+        waha_phone_prefix = request.data.get('waha_phone_prefix')
+        if waha_phone_prefix is not None:
+            normalized_waha_phone_prefix = normalize_digits(waha_phone_prefix) or '521'
+            if profile.waha_phone_prefix != normalized_waha_phone_prefix:
+                profile.waha_phone_prefix = normalized_waha_phone_prefix
+                update_fields.append('waha_phone_prefix')
+        waha_chat_id_suffix = request.data.get('waha_chat_id_suffix')
+        if waha_chat_id_suffix is not None:
+            normalized_waha_chat_id_suffix = str(waha_chat_id_suffix).strip()
+            if profile.waha_chat_id_suffix != normalized_waha_chat_id_suffix:
+                profile.waha_chat_id_suffix = normalized_waha_chat_id_suffix
+                update_fields.append('waha_chat_id_suffix')
         layout_mode = request.data.get('layout_mode')
         if layout_mode is not None:
             normalized_layout_mode = str(layout_mode).strip().upper()
@@ -473,6 +515,117 @@ def me(request):
             profile.save(update_fields=update_fields)
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_waha_text(request):
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={'role': 'AV'},
+    )
+    api_url = str(profile.waha_api_url or '').strip()
+    api_key = str(profile.waha_api_key or '').strip()
+    session = str(profile.waha_session or '').strip()
+    if not api_url or not session:
+        return Response(
+            {
+                'error': 'Configura WAHA API URL y session antes de enviar.',
+                'detail': 'Configura WAHA API URL y session antes de enviar.',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not api_url.lower().startswith(('http://', 'https://')):
+        return Response(
+            {
+                'error': 'La URL de WAHA no es valida.',
+                'detail': 'La URL de WAHA no es valida.',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    text = str(request.data.get('text') or '').strip()
+    if not text:
+        return Response(
+            {
+                'error': 'El mensaje esta vacio.',
+                'detail': 'El mensaje esta vacio.',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    raw_chat_id = str(request.data.get('chat_id') or '').strip()
+    if raw_chat_id:
+        chat_id = raw_chat_id
+    else:
+        phone = normalize_digits(request.data.get('phone'))
+        if not phone:
+            return Response(
+                {
+                    'error': 'El cliente no tiene telefono configurado.',
+                    'detail': 'El cliente no tiene telefono configurado.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        prefix = normalize_digits(profile.waha_phone_prefix) or '521'
+        suffix = str(profile.waha_chat_id_suffix or '').strip()
+        chat_digits = phone if len(phone) > 10 and phone.startswith(prefix) else f'{prefix}{phone}'
+        chat_id = f'{chat_digits}{suffix}'
+    payload = {
+        'session': session,
+        'chatId': chat_id,
+        'text': text,
+    }
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    if api_key:
+        headers['X-Api-Key'] = api_key
+    outbound_request = urllib_request.Request(
+        api_url,
+        data=json.dumps(payload).encode('utf-8'),
+        headers=headers,
+        method='POST',
+    )
+    try:
+        with urllib_request.urlopen(outbound_request, timeout=20) as response:
+            response_text = response.read().decode('utf-8', errors='replace')
+            response_payload = None
+            if response_text:
+                try:
+                    response_payload = json.loads(response_text)
+                except json.JSONDecodeError:
+                    response_payload = response_text
+            return Response({
+                'ok': True,
+                'chat_id': chat_id,
+                'status_code': response.status,
+                'response': response_payload,
+            })
+    except urllib_error.HTTPError as exc:
+        response_text = exc.read().decode('utf-8', errors='replace')
+        return Response(
+            {
+                'error': response_text or 'WAHA rechazo el mensaje.',
+                'detail': response_text or 'WAHA rechazo el mensaje.',
+                'status_code': exc.code,
+            },
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except urllib_error.URLError as exc:
+        return Response(
+            {
+                'error': f'No se pudo conectar con WAHA: {exc.reason}',
+                'detail': f'No se pudo conectar con WAHA: {exc.reason}',
+            },
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except Exception as exc:
+        return Response(
+            {
+                'error': f'No se pudo enviar el mensaje: {exc}',
+                'detail': f'No se pudo enviar el mensaje: {exc}',
+            },
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
 
 
 @api_view(['GET'])

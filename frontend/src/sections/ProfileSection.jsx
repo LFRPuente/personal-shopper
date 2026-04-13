@@ -22,6 +22,24 @@ const ProfileSection = V.memo(function ProfileSection() {
   } = useApp();
 
   const J = user;
+  const profile = (J && J.profile) || {};
+  const normalizeDigits = (value) => String(value || '').replace(/\D+/g, '');
+  const profileSettingsChanged =
+    String((profileSettingsForm.display_name || '').trim()) !==
+      String((profile.display_name || '').trim()) ||
+    String((profileSettingsForm.phone || '').trim()) !==
+      String((profile.phone || '').trim()) ||
+    String((profileSettingsForm.waha_api_url || '').trim()) !==
+      String((profile.waha_api_url || '').trim()) ||
+    String((profileSettingsForm.waha_api_key || '').trim()) !==
+      String((profile.waha_api_key || '').trim()) ||
+    String((profileSettingsForm.waha_session || '').trim()) !==
+      String((profile.waha_session || '').trim()) ||
+    (normalizeDigits(profileSettingsForm.waha_phone_prefix) || '521') !==
+      (normalizeDigits(profile.waha_phone_prefix) || '521') ||
+    String((profileSettingsForm.waha_chat_id_suffix || '').trim()) !==
+      String((profile.waha_chat_id_suffix || '').trim());
+  const profileSaveDisabled = profileSettingsSaving || !profileSettingsChanged;
 
   return c.jsxs("div", {
     className: isDesktopLayout
@@ -159,19 +177,10 @@ const ProfileSection = V.memo(function ProfileSection() {
                   c.jsx("button", {
                     type: "button",
                     onClick: saveProfileSettings,
-                    disabled:
-                      profileSettingsSaving ||
-                      (String((profileSettingsForm.display_name || "")).trim() ===
-                        String((J.profile && J.profile.display_name) || "").trim() &&
-                        String((profileSettingsForm.phone || "")).trim() ===
-                          String((J.profile && J.profile.phone) || "").trim()),
+                    disabled: profileSaveDisabled,
                     className:
                       `px-4 py-2 rounded-xl text-xs font-bold transition ${
-                        profileSettingsSaving ||
-                        (String((profileSettingsForm.display_name || "")).trim() ===
-                          String((J.profile && J.profile.display_name) || "").trim() &&
-                          String((profileSettingsForm.phone || "")).trim() ===
-                            String((J.profile && J.profile.phone) || "").trim())
+                        profileSaveDisabled
                           ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
                           : "bg-primary text-white hover:bg-primary-dark"
                       }`,
@@ -270,16 +279,155 @@ const ProfileSection = V.memo(function ProfileSection() {
           }),
           c.jsxs("div", {
             className:
-              "rounded-2xl border border-dashed border-border-light dark:border-border-dark px-4 py-4",
+              "rounded-2xl border border-border-light dark:border-border-dark px-4 py-4 space-y-3",
             children: [
-              c.jsx("h3", {
-                className: "text-sm font-bold text-text-main",
-                children: "Por definir",
+              c.jsxs("div", {
+                children: [
+                  c.jsx("h3", {
+                    className: "text-sm font-bold text-text-main",
+                    children: "WAHA WhatsApp",
+                  }),
+                  c.jsx("p", {
+                    className: "mt-1 text-xs text-text-sub",
+                    children:
+                      "Datos usados para enviar los desgloses directos por WhatsApp.",
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className: "grid gap-3 md:grid-cols-2",
+                children: [
+                  c.jsxs("label", {
+                    className: "block md:col-span-2",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "URL sendText",
+                      }),
+                      c.jsx("input", {
+                        type: "url",
+                        value: profileSettingsForm.waha_api_url || "",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            waha_api_url: o.target.value,
+                          })),
+                        placeholder: "https://waha.servidorfs.com/api/sendText",
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("label", {
+                    className: "block",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "X-Api-Key",
+                      }),
+                      c.jsx("input", {
+                        type: "password",
+                        value: profileSettingsForm.waha_api_key || "",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            waha_api_key: o.target.value,
+                          })),
+                        placeholder: "API key de WAHA",
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("label", {
+                    className: "block",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "Session",
+                      }),
+                      c.jsx("input", {
+                        type: "text",
+                        value: profileSettingsForm.waha_session || "",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            waha_session: o.target.value,
+                          })),
+                        placeholder: "default",
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("label", {
+                    className: "block",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "Prefijo chatId",
+                      }),
+                      c.jsx("input", {
+                        type: "text",
+                        inputMode: "numeric",
+                        value: profileSettingsForm.waha_phone_prefix || "521",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            waha_phone_prefix: normalizeDigits(o.target.value),
+                          })),
+                        placeholder: "521",
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("label", {
+                    className: "block",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "Sufijo chatId",
+                      }),
+                      c.jsx("input", {
+                        type: "text",
+                        value: profileSettingsForm.waha_chat_id_suffix || "",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            waha_chat_id_suffix: o.target.value,
+                          })),
+                        placeholder: "@c.us",
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                ],
               }),
               c.jsx("p", {
-                className: "mt-1 text-xs text-text-sub",
+                className: "text-[11px] text-text-sub",
                 children:
-                  "Espacio reservado para mas cambios dentro de esta tabla de configuraciones.",
+                  "El chatId se arma como prefijo + telefono del cliente + sufijo. Ejemplo: 5215512345678@c.us.",
+              }),
+              c.jsx("button", {
+                type: "button",
+                onClick: saveProfileSettings,
+                disabled: profileSaveDisabled,
+                className:
+                  `px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    profileSaveDisabled
+                      ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                      : "bg-primary text-white hover:bg-primary-dark"
+                  }`,
+                children: profileSettingsSaving
+                  ? "Guardando..."
+                  : "Guardar WAHA",
               }),
             ],
           }),

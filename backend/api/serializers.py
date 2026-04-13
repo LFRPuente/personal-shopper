@@ -46,7 +46,18 @@ class RelativeMediaField(serializers.FileField):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['role', 'display_name', 'phone', 'layout_mode', 'home_layout']
+        fields = [
+            'role',
+            'display_name',
+            'phone',
+            'layout_mode',
+            'home_layout',
+            'waha_api_url',
+            'waha_api_key',
+            'waha_session',
+            'waha_phone_prefix',
+            'waha_chat_id_suffix',
+        ]
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(source='userprofile', read_only=True)

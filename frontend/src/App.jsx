@@ -346,6 +346,11 @@ function nh() {
     [profileSettingsForm, setProfileSettingsForm] = V.useState({
       display_name: "",
       phone: "",
+      waha_api_url: "",
+      waha_api_key: "",
+      waha_session: "",
+      waha_phone_prefix: "521",
+      waha_chat_id_suffix: "@c.us",
     }),
     [profileSettingsSaving, setProfileSettingsSaving] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
@@ -1060,6 +1065,11 @@ function nh() {
     setProfileSettingsForm({
       display_name: String((J && J.profile && J.profile.display_name) || ""),
       phone: String((J && J.profile && J.profile.phone) || ""),
+      waha_api_url: String((J && J.profile && J.profile.waha_api_url) || ""),
+      waha_api_key: String((J && J.profile && J.profile.waha_api_key) || ""),
+      waha_session: String((J && J.profile && J.profile.waha_session) || ""),
+      waha_phone_prefix: String((J && J.profile && J.profile.waha_phone_prefix) || "521"),
+      waha_chat_id_suffix: String((J && J.profile && J.profile.waha_chat_id_suffix) || "@c.us"),
     });
   }, [J]);
   V.useEffect(() => {
@@ -3042,10 +3052,11 @@ function nh() {
       const A = toNumber(o && o.real_price, Number.NaN);
       return Number.isFinite(A) ? A : 0;
     },
-    resolveBreakdownShopping = (o = null) =>
-      o && typeof o === "object"
-        ? o
-        : Al.find((N) => Number(N && N.id) === Number(o)) || null,
+    resolveBreakdownShopping = (o = null) => {
+      const N = o && typeof o === "object" ? Number(o.id || 0) : Number(o || 0),
+        A = Al.find((vl) => Number(vl && vl.id) === N) || null;
+      return A || (o && typeof o === "object" ? o : null);
+    },
     formatBreakdownPercent = (o) => {
       const N = toNumber(o, Number.NaN);
       return Number.isFinite(N) ? `${N}` : "";
@@ -3160,6 +3171,61 @@ function nh() {
         Se = El - toNumber(N, 0);
       return Math.abs(Se) > 0.009 ? Se : 0;
     },
+    getWahaChatPreview = (o) => {
+      const N = normalizeClientPhoneDigits(o && o.phone);
+      if (!N) return "";
+      const A = String((J && J.profile && J.profile.waha_phone_prefix) || "521").replace(/\D+/g, "") || "521",
+        vl = String((J && J.profile && J.profile.waha_chat_id_suffix) || "@c.us").trim(),
+        El = N.length > 10 && N.startsWith(A) ? N : `${A}${N}`;
+      return `${El}${vl}`;
+    },
+    sendBreakdownWhatsApp = async (o, N, A = "") => {
+      if (!o) return !1;
+      const vl = J && J.profile ? J.profile : {},
+        El = String((vl && vl.waha_api_url) || "").trim(),
+        Se = String((vl && vl.waha_session) || "").trim(),
+        ea = normalizeClientPhoneDigits(o && o.phone),
+        gl = getWahaChatPreview(o);
+      if (!El || !Se) {
+        notifyInfo("Configura WAHA API URL y session en Perfil antes de enviar.");
+        return !1;
+      }
+      if (!ea) {
+        notifyError("El cliente no tiene telefono configurado.");
+        return !1;
+      }
+      const ae = await confirmAction({
+        title: "Enviar desglose por WhatsApp",
+        message: `Se enviara el desglose directo a ${o.name || "este cliente"} por WhatsApp (${gl}).`,
+        confirmLabel: "Enviar",
+        cancelLabel: "Cancelar",
+        tone: "info",
+      });
+      if (!ae) return !1;
+      try {
+        await I("/whatsapp/send-text/", {
+          method: "POST",
+          body: JSON.stringify({
+            phone: ea,
+            text: N,
+          }),
+        });
+        A &&
+          setCopiedMissionClients((qa) =>
+            qa.includes(A) ? qa : [...qa, A],
+          );
+        notifySuccess("Desglose enviado por WhatsApp.");
+        return !0;
+      } catch (qa) {
+        console.error("Failed sending WAHA breakdown", qa);
+        notifyError(
+          (qa && qa.payload && (qa.payload.error || qa.payload.detail)) ||
+            (qa && qa.message) ||
+            "No se pudo enviar el desglose por WhatsApp.",
+        );
+        return !1;
+      }
+    },
     handleFullscreenImageCopy = async () => {
       if (
         !fullscreenImage ||
@@ -3200,11 +3266,11 @@ function nh() {
           itemsCount: Se.length,
           balanceAdjustment: getClientBreakdownBalanceAdjustment(N, ae),
         });
-      try {
-        await navigator.clipboard.writeText(oi);
-      } catch (Nn) {
-        console.error("Failed to copy shopping breakdown", Nn);
-      }
+      await sendBreakdownWhatsApp(
+        N,
+        oi,
+        `${(A && A.id) || (o && o.id)}-${N && N.id}`,
+      );
     },
     copyAnnotatedMissionBreakdown = async (o, N) => {
       const A = resolveBreakdownShopping(o),
@@ -3237,15 +3303,7 @@ function nh() {
           itemsCount: Se.length,
           balanceAdjustment: getClientBreakdownBalanceAdjustment(N, ae),
         });
-      try {
-        await navigator.clipboard.writeText(oi);
-        const Nn = `home-${o.id}-${N.id}`;
-        setCopiedMissionClients((ae) =>
-          ae.includes(Nn) ? ae : [...ae, Nn],
-        );
-      } catch (Nn) {
-        console.error("Failed to copy annotated shopping breakdown", Nn);
-      }
+      await sendBreakdownWhatsApp(N, oi, `home-${o.id}-${N.id}`);
     },
     copyMissionClientsBreakdown = async (o, N = []) => {
       if (!o) return;
@@ -8275,21 +8333,36 @@ function nh() {
       if (!J || profileSettingsSaving) return;
       const o = String((profileSettingsForm.display_name || "")).trim(),
         N = String((profileSettingsForm.phone || "")).trim(),
-        A = String((J && J.profile && J.profile.display_name) || "").trim(),
-        vl = String((J && J.profile && J.profile.phone) || "").trim();
-      if (o === A && N === vl) return;
+        A = String((profileSettingsForm.waha_api_url || "").trim()),
+        vl = String((profileSettingsForm.waha_api_key || "").trim()),
+        El = String((profileSettingsForm.waha_session || "").trim()),
+        Se = String((profileSettingsForm.waha_phone_prefix || "521").replace(/\D+/g, "") || "521"),
+        ea = String((profileSettingsForm.waha_chat_id_suffix || "").trim()),
+        gl = String((J && J.profile && J.profile.display_name) || "").trim(),
+        ae = String((J && J.profile && J.profile.phone) || "").trim(),
+        qa = String((J && J.profile && J.profile.waha_api_url) || "").trim(),
+        Nn = String((J && J.profile && J.profile.waha_api_key) || "").trim(),
+        Ta = String((J && J.profile && J.profile.waha_session) || "").trim(),
+        qaPrefix = String((J && J.profile && J.profile.waha_phone_prefix) || "521").replace(/\D+/g, "") || "521",
+        za = String((J && J.profile && J.profile.waha_chat_id_suffix) || "").trim();
+      if (o === gl && N === ae && A === qa && vl === Nn && El === Ta && Se === qaPrefix && ea === za) return;
       setProfileSettingsSaving(!0);
       try {
-        const El = await I("/auth/me/", {
+        const oi = await I("/auth/me/", {
           method: "PATCH",
           body: JSON.stringify({
             display_name: o,
             phone: N,
+            waha_api_url: A,
+            waha_api_key: vl,
+            waha_session: El,
+            waha_phone_prefix: Se,
+            waha_chat_id_suffix: ea,
           }),
         });
-        El && (b(El), notifySuccess("Perfil guardado."));
-      } catch (El) {
-        console.error("Failed saving profile settings", El);
+        oi && (b(oi), notifySuccess("Configuracion guardada."));
+      } catch (oi) {
+        console.error("Failed saving profile settings", oi);
         notifyError("No se pudo guardar la configuracion del perfil.");
       } finally {
         setProfileSettingsSaving(!1);
@@ -8477,7 +8550,7 @@ function nh() {
     clearEditingRequestImage, filteredEditingRequestClients,
     getClientNameById, getRelativeTime,
     Ta, openMissionClientView, openClientSectionGallery, deletePayment, openCreateClientModal, openEditClientModal, Jt,
-    copyClientMissionShareLink, openPaymentModal, copyAnnotatedMissionBreakdown,
+    copyClientMissionShareLink, copyMissionBreakdown, openPaymentModal, copyAnnotatedMissionBreakdown,
     getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
     openClientShoppingGallery, openClientPaymentModal,
     homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
