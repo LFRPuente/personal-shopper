@@ -36,15 +36,21 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
 
   const clientPaymentIsDebtAdjustment =
     paymentLocalToNumber(clientPaymentForm.amount, 0) < 0;
+  const clientPaymentIsCreditAdjustment =
+    !clientPaymentIsDebtAdjustment &&
+    clientPaymentPlan.some((plan) => plan && plan.isCreditAdjustment);
 
   const renderShoppingPlanCard = (plan) => {
     const isDebtAdjustment = Boolean(plan.isDebtAdjustment);
+    const isCreditAdjustment = Boolean(plan.isCreditAdjustment);
     return c.jsxs(
       "div",
       {
         className: `rounded-2xl border px-3 py-3 transition ${
           isDebtAdjustment
             ? "border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
+            : isCreditAdjustment
+              ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
             : plan.isReceiving
             ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
             : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50"
@@ -113,10 +119,16 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         className:
                           isDebtAdjustment
                             ? "inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-700"
+                            : isCreditAdjustment
+                              ? "inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"
                             : "inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700",
                         children: c.jsx("span", {
                           className: "material-symbols-outlined text-[16px]",
-                          children: isDebtAdjustment ? "add_card" : "check_circle",
+                          children: isDebtAdjustment
+                            ? "add_card"
+                            : isCreditAdjustment
+                              ? "account_balance_wallet"
+                              : "check_circle",
                         }),
                       })
                     : null,
@@ -125,9 +137,15 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                       className:
                         isDebtAdjustment
                           ? "text-[11px] font-bold text-rose-700 dark:text-rose-300"
+                          : isCreditAdjustment
+                            ? "text-[11px] font-bold text-emerald-700 dark:text-emerald-300"
                           : "text-[11px] font-bold text-violet-700 dark:text-violet-300",
                       children: [
-                        isDebtAdjustment ? "Deuda +$" : "Abona $",
+                        isDebtAdjustment
+                          ? "Deuda +$"
+                          : isCreditAdjustment
+                            ? "A favor +$"
+                            : "Abona $",
                         formatAmount(
                           Math.abs(paymentLocalToNumber(plan.appliedAmount, 0)),
                         ),
@@ -200,10 +218,11 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         className: "mt-1 flex items-center gap-1.5",
                         children: [
                           c.jsx("input", {
-                            type: "number",
+                            type: "text",
                             step: "0.01",
-                            inputMode: "decimal",
+                            inputMode: "text",
                             value: clientPaymentEntryDraftAmount,
+                            autoComplete: "off",
                             onChange: (event) =>
                               setClientPaymentEntryDraftAmount(
                                 event.target.value,
@@ -359,6 +378,8 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                       : "Cliente",
                     clientPaymentIsDebtAdjustment
                       ? " - captura de deuda inicial"
+                      : clientPaymentIsCreditAdjustment
+                        ? " - captura de saldo a favor inicial"
                       : " - se abona del shopping mas antiguo al mas reciente",
                   ],
                 }),
@@ -406,6 +427,8 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                   children: [
                                     clientPaymentIsDebtAdjustment
                                       ? "Ajuste de deuda"
+                                      : clientPaymentIsCreditAdjustment
+                                        ? "Ajuste a favor"
                                       : `${clientPaymentReceivingTargets.length} de ${clientPaymentTargets.length}`,
                                   ],
                                 }),
@@ -415,9 +438,15 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               className:
                                 clientPaymentIsDebtAdjustment
                                   ? "inline-flex rounded-full bg-rose-100 px-2 py-1 text-[10px] font-bold text-rose-700"
+                                  : clientPaymentIsCreditAdjustment
+                                    ? "inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700"
                                   : "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
                               children: [
-                                clientPaymentIsDebtAdjustment ? "Deuda: -$" : "Abono: $",
+                                clientPaymentIsDebtAdjustment
+                                  ? "Deuda: -$"
+                                  : clientPaymentIsCreditAdjustment
+                                    ? "A favor: +$"
+                                    : "Abono: $",
                                 formatAmount(Math.abs(clientPaymentAllocatedTotal)),
                               ],
                             }),
@@ -432,6 +461,8 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           children:
                             clientPaymentIsDebtAdjustment
                               ? "No hay shopping activa donde registrar la deuda inicial."
+                              : clientPaymentIsCreditAdjustment
+                                ? "No hay shopping activa donde registrar el saldo a favor inicial."
                               : "Este cliente no tiene shoppings con deuda pendiente.",
                         })
                       : c.jsx("div", {
@@ -457,9 +488,9 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               children: "Monto del movimiento",
                             }),
                             c.jsx("input", {
-                              type: "number",
+                              type: "text",
                               step: "0.01",
-                              inputMode: "decimal",
+                              inputMode: "text",
                               value: clientPaymentForm.amount,
                               onChange: (event) => {
                                 setClientPaymentAmountManual(true);
@@ -469,13 +500,14 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                 }));
                               },
                               placeholder: "0.00",
+                              autoComplete: "off",
                               className:
                                 "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
                             }),
                             c.jsx("p", {
                               className: "mt-1 text-[10px] leading-4 text-text-sub",
                               children:
-                                "Usa un monto negativo para registrar deuda inicial del cliente.",
+                                "Usa negativo para deuda inicial o positivo para saldo a favor.",
                             }),
                             c.jsxs("div", {
                               className:
@@ -575,13 +607,21 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                 c.jsx("p", {
                                   className:
                                     "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                  children: clientPaymentIsDebtAdjustment ? "Ajuste" : "Pago",
+                                  children: clientPaymentIsDebtAdjustment
+                                    ? "Deuda"
+                                    : clientPaymentIsCreditAdjustment
+                                      ? "A favor"
+                                      : "Pago",
                                 }),
                                 c.jsxs("p", {
                                   className:
                                     "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
                                   children: [
-                                    clientPaymentIsDebtAdjustment ? "-$" : "$",
+                                    clientPaymentIsDebtAdjustment
+                                      ? "-$"
+                                      : clientPaymentIsCreditAdjustment
+                                        ? "+$"
+                                        : "$",
                                     formatAmount(Math.abs(clientPaymentAllocatedTotal)),
                                   ],
                                 }),
@@ -635,6 +675,8 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           children:
                             clientPaymentIsDebtAdjustment
                               ? "La deuda inicial se registra como un cargo negativo en la shopping mas antigua del cliente o en la shopping activa."
+                              : clientPaymentIsCreditAdjustment
+                                ? "El saldo a favor inicial se registra como un movimiento positivo en la shopping mas antigua del cliente o en la shopping activa."
                               : clientPaymentReceivingTargets.length > 0
                               ? "El abono se reparte automaticamente empezando por la shopping mas antigua."
                               : "Captura un monto para repartirlo automaticamente entre las shoppings con deuda.",

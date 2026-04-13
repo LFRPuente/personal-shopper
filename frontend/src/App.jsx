@@ -4290,7 +4290,7 @@ function nh() {
         });
         return !0;
       }
-      const ea = getClientPaymentDebtAdjustmentTarget(o),
+      const ea = getClientPaymentBalanceAdjustmentTarget(o),
         gl = Number(ea && ea.key);
       if (!gl) {
         notifyInfo("No hay shopping donde registrar la deuda inicial.");
@@ -4525,25 +4525,25 @@ function nh() {
         notifyInfo("Captura un monto valido distinto de cero.");
         return;
       }
-      if (N < 0) {
-        const A = getClientPaymentDebtAdjustmentTarget(o),
-          vl = Number(A && A.key);
-        if (!vl) {
-          notifyInfo("No hay shopping donde registrar la deuda inicial.");
-          return;
+      const saveClientPaymentBalanceAdjustment = async (A, vl, El) => {
+        const Se = getClientPaymentBalanceAdjustmentTarget(o),
+          ea = Number(Se && Se.key);
+        if (!ea) {
+          notifyInfo("No hay shopping donde registrar el saldo inicial.");
+          return !1;
         }
         setClientPaymentSaving(!0);
         try {
-          const El = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-            Se = getClientShoppingPayments(o, vl)[0] || null;
-          await I(Se ? `/payments/${Se.id}/` : "/payments/", {
-            method: Se ? "PATCH" : "POST",
+          const gl = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            ae = getClientShoppingPayments(o, ea)[0] || null;
+          await I(ae ? `/payments/${ae.id}/` : "/payments/", {
+            method: ae ? "PATCH" : "POST",
             body: JSON.stringify({
               client: o.id,
-              shopping: vl,
-              amount: ((Se ? getPaymentRecordAmount(Se) : 0) + N).toFixed(2),
+              shopping: ea,
+              amount: ((ae ? getPaymentRecordAmount(ae) : 0) + A).toFixed(2),
               entry_kind: "CLIENT_BATCH",
-              entry_group_token: El,
+              entry_group_token: gl,
             }),
           });
           setClientPaymentModalOpen(!1);
@@ -4554,20 +4554,33 @@ function nh() {
           });
           await refreshCoreData();
           await refreshSelectedClient();
-          notifySuccess("Deuda inicial guardada.");
-        } catch (A) {
-          console.error("Failed saving client debt adjustment", A);
-          notifyError((A && A.message) || "No se pudo guardar la deuda inicial.");
+          notifySuccess(vl);
+          return !0;
+        } catch (gl) {
+          console.error(El, gl);
+          notifyError((gl && gl.message) || "No se pudo guardar el saldo inicial.");
+          return !1;
         } finally {
           setClientPaymentSaving(!1);
         }
+      };
+      if (N < 0) {
+        await saveClientPaymentBalanceAdjustment(
+          N,
+          "Deuda inicial guardada.",
+          "Failed saving client debt adjustment",
+        );
         return;
       }
       const A = getClientPaymentPlan(o, N).filter(
         (vl) => paymentLocalToNumber(vl && vl.appliedAmount, 0) > 0,
       );
-      if (A.length === 0) {
-        notifyInfo("Este cliente no tiene shoppings con deuda pendiente.");
+      if (A.some((vl) => vl && vl.isCreditAdjustment) || A.length === 0) {
+        await saveClientPaymentBalanceAdjustment(
+          N,
+          "Saldo a favor guardado.",
+          "Failed saving client credit adjustment",
+        );
         return;
       }
       setClientPaymentSaving(!0);
@@ -4640,7 +4653,7 @@ function nh() {
               batchAvailable: ae,
             };
           })
-          .filter((Se) => Se.batchAvailable > 0 || Se.existingAmount > 0)
+          .filter((Se) => Se.batchAvailable > 0 || Se.existingAmount !== 0)
           .sort(
             (Se, ea) =>
               new Date(Se.date || 0).getTime() - new Date(ea.date || 0).getTime(),
@@ -5715,7 +5728,7 @@ function nh() {
           (N, A) =>
             new Date(N.date || 0).getTime() - new Date(A.date || 0).getTime(),
         ),
-    getClientPaymentDebtAdjustmentTarget = (o) => {
+    getClientPaymentBalanceAdjustmentTarget = (o) => {
       if (!o) return null;
       const N = getClientShoppingHistoryEntries(o)
         .filter((A) => Number(A && A.key) > 0)
@@ -5744,7 +5757,7 @@ function nh() {
     getClientPaymentPlan = (o, N = 0) => {
       const A = toNumber(N, 0);
       if (A < 0) {
-        const vl = getClientPaymentDebtAdjustmentTarget(o);
+        const vl = getClientPaymentBalanceAdjustmentTarget(o);
         return vl
           ? [
             {
@@ -5776,6 +5789,20 @@ function nh() {
           appliedAmount: Se.appliedAmount + vl,
           isReceiving: !0,
         };
+      }
+      if (vl > 0 && El.length === 0) {
+        const Se = getClientPaymentBalanceAdjustmentTarget(o);
+        return Se
+          ? [
+            {
+              ...Se,
+              debtAmount: 0,
+              appliedAmount: vl,
+              isReceiving: !0,
+              isCreditAdjustment: !0,
+            },
+          ]
+          : [];
       }
       return El;
     },
