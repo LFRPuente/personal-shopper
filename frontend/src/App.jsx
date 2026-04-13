@@ -235,8 +235,12 @@ function nh() {
       () => getPublicShareFocusShipmentIdFromSearch(),
       [],
     ),
-    DEFAULT_BREAKDOWN_TEMPLATE =
+    LEGACY_BREAKDOWN_TEMPLATES = [
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
       "DESGLOSE DE TU CUENTA:\n\n{items}\n{balance_line}\n\n*TOTAL TIENDA: ${total}*\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
+    ],
+    DEFAULT_BREAKDOWN_TEMPLATE =
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n{balance_line}\n\n*{total_label}: ${total}*\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
@@ -333,10 +337,12 @@ function nh() {
     [calcExchangeRate, setCalcExchangeRate] = V.useState(() =>
       getStoredNumber("calc_exchange_rate", 17.5),
     ),
-    [defaultBreakdownTemplate, setDefaultBreakdownTemplate] = V.useState(
-      localStorage.getItem("default_breakdown_template") ||
-        DEFAULT_BREAKDOWN_TEMPLATE,
-    ),
+    [defaultBreakdownTemplate, setDefaultBreakdownTemplate] = V.useState(() => {
+      const storedTemplate = localStorage.getItem("default_breakdown_template");
+      if (!storedTemplate || LEGACY_BREAKDOWN_TEMPLATES.includes(storedTemplate))
+        return DEFAULT_BREAKDOWN_TEMPLATE;
+      return storedTemplate;
+    }),
     [profileSettingsForm, setProfileSettingsForm] = V.useState({
       display_name: "",
       phone: "",
@@ -3086,10 +3092,13 @@ function nh() {
       const o = MODULE_NUMBER_FORMAT,
         Qa = toNumber(balanceAdjustment, 0),
         Za = Math.abs(Qa) > 0.009,
-        za = Za
-          ? `${Qa < 0 ? "Saldo a favor" : "Saldo deudor"}: $${o.format(Math.abs(Qa))}`
+        ta = total + (Za ? Qa : 0),
+        ba = ta < -0.009 ? "TOTAL A FAVOR" : "TOTAL DEUDOR",
+        xa = Za || ta < -0.009,
+        va = ta < -0.009 ? Math.abs(ta) : Math.abs(Qa),
+        za = xa && va > 0.009
+          ? `${ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor"}: $${o.format(va)}`
           : "",
-        ta = Math.max(0, total + (Za ? Qa : 0)),
         Ia = defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE,
         Ya = Ia.includes("{balance_line}"),
         N =
@@ -3104,12 +3113,13 @@ function nh() {
         vl = {
           title,
           items: ka,
-          total: o.format(ta),
+          total: o.format(Math.abs(ta)),
+          total_label: ba,
           products_total: o.format(total),
           subtotal: o.format(Number.isFinite(subtotal) ? subtotal : total),
           balance_line: za,
-          balance_label: Za ? (Qa < 0 ? "Saldo a favor" : "Saldo deudor") : "",
-          balance_amount: Za ? o.format(Math.abs(Qa)) : "",
+          balance_label: xa ? (ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor") : "",
+          balance_amount: xa ? o.format(va) : "",
           discount_percentage: formatBreakdownPercent(discountPercentage),
           discount_amount: o.format(
             Number.isFinite(discountAmount) ? discountAmount : 0,
@@ -3130,11 +3140,12 @@ function nh() {
           ...vl,
           items: items.length > 0 ? items : ka,
           total: ta,
+          total_label: ba,
           products_total: total,
           subtotal: Number.isFinite(subtotal) ? subtotal : total,
           balance_line: za,
-          balance_label: Za ? (Qa < 0 ? "Saldo a favor" : "Saldo deudor") : "",
-          balance_amount: Za ? Math.abs(Qa) : 0,
+          balance_label: xa ? (ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor") : "",
+          balance_amount: xa ? va : 0,
           balance_adjustment: Qa,
           discount_percentage: toNumber(discountPercentage, 0),
           discount_amount: Number.isFinite(discountAmount) ? discountAmount : 0,
@@ -3142,18 +3153,12 @@ function nh() {
         };
       return renderBreakdownTemplate(Ia, vl, El);
     },
-    getClientBreakdownBalanceAdjustment = (o, N = null) => {
+    getClientBreakdownBalanceAdjustment = (o, N = 0) => {
       if (!o) return 0;
-      const A = Number(N || 0),
-        vl = getClientShoppingHistoryEntries(o),
-        El = vl.reduce(
-          (Se, ea) =>
-            Number(ea && ea.key) === A ? Se : Se + toNumber(ea && ea.balance, 0),
-          0,
-        ),
-        Se = A ? getClientShoppingPaymentSummary(o, A).amount : 0,
-        ea = El - toNumber(Se, 0);
-      return Math.abs(ea) > 0.009 ? ea : 0;
+      const vl = getClientShoppingHistoryEntries(o),
+        El = vl.reduce((Se, ea) => Se + toNumber(ea && ea.balance, 0), 0),
+        Se = El - toNumber(N, 0);
+      return Math.abs(Se) > 0.009 ? Se : 0;
     },
     handleFullscreenImageCopy = async () => {
       if (
@@ -3193,10 +3198,7 @@ function nh() {
           taxPercentage: A && A.tax_percentage,
           commissionPercentage: A && A.commission_percentage,
           itemsCount: Se.length,
-          balanceAdjustment: getClientBreakdownBalanceAdjustment(
-            N,
-            (A && A.id) || (o && o.id),
-          ),
+          balanceAdjustment: getClientBreakdownBalanceAdjustment(N, ae),
         });
       try {
         await navigator.clipboard.writeText(oi);
@@ -3233,10 +3235,7 @@ function nh() {
           taxPercentage: A && A.tax_percentage,
           commissionPercentage: A && A.commission_percentage,
           itemsCount: Se.length,
-          balanceAdjustment: getClientBreakdownBalanceAdjustment(
-            N,
-            (A && A.id) || (o && o.id),
-          ),
+          balanceAdjustment: getClientBreakdownBalanceAdjustment(N, ae),
         });
       try {
         await navigator.clipboard.writeText(oi);
