@@ -608,7 +608,9 @@ def send_waha_text(request):
         'text': text,
     }
     headers = {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'User-Agent': 'personal-shopper/1.0 (+https://ps.servidorfs.com)',
     }
     if api_key:
         headers['X-Api-Key'] = api_key
