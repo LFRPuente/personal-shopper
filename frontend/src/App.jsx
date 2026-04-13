@@ -236,7 +236,7 @@ function nh() {
       [],
     ),
     DEFAULT_BREAKDOWN_TEMPLATE =
-      "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
+      "DESGLOSE DE TU CUENTA:\n\n{items}\n{balance_line}\n\n*TOTAL TIENDA: ${total}*\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕",
     [C, jl] = V.useState(localStorage.getItem("access_token") || null),
     [J, b] = V.useState(null),
     [Q, al] = V.useState("LOGIN"),
@@ -3071,7 +3071,7 @@ function nh() {
       subtotal = null,
       discountPercentage = 0,
       discountAmount = null,
-      itemBullet = "*",
+      itemBullet = "•",
       shoppingName = "",
       clientName = "",
       storeName = "",
@@ -3081,8 +3081,17 @@ function nh() {
       taxPercentage = "",
       commissionPercentage = "",
       itemsCount = null,
+      balanceAdjustment = 0,
     }) => {
       const o = MODULE_NUMBER_FORMAT,
+        Qa = toNumber(balanceAdjustment, 0),
+        Za = Math.abs(Qa) > 0.009,
+        za = Za
+          ? `${Qa < 0 ? "Saldo a favor" : "Saldo deudor"}: $${o.format(Math.abs(Qa))}`
+          : "",
+        ta = Math.max(0, total + (Za ? Qa : 0)),
+        Ia = defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE,
+        Ya = Ia.includes("{balance_line}"),
         N =
           itemsText ||
           (items.length > 0
@@ -3090,12 +3099,17 @@ function nh() {
                 .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
+        ka = za && !Ya ? `${N}\n${za}` : N,
         A = Number.isFinite(itemsCount) ? itemsCount : items.length,
         vl = {
           title,
-          items: N,
-          total: o.format(total),
+          items: ka,
+          total: o.format(ta),
+          products_total: o.format(total),
           subtotal: o.format(Number.isFinite(subtotal) ? subtotal : total),
+          balance_line: za,
+          balance_label: Za ? (Qa < 0 ? "Saldo a favor" : "Saldo deudor") : "",
+          balance_amount: Za ? o.format(Math.abs(Qa)) : "",
           discount_percentage: formatBreakdownPercent(discountPercentage),
           discount_amount: o.format(
             Number.isFinite(discountAmount) ? discountAmount : 0,
@@ -3114,18 +3128,32 @@ function nh() {
         },
         El = {
           ...vl,
-          items: items.length > 0 ? items : N,
-          total,
+          items: items.length > 0 ? items : ka,
+          total: ta,
+          products_total: total,
           subtotal: Number.isFinite(subtotal) ? subtotal : total,
+          balance_line: za,
+          balance_label: Za ? (Qa < 0 ? "Saldo a favor" : "Saldo deudor") : "",
+          balance_amount: Za ? Math.abs(Qa) : 0,
+          balance_adjustment: Qa,
           discount_percentage: toNumber(discountPercentage, 0),
           discount_amount: Number.isFinite(discountAmount) ? discountAmount : 0,
           items_count: A,
         };
-      return renderBreakdownTemplate(
-        defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE,
-        vl,
-        El,
-      );
+      return renderBreakdownTemplate(Ia, vl, El);
+    },
+    getClientBreakdownBalanceAdjustment = (o, N = null) => {
+      if (!o) return 0;
+      const A = Number(N || 0),
+        vl = getClientShoppingHistoryEntries(o),
+        El = vl.reduce(
+          (Se, ea) =>
+            Number(ea && ea.key) === A ? Se : Se + toNumber(ea && ea.balance, 0),
+          0,
+        ),
+        Se = A ? getClientShoppingPaymentSummary(o, A).amount : 0,
+        ea = El - toNumber(Se, 0);
+      return Math.abs(ea) > 0.009 ? ea : 0;
     },
     handleFullscreenImageCopy = async () => {
       if (
@@ -3165,6 +3193,10 @@ function nh() {
           taxPercentage: A && A.tax_percentage,
           commissionPercentage: A && A.commission_percentage,
           itemsCount: Se.length,
+          balanceAdjustment: getClientBreakdownBalanceAdjustment(
+            N,
+            (A && A.id) || (o && o.id),
+          ),
         });
       try {
         await navigator.clipboard.writeText(oi);
@@ -3201,6 +3233,10 @@ function nh() {
           taxPercentage: A && A.tax_percentage,
           commissionPercentage: A && A.commission_percentage,
           itemsCount: Se.length,
+          balanceAdjustment: getClientBreakdownBalanceAdjustment(
+            N,
+            (A && A.id) || (o && o.id),
+          ),
         });
       try {
         await navigator.clipboard.writeText(oi);

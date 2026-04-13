@@ -2,7 +2,7 @@ import { V, c } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 
 const DEFAULT_BREAKDOWN_TEMPLATE =
-  "DESGLOSE DE TU CUENTA:\n\n{items}\n\nTOTAL TIENDA: ${total}\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕";
+  "DESGLOSE DE TU CUENTA:\n\n{items}\n{balance_line}\n\n*TOTAL TIENDA: ${total}*\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕";
 
 const ProfileSection = V.memo(function ProfileSection() {
   const {
@@ -237,7 +237,7 @@ const ProfileSection = V.memo(function ProfileSection() {
           c.jsx("p", {
             className: "text-[11px] text-text-sub",
             children:
-              "Variables disponibles: {title} \u2022 {items} \u2022 {total} \u2022 {subtotal} \u2022 {discount_percentage} \u2022 {discount_amount} \u2022 {client_name} \u2022 {shopping_name}",
+              "Variables disponibles: {title} \u2022 {items} \u2022 {balance_line} \u2022 {total} \u2022 {products_total} \u2022 {subtotal} \u2022 {discount_percentage} \u2022 {discount_amount} \u2022 {client_name} \u2022 {shopping_name}",
           }),
           c.jsx("textarea", {
             value: defaultBreakdownTemplate,
