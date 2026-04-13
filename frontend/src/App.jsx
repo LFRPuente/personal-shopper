@@ -220,6 +220,40 @@ async function copyTextToClipboard(value, promptLabel = "Copia este texto:") {
   throw new Error("No se pudo copiar automaticamente.");
 }
 
+function stripHtmlText(value) {
+  return String(value || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getReadableServerMessage(value, fallback = "No se pudo completar la solicitud.") {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  if (/<!doctype html/i.test(raw) || /<html[\s>]/i.test(raw)) {
+    const titleMatch = raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const title = stripHtmlText(titleMatch ? titleMatch[1] : "");
+    if (/bad gateway|502/i.test(title) || /bad gateway|502/i.test(raw)) {
+      return "El servidor respondio 502 Bad Gateway. Revisa que la URL de WAHA este activa y que no sea la URL de PS.";
+    }
+    return title
+      ? `El servidor regreso HTML en lugar de JSON: ${title}`
+      : "El servidor regreso una pagina HTML en lugar de JSON.";
+  }
+  return raw.length > 400 ? `${raw.slice(0, 400).trim()}...` : raw;
+}
+
+function getApiErrorMessage(error, fallback = "No se pudo completar la solicitud.") {
+  const payload = error && error.payload;
+  return getReadableServerMessage(
+    (payload && (payload.error || payload.detail || payload.message)) ||
+      (error && error.message),
+    fallback,
+  );
+}
+
 function nh() {
   const initialAppRoute = V.useMemo(
       () =>
@@ -532,7 +566,7 @@ function nh() {
         }
       } else {
         const ea = await vl.text();
-        El = ea ? { detail: ea } : null;
+        El = ea ? { detail: getReadableServerMessage(ea) } : null;
       }
       if (vl.status === 401) {
         iu();
@@ -562,7 +596,7 @@ function nh() {
         }
       } else {
         const ea = await vl.text();
-        El = ea ? { detail: ea } : null;
+        El = ea ? { detail: getReadableServerMessage(ea) } : null;
       }
       if (!vl.ok) {
         const ea = new Error(
@@ -3219,9 +3253,7 @@ function nh() {
       } catch (qa) {
         console.error("Failed sending WAHA breakdown", qa);
         notifyError(
-          (qa && qa.payload && (qa.payload.error || qa.payload.detail)) ||
-            (qa && qa.message) ||
-            "No se pudo enviar el desglose por WhatsApp.",
+          getApiErrorMessage(qa, "No se pudo enviar el desglose por WhatsApp."),
         );
         return !1;
       }

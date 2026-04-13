@@ -428,12 +428,18 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                     client,
                                                   ),
                                                 className:
-                                                  'w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center',
+                                                  `w-8 h-8 rounded-lg transition flex items-center justify-center ${
+                                                    copiedMissionClients.includes(copyKey)
+                                                      ? 'bg-sky-100 text-sky-700'
+                                                      : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                  }`,
                                                 title: 'Enviar desglose por WhatsApp',
                                                 children: c.jsx('span', {
                                                   className:
                                                     'material-symbols-outlined text-[16px]',
-                                                  children: 'receipt_long',
+                                                  children: copiedMissionClients.includes(copyKey)
+                                                    ? 'done'
+                                                    : 'receipt_long',
                                                 }),
                                               }),
                                             ],

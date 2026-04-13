@@ -12,6 +12,7 @@ export const CLIENTS_SECTION_REQUIRED_CONTEXT = [
   'getClientShoppingHistoryEntries',
   'copyClientMissionShareLink',
   'copyMissionBreakdown',
+  'copiedMissionClients',
   'openClientShoppingGallery',
   'openClientPaymentModal',
   'openPaymentModal',
@@ -90,6 +91,7 @@ const DEFAULT_CONTEXT = {
   getClientPhoneDisplay,
   copyClientMissionShareLink: () => {},
   copyMissionBreakdown: () => {},
+  copiedMissionClients: [],
   openClientShoppingGallery: () => {},
   openClientPaymentModal: () => {},
   openPaymentModal: () => {},
@@ -130,6 +132,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
     getClientShoppingHistoryEntries,
     copyClientMissionShareLink,
     copyMissionBreakdown,
+    copiedMissionClients,
     openClientShoppingGallery,
     openClientPaymentModal,
     openPaymentModal,
@@ -442,9 +445,18 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                         event.stopPropagation();
                                                         copyMissionBreakdown(entry.shopping || { id: Number(entry.key) }, client);
                                                       },
-                                                      className: 'w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition flex items-center justify-center',
+                                                      className: `w-7 h-7 rounded-md transition flex items-center justify-center ${
+                                                        copiedMissionClients.includes(`${Number(entry.shopping?.id || entry.key)}-${client.id}`)
+                                                          ? 'bg-sky-100 text-sky-700'
+                                                          : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                      }`,
                                                       title: 'Enviar desglose por WhatsApp',
-                                                      children: c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'receipt_long' }),
+                                                      children: c.jsx('span', {
+                                                        className: 'material-symbols-outlined text-[14px]',
+                                                        children: copiedMissionClients.includes(`${Number(entry.shopping?.id || entry.key)}-${client.id}`)
+                                                          ? 'done'
+                                                          : 'receipt_long',
+                                                      }),
                                                     }),
                                                     c.jsx('button', {
                                                       type: 'button',

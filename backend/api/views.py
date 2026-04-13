@@ -16,6 +16,7 @@ from decimal import Decimal
 import hashlib
 import secrets
 import json
+import re
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from .models import (
@@ -517,6 +518,38 @@ def me(request):
     return Response(serializer.data)
 
 
+def _strip_html_text(value):
+    cleaned = re.sub(r'<script[\s\S]*?</script>', ' ', str(value or ''), flags=re.IGNORECASE)
+    cleaned = re.sub(r'<style[\s\S]*?</style>', ' ', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'<[^>]+>', ' ', cleaned)
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+
+def _format_waha_error_body(response_text, status_code=None):
+    text = str(response_text or '').strip()
+    if not text:
+        return 'WAHA rechazo el mensaje.'
+    try:
+        payload = json.loads(text)
+        if isinstance(payload, dict):
+            message = payload.get('error') or payload.get('detail') or payload.get('message')
+            if message:
+                return str(message)
+    except (TypeError, ValueError):
+        pass
+    if re.search(r'<!doctype html|<html[\s>]', text, flags=re.IGNORECASE):
+        title_match = re.search(r'<title[^>]*>([\s\S]*?)</title>', text, flags=re.IGNORECASE)
+        title = _strip_html_text(title_match.group(1)) if title_match else ''
+        if status_code == 502 or re.search(r'bad gateway|502', title or text, flags=re.IGNORECASE):
+            return 'WAHA respondio 502 Bad Gateway. Revisa que la URL configurada apunte a WAHA y que el servicio este en linea.'
+        if title:
+            return f'WAHA devolvio HTML en lugar de JSON: {title}'
+        return 'WAHA devolvio una pagina HTML en lugar de JSON.'
+    if len(text) > 500:
+        return f'{text[:500].strip()}...'
+    return text
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_waha_text(request):
@@ -602,10 +635,11 @@ def send_waha_text(request):
             })
     except urllib_error.HTTPError as exc:
         response_text = exc.read().decode('utf-8', errors='replace')
+        message = _format_waha_error_body(response_text, exc.code)
         return Response(
             {
-                'error': response_text or 'WAHA rechazo el mensaje.',
-                'detail': response_text or 'WAHA rechazo el mensaje.',
+                'error': message,
+                'detail': message,
                 'status_code': exc.code,
             },
             status=status.HTTP_502_BAD_GATEWAY,
