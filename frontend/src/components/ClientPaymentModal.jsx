@@ -34,12 +34,18 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
 
   if (!clientPaymentModalOpen) return null;
 
-  const renderShoppingPlanCard = (plan) =>
-    c.jsxs(
+  const clientPaymentIsDebtAdjustment =
+    paymentLocalToNumber(clientPaymentForm.amount, 0) < 0;
+
+  const renderShoppingPlanCard = (plan) => {
+    const isDebtAdjustment = Boolean(plan.isDebtAdjustment);
+    return c.jsxs(
       "div",
       {
         className: `rounded-2xl border px-3 py-3 transition ${
-          plan.isReceiving
+          isDebtAdjustment
+            ? "border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
+            : plan.isReceiving
             ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
             : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50"
         }`,
@@ -105,20 +111,26 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                   plan.isReceiving
                     ? c.jsx("span", {
                         className:
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700",
+                          isDebtAdjustment
+                            ? "inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-700"
+                            : "inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700",
                         children: c.jsx("span", {
                           className: "material-symbols-outlined text-[16px]",
-                          children: "check_circle",
+                          children: isDebtAdjustment ? "add_card" : "check_circle",
                         }),
                       })
                     : null,
                   plan.isReceiving &&
                     c.jsxs("span", {
                       className:
-                        "text-[11px] font-bold text-violet-700 dark:text-violet-300",
+                        isDebtAdjustment
+                          ? "text-[11px] font-bold text-rose-700 dark:text-rose-300"
+                          : "text-[11px] font-bold text-violet-700 dark:text-violet-300",
                       children: [
-                        "Abona $",
-                        formatAmount(plan.appliedAmount),
+                        isDebtAdjustment ? "Deuda +$" : "Abona $",
+                        formatAmount(
+                          Math.abs(paymentLocalToNumber(plan.appliedAmount, 0)),
+                        ),
                       ],
                     }),
                 ],
@@ -129,6 +141,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
       },
       `client-payment-shopping-${plan.key}`,
     );
+  };
 
   const renderHistoryRow = (row) => {
     const isEditing =
@@ -168,7 +181,9 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               "inline-flex rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:border-violet-800 dark:text-violet-100",
                             children: [
                               allocation.shopping_title,
-                              " $",
+                              paymentLocalToNumber(allocation.amount, 0) < 0
+                                ? " -$"
+                                : " $",
                               formatAmount(
                                 Math.abs(
                                   paymentLocalToNumber(allocation.amount, 0),
@@ -342,7 +357,9 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                     clientPaymentModalClient
                       ? clientPaymentModalClient.name
                       : "Cliente",
-                    " • se abona del shopping mas antiguo al mas reciente",
+                    clientPaymentIsDebtAdjustment
+                      ? " - captura de deuda inicial"
+                      : " - se abona del shopping mas antiguo al mas reciente",
                   ],
                 }),
               ],
@@ -387,31 +404,35 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                   className:
                                     "text-[11px] text-text-sub mt-0.5",
                                   children: [
-                                    clientPaymentReceivingTargets.length,
-                                    " de ",
-                                    clientPaymentTargets.length,
+                                    clientPaymentIsDebtAdjustment
+                                      ? "Ajuste de deuda"
+                                      : `${clientPaymentReceivingTargets.length} de ${clientPaymentTargets.length}`,
                                   ],
                                 }),
                               ],
                             }),
                             c.jsxs("span", {
                               className:
-                                "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
+                                clientPaymentIsDebtAdjustment
+                                  ? "inline-flex rounded-full bg-rose-100 px-2 py-1 text-[10px] font-bold text-rose-700"
+                                  : "inline-flex rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700",
                               children: [
-                                "Abono: $",
-                                formatAmount(clientPaymentAllocatedTotal),
+                                clientPaymentIsDebtAdjustment ? "Deuda: -$" : "Abono: $",
+                                formatAmount(Math.abs(clientPaymentAllocatedTotal)),
                               ],
                             }),
                           ],
                         }),
                       ],
                     }),
-                    clientPaymentTargets.length === 0
+                    clientPaymentPlan.length === 0
                       ? c.jsx("div", {
                           className:
                             "px-4 py-10 text-sm text-center text-text-sub",
                           children:
-                            "Este cliente no tiene shoppings con deuda pendiente.",
+                            clientPaymentIsDebtAdjustment
+                              ? "No hay shopping activa donde registrar la deuda inicial."
+                              : "Este cliente no tiene shoppings con deuda pendiente.",
                         })
                       : c.jsx("div", {
                           className:
@@ -433,7 +454,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                             c.jsx("span", {
                               className:
                                 "text-[11px] font-semibold text-text-sub",
-                              children: "Monto del pago",
+                              children: "Monto del movimiento",
                             }),
                             c.jsx("input", {
                               type: "number",
@@ -450,6 +471,11 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               placeholder: "0.00",
                               className:
                                 "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                            }),
+                            c.jsx("p", {
+                              className: "mt-1 text-[10px] leading-4 text-text-sub",
+                              children:
+                                "Usa un monto negativo para registrar deuda inicial del cliente.",
                             }),
                             c.jsxs("div", {
                               className:
@@ -549,14 +575,14 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                 c.jsx("p", {
                                   className:
                                     "text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300",
-                                  children: "Pago",
+                                  children: clientPaymentIsDebtAdjustment ? "Ajuste" : "Pago",
                                 }),
                                 c.jsxs("p", {
                                   className:
                                     "text-lg font-bold text-emerald-700 dark:text-emerald-100 mt-1",
                                   children: [
-                                    "$",
-                                    formatAmount(clientPaymentAllocatedTotal),
+                                    clientPaymentIsDebtAdjustment ? "-$" : "$",
+                                    formatAmount(Math.abs(clientPaymentAllocatedTotal)),
                                   ],
                                 }),
                               ],
@@ -607,7 +633,9 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         c.jsx("p", {
                           className: "text-[11px] leading-5 text-text-sub",
                           children:
-                            clientPaymentReceivingTargets.length > 0
+                            clientPaymentIsDebtAdjustment
+                              ? "La deuda inicial se registra como un cargo negativo en la shopping mas antigua del cliente o en la shopping activa."
+                              : clientPaymentReceivingTargets.length > 0
                               ? "El abono se reparte automaticamente empezando por la shopping mas antigua."
                               : "Captura un monto para repartirlo automaticamente entre las shoppings con deuda.",
                         }),
@@ -634,9 +662,9 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
               onClick: saveClientPayment,
               disabled:
                 clientPaymentSaving ||
-                clientPaymentTargets.length === 0 ||
+                clientPaymentReceivingTargets.length === 0 ||
                 !Number.isFinite(clientPaymentAmountValue) ||
-                clientPaymentAmountValue <= 0,
+                clientPaymentAmountValue === 0,
               className:
                 "py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-sm font-semibold disabled:opacity-70",
               children: clientPaymentSaving ? "Guardando..." : "Guardar",

@@ -4266,6 +4266,49 @@ function nh() {
       setPaymentEntryEditingId(null);
       setPaymentEntryDraftAmount("");
     },
+    saveNegativeClientBatchEntry = async (o, N, A) => {
+      const vl = String((N && N.group_token) || "").trim(),
+        El = (N && N.grouped_entries) || [],
+        Se = El.find((ea) => ea && ea.payment_id && ea.id) || null;
+      if (!o || !vl) return !1;
+      for (const ea of El)
+        ea &&
+          ea.payment_id &&
+          ea.id &&
+          (!Se ||
+            String(ea.payment_id) !== String(Se.payment_id) ||
+            String(ea.id) !== String(Se.id)) &&
+          (await I(`/payments/${ea.payment_id}/entries/${ea.id}/`, {
+            method: "DELETE",
+          }));
+      if (Se) {
+        await I(`/payments/${Se.payment_id}/entries/${Se.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            amount: A.toFixed(2),
+          }),
+        });
+        return !0;
+      }
+      const ea = getClientPaymentDebtAdjustmentTarget(o),
+        gl = Number(ea && ea.key);
+      if (!gl) {
+        notifyInfo("No hay shopping donde registrar la deuda inicial.");
+        return !1;
+      }
+      const ae = getClientShoppingPayments(o, gl)[0] || null;
+      await I(ae ? `/payments/${ae.id}/` : "/payments/", {
+        method: ae ? "PATCH" : "POST",
+        body: JSON.stringify({
+          client: o.id,
+          shopping: gl,
+          amount: ((ae ? getPaymentRecordAmount(ae) : 0) + A).toFixed(2),
+          entry_kind: "CLIENT_BATCH",
+          entry_group_token: vl,
+        }),
+      });
+      return !0;
+    },
     savePaymentEntry = async (o) => {
       const N = paymentModalClient || clientPaymentModalClient,
         A = String(paymentEntryDraftAmount || "").trim();
@@ -4275,7 +4318,7 @@ function nh() {
         return;
       }
       const vl = paymentLocalToNumber(A, Number.NaN);
-      if (!Number.isFinite(vl) || vl < 0) {
+      if (!Number.isFinite(vl)) {
         notifyInfo("Captura un monto valido para el abono.");
         return;
       }
@@ -4285,7 +4328,10 @@ function nh() {
           String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
           String((o && o.group_token) || "").trim()
         ) {
-          const El = getClientBatchEditPlan(N, o, vl),
+          if (vl < 0) {
+            if (!(await saveNegativeClientBatchEntry(N, o, vl))) return;
+          } else {
+            const El = getClientBatchEditPlan(N, o, vl),
             Se = ((o && o.grouped_entries) || []).reduce((ea, gl) => {
               const ae = Number(gl && gl.shopping_id);
               return (
@@ -4333,6 +4379,7 @@ function nh() {
                 }),
               });
             }
+          }
           }
         } else {
           const El = o.payment_id || paymentForm.id;
@@ -4474,8 +4521,46 @@ function nh() {
         notifyInfo("Selecciona un cliente valido.");
         return;
       }
-      if (!Number.isFinite(N) || N <= 0) {
-        notifyInfo("Captura un monto valido.");
+      if (!Number.isFinite(N) || N === 0) {
+        notifyInfo("Captura un monto valido distinto de cero.");
+        return;
+      }
+      if (N < 0) {
+        const A = getClientPaymentDebtAdjustmentTarget(o),
+          vl = Number(A && A.key);
+        if (!vl) {
+          notifyInfo("No hay shopping donde registrar la deuda inicial.");
+          return;
+        }
+        setClientPaymentSaving(!0);
+        try {
+          const El = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            Se = getClientShoppingPayments(o, vl)[0] || null;
+          await I(Se ? `/payments/${Se.id}/` : "/payments/", {
+            method: Se ? "PATCH" : "POST",
+            body: JSON.stringify({
+              client: o.id,
+              shopping: vl,
+              amount: ((Se ? getPaymentRecordAmount(Se) : 0) + N).toFixed(2),
+              entry_kind: "CLIENT_BATCH",
+              entry_group_token: El,
+            }),
+          });
+          setClientPaymentModalOpen(!1);
+          setClientPaymentAmountManual(!1);
+          setClientPaymentForm({
+            client: "",
+            amount: "",
+          });
+          await refreshCoreData();
+          await refreshSelectedClient();
+          notifySuccess("Deuda inicial guardada.");
+        } catch (A) {
+          console.error("Failed saving client debt adjustment", A);
+          notifyError((A && A.message) || "No se pudo guardar la deuda inicial.");
+        } finally {
+          setClientPaymentSaving(!1);
+        }
         return;
       }
       const A = getClientPaymentPlan(o, N).filter(
@@ -4582,7 +4667,7 @@ function nh() {
         return;
       }
       const vl = paymentLocalToNumber(A, Number.NaN);
-      if (!Number.isFinite(vl) || vl < 0) {
+      if (!Number.isFinite(vl)) {
         notifyInfo("Captura un monto valido para el abono.");
         return;
       }
@@ -4592,7 +4677,10 @@ function nh() {
           String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
           String((o && o.group_token) || "").trim()
         ) {
-          const El = getClientBatchEditPlan(N, o, vl),
+          if (vl < 0) {
+            if (!(await saveNegativeClientBatchEntry(N, o, vl))) return;
+          } else {
+            const El = getClientBatchEditPlan(N, o, vl),
             Se = ((o && o.grouped_entries) || []).reduce((ae, qa) => {
               const oi = Number(qa && qa.shopping_id);
               return (
@@ -4640,6 +4728,7 @@ function nh() {
                 }),
               });
             }
+          }
           }
         } else {
           if (!o.payment_id || !o.id) {
@@ -5626,28 +5715,69 @@ function nh() {
           (N, A) =>
             new Date(N.date || 0).getTime() - new Date(A.date || 0).getTime(),
         ),
-    getClientPaymentPlan = (o, N = 0) => {
-      let A = Math.max(toNumber(N, 0), 0);
-      const vl = getClientPaymentTargets(o).map((El) => {
-        const Se = Math.max(toNumber(El && El.balance, 0), 0);
-        let ea = 0;
-        A > 0 && ((ea = Math.min(A, Se)), (A -= ea));
+    getClientPaymentDebtAdjustmentTarget = (o) => {
+      if (!o) return null;
+      const N = getClientShoppingHistoryEntries(o)
+        .filter((A) => Number(A && A.key) > 0)
+        .sort(
+          (A, vl) =>
+            new Date(A.date || 0).getTime() - new Date(vl.date || 0).getTime(),
+        );
+      if (N[0]) return N[0];
+      if (w && w.id) {
         return {
-          ...El,
-          debtAmount: Se,
-          appliedAmount: ea,
-          isReceiving: ea > 0,
+          key: String(w.id),
+          shopping: w,
+          title: w.name || w.title || `Shopping #${w.id}`,
+          date: w.start_time || w.created_at || "",
+          items: [],
+          annotatedItems: [],
+          annotatedCount: 0,
+          payments: [],
+          productsTotal: 0,
+          paymentsTotal: 0,
+          balance: 0,
+        };
+      }
+      return null;
+    },
+    getClientPaymentPlan = (o, N = 0) => {
+      const A = toNumber(N, 0);
+      if (A < 0) {
+        const vl = getClientPaymentDebtAdjustmentTarget(o);
+        return vl
+          ? [
+            {
+              ...vl,
+              debtAmount: Math.max(toNumber(vl && vl.balance, 0), 0),
+              appliedAmount: A,
+              isReceiving: !0,
+              isDebtAdjustment: !0,
+            },
+          ]
+          : [];
+      }
+      let vl = Math.max(A, 0);
+      const El = getClientPaymentTargets(o).map((Se) => {
+        const ea = Math.max(toNumber(Se && Se.balance, 0), 0);
+        let gl = 0;
+        vl > 0 && ((gl = Math.min(vl, ea)), (vl -= gl));
+        return {
+          ...Se,
+          debtAmount: ea,
+          appliedAmount: gl,
+          isReceiving: gl > 0,
         };
       });
-      if (A > 0 && vl.length > 0) {
-        const El = vl[0];
-        vl[0] = {
-          ...El,
-          appliedAmount: El.appliedAmount + A,
+      if (vl > 0 && El.length > 0) {
+        const Se = El[0];
+        El[0] = {
+          ...Se,
+          appliedAmount: Se.appliedAmount + vl,
           isReceiving: !0,
         };
       }
-      return vl;
+      return El;
     },
     getClientPaymentTargetProductIds = (o, N) => {
       if (!o) return [];
@@ -5765,14 +5895,14 @@ function nh() {
       )
       : [],
     clientPaymentReceivingTargets = clientPaymentPlan.filter(
-      (o) => toNumber(o && o.appliedAmount, 0) > 0,
+      (o) => toNumber(o && o.appliedAmount, 0) !== 0,
     ),
     clientPaymentTotalDebt = clientPaymentTargets.reduce(
       (o, N) => o + Math.max(paymentLocalToNumber(N && N.balance, 0), 0),
       0,
     ),
     clientPaymentAllocatedTotal = clientPaymentPlan.reduce(
-      (o, N) => o + Math.max(paymentLocalToNumber(N && N.appliedAmount, 0), 0),
+      (o, N) => o + paymentLocalToNumber(N && N.appliedAmount, 0),
       0,
     ),
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
