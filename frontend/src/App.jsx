@@ -151,6 +151,72 @@ function buildAppPath(section, options = {}) {
   }
   return APP_SECTION_PATHS[section] || APP_SECTION_PATHS.HOME;
 }
+
+async function copyTextToClipboard(value, promptLabel = "Copia este texto:") {
+  const text = String(value || "");
+  if (!text) return "empty";
+  let clipboardError = null;
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function"
+  ) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return "clipboard";
+    } catch (error) {
+      clipboardError = error;
+    }
+  }
+  if (typeof document !== "undefined" && document.body) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "0";
+    textarea.style.left = "0";
+    textarea.style.width = "1px";
+    textarea.style.height = "1px";
+    textarea.style.opacity = "0";
+    textarea.style.fontSize = "16px";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    const selection = document.getSelection ? document.getSelection() : null;
+    const previousRange =
+      selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    try {
+      try {
+        textarea.focus({ preventScroll: true });
+      } catch {
+        textarea.focus();
+      }
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      if (document.execCommand && document.execCommand("copy")) {
+        return "legacy";
+      }
+    } catch (error) {
+      clipboardError = error;
+    } finally {
+      document.body.removeChild(textarea);
+      if (selection) {
+        try {
+          selection.removeAllRanges();
+          if (previousRange) selection.addRange(previousRange);
+        } catch {
+          // Restoring the previous selection is best-effort only.
+        }
+      }
+    }
+  }
+  if (typeof window !== "undefined" && typeof window.prompt === "function") {
+    window.prompt(promptLabel, text);
+    return "manual";
+  }
+  if (clipboardError) throw clipboardError;
+  throw new Error("No se pudo copiar automaticamente.");
+}
+
 function nh() {
   const initialAppRoute = V.useMemo(
       () =>
@@ -3198,12 +3264,19 @@ function nh() {
       if (!N) return;
       try {
         const A = await generateClientHistoryShareLink(N);
-        await navigator.clipboard.writeText(A.share_url);
-        const vl = `client-history-${N.id}`;
-        setCopiedClientShareLinks((El) =>
-          El.includes(vl) ? El : [...El, vl],
+        const copyMode = await copyTextToClipboard(
+          A.share_url,
+          "Copia el link del cliente:",
         );
-        notifySuccess("Link copiado.");
+        const vl = `client-history-${N.id}`;
+        if (copyMode !== "manual") {
+          setCopiedClientShareLinks((El) =>
+            El.includes(vl) ? El : [...El, vl],
+          );
+        }
+        copyMode === "manual"
+          ? notifyInfo("El navegador bloqueo la copia directa. Copia el link desde la ventana.")
+          : notifySuccess("Link copiado.");
       } catch (A) {
         console.error("Failed to copy client shopping share link", A);
         notifyError(
@@ -3217,12 +3290,19 @@ function nh() {
         const N = await generateClientHistoryShareLink({ id: o.client }),
           A = new URL(N.share_url, window.location.origin);
         A.searchParams.set("focus_shipment_id", String(o.id));
-        await navigator.clipboard.writeText(A.toString());
-        const vl = `shipment-client-history-share-${o.id}`;
-        setCopiedClientShareLinks((El) =>
-          El.includes(vl) ? El : [...El, vl],
+        const vl = await copyTextToClipboard(
+          A.toString(),
+          "Copia el link del cliente:",
         );
-        notifySuccess("Link copiado.");
+        const El = `shipment-client-history-share-${o.id}`;
+        if (vl !== "manual") {
+          setCopiedClientShareLinks((Se) =>
+            Se.includes(El) ? Se : [...Se, El],
+          );
+        }
+        vl === "manual"
+          ? notifyInfo("El navegador bloqueo la copia directa. Copia el link desde la ventana.")
+          : notifySuccess("Link copiado.");
       } catch (N) {
         console.error("Failed to copy client shipment history link", N);
         notifyError(
@@ -3240,12 +3320,19 @@ function nh() {
           }),
         });
         if (!N || !N.share_url) throw new Error("No se pudo generar el enlace.");
-        await navigator.clipboard.writeText(N.share_url);
-        const A = `shipment-share-${o.id}`;
-        setCopiedClientShareLinks((vl) =>
-          vl.includes(A) ? vl : [...vl, A],
+        const copyMode = await copyTextToClipboard(
+          N.share_url,
+          "Copia el link del envio:",
         );
-        notifySuccess("Link copiado.");
+        const A = `shipment-share-${o.id}`;
+        if (copyMode !== "manual") {
+          setCopiedClientShareLinks((vl) =>
+            vl.includes(A) ? vl : [...vl, A],
+          );
+        }
+        copyMode === "manual"
+          ? notifyInfo("El navegador bloqueo la copia directa. Copia el link desde la ventana.")
+          : notifySuccess("Link copiado.");
       } catch (N) {
         console.error("Failed to copy shipment share link", N);
         notifyError(
