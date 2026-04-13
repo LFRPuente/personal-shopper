@@ -47,6 +47,9 @@ const APP_SECTION_PATHS = {
   PROFILE: "/profile",
 };
 
+const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
+const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
+
 class SectionErrorBoundary extends V.Component {
   constructor(props) {
     super(props);
@@ -300,6 +303,9 @@ function nh() {
     [Sa, uu] = V.useState(""),
     [Ei, ge] = V.useState(null),
     [wl, jt] = V.useState("REVIEW"),
+    [clientGalleryTabOrder, setClientGalleryTabOrder] = V.useState(
+      HOME_CLIENT_GALLERY_TAB_ORDER,
+    ),
     [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
       null,
     ),
@@ -2136,8 +2142,25 @@ function nh() {
         setClientGalleryAllowsShoppingChoice(
           N === null || typeof N === "undefined" || String(N).trim() === "",
         ),
+        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER),
         et(o),
         jt("REVIEW"));
+    },
+    openMissionClientView = (o, N = null) => {
+      (setClientGalleryMissionScopeId(N),
+        setClientGalleryMissionScopeMeta(null),
+        setClientGalleryAllowsShoppingChoice(!1),
+        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
+        et(o),
+        jt("ANNOTATED"));
+    },
+    openClientSectionGallery = (o) => {
+      (setClientGalleryMissionScopeId(null),
+        setClientGalleryMissionScopeMeta(null),
+        setClientGalleryAllowsShoppingChoice(!0),
+        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
+        et(o),
+        jt("ANNOTATED"));
     },
     syncBrowserRoute = (o, N = {}, A = !0) => {
       if (typeof window === "undefined" || publicShareType) return;
@@ -2153,6 +2176,7 @@ function nh() {
       (setClientGalleryMissionScopeId(A || null),
         setClientGalleryMissionScopeMeta(N && typeof N == "object" ? N : null),
         setClientGalleryAllowsShoppingChoice(!1),
+        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
         et(o),
         jt("ANNOTATED"));
     },
@@ -2161,7 +2185,8 @@ function nh() {
         setFullscreenImage(null),
         setClientGalleryAllowsShoppingChoice(!1),
         setClientGalleryMissionScopeMeta(null),
-        setClientGalleryMissionScopeId(null));
+        setClientGalleryMissionScopeId(null),
+        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER));
     },
     navigateSection = (o) => {
       if (o === nl) return;
@@ -6683,34 +6708,24 @@ function nh() {
     galleryProducts = V.useMemo(
       () => ((W && W.products) || []).filter((o) =>
         clientGalleryHasMissionScope
-          ? Number(o.shopping) === Number(clientGalleryMissionScopeId) &&
-            (clientGalleryScopeMission &&
-            clientGalleryScopeMission.status === "COMPLETED"
-              ? o.status === "ANNOTATED"
-              : !0)
+          ? Number(o.shopping) === Number(clientGalleryMissionScopeId)
           : clientVisibleShoppingIdSet.has(Number((o && (o.shopping || o.mission)) || 0)),
       ),
-      [W, clientGalleryHasMissionScope, clientGalleryMissionScopeId, clientGalleryScopeMission, clientVisibleShoppingIdSet],
+      [W, clientGalleryHasMissionScope, clientGalleryMissionScopeId, clientVisibleShoppingIdSet],
     ),
     galleryReviewProducts = V.useMemo(
-      () => clientGalleryHasMissionScope
-        ? []
-        : galleryProducts.filter((o) => o.status === "IN_REVIEW"),
-      [galleryProducts, clientGalleryHasMissionScope],
+      () => galleryProducts.filter((o) => o.status === "IN_REVIEW"),
+      [galleryProducts],
     ),
     galleryAnnotatedProducts = V.useMemo(
       () => galleryProducts.filter((o) =>
-        clientGalleryHasMissionScope
-          ? o.status === "ANNOTATED"
-          : o.status === "ANNOTATED" || o.status === "BOUGHT",
+        o.status === "ANNOTATED" || o.status === "BOUGHT",
       ),
-      [galleryProducts, clientGalleryHasMissionScope],
+      [galleryProducts],
     ),
     galleryRejectedProducts = V.useMemo(
-      () => clientGalleryHasMissionScope
-        ? []
-        : galleryProducts.filter((o) => o.status === "REJECTED"),
-      [galleryProducts, clientGalleryHasMissionScope],
+      () => galleryProducts.filter((o) => o.status === "REJECTED"),
+      [galleryProducts],
     ),
     galleryReviewCount = galleryReviewProducts.length,
     galleryAnnotatedCount = galleryAnnotatedProducts.length,
@@ -8271,7 +8286,7 @@ function nh() {
     endMission: on,
     saveEditedMission: Fe,
     deleteMission: mn,
-    openMissionClientView: Ta,
+    openMissionClientView,
     copyMissionBreakdown,
     copiedMissionClients,
     clientLookupById,
@@ -8407,7 +8422,7 @@ function nh() {
     onOpenClientCreate: openCreateClientModal,
     onEditClient: openEditClientModal,
     onToggleClientStatus: Jt,
-    onOpenClientGallery: Ta,
+    onOpenClientGallery: openClientSectionGallery,
   }), [
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
     J, isDesktopLayout, layoutMode, defaultBreakdownTemplate,
@@ -8426,7 +8441,7 @@ function nh() {
     saveRequestModify, cancelRequestModify, pickEditingRequestImage,
     clearEditingRequestImage, filteredEditingRequestClients,
     getClientNameById, getRelativeTime,
-    Ta, deletePayment, openCreateClientModal, openEditClientModal, Jt,
+    Ta, openMissionClientView, openClientSectionGallery, deletePayment, openCreateClientModal, openEditClientModal, Jt,
     copyClientMissionShareLink, openPaymentModal, copyAnnotatedMissionBreakdown,
     getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
     openClientShoppingGallery, openClientPaymentModal,
@@ -8744,6 +8759,7 @@ function nh() {
           },
           galleryTab: wl,
           setGalleryTab: jt,
+          galleryTabOrder: clientGalleryTabOrder,
           galleryReviewCount,
           galleryAnnotatedCount,
           galleryRejectedCount,

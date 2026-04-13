@@ -276,6 +276,8 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
   });
 });
 
+const DEFAULT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
+
 const HomeClientOverlay = V.memo(function HomeClientOverlay({
   client,
   isDesktopLayout,
@@ -288,6 +290,7 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
   onToggleCopiedClientShareLink,
   galleryTab,
   setGalleryTab,
+  galleryTabOrder = DEFAULT_GALLERY_TAB_ORDER,
   galleryReviewCount = 0,
   galleryAnnotatedCount = 0,
   galleryRejectedCount = 0,
@@ -332,6 +335,28 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
   const overlayKey = "client-home";
   const copyKey = `client-history-${client.id}`;
   const isCopied = copiedClientShareLinks.includes(copyKey);
+  const galleryTabConfig = {
+    REVIEW: {
+      label: "Revision",
+      count: galleryReviewCount,
+      title: "Productos en revision",
+    },
+    ANNOTATED: {
+      label: "Anotado",
+      count: galleryAnnotatedCount,
+      title: "Productos anotados",
+    },
+    REJECTED: {
+      label: "Rechazado",
+      count: galleryRejectedCount,
+      title: "Productos rechazados",
+    },
+  };
+  const orderedGalleryTabs = (Array.isArray(galleryTabOrder) && galleryTabOrder.length
+    ? galleryTabOrder
+    : DEFAULT_GALLERY_TAB_ORDER
+  ).filter((status) => galleryTabConfig[status]);
+  const activeGalleryTab = galleryTabConfig[galleryTab] || galleryTabConfig.ANNOTATED;
 
   return c.jsxs("div", {
     className: overlayBackdropClass(
@@ -374,11 +399,13 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
               }),
               c.jsxs("div", {
                 className: isDesktopLayout ? "flex px-6 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-3 overflow-x-auto" : "flex px-4 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-2",
-                children: [
-                  c.jsxs("button", { onClick: () => setGalleryTab("REVIEW"), className: `pb-3 border-b-2 transition-colors ${galleryTab === "REVIEW" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`, children: ["Revision (", galleryReviewCount, ")"] }),
-                  c.jsxs("button", { onClick: () => setGalleryTab("ANNOTATED"), className: `pb-3 border-b-2 transition-colors ${galleryTab === "ANNOTATED" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`, children: ["Anotado (", galleryAnnotatedCount, ")"] }),
-                  c.jsxs("button", { onClick: () => setGalleryTab("REJECTED"), className: `pb-3 border-b-2 transition-colors ${galleryTab === "REJECTED" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`, children: ["Rechazado (", galleryRejectedCount, ")"] }),
-                ],
+                children: orderedGalleryTabs.map((status) =>
+                  c.jsxs("button", {
+                    onClick: () => setGalleryTab(status),
+                    className: `pb-3 border-b-2 transition-colors ${galleryTab === status ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
+                    children: [galleryTabConfig[status].label, " (", galleryTabConfig[status].count, ")"],
+                  }, status),
+                ),
               }),
             ],
           }),
@@ -453,8 +480,8 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                   c.jsxs("div", {
                     className: "mb-4",
                     children: [
-                      c.jsx("h4", { className: "font-bold text-lg", children: galleryTab === "REVIEW" ? "Productos en revision" : galleryTab === "REJECTED" ? "Productos rechazados" : "Productos anotados" }),
-                      c.jsxs("p", { className: "text-xs text-gray-500 mt-1", children: ["Anotado: ", galleryAnnotatedCount, " • Revision: ", galleryReviewCount, " • Rechazado: ", galleryRejectedCount] }),
+                      c.jsx("h4", { className: "font-bold text-lg", children: activeGalleryTab.title }),
+                      c.jsxs("p", { className: "text-xs text-gray-500 mt-1", children: ["Anotado: ", galleryAnnotatedCount, " - Revision: ", galleryReviewCount, " - Rechazado: ", galleryRejectedCount] }),
                     ],
                   }),
                   c.jsxs("div", {
