@@ -12,6 +12,7 @@ const MissionStartModal = V.memo(function MissionStartModal({
   filteredMissionStoreSuggestions,
   removeStoreRecommendation,
   payerUserOptions,
+  saving = false,
 }) {
   if (!open) return null;
 
