@@ -1,4 +1,4 @@
-﻿import {
+import {
   V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
@@ -1447,9 +1447,7 @@ function nh() {
               currentView === "SHIPMENTS"
             ) {
               queueCoreRefresh();
-              if (currentView === "HOME" || currentView === "CLIENTS") {
-                queueSelectedClientRefresh();
-              }
+              queueSelectedClientRefresh();
             }
             return;
           }
@@ -1467,8 +1465,6 @@ function nh() {
               currentView === "SHIPMENTS"
             ) {
               queueCoreRefresh();
-            }
-            if (currentView === "HOME" || currentView === "CLIENTS") {
               queueSelectedClientRefresh();
             }
             if (currentView === "HOME" || currentView === "MISSIONS") {
@@ -1485,10 +1481,13 @@ function nh() {
             return;
           }
           if (vl === "reviews") {
-            if (currentView === "HOME" || currentView === "MISSIONS" || currentView === "CLIENTS") {
+            if (
+              currentView === "HOME" ||
+              currentView === "MISSIONS" ||
+              currentView === "CLIENTS" ||
+              currentView === "SHIPMENTS"
+            ) {
               queueCoreRefresh();
-            }
-            if (currentView === "HOME" || currentView === "CLIENTS") {
               queueSelectedClientRefresh();
             }
             if (currentView === "HOME" || currentView === "MISSIONS" || currentView === "CLIENTS") {
