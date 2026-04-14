@@ -549,11 +549,23 @@ const HomeSection = V.memo(function HomeSection() {
               }),
             ],
           }),
+      ],
+    }),
+    !activeMission &&
+      c.jsxs('div', {
+        className: isDesktopLayout
+          ? 'col-start-1 col-span-3 row-start-1 bg-surface-light dark:bg-surface-dark p-6 rounded-3xl border border-dashed border-border-light dark:border-border-dark flex flex-col items-center justify-center text-center h-full'
+          : 'bg-surface-light dark:bg-surface-dark px-4 py-8 flex flex-col items-center text-center border-b border-border-light dark:border-border-dark',
+        children: [
+          c.jsx('div', { className: 'w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4', children: c.jsx('span', { className: 'material-symbols-outlined text-[32px]', children: 'shopping_bag' }) }),
+          c.jsx('h3', { className: 'font-bold text-lg text-text-main dark:text-white mb-2', children: 'Ningún Shopping Activo' }),
+          c.jsx('p', { className: 'text-sm text-gray-500 mb-6 max-w-sm', children: 'Inicia un nuevo shopping en tienda para comenzar a registrar peticiones, compras y separar artículos.' }),
+          c.jsx('button', { onClick: openMissionStart, className: 'px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition shadow-sm', children: 'Comenzar Shopping' }),
         ],
       }),
-      activeMission &&
-        c.jsxs('div', {
-          className: isDesktopLayout
+    activeMission &&
+      c.jsxs('div', {
+        className: isDesktopLayout
             ? 'col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto'
             : 'bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4',
           children: [
