@@ -25,8 +25,6 @@ const ProductModal = V.memo(function ProductModal({
   applyCalcModeChange,
   calcFactor,
   applyCalcFactorChange,
-  calcDiscount,
-  applyCalcDiscountChange,
   calcTaxes,
   applyCalcTaxesChange,
   calcCommission,
@@ -294,32 +292,16 @@ const ProductModal = V.memo(function ProductModal({
 
           {calcMode === "FACTOR" ? (
             <div className={isDesktopLayout ? "col-span-1" : ""}>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Factor
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={calcFactor}
-                    onChange={(event) => applyCalcFactorChange(event.target.value)}
-                    className={`${productCalcInputClass} px-4 py-2`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Descuento (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={calcDiscount}
-                    onChange={(event) => applyCalcDiscountChange(event.target.value)}
-                    className={`${productCalcInputClass} px-4 py-2`}
-                  />
-                </div>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Factor
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={calcFactor}
+                onChange={(event) => applyCalcFactorChange(event.target.value)}
+                className={`${productCalcInputClass} px-4 py-2`}
+              />
             </div>
           ) : (
             <div
@@ -327,18 +309,6 @@ const ProductModal = V.memo(function ProductModal({
                 isDesktopLayout ? "col-span-1 grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-2"
               }
             >
-              <div>
-                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Descuento (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calcDiscount}
-                  onChange={(event) => applyCalcDiscountChange(event.target.value)}
-                  className={`${productCalcCompactInputClass} px-2 py-2`}
-                />
-              </div>
               <div>
                 <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Taxes (%)

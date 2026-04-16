@@ -519,6 +519,7 @@ function nh() {
     [newProductUploading, setNewProductUploading] = V.useState(!1),
     [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
     [productStatusUpdatingId, setProductStatusUpdatingId] = V.useState(null),
+    [productDiscountUpdatingId, setProductDiscountUpdatingId] = V.useState(null),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
@@ -2754,6 +2755,25 @@ function nh() {
         setProductStatusUpdatingId(null);
       }
     },
+    setGalleryProductDiscount = async (o) => {
+      if (!o || productDiscountUpdatingId === o.id) return;
+      const N = o.apply_discount === !1;
+      setProductDiscountUpdatingId(o.id);
+      try {
+        await I(`/products/${o.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ apply_discount: N }),
+        });
+        await refreshSelectedClient();
+        await refreshCoreData();
+        notifySuccess(N ? "Descuento activado." : "Descuento desactivado.");
+      } catch (A) {
+        console.error("Failed updating product discount", A);
+        notifyError("No se pudo cambiar el descuento del producto.");
+      } finally {
+        setProductDiscountUpdatingId(null);
+      }
+    },
     hn = (o) => {
       openProductModal(o, "edit");
     },
@@ -2870,9 +2890,13 @@ function nh() {
         await refreshProductReviews(W && W.id);
         await refreshSelectedClient();
         await refreshCoreData();
-        setClientGalleryMissionScopeId(ElPreservedScopeId);
-        setClientGalleryMissionScopeMeta(SePreservedScopeMeta);
-        setClientGalleryAllowsShoppingChoice(eaPreservedAllowsChoice);
+        if (vl) {
+          Aa();
+        } else {
+          setClientGalleryMissionScopeId(ElPreservedScopeId);
+          setClientGalleryMissionScopeMeta(SePreservedScopeMeta);
+          setClientGalleryAllowsShoppingChoice(eaPreservedAllowsChoice);
+        }
       } catch (El) {
         console.error(vl ? "Failed creating product" : "Failed updating product", El);
         notifyError(vl ? "Error adding product" : "Error updating item");
@@ -8551,6 +8575,8 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
+    productDiscountUpdatingId,
+    setGalleryProductDiscount,
     // HomeSection dependencies
     homeDesktopGridRef,
     homeDesktopLayout,
@@ -8630,6 +8656,7 @@ function nh() {
     shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
     shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
     shipmentEvidenceDeletingId, openProductStatusId, productStatusUpdatingId,
+    productDiscountUpdatingId,
     startHomeDesktopResize, openMissionTicketPicker,
     clearNewRequestImage, pickRequestImage, createMissionRequest,
     updateMissionRequest, deleteMissionRequest, startRequestModify,
@@ -8882,8 +8909,6 @@ function nh() {
           applyCalcModeChange,
           calcFactor,
           applyCalcFactorChange,
-          calcDiscount,
-          applyCalcDiscountChange,
           calcTaxes,
           applyCalcTaxesChange,
           calcCommission,
@@ -8972,6 +8997,7 @@ function nh() {
           openProductStatusId,
           productImageUploadingId,
           productStatusUpdatingId,
+          productDiscountUpdatingId,
           newProductUploading,
           userRole: X,
           formatAmount,
@@ -8985,6 +9011,7 @@ function nh() {
           onDeleteProduct: xe,
           onOpenConversation: openProductConversation,
           onSetProductStatus: setGalleryProductStatus,
+          onToggleProductDiscount: setGalleryProductDiscount,
           getUnifiedReviewState,
           getProductReviewState,
           getChatStatusActionOptions,
@@ -8996,6 +9023,7 @@ function nh() {
           hasProductDiscountedFinalPrice,
           getProductBaseFinalPrice,
           formatProductQuickFinalPrice,
+          missionDiscountPercentage,
           onAddNewProduct: fu,
         }),
       }),
