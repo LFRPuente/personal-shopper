@@ -166,7 +166,12 @@ def calculate_client_credit_total(client):
 def calculate_client_share_balance_total(client):
     if not client:
         return 0
+
     def get_discounted_product_amount(product, discount_percentage=0):
+        if not product:
+            return 0
+        if getattr(product, 'apply_discount', True) is False:
+            discount_percentage = 0
         discount_multiplier = max(0, 1 - float(discount_percentage or 0) / 100)
         charged_price = product.charged_price
         if charged_price is not None:

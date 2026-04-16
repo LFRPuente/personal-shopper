@@ -1139,6 +1139,7 @@ function nh() {
     he,
     st.real_price,
     st.charged_price,
+    st.apply_discount,
     calcMode,
     calcFactor,
     calcDiscount,
@@ -2505,12 +2506,16 @@ function nh() {
       const N = parseFloat(o);
       return Number.isFinite(N) ? N.toFixed(2) : String(o);
     },
-    getProductModalPriceMultiplier = () => {
-      const o = Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100);
+    productModalAppliesDiscount = (o = st) =>
+      !o || o.apply_discount !== !1,
+    getProductModalPriceMultiplier = (o = st) => {
+      const N = productModalAppliesDiscount(o)
+          ? Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100)
+          : 1;
       if (String(calcMode).toUpperCase() === "FACTOR")
-        return (parseFloat(calcFactor) || 0) * o;
+        return (parseFloat(calcFactor) || 0) * N;
       return (
-        o *
+        N *
         (1 + (parseFloat(calcCommission) || 0) / 100) *
         (1 + (parseFloat(calcTaxes) || 0) / 100) *
         (parseFloat(calcExchangeRate) || 0)
@@ -2621,6 +2626,7 @@ function nh() {
             tags: (o && o.tags) || "",
             store: El,
             status: Se,
+            apply_discount: (o && o.apply_discount) !== !1,
           }),
         ),
         setModalTags(vl),
@@ -2784,6 +2790,7 @@ function nh() {
           shopping: vlResolvedShoppingId,
           store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
+          apply_discount: st.apply_discount !== !1,
           payer: (() => {
             const gl = parseInt(st.payer, 10);
             return Number.isInteger(gl) && gl > 0 ? gl : null;
@@ -2799,6 +2806,9 @@ function nh() {
       if (!he) return;
       const { payload: N, reviewState: A } = buildProductModalPayload(),
         vl = productModalMode === "create";
+      const ElPreservedScopeId = clientGalleryMissionScopeId,
+        SePreservedScopeMeta = clientGalleryMissionScopeMeta,
+        eaPreservedAllowsChoice = clientGalleryAllowsShoppingChoice;
       const El = getProductModalRequiredError(N);
       if (El) {
         notifyError(El);
@@ -2835,6 +2845,7 @@ function nh() {
           N.payer !== null && Se.append("payer", String(N.payer));
           N.real_price !== null && Se.append("real_price", N.real_price);
           N.charged_price !== null && Se.append("charged_price", N.charged_price);
+          Se.append("apply_discount", N.apply_discount ? "true" : "false");
           N.tags && Se.append("tags", N.tags);
           !N.shopping && N.store !== null && Se.append("store", String(N.store));
           const gl = await I("/products/", { method: "POST", body: Se });
@@ -2855,7 +2866,13 @@ function nh() {
             A,
           );
         }
-        (closeProductModal(!0), await refreshProductReviews(W && W.id), Qt());
+        closeProductModal(!0);
+        await refreshProductReviews(W && W.id);
+        await refreshSelectedClient();
+        await refreshCoreData();
+        setClientGalleryMissionScopeId(ElPreservedScopeId);
+        setClientGalleryMissionScopeMeta(SePreservedScopeMeta);
+        setClientGalleryAllowsShoppingChoice(eaPreservedAllowsChoice);
       } catch (El) {
         console.error(vl ? "Failed creating product" : "Failed updating product", El);
         notifyError(vl ? "Error adding product" : "Error updating item");
@@ -5743,7 +5760,9 @@ function nh() {
         ),
     getProductPaymentAmount = (o, N = null) => {
       const A =
-          N === null
+          (o && o.apply_discount) === !1
+            ? 0
+            : N === null
             ? hasValue(o && o.discount_percentage)
               ? toNumber(o && o.discount_percentage, 0)
               : paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
@@ -6359,10 +6378,10 @@ function nh() {
     },
     modalHasRequiredProductFields = !getProductModalRequiredError(st),
     productDiscountPercent = parseFloat(calcDiscount),
+    productDiscountEnabled = st.apply_discount !== !1,
     showProductDiscountFields =
       Number.isFinite(productDiscountPercent) &&
-      productDiscountPercent > 0 &&
-      Number.isInteger(productDiscountPercent),
+      productDiscountPercent > 0,
     productStoreDiscountedPrice = showProductDiscountFields
       ? computeProductModalDiscountedPrice(st.real_price)
       : Number.NaN,
@@ -6604,7 +6623,7 @@ function nh() {
         ? activeMissionSummaryProducts.reduce((o, N) => {
           const A = toNumber(N && N.real_price, Number.NaN);
           return Number.isFinite(A)
-            ? o + A * Math.max(0, 1 - missionDiscountPercentage / 100)
+            ? o + A * ((N && N.apply_discount) === !1 ? 1 : Math.max(0, 1 - missionDiscountPercentage / 100))
             : o;
         }, 0)
         : 0,
@@ -6636,29 +6655,35 @@ function nh() {
           ? !0
           : String(o.status || "").toUpperCase() === missionSummaryStatusFilter,
       ).sort((o, N) => {
-        if (missionSummaryStatusFilter !== "ALL") return 0;
-        const A = (vl) => {
-            const El = String(vl.status || "").toUpperCase();
+        const A = String(o.client_name || ((clientLookupById.get(Number(o.client)) || {}).name) || "").localeCompare(
+          String(N.client_name || ((clientLookupById.get(Number(N.client)) || {}).name) || ""),
+          "es",
+          { sensitivity: "base" },
+        );
+        if (A !== 0) return A;
+        if (missionSummaryStatusFilter !== "ALL")
+          return String(o.name || "").localeCompare(String(N.name || ""), "es", {
+            sensitivity: "base",
+          });
+        const vl = (item) => {
+            const El = String(item.status || "").toUpperCase();
             return El === "REJECTED" ? 2 : El === "IN_REVIEW" ? 1 : 0;
           },
-          vl = A(o),
-          El = A(N);
-        if (vl !== El) return vl - El;
+          El = vl(o),
+          Se = vl(N);
+        if (El !== Se) return El - Se;
         return String(o.name || "").localeCompare(String(N.name || ""), "es", {
           sensitivity: "base",
         });
       }),
-      [activeMissionProducts, missionSummaryStatusFilter],
+      [activeMissionProducts, missionSummaryStatusFilter, clientLookupById],
     ),
     filteredMissionSummaryTotal = V.useMemo(
-      () => filteredMissionSummaryProducts.reduce((o, N) => {
-        const A = toNumber(N.charged_price, Number.NaN);
-        if (Number.isFinite(A)) return o + A;
-        const vl = toNumber(N.real_price, Number.NaN);
-        if (!Number.isFinite(vl)) return o;
-        return o + vl * (1 + missionTaxPercentage / 100);
-      }, 0),
-      [filteredMissionSummaryProducts, missionTaxPercentage],
+      () => filteredMissionSummaryProducts.reduce(
+        (o, N) => o + getProductPaymentAmount(N, missionDiscountPercentage),
+        0,
+      ),
+      [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
@@ -8850,6 +8875,7 @@ function nh() {
           setProductPriceAutoSync,
           setProductPriceSyncSource,
           showProductDiscountFields,
+          productDiscountEnabled,
           productStoreDiscountedPrice,
           productFinalDiscountedPrice,
           calcMode,
