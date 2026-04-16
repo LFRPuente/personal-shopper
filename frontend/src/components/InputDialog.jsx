@@ -96,7 +96,7 @@ const InputDialog = V.memo(function InputDialog({
             c.jsx("button", {
               onClick: () => dismissActiveOverlayRef.current(),
               className:
-                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold",
+                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-sm font-semibold",
               children: inputDialog.cancelLabel,
             }),
             c.jsx("button", {

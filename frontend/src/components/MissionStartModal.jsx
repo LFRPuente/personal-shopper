@@ -272,7 +272,7 @@ const MissionStartModal = V.memo(function MissionStartModal({
             c.jsx("button", {
               onClick: handleClose,
               className:
-                "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold",
+                "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-xs font-semibold",
               children: "Cancelar",
             }),
             c.jsx("button", {

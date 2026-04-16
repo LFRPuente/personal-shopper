@@ -269,7 +269,7 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                 c.jsx("button", {
                   onClick: onDismiss,
                   className:
-                    "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 text-xs font-semibold",
+                    "py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-xs font-semibold",
                   children: "Cerrar",
                 }),
                 c.jsx("button", {

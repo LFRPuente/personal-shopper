@@ -228,7 +228,7 @@ const ShipmentProductPickerModal = V.memo(function ShipmentProductPickerModal({
             c.jsx("button", {
               onClick: () => dismissActiveOverlayRef.current(),
               className:
-                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900",
               children: "Cerrar",
             }),
             c.jsx("button", {

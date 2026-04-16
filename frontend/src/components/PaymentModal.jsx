@@ -666,7 +666,7 @@ const PaymentModal = V.memo(function PaymentModal(props) {
               onClick: () => dismissActiveOverlayRef.current(),
               disabled: paymentSaving,
               className:
-                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 disabled:opacity-60",
+                "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 disabled:opacity-60",
               children: "Cancelar",
             }),
             c.jsx("button", {
