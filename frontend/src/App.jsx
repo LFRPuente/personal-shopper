@@ -2940,10 +2940,30 @@ function nh() {
           N.real_price !== null && Se.append("real_price", N.real_price);
           N.charged_price !== null && Se.append("charged_price", N.charged_price);
           Se.append("apply_discount", N.apply_discount ? "true" : "false");
+          Se.append(
+            "discount_uses_global",
+            N.discount_uses_global ? "true" : "false",
+          );
+          Se.append(
+            "discount_percentage",
+            String(
+              N.discount_percentage !== null &&
+              typeof N.discount_percentage !== "undefined" &&
+              String(N.discount_percentage).trim() !== ""
+                ? N.discount_percentage
+                : "0.00",
+            ),
+          );
           N.tags && Se.append("tags", N.tags);
           !N.shopping && N.store !== null && Se.append("store", String(N.store));
           const gl = await I("/products/", { method: "POST", body: Se });
-          updateClientProductState({ ...gl, ...N });
+          updateClientProductState({
+            ...gl,
+            ...N,
+            status: normalizeProductModalStatus(
+              (gl && gl.status) || N.status || "ANNOTATED",
+            ),
+          });
           A !== "ANNOTATED" &&
             (await syncProductReviewState(
               { ...gl, status: N.status },
