@@ -2269,6 +2269,7 @@ function nh() {
         setClientGalleryMissionScopeMeta(null),
         setClientGalleryMissionScopeId(null),
         setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER),
+        setClosingOverlayKey(""),
         pendingHomeClientRouteRef.current = null,
         typeof window !== "undefined" &&
           !publicShareType &&
