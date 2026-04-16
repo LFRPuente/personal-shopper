@@ -1137,14 +1137,7 @@ function nh() {
   }, [J]);
   V.useEffect(() => {
     if (!me || !he || !productPriceAutoSync) return;
-    const productDiscountUsesGlobalNow = st.discount_uses_global !== !1,
-      productMissionDiscountPercentNow = toNumber(calcDiscount, 0),
-      productDiscountPercentNow =
-        productDiscountUsesGlobalNow && productMissionDiscountPercentNow > 0
-          ? productMissionDiscountPercentNow
-          : toNumber(st.discount_percentage, 0),
-      productEffectiveDiscountPercentageNow =
-        st.apply_discount !== !1 ? productDiscountPercentNow : 0;
+    const productEffectiveDiscountPercentageNow = 0;
     if (productPriceSyncSource === "charged") {
       const o = computeProductModalStorePrice(
         st.charged_price,
@@ -1171,15 +1164,11 @@ function nh() {
     he,
     st.real_price,
     st.charged_price,
-    st.apply_discount,
     calcMode,
     calcFactor,
-    calcDiscount,
     calcTaxes,
     calcCommission,
     calcExchangeRate,
-    st.discount_uses_global,
-    st.discount_percentage,
     productPriceAutoSync,
     productPriceSyncSource,
   ]);
@@ -2644,10 +2633,7 @@ function nh() {
           productDiscountUsesGlobal && toNumber(calcDiscount, 0) > 0
             ? toNumber(calcDiscount, 0)
             : toNumber(o && o.discount_percentage, 0),
-        computedFinalPrice = computeProductModalFinalPrice(
-          SeRealPrice,
-          productDiscountDefaultPercent,
-        ),
+        computedFinalPrice = computeProductModalFinalPrice(SeRealPrice, 0),
         computedFinalPriceText = Number.isFinite(computedFinalPrice)
           ? computedFinalPrice.toFixed(2)
           : "",
@@ -2863,7 +2849,7 @@ function nh() {
       }
     },
     buildProductModalPayload = () => {
-      const o = computeProductModalFinalPrice(st.real_price, productEffectiveDiscountPercentage),
+      const o = computeProductModalFinalPrice(st.real_price, 0),
         N = Number.isFinite(o) ? o.toFixed(2) : "",
         AScopedShoppingId =
           productModalMode === "create" &&
@@ -2904,7 +2890,7 @@ function nh() {
               return Number.isInteger(gl) && gl > 0 ? gl : null;
             })(),
             real_price: A(st.real_price),
-          charged_price: A(st.charged_price) || N,
+            charged_price: A(st.charged_price) || N,
         },
         reviewState: st.status,
       };
