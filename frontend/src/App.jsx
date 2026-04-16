@@ -1137,10 +1137,18 @@ function nh() {
   }, [J]);
   V.useEffect(() => {
     if (!me || !he || !productPriceAutoSync) return;
+    const productDiscountUsesGlobalNow = st.discount_uses_global !== !1,
+      productMissionDiscountPercentNow = toNumber(calcDiscount, 0),
+      productDiscountPercentNow =
+        productDiscountUsesGlobalNow && productMissionDiscountPercentNow > 0
+          ? productMissionDiscountPercentNow
+          : toNumber(st.discount_percentage, 0),
+      productEffectiveDiscountPercentageNow =
+        st.apply_discount !== !1 ? productDiscountPercentNow : 0;
     if (productPriceSyncSource === "charged") {
       const o = computeProductModalStorePrice(
         st.charged_price,
-        productEffectiveDiscountPercentage,
+        productEffectiveDiscountPercentageNow,
       );
       const N = Number.isFinite(o) ? o.toFixed(2) : "";
       Gt((A) =>
@@ -1150,7 +1158,7 @@ function nh() {
     }
     const o = computeProductModalFinalPrice(
       st.real_price,
-      productEffectiveDiscountPercentage,
+      productEffectiveDiscountPercentageNow,
     );
     const N = Number.isFinite(o) ? o.toFixed(2) : "";
     Gt((A) =>
@@ -1170,8 +1178,8 @@ function nh() {
     calcTaxes,
     calcCommission,
     calcExchangeRate,
-    productDiscountUsesGlobal,
-    productDiscountPercent,
+    st.discount_uses_global,
+    st.discount_percentage,
     productPriceAutoSync,
     productPriceSyncSource,
   ]);
