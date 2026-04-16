@@ -1138,14 +1138,20 @@ function nh() {
   V.useEffect(() => {
     if (!me || !he || !productPriceAutoSync) return;
     if (productPriceSyncSource === "charged") {
-      const o = computeProductModalStorePrice(st.charged_price);
+      const o = computeProductModalStorePrice(
+        st.charged_price,
+        productEffectiveDiscountPercentage,
+      );
       const N = Number.isFinite(o) ? o.toFixed(2) : "";
       Gt((A) =>
         String((A && A.real_price) || "") === N ? A : { ...A, real_price: N },
       );
       return;
     }
-    const o = computeProductModalFinalPrice(st.real_price);
+    const o = computeProductModalFinalPrice(
+      st.real_price,
+      productEffectiveDiscountPercentage,
+    );
     const N = Number.isFinite(o) ? o.toFixed(2) : "";
     Gt((A) =>
       String((A && A.charged_price) || "") === N
@@ -1164,6 +1170,8 @@ function nh() {
     calcTaxes,
     calcCommission,
     calcExchangeRate,
+    productDiscountUsesGlobal,
+    productDiscountPercent,
     productPriceAutoSync,
     productPriceSyncSource,
   ]);
@@ -2722,7 +2730,8 @@ function nh() {
               null
             : null,
         ElContextShopping = ElScopedShopping || w || null,
-        Se = (ElContextShopping && ElContextShopping.store) || "";
+        Se = (ElContextShopping && ElContextShopping.store) || "",
+        productDefaultDiscount = toNumber(calcDiscount, 0);
       openProductModal(
         createEmptyProductForm({
           shopping:
@@ -2731,6 +2740,10 @@ function nh() {
               : "",
           store: Se,
           status: normalizeProductModalStatus(vl),
+          discount_uses_global: productDefaultDiscount > 0,
+          discount_percentage: productDefaultDiscount > 0
+            ? productDefaultDiscount.toFixed(2)
+            : "0.00",
         }),
         "create",
         { file: A, formStatus: vl },
@@ -2801,8 +2814,48 @@ function nh() {
     hn = (o) => {
       openProductModal(o, "edit");
     },
+    updateClientProductState = (product) => {
+      if (!product || !product.id) return;
+      const normalizedProduct = {
+        ...product,
+        status: normalizeProductModalStatus(product.status),
+        apply_discount: product.apply_discount !== !1,
+        discount_uses_global: product.discount_uses_global !== !1,
+        discount_percentage: String(
+          product.discount_percentage ?? "0.00",
+        ),
+      };
+      const upsertProduct = (items = []) => {
+        const list = Array.isArray(items) ? [...items] : [];
+        const index = list.findIndex((item) => Number(item && item.id) === Number(normalizedProduct.id));
+        if (index >= 0) list[index] = { ...list[index], ...normalizedProduct };
+        else list.push(normalizedProduct);
+        return list;
+      };
+      if (W && Number(W.id) === Number(normalizedProduct.client)) {
+        et((current) =>
+          current && Number(current.id) === Number(normalizedProduct.client)
+            ? { ...current, products: upsertProduct(current.products || []) }
+            : current,
+        );
+      }
+      _l((clients) =>
+        (clients || []).map((client) =>
+          Number(client && client.id) === Number(normalizedProduct.client)
+            ? { ...client, products: upsertProduct(client.products || []) }
+            : client,
+        ),
+      );
+      if (w && Number(normalizedProduct.shopping || 0) === Number(w.id)) {
+        Dl((current) =>
+          current && Number(current.id) === Number(w.id)
+            ? { ...current, products: upsertProduct(current.products || []) }
+            : current,
+        );
+      }
+    },
     buildProductModalPayload = () => {
-      const o = computeProductModalFinalPrice(st.real_price),
+      const o = computeProductModalFinalPrice(st.real_price, productEffectiveDiscountPercentage),
         N = Number.isFinite(o) ? o.toFixed(2) : "",
         AScopedShoppingId =
           productModalMode === "create" &&
@@ -2827,21 +2880,22 @@ function nh() {
         return null;
       })();
       return {
-        payload: {
-          ...st,
-          name: String(st.name || "").trim(),
-          tags: modalTags.join(", "),
-          shopping: vlResolvedShoppingId,
-          store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
-          status: normalizeProductModalStatus(st.status),
-          apply_discount: st.apply_discount !== !1,
-          discount_uses_global: st.discount_uses_global !== !1,
-          discount_percentage: A(st.discount_percentage) || "0.00",
-          payer: (() => {
-            const gl = parseInt(st.payer, 10);
-            return Number.isInteger(gl) && gl > 0 ? gl : null;
-          })(),
-          real_price: A(st.real_price),
+          payload: {
+            ...st,
+            name: String(st.name || "").trim(),
+            tags: modalTags.join(", "),
+            shopping: vlResolvedShoppingId,
+            store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
+            status: normalizeProductModalStatus(st.status),
+            apply_discount: st.apply_discount !== !1,
+            discount_uses_global: st.discount_uses_global !== !1,
+            discount_percentage:
+              A(productEffectiveDiscountPercentage) || "0.00",
+            payer: (() => {
+              const gl = parseInt(st.payer, 10);
+              return Number.isInteger(gl) && gl > 0 ? gl : null;
+            })(),
+            real_price: A(st.real_price),
           charged_price: A(st.charged_price) || N,
         },
         reviewState: st.status,
@@ -2895,6 +2949,7 @@ function nh() {
           N.tags && Se.append("tags", N.tags);
           !N.shopping && N.store !== null && Se.append("store", String(N.store));
           const gl = await I("/products/", { method: "POST", body: Se });
+          updateClientProductState({ ...gl, ...N });
           A !== "ANNOTATED" &&
             (await syncProductReviewState(
               { ...gl, status: N.status },
@@ -2914,10 +2969,11 @@ function nh() {
         }
         closeProductModal(!0);
         await refreshProductReviews(W && W.id);
-        await refreshSelectedClient();
-        await refreshCoreData();
+        queueCoreRefresh(0);
         if (vl) {
-          Aa();
+          setClientGalleryMissionScopeId(ElPreservedScopeId);
+          setClientGalleryMissionScopeMeta(SePreservedScopeMeta);
+          setClientGalleryAllowsShoppingChoice(eaPreservedAllowsChoice);
         } else {
           setClientGalleryMissionScopeId(ElPreservedScopeId);
           setClientGalleryMissionScopeMeta(SePreservedScopeMeta);
@@ -6439,6 +6495,9 @@ function nh() {
         ? productMissionDiscountPercent
         : toNumber(st.discount_percentage, 0),
     productDiscountEnabled = st.apply_discount !== !1,
+    productEffectiveDiscountPercentage = productDiscountEnabled
+      ? productDiscountPercent
+      : 0,
     productStoreDiscountedPrice = productDiscountEnabled
       ? computeProductModalDiscountedPrice(
           st.real_price,
