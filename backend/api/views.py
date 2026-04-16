@@ -26,6 +26,7 @@ from .models import (
     Mission,
     UserProfile,
     LayoutMode,
+    ThemeMode,
     Store,
     StoreRecommendation,
     ShippingCarrierRecommendation,
@@ -459,6 +460,18 @@ def me(request):
             if profile.layout_mode != normalized_layout_mode:
                 profile.layout_mode = normalized_layout_mode
                 update_fields.append('layout_mode')
+        theme_mode = request.data.get('theme_mode')
+        if theme_mode is not None:
+            normalized_theme_mode = str(theme_mode).strip().upper()
+            valid_theme_modes = {choice[0] for choice in ThemeMode.choices}
+            if normalized_theme_mode not in valid_theme_modes:
+                return Response(
+                    {'error': 'Invalid theme mode.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if profile.theme_mode != normalized_theme_mode:
+                profile.theme_mode = normalized_theme_mode
+                update_fields.append('theme_mode')
         home_layout = request.data.get('home_layout')
         if home_layout is not None:
             if not isinstance(home_layout, dict):

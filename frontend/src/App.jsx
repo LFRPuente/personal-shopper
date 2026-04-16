@@ -282,6 +282,9 @@ function nh() {
     [U, T] = V.useState(""),
     [X, H] = V.useState("AV"),
     [layoutMode, setLayoutMode] = V.useState("MOBILE"),
+    [themeMode, setThemeMode] = V.useState(() =>
+      localStorage.getItem("theme_mode") === "DARK" ? "DARK" : "LIGHT",
+    ),
     [homeDesktopLayout, setHomeDesktopLayout] = V.useState(() =>
       normalizeHomeDesktopLayout(null),
     ),
@@ -614,6 +617,9 @@ function nh() {
           o.profile.role === "BOTH" ? H("PS") : H(o.profile.role),
           setLayoutMode(
             o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
+          ),
+          setThemeMode(
+            o.profile.theme_mode === "DARK" ? "DARK" : "LIGHT",
           ));
         const [N, A, yl, Vs] = await Promise.all([
           I("/clients/"),
@@ -1096,6 +1102,11 @@ function nh() {
     return () => document.removeEventListener("keydown", o, !0);
   }, []);
   V.useEffect(() => {
+    const normalized = themeMode === "DARK" ? "DARK" : "LIGHT";
+    localStorage.setItem("theme_mode", normalized);
+    document.documentElement.classList.toggle("dark", normalized === "DARK");
+  }, [themeMode]);
+  V.useEffect(() => {
     setProfileSettingsForm({
       display_name: String((J && J.profile && J.profile.display_name) || ""),
       phone: String((J && J.profile && J.profile.phone) || ""),
@@ -1211,6 +1222,9 @@ function nh() {
         o.profile.role === "BOTH" ? H("PS") : H(o.profile.role);
         setLayoutMode(
           o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
+        );
+        setThemeMode(
+          o.profile.theme_mode === "DARK" ? "DARK" : "LIGHT",
         );
         const [N, A, Vs] = await Promise.all([
           I("/clients/"),
@@ -3505,6 +3519,24 @@ function nh() {
         console.error("Failed saving layout mode", vl);
         setLayoutMode(A);
         notifyError("No se pudo guardar la vista en tu perfil.");
+      }
+    },
+    saveThemeMode = async (o) => {
+      if (!J) return;
+      const N = String(o || "").toUpperCase() === "DARK" ? "DARK" : "LIGHT";
+      const A = themeMode;
+      if (A === N) return;
+      setThemeMode(N);
+      try {
+        const vl = await I("/auth/me/", {
+          method: "PATCH",
+          body: JSON.stringify({ theme_mode: N }),
+        });
+        vl && b(vl);
+      } catch (vl) {
+        console.error("Failed saving theme mode", vl);
+        setThemeMode(A);
+        notifyError("No se pudo guardar el modo de color en tu perfil.");
       }
     },
     saveHomeDesktopLayout = async (o) => {
@@ -7388,7 +7420,7 @@ function nh() {
                 c.jsx("button", {
                   onClick: () => dismissActiveOverlayRef.current(),
                   className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900",
                   children: "Cancelar",
                 }),
                 c.jsx("button", {
@@ -7566,7 +7598,7 @@ function nh() {
                 c.jsx("button", {
                   onClick: () => dismissActiveOverlayRef.current(),
                   className:
-                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+                    "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900",
                   children: "Cerrar",
                 }),
                 c.jsx("button", {
@@ -8442,6 +8474,8 @@ function nh() {
     isDesktopLayout,
     layoutMode,
     saveLayoutMode,
+    themeMode,
+    saveThemeMode,
     defaultBreakdownTemplate,
     persistDefaultBreakdownTemplate,
     profileSettingsForm,
@@ -8564,7 +8598,7 @@ function nh() {
     onOpenClientGallery: openClientSectionGallery,
   }), [
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
-    J, isDesktopLayout, layoutMode, defaultBreakdownTemplate,
+    J, isDesktopLayout, layoutMode, themeMode, defaultBreakdownTemplate,
     profileSettingsForm, profileSettingsSaving,
     Al, w, missionSearch, fn, pa, Sa, copiedMissionClients, clientLookupById,
     shipments, shipmentSearch, shipmentDetailLoadingIds, shipmentForm,

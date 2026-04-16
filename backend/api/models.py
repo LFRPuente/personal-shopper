@@ -13,6 +13,11 @@ class LayoutMode(models.TextChoices):
     WEB = 'WEB', 'Web'
 
 
+class ThemeMode(models.TextChoices):
+    LIGHT = 'LIGHT', 'Dia'
+    DARK = 'DARK', 'Noche'
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=4, choices=Role.choices, default=Role.AV)
@@ -27,6 +32,11 @@ class UserProfile(models.Model):
         max_length=6,
         choices=LayoutMode.choices,
         default=LayoutMode.MOBILE,
+    )
+    theme_mode = models.CharField(
+        max_length=5,
+        choices=ThemeMode.choices,
+        default=ThemeMode.LIGHT,
     )
     home_layout = models.JSONField(default=dict, blank=True)
     last_active = models.DateTimeField(null=True, blank=True)

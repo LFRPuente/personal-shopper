@@ -10,6 +10,8 @@ const ProfileSection = V.memo(function ProfileSection() {
     isDesktopLayout,
     layoutMode,
     saveLayoutMode,
+    themeMode,
+    saveThemeMode,
     defaultBreakdownTemplate,
     persistDefaultBreakdownTemplate,
     profileSettingsForm,
@@ -225,6 +227,43 @@ const ProfileSection = V.memo(function ProfileSection() {
                     className:
                       `rounded-xl px-3 py-2 text-xs font-bold transition ${layoutMode === "WEB" ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                     children: "Web",
+                  }),
+                ],
+              }),
+            ],
+          }),
+          c.jsxs("div", {
+            className: "space-y-2",
+            children: [
+              c.jsxs("div", {
+                children: [
+                  c.jsx("h3", {
+                    className: "text-sm font-bold text-text-main",
+                    children: "Modo de color",
+                  }),
+                  c.jsx("p", {
+                    className: "text-xs text-text-sub mt-1",
+                    children: "Escoge si la app se ve en modo dia o modo noche.",
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className:
+                  "grid grid-cols-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
+                children: [
+                  c.jsx("button", {
+                    type: "button",
+                    onClick: () => saveThemeMode("LIGHT"),
+                    className:
+                      `rounded-xl px-3 py-2 text-xs font-bold transition ${themeMode !== "DARK" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                    children: "Modo dia",
+                  }),
+                  c.jsx("button", {
+                    type: "button",
+                    onClick: () => saveThemeMode("DARK"),
+                    className:
+                      `rounded-xl px-3 py-2 text-xs font-bold transition ${themeMode === "DARK" ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                    children: "Modo noche",
                   }),
                 ],
               }),

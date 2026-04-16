@@ -51,6 +51,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'display_name',
             'phone',
             'layout_mode',
+            'theme_mode',
             'home_layout',
             'waha_api_url',
             'waha_api_key',

@@ -56,7 +56,6 @@ const MissionsSection = V.memo(function MissionsSection() {
     saveEditedMission,
     deleteMission,
     openMissionClientView,
-    copyMissionBreakdown,
     copiedMissionClients,
     clientLookupById,
     getMissionSearchBlob,
@@ -418,29 +417,8 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                     mission.id,
                                                   ),
                                                 className:
-                                                  'text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-lg hover:bg-primary/20 transition',
+                                                  'text-[10px] font-bold bg-white text-primary border border-primary/20 px-2.5 py-1 rounded-lg hover:bg-primary/10 dark:bg-white dark:text-primary dark:border-white/80 transition',
                                                 children: 'View',
-                                              }),
-                                              c.jsx('button', {
-                                                onClick: () =>
-                                                  copyMissionBreakdown(
-                                                    mission,
-                                                    client,
-                                                  ),
-                                                className:
-                                                  `w-8 h-8 rounded-lg transition flex items-center justify-center ${
-                                                    copiedMissionClients.includes(copyKey)
-                                                      ? 'bg-sky-100 text-sky-700'
-                                                      : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                  }`,
-                                                title: 'Enviar desglose por WhatsApp',
-                                                children: c.jsx('span', {
-                                                  className:
-                                                    'material-symbols-outlined text-[16px]',
-                                                  children: copiedMissionClients.includes(copyKey)
-                                                    ? 'done'
-                                                    : 'receipt_long',
-                                                }),
                                               }),
                                             ],
                                           }),
