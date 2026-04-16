@@ -167,7 +167,9 @@ class ProductItem(models.Model):
     charged_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) # Precio Shopper
     real_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) # Precio Tienda
     apply_discount = models.BooleanField(default=True)
-    
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    discount_uses_global = models.BooleanField(default=True)
+
     status = models.CharField(max_length=50, choices=[
         ('ANNOTATED', 'Anotado'),
         ('IN_REVIEW', 'En Revision'),

@@ -23,6 +23,7 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'missionPurchaseCostWithDiscount',
   'missionTotalWithTaxes',
   'missionTotalWithDiscount',
+  'missionHasAnyDiscount',
   'calcDiscount',
   'applyCalcDiscountChange',
   'newRequestText',
@@ -100,6 +101,7 @@ const HomeSection = V.memo(function HomeSection() {
     missionPurchaseCostWithDiscount,
     missionTotalWithTaxes,
     missionTotalWithDiscount,
+    missionHasAnyDiscount,
     calcDiscount,
     applyCalcDiscountChange,
     newRequestText,
@@ -594,7 +596,7 @@ const HomeSection = V.memo(function HomeSection() {
                   children: [
                     c.jsx('p', { className: 'text-[9px] font-black uppercase tracking-[0.14em] text-white/70', children: 'Compra' }),
                     c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionPurchaseCost)] }),
-                    missionPurchaseCostWithDiscount > 0 && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionPurchaseCostWithDiscount)] }),
+                    missionHasAnyDiscount && missionPurchaseCostWithDiscount !== missionPurchaseCost && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionPurchaseCostWithDiscount)] }),
                   ],
                 }),
                 c.jsxs('div', {
@@ -602,7 +604,7 @@ const HomeSection = V.memo(function HomeSection() {
                   children: [
                     c.jsx('p', { className: 'text-[9px] font-black uppercase tracking-[0.14em] text-white/70', children: 'Venta' }),
                     c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionTotalWithTaxes)] }),
-                    missionTotalWithDiscount > 0 && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionTotalWithDiscount)] }),
+                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionTotalWithDiscount)] }),
                   ],
                 }),
                 c.jsxs('div', {

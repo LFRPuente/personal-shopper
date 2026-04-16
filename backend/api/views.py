@@ -167,12 +167,22 @@ def calculate_client_share_balance_total(client):
     if not client:
         return 0
 
-    def get_discounted_product_amount(product, discount_percentage=0):
+    def get_effective_product_discount_percentage(product, discount_percentage=0):
         if not product:
             return 0
         if getattr(product, 'apply_discount', True) is False:
-            discount_percentage = 0
-        discount_multiplier = max(0, 1 - float(discount_percentage or 0) / 100)
+            return 0
+        product_discount = float(getattr(product, 'discount_percentage', 0) or 0)
+        uses_global = getattr(product, 'discount_uses_global', True) is not False
+        if uses_global and float(discount_percentage or 0) > 0:
+            return float(discount_percentage or 0)
+        return product_discount
+
+    def get_discounted_product_amount(product, discount_percentage=0):
+        if not product:
+            return 0
+        effective_discount = get_effective_product_discount_percentage(product, discount_percentage)
+        discount_multiplier = max(0, 1 - float(effective_discount or 0) / 100)
         charged_price = product.charged_price
         if charged_price is not None:
             return float(charged_price) * discount_multiplier

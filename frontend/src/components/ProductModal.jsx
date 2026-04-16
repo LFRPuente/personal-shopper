@@ -18,6 +18,8 @@ const ProductModal = V.memo(function ProductModal({
   setProductPriceAutoSync,
   setProductPriceSyncSource,
   productDiscountEnabled,
+  productDiscountUsesGlobal,
+  productGlobalDiscountPercentage,
   productDiscountPercentage,
   productStoreDiscountedPrice,
   productFinalDiscountedPrice,
@@ -85,6 +87,9 @@ const ProductModal = V.memo(function ProductModal({
         </h3>
         <form
           onSubmit={onSubmit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
           className={isDesktopLayout ? "grid grid-cols-2 gap-5 items-start" : "space-y-4"}
         >
           <div className={isDesktopLayout ? "col-span-2" : ""}>
@@ -230,6 +235,34 @@ const ProductModal = V.memo(function ProductModal({
                 />
               </button>
             </div>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2 dark:border-amber-800 dark:bg-slate-950/40">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-100">
+                  Usar descuento global
+                </p>
+                <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">
+                  Al cambiar el porcentaje, este producto deja de heredar el global.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={productDiscountUsesGlobal}
+                onClick={() =>
+                  updateForm({
+                    discount_uses_global: !productDiscountUsesGlobal,
+                    discount_percentage: !productDiscountUsesGlobal
+                      ? productGlobalDiscountPercentage
+                      : productDiscountPercentage,
+                  })
+                }
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${productDiscountUsesGlobal ? "bg-emerald-500 border-emerald-500" : "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700"}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${productDiscountUsesGlobal ? "translate-x-6" : "translate-x-1"}`}
+                />
+              </button>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,170px)_minmax(0,1fr)]">
               <div>
                 <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
@@ -240,7 +273,15 @@ const ProductModal = V.memo(function ProductModal({
                   step="0.01"
                   min="0"
                   value={productDiscountPercentage}
-                  onChange={(event) => updateForm({ discount_percentage: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.preventDefault();
+                  }}
+                  onChange={(event) =>
+                    updateForm({
+                      discount_percentage: event.target.value,
+                      discount_uses_global: false,
+                    })
+                  }
                   className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-white dark:bg-gray-900 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none focus:ring-2 focus:ring-amber-300"
                 />
               </div>

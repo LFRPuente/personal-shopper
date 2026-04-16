@@ -115,6 +115,7 @@ export const DEFAULT_PRODUCT_FORM = {
   status: "ANNOTATED",
   apply_discount: true,
   discount_percentage: "0",
+  discount_uses_global: true,
 };
 
 export const createEmptyProductForm = (overrides = {}) => ({

@@ -1813,7 +1813,8 @@ function nh() {
         A = getShoppingCalcPayload(w),
         vl = getShoppingCalcPayload(w, o);
       if (JSON.stringify(A) === JSON.stringify(vl)) return;
-      (shoppingCalcPersistTimerRef.current &&
+      (mergeShoppingIntoState(N, vl),
+        shoppingCalcPersistTimerRef.current &&
           clearTimeout(shoppingCalcPersistTimerRef.current),
         shoppingCalcPersistTimerRef.current = setTimeout(async () => {
           shoppingCalcPersistTimerRef.current = null;
@@ -2618,7 +2619,18 @@ function nh() {
         El = (o && o.store) || ((vlContextShopping && vlContextShopping.store) || ""),
         SeRealPrice = formatProductPriceField((o && o.real_price) || ""),
         SeChargedPrice = formatProductPriceField((o && o.charged_price) || ""),
-        computedFinalPrice = computeProductModalFinalPrice(SeRealPrice),
+        productDiscountUsesGlobal =
+          o && typeof o.discount_uses_global !== "undefined"
+            ? o.discount_uses_global !== !1
+            : toNumber(calcDiscount, 0) > 0,
+        productDiscountDefaultPercent =
+          productDiscountUsesGlobal && toNumber(calcDiscount, 0) > 0
+            ? toNumber(calcDiscount, 0)
+            : toNumber(o && o.discount_percentage, 0),
+        computedFinalPrice = computeProductModalFinalPrice(
+          SeRealPrice,
+          productDiscountDefaultPercent,
+        ),
         computedFinalPriceText = Number.isFinite(computedFinalPrice)
           ? computedFinalPrice.toFixed(2)
           : "",
@@ -2656,7 +2668,8 @@ function nh() {
             store: El,
             status: Se,
             apply_discount: (o && o.apply_discount) !== !1,
-            discount_percentage: formatProductPriceField((o && o.discount_percentage) || 0),
+            discount_percentage: productDiscountDefaultPercent,
+            discount_uses_global: productDiscountUsesGlobal,
           }),
         ),
         setModalTags(vl),
@@ -2821,6 +2834,7 @@ function nh() {
           store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
           apply_discount: st.apply_discount !== !1,
+          discount_uses_global: st.discount_uses_global !== !1,
           discount_percentage: A(st.discount_percentage) || "0.00",
           payer: (() => {
             const gl = parseInt(st.payer, 10);
@@ -5793,15 +5807,20 @@ function nh() {
           }),
           { usd: 0, sale: 0 },
         ),
-    getProductPaymentAmount = (o, N = null) => {
-      const A =
-          (o && o.apply_discount) === !1
-            ? 0
-            : N === null
+    getProductEffectiveDiscountPercentage = (o, N = null) => {
+      if (!o || (o && o.apply_discount) === !1) return 0;
+      const A = o && o.discount_uses_global !== !1,
+        vl =
+          N === null
             ? hasValue(o && o.discount_percentage)
               ? toNumber(o && o.discount_percentage, 0)
-              : paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
-            : N,
+              : 0
+            : toNumber(N, 0),
+        El = paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null);
+      return A && El > 0 ? El : vl;
+    },
+    getProductPaymentAmount = (o, N = null) => {
+      const A = getProductEffectiveDiscountPercentage(o, N),
         vl = Math.max(0, 1 - toNumber(A, 0) / 100),
         El = toNumber(o && o.charged_price, Number.NaN);
       if (Number.isFinite(El)) return El * vl;
@@ -6412,7 +6431,12 @@ function nh() {
       }
     },
     modalHasRequiredProductFields = !getProductModalRequiredError(st),
-    productDiscountPercent = toNumber(st.discount_percentage, 0),
+    productDiscountUsesGlobal = st.discount_uses_global !== !1,
+    productMissionDiscountPercent = toNumber(calcDiscount, 0),
+    productDiscountPercent =
+      productDiscountUsesGlobal && productMissionDiscountPercent > 0
+        ? productMissionDiscountPercent
+        : toNumber(st.discount_percentage, 0),
     productDiscountEnabled = st.apply_discount !== !1,
     productStoreDiscountedPrice = productDiscountEnabled
       ? computeProductModalDiscountedPrice(
@@ -6656,15 +6680,22 @@ function nh() {
       }, 0),
       [activeMissionSummaryProducts],
     ),
+    missionHasAnyDiscount = V.useMemo(
+      () =>
+        missionDiscountPercentage > 0 ||
+        activeMissionSummaryProducts.some(
+          (product) => getProductEffectiveDiscountPercentage(product) > 0,
+        ),
+      [activeMissionSummaryProducts, missionDiscountPercentage],
+    ),
     missionPurchaseCostWithDiscount = V.useMemo(
-      () => missionDiscountPercentage > 0
-        ? activeMissionSummaryProducts.reduce((o, N) => {
+      () =>
+        activeMissionSummaryProducts.reduce((o, N) => {
           const A = toNumber(N && N.real_price, Number.NaN);
-          return Number.isFinite(A)
-            ? o + A * ((N && N.apply_discount) === !1 ? 1 : Math.max(0, 1 - missionDiscountPercentage / 100))
-            : o;
-        }, 0)
-        : 0,
+          if (!Number.isFinite(A)) return o;
+          const vl = getProductEffectiveDiscountPercentage(N);
+          return o + A * ((N && N.apply_discount) === !1 ? 1 : Math.max(0, 1 - vl / 100));
+        }, 0),
       [activeMissionSummaryProducts, missionDiscountPercentage],
     ),
     missionTotalWithTaxes = V.useMemo(
@@ -6678,13 +6709,10 @@ function nh() {
       [activeMissionSummaryProducts, missionTaxPercentage],
     ),
     missionTotalWithDiscount = V.useMemo(
-      () => missionDiscountPercentage > 0
-        ? activeMissionSummaryProducts.reduce(
-          (o, N) =>
-            o + getProductPaymentAmount(N, missionDiscountPercentage),
-          0,
-        )
-        : 0,
+      () => activeMissionSummaryProducts.reduce(
+        (o, N) => o + getProductPaymentAmount(N),
+        0,
+      ),
       [activeMissionSummaryProducts, missionDiscountPercentage],
     ),
     filteredMissionSummaryProducts = V.useMemo(
@@ -6717,10 +6745,11 @@ function nh() {
       [activeMissionProducts, missionSummaryStatusFilter, clientLookupById],
     ),
     filteredMissionSummaryTotal = V.useMemo(
-      () => filteredMissionSummaryProducts.reduce(
-        (o, N) => o + getProductPaymentAmount(N, missionDiscountPercentage),
-        0,
-      ),
+      () =>
+        filteredMissionSummaryProducts.reduce(
+          (o, N) => o + getProductPaymentAmount(N),
+          0,
+        ),
       [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
     homeClientMissionProductsMap = V.useMemo(() => {
@@ -8603,6 +8632,7 @@ function nh() {
     missionPurchaseCostWithDiscount,
     missionTotalWithTaxes,
     missionTotalWithDiscount,
+    missionHasAnyDiscount,
     newRequestText,
     setNewRequestText,
     newRequestImagePreview,
@@ -8683,7 +8713,7 @@ function nh() {
     openClientShoppingGallery, openClientPaymentModal,
     homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
     missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
-    missionTotalWithTaxes, missionTotalWithDiscount, newRequestText,
+    missionTotalWithTaxes, missionTotalWithDiscount, missionHasAnyDiscount, newRequestText,
     newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
     homeClientSearch, homeClientMissionTotalsMap, homeClientGlobalBalanceMap,
     homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap,
@@ -8913,6 +8943,8 @@ function nh() {
           setProductPriceAutoSync,
           setProductPriceSyncSource,
           productDiscountEnabled,
+          productDiscountUsesGlobal,
+          productGlobalDiscountPercentage: calcDiscount,
           productDiscountPercentage: productDiscountPercent,
           productStoreDiscountedPrice,
           productFinalDiscountedPrice,
