@@ -5856,6 +5856,19 @@ function nh() {
         }),
         { usd: 0, sale: 0 },
       ),
+    getHomeClientAnnotatedTotals = (o) =>
+      (o || [])
+        .filter(
+          (A) =>
+            String((A && A.status) || "").toUpperCase() === "ANNOTATED",
+        )
+        .reduce(
+          (N, A) => ({
+            usd: N.usd + toNumber(A.real_price, 0),
+            sale: N.sale + getProductPaymentAmount(A),
+          }),
+          { usd: 0, sale: 0 },
+        ),
     getHomeClientMissionTotals = (o, missionId) =>
       (o || []).filter(A => A.shopping === missionId).reduce(
         (N, A) => ({
@@ -6932,7 +6945,7 @@ function nh() {
     homeClientMissionTotalsMap = V.useMemo(
       () =>
         Rt.reduce((o, N) => {
-          o[N.id] = getHomeClientTotals(homeClientMissionProductsMap[N.id] || []);
+          o[N.id] = getHomeClientAnnotatedTotals(homeClientMissionProductsMap[N.id] || []);
           return o;
         }, {}),
       [Rt, homeClientMissionProductsMap],
@@ -7012,7 +7025,7 @@ function nh() {
               (W && W.products) || [],
               selectedClientHomeScopeId,
             )
-          : getHomeClientTotals(selectedClientHomeAnnotatedProducts),
+          : getHomeClientAnnotatedTotals(selectedClientHomeAnnotatedProducts),
       [W, selectedClientHomeScopeId, selectedClientHomeAnnotatedProducts],
     ),
     selectedClientHomeHistoryEntries = V.useMemo(

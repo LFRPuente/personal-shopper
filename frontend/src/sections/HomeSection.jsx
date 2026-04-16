@@ -603,8 +603,8 @@ const HomeSection = V.memo(function HomeSection() {
                   className: 'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-right',
                   children: [
                     c.jsx('p', { className: 'text-[9px] font-black uppercase tracking-[0.14em] text-white/70', children: 'Venta' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionTotalWithTaxes)] }),
-                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionTotalWithDiscount)] }),
+                    c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionTotalWithDiscount)] }),
+                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['Base $', money(missionTotalWithTaxes)] }),
                   ],
                 }),
                 c.jsxs('div', {
