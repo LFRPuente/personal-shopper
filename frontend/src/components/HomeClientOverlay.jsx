@@ -21,7 +21,6 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
   productImageUploadingId,
   productStatusUpdatingId,
   productDiscountUpdatingId,
-  productDiscountAvailable,
   resolveMediaUrl,
   setFullscreenImage,
   onToggleProductMenu,
@@ -202,32 +201,31 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
                   })
                 : c.jsxs("span", { className: "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md", children: ["$", fmt(price)] }),
             }),
-          productDiscountAvailable &&
-            c.jsx("div", {
-              className: "absolute left-8 bottom-0.5 z-30",
-              children: c.jsxs("button", {
-                type: "button",
-                role: "switch",
-                "aria-checked": discountEnabled,
-                disabled: discountUpdating,
-                onClick: (e) => {
-                  e.stopPropagation();
-                  onToggleProductInfo(null);
-                  onToggleProductMenu(null);
-                  onToggleProductStatus(null);
-                  onToggleProductDiscount && onToggleProductDiscount(product);
-                },
-                className: `h-6 px-2 rounded-full border shadow-sm backdrop-blur-[2px] inline-flex items-center gap-1 text-[9px] font-black transition ${discountEnabled ? "border-emerald-200/90 bg-emerald-100/90 text-emerald-800 hover:bg-emerald-100" : "border-slate-200/90 bg-white/88 text-slate-700 hover:bg-white"} ${discountUpdating ? "opacity-70 cursor-wait" : ""}`,
-                title: discountEnabled ? "Quitar descuento de este producto" : "Aplicar descuento a este producto",
-                children: [
-                  c.jsx("span", {
-                    className: `material-symbols-outlined text-[11px] ${discountUpdating ? "animate-spin" : ""}`,
-                    children: discountUpdating ? "progress_activity" : discountEnabled ? "percent" : "block",
-                  }),
-                  "Desc",
-                ],
-              }),
+          c.jsx("div", {
+            className: "absolute left-8 bottom-0.5 z-30",
+            children: c.jsxs("button", {
+              type: "button",
+              role: "switch",
+              "aria-checked": discountEnabled,
+              disabled: discountUpdating,
+              onClick: (e) => {
+                e.stopPropagation();
+                onToggleProductInfo(null);
+                onToggleProductMenu(null);
+                onToggleProductStatus(null);
+                onToggleProductDiscount && onToggleProductDiscount(product);
+              },
+              className: `h-6 px-2 rounded-full border shadow-sm backdrop-blur-[2px] inline-flex items-center gap-1 text-[9px] font-black transition ${discountEnabled ? "border-emerald-200/90 bg-emerald-100/90 text-emerald-800 hover:bg-emerald-100" : "border-slate-200/90 bg-white/88 text-slate-700 hover:bg-white"} ${discountUpdating ? "opacity-70 cursor-wait" : ""}`,
+              title: discountEnabled ? "Quitar descuento de este producto" : "Aplicar descuento a este producto",
+              children: [
+                c.jsx("span", {
+                  className: `material-symbols-outlined text-[11px] ${discountUpdating ? "animate-spin" : ""}`,
+                  children: discountUpdating ? "progress_activity" : discountEnabled ? "percent" : "block",
+                }),
+                "Desc",
+              ],
             }),
+          }),
           c.jsx("div", {
             className: "absolute right-0.5 bottom-0.5 z-20",
             children: c.jsxs("button", {
@@ -391,7 +389,6 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
     : DEFAULT_GALLERY_TAB_ORDER
   ).filter((status) => galleryTabConfig[status]);
   const activeGalleryTab = galleryTabConfig[galleryTab] || galleryTabConfig.ANNOTATED;
-  const productDiscountAvailable = Number(missionDiscountPercentage || 0) > 0;
 
   return c.jsxs("div", {
     className: overlayBackdropClass(
@@ -546,7 +543,6 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                           productImageUploadingId,
                           productStatusUpdatingId,
                           productDiscountUpdatingId,
-                          productDiscountAvailable,
                           resolveMediaUrl,
                           setFullscreenImage,
                           onToggleProductMenu,

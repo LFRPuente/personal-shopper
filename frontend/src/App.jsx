@@ -1029,6 +1029,24 @@ function nh() {
     dismissActiveOverlayRef.current = (N = !1, A = !1) => {
       const vl = activeOverlayKeyRef.current;
       if (!vl) return;
+      if (vl === "client-home") {
+        if (A) {
+          overlayDismissTimerRef.current &&
+            clearTimeout(overlayDismissTimerRef.current);
+          overlayDismissTimerRef.current = null;
+          Aa();
+          return;
+        }
+        if (closingOverlayKeyRef.current === vl) return;
+        setClosingOverlayKey(vl);
+        overlayDismissTimerRef.current &&
+          clearTimeout(overlayDismissTimerRef.current);
+        overlayDismissTimerRef.current = setTimeout(() => {
+          overlayDismissTimerRef.current = null;
+          Aa();
+        }, 170);
+        return;
+      }
       !N &&
         window.history.state &&
         window.history.state.__ps_overlay &&
@@ -2251,7 +2269,12 @@ function nh() {
         setClientGalleryAllowsShoppingChoice(!1),
         setClientGalleryMissionScopeMeta(null),
         setClientGalleryMissionScopeId(null),
-        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER));
+        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER),
+        pendingHomeClientRouteRef.current = null,
+        typeof window !== "undefined" &&
+          !publicShareType &&
+          window.location.pathname !== "/home/" &&
+          window.history.replaceState({}, "", "/home/"));
     },
     navigateSection = (o) => {
       if (o === nl) return;
