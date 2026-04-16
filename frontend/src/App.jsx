@@ -519,7 +519,6 @@ function nh() {
     [newProductUploading, setNewProductUploading] = V.useState(!1),
     [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
     [productStatusUpdatingId, setProductStatusUpdatingId] = V.useState(null),
-    [productDiscountUpdatingId, setProductDiscountUpdatingId] = V.useState(null),
     // <-------- seccion 7: estado local para revisiones AV <-> PS
     [productReviews, setProductReviews] = V.useState([]),
     [missionReviewAlerts, setMissionReviewAlerts] = V.useState([]),
@@ -1814,8 +1813,7 @@ function nh() {
         A = getShoppingCalcPayload(w),
         vl = getShoppingCalcPayload(w, o);
       if (JSON.stringify(A) === JSON.stringify(vl)) return;
-      (mergeShoppingIntoState(N, vl),
-        shoppingCalcPersistTimerRef.current &&
+      (shoppingCalcPersistTimerRef.current &&
           clearTimeout(shoppingCalcPersistTimerRef.current),
         shoppingCalcPersistTimerRef.current = setTimeout(async () => {
           shoppingCalcPersistTimerRef.current = null;
@@ -2532,34 +2530,41 @@ function nh() {
     },
     productModalAppliesDiscount = (o = st) =>
       !o || o.apply_discount !== !1,
-    getProductModalPriceMultiplier = (o = st) => {
-      const N = productModalAppliesDiscount(o)
-          ? Math.max(0, 1 - (parseFloat(calcDiscount) || 0) / 100)
+    getProductModalPriceMultiplier = (o = st, discountPercent = null) => {
+      const N =
+          discountPercent === null
+            ? toNumber(o && o.discount_percentage, 0)
+            : toNumber(discountPercent, 0),
+        A = productModalAppliesDiscount(o)
+          ? Math.max(0, 1 - N / 100)
           : 1;
       if (String(calcMode).toUpperCase() === "FACTOR")
-        return (parseFloat(calcFactor) || 0) * N;
+        return (parseFloat(calcFactor) || 0) * A;
       return (
-        N *
+        A *
         (1 + (parseFloat(calcCommission) || 0) / 100) *
         (1 + (parseFloat(calcTaxes) || 0) / 100) *
         (parseFloat(calcExchangeRate) || 0)
       );
     },
-    computeProductModalFinalPrice = (o) => {
+    computeProductModalFinalPrice = (o, discountPercent = null) => {
       const N = parseFloat(o);
-      const A = getProductModalPriceMultiplier();
+      const A = getProductModalPriceMultiplier(st, discountPercent);
       return Number.isFinite(N) && Number.isFinite(A) ? N * A : Number.NaN;
     },
-    computeProductModalStorePrice = (o) => {
+    computeProductModalStorePrice = (o, discountPercent = null) => {
       const N = parseFloat(o);
-      const A = getProductModalPriceMultiplier();
+      const A = getProductModalPriceMultiplier(st, discountPercent);
       return Number.isFinite(N) && Number.isFinite(A) && A > 0
         ? N / A
         : Number.NaN;
     },
-    computeProductModalDiscountedPrice = (o) => {
+    computeProductModalDiscountedPrice = (o, discountPercent = null) => {
       const N = parseFloat(o);
-      const A = parseFloat(calcDiscount);
+      const A =
+        discountPercent === null
+          ? toNumber(st.discount_percentage, 0)
+          : toNumber(discountPercent, 0);
       return Number.isFinite(N) && Number.isFinite(A) && A > 0
         ? N * (1 - A / 100)
         : Number.NaN;
@@ -2651,6 +2656,7 @@ function nh() {
             store: El,
             status: Se,
             apply_discount: (o && o.apply_discount) !== !1,
+            discount_percentage: formatProductPriceField((o && o.discount_percentage) || 0),
           }),
         ),
         setModalTags(vl),
@@ -2778,25 +2784,6 @@ function nh() {
         setProductStatusUpdatingId(null);
       }
     },
-    setGalleryProductDiscount = async (o) => {
-      if (!o || productDiscountUpdatingId === o.id) return;
-      const N = o.apply_discount === !1;
-      setProductDiscountUpdatingId(o.id);
-      try {
-        await I(`/products/${o.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify({ apply_discount: N }),
-        });
-        await refreshSelectedClient();
-        await refreshCoreData();
-        notifySuccess(N ? "Descuento activado." : "Descuento desactivado.");
-      } catch (A) {
-        console.error("Failed updating product discount", A);
-        notifyError("No se pudo cambiar el descuento del producto.");
-      } finally {
-        setProductDiscountUpdatingId(null);
-      }
-    },
     hn = (o) => {
       openProductModal(o, "edit");
     },
@@ -2834,6 +2821,7 @@ function nh() {
           store: vlResolvedShoppingId ? null : st.store ? Number(st.store) : null,
           status: normalizeProductModalStatus(st.status),
           apply_discount: st.apply_discount !== !1,
+          discount_percentage: A(st.discount_percentage) || "0.00",
           payer: (() => {
             const gl = parseInt(st.payer, 10);
             return Number.isInteger(gl) && gl > 0 ? gl : null;
@@ -6424,16 +6412,19 @@ function nh() {
       }
     },
     modalHasRequiredProductFields = !getProductModalRequiredError(st),
-    productDiscountPercent = parseFloat(calcDiscount),
+    productDiscountPercent = toNumber(st.discount_percentage, 0),
     productDiscountEnabled = st.apply_discount !== !1,
-    showProductDiscountFields =
-      Number.isFinite(productDiscountPercent) &&
-      productDiscountPercent > 0,
-    productStoreDiscountedPrice = showProductDiscountFields
-      ? computeProductModalDiscountedPrice(st.real_price)
+    productStoreDiscountedPrice = productDiscountEnabled
+      ? computeProductModalDiscountedPrice(
+          st.real_price,
+          productDiscountPercent,
+        )
       : Number.NaN,
-    productFinalDiscountedPrice = showProductDiscountFields
-      ? computeProductModalDiscountedPrice(st.charged_price)
+    productFinalDiscountedPrice = productDiscountEnabled
+      ? computeProductModalDiscountedPrice(
+          st.charged_price,
+          productDiscountPercent,
+        )
       : Number.NaN,
     sectionStageClass =
       sectionTransitionStage === "out"
@@ -8598,8 +8589,6 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
-    productDiscountUpdatingId,
-    setGalleryProductDiscount,
     // HomeSection dependencies
     homeDesktopGridRef,
     homeDesktopLayout,
@@ -8679,7 +8668,6 @@ function nh() {
     shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
     shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
     shipmentEvidenceDeletingId, openProductStatusId, productStatusUpdatingId,
-    productDiscountUpdatingId,
     startHomeDesktopResize, openMissionTicketPicker,
     clearNewRequestImage, pickRequestImage, createMissionRequest,
     updateMissionRequest, deleteMissionRequest, startRequestModify,
@@ -8924,8 +8912,8 @@ function nh() {
           productPriceAutoSync,
           setProductPriceAutoSync,
           setProductPriceSyncSource,
-          showProductDiscountFields,
           productDiscountEnabled,
+          productDiscountPercentage: productDiscountPercent,
           productStoreDiscountedPrice,
           productFinalDiscountedPrice,
           calcMode,
@@ -9020,7 +9008,6 @@ function nh() {
           openProductStatusId,
           productImageUploadingId,
           productStatusUpdatingId,
-          productDiscountUpdatingId,
           newProductUploading,
           userRole: X,
           formatAmount,
@@ -9034,7 +9021,6 @@ function nh() {
           onDeleteProduct: xe,
           onOpenConversation: openProductConversation,
           onSetProductStatus: setGalleryProductStatus,
-          onToggleProductDiscount: setGalleryProductDiscount,
           getUnifiedReviewState,
           getProductReviewState,
           getChatStatusActionOptions,

@@ -17,8 +17,8 @@ const ProductModal = V.memo(function ProductModal({
   productPriceAutoSync,
   setProductPriceAutoSync,
   setProductPriceSyncSource,
-  showProductDiscountFields,
   productDiscountEnabled,
+  productDiscountPercentage,
   productStoreDiscountedPrice,
   productFinalDiscountedPrice,
   calcMode,
@@ -208,65 +208,76 @@ const ProductModal = V.memo(function ProductModal({
             </button>
           </div>
 
-          {showProductDiscountFields && (
-            <div className={`${isDesktopLayout ? "col-span-2 " : ""}space-y-3`}>
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/85 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/20">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-100">
-                    Aplicar descuento de shopping
-                  </p>
-                  <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">
-                    Puedes quitarlo solo para este producto.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={productDiscountEnabled}
-                  onClick={() => updateForm({ apply_discount: !productDiscountEnabled })}
-                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${productDiscountEnabled ? "bg-amber-500 border-amber-500" : "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700"}`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${productDiscountEnabled ? "translate-x-6" : "translate-x-1"}`}
-                  />
-                </button>
+          <div className={`${isDesktopLayout ? "col-span-2 " : ""}space-y-3`}>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/85 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/20">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-100">
+                  Aplicar descuento de shopping
+                </p>
+                <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">
+                  El descuento por producto es independiente del global.
+                </p>
               </div>
-              {productDiscountEnabled && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
-                      Store Price con descuento (USD)
-                    </label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={
-                        Number.isFinite(productStoreDiscountedPrice)
-                          ? productStoreDiscountedPrice.toFixed(2)
-                          : ""
-                      }
-                      className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
-                      Final Price con descuento (MXN)
-                    </label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={
-                        Number.isFinite(productFinalDiscountedPrice)
-                          ? productFinalDiscountedPrice.toFixed(2)
-                          : ""
-                      }
-                      className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none"
-                    />
-                  </div>
-                </div>
-              )}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={productDiscountEnabled}
+                onClick={() => updateForm({ apply_discount: !productDiscountEnabled })}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${productDiscountEnabled ? "bg-amber-500 border-amber-500" : "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700"}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${productDiscountEnabled ? "translate-x-6" : "translate-x-1"}`}
+                />
+              </button>
             </div>
-          )}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,170px)_minmax(0,1fr)]">
+              <div>
+                <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                  Descuento del producto (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={productDiscountPercentage}
+                  onChange={(event) => updateForm({ discount_percentage: event.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-white dark:bg-gray-900 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none focus:ring-2 focus:ring-amber-300"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Store Price con descuento (USD)
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={
+                      Number.isFinite(productStoreDiscountedPrice)
+                        ? productStoreDiscountedPrice.toFixed(2)
+                        : ""
+                    }
+                    className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Final Price con descuento (MXN)
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={
+                      Number.isFinite(productFinalDiscountedPrice)
+                        ? productFinalDiscountedPrice.toFixed(2)
+                        : ""
+                    }
+                    className="w-full px-3 py-2 border rounded-xl border-amber-200 bg-amber-50/85 dark:bg-amber-950/20 dark:border-amber-800 text-amber-800 dark:text-amber-100 font-semibold outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className={isDesktopLayout ? "col-span-1" : ""}>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
