@@ -447,28 +447,39 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block md:col-span-2",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
+                              className: "block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1",
                               children: isCreating ? "Password" : "Nuevo password",
                             }),
-                            c.jsx("input", {
-                              type: "password",
-                              value: userForm.password || "",
-                              onChange: (event) =>
-                                setUserForm((current) => ({
-                                  ...current,
-                                  password: event.target.value,
-                                })),
-                              autoComplete: isCreating ? "new-password" : "off",
-                              placeholder: isCreating
-                                ? "Password del nuevo usuario"
-                                : "Deja vacio para mantener el actual",
+                            c.jsxs("div", {
                               className:
-                                "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                "grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] items-end",
+                              children: [
+                                c.jsx("input", {
+                                  type: "password",
+                                  value: userForm.password || "",
+                                  onChange: (event) =>
+                                    setUserForm((current) => ({
+                                      ...current,
+                                      password: event.target.value,
+                                    })),
+                                  autoComplete: isCreating ? "new-password" : "off",
+                                  placeholder: isCreating
+                                    ? "Password del nuevo usuario"
+                                    : "Deja vacio para mantener el actual",
+                                  className:
+                                    "w-full h-10 px-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                }),
+                                c.jsx("span", {
+                                  className:
+                                    "text-[11px] leading-tight text-slate-500 dark:text-slate-400 md:max-w-[180px]",
+                                  children: "Solo rellena este campo si vas a cambiar la clave.",
+                                }),
+                              ],
                             }),
                           ],
                         }),
                         c.jsxs("div", {
-                          className: "md:col-span-2 flex flex-wrap items-center gap-2 pt-1",
+                          className: "md:col-span-2 flex flex-wrap items-center gap-2 pt-0.5",
                           children: [
                             c.jsx("button", {
                               type: "button",

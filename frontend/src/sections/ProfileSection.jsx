@@ -218,28 +218,28 @@ const ProfileSection = V.memo(function ProfileSection() {
               }),
               c.jsxs("div", {
                 className:
-                  "rounded-2xl border border-border-light dark:border-border-dark bg-gray-50/80 dark:bg-slate-900/50 p-4 space-y-3",
+                  "rounded-2xl border border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/60 p-3 space-y-2",
                 children: [
                   c.jsxs("div", {
                     children: [
                       c.jsx("h3", {
-                        className: "text-sm font-bold text-text-main",
+                        className: "text-sm font-bold text-slate-900 dark:text-slate-100",
                         children: "Seguridad",
                       }),
                       c.jsx("p", {
-                        className: "text-xs text-text-sub mt-1",
+                        className: "text-[11px] text-slate-500 dark:text-slate-300 mt-0.5",
                         children: "Cambia tu propia contraseña sin afectar otros datos del perfil.",
                       }),
                     ],
                   }),
                   c.jsxs("div", {
-                    className: "grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]",
+                    className: "grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] items-end",
                     children: [
                       c.jsxs("label", {
                         className: "block",
                         children: [
                           c.jsx("span", {
-                            className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
+                            className: "block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1",
                             children: "Nuevo password",
                           }),
                           c.jsx("input", {
@@ -249,7 +249,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                             placeholder: "Escribe tu nueva contraseña",
                             autoComplete: "new-password",
                             className:
-                              "w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                              "w-full h-10 px-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
                           }),
                         ],
                       }),
@@ -270,7 +270,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                         },
                         disabled: !String(ownPassword || "").trim() || ownPasswordSaving,
                         className:
-                          "self-end px-4 py-2 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
+                          "md:self-end w-full md:w-auto h-10 px-4 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
                         children: ownPasswordSaving ? "Guardando..." : "Cambiar password",
                       }),
                     ],
