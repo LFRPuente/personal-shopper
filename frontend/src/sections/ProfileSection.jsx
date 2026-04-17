@@ -1,4 +1,4 @@
-import { V, c, getClientPhoneDisplay } from '../utils.js';
+import { V, c, getClientPhoneDisplay, getUserPhoneDisplay, getUserOptionLabel, sanitizeClientCountryCodeInput } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 
 const DEFAULT_BREAKDOWN_TEMPLATE =
@@ -20,8 +20,10 @@ const ProfileSection = V.memo(function ProfileSection() {
     saveProfileSettings,
     handleLogout,
     clients,
+    users,
     onEditClient,
     onDeleteClient,
+    saveUserRecord,
   } = useApp();
 
   const J = user;
@@ -29,6 +31,10 @@ const ProfileSection = V.memo(function ProfileSection() {
   const isBothRole = String(profile.role || '').toUpperCase() === 'BOTH';
   const [profileTab, setProfileTab] = V.useState('general');
   const [clientSearch, setClientSearch] = V.useState('');
+  const [userSearch, setUserSearch] = V.useState('');
+  const [selectedUserId, setSelectedUserId] = V.useState(null);
+  const [userForm, setUserForm] = V.useState(null);
+  const [userSaving, setUserSaving] = V.useState(false);
   const normalizeDigits = (value) => String(value || '').replace(/\D+/g, '');
   const filteredProfileClients = V.useMemo(() => {
     const search = String(clientSearch || '').trim().toLowerCase();
@@ -53,9 +59,37 @@ const ProfileSection = V.memo(function ProfileSection() {
       })
       .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'es', { sensitivity: 'base' }));
   }, [clients, clientSearch]);
+  const filteredUsers = V.useMemo(() => {
+    const search = String(userSearch || '').trim().toLowerCase();
+    const source = Array.isArray(users) ? users : [];
+    const sorted = [...source].sort((a, b) => String(a?.username || '').localeCompare(String(b?.username || ''), 'es', { sensitivity: 'base' }));
+    if (!search) return sorted;
+    return sorted.filter((user) => {
+      const profile = user?.profile || {};
+      const blob = [
+        user?.username,
+        user?.email,
+        profile?.display_name,
+        profile?.role,
+        profile?.phone_country_code,
+        profile?.phone,
+        getUserPhoneDisplay(user),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return blob.includes(search);
+    });
+  }, [users, userSearch]);
+  const selectedProfileUser = V.useMemo(
+    () => (Array.isArray(users) ? users.find((user) => Number(user?.id) === Number(selectedUserId)) : null) || null,
+    [users, selectedUserId],
+  );
   const profileSettingsChanged =
     String((profileSettingsForm.display_name || '').trim()) !==
       String((profile.display_name || '').trim()) ||
+    String((profileSettingsForm.phone_country_code || '').trim()) !==
+      String((profile.phone_country_code || '').trim()) ||
     String((profileSettingsForm.phone || '').trim()) !==
       String((profile.phone || '').trim()) ||
     String((profileSettingsForm.waha_api_url || '').trim()) !==
@@ -69,6 +103,34 @@ const ProfileSection = V.memo(function ProfileSection() {
     String((profileSettingsForm.waha_chat_id_suffix || '').trim()) !==
       String((profile.waha_chat_id_suffix || '').trim());
   const profileSaveDisabled = profileSettingsSaving || !profileSettingsChanged;
+  V.useEffect(() => {
+    if (!isBothRole) return;
+    const initialUser = selectedProfileUser || (Array.isArray(users) ? users.find((user) => Number(user?.id) === Number(J && J.id)) : null) || users?.[0] || null;
+    if (!initialUser) return;
+    if (Number(selectedUserId) !== Number(initialUser.id)) {
+      setSelectedUserId(initialUser.id);
+      return;
+    }
+    const profileData = initialUser.profile || {};
+    setUserForm((current) => {
+      const next = {
+        username: String(initialUser.username || ''),
+        email: String(initialUser.email || ''),
+        first_name: String(initialUser.first_name || ''),
+        last_name: String(initialUser.last_name || ''),
+        is_active: !!initialUser.is_active,
+        role: String(profileData.role || 'AV'),
+        display_name: String(profileData.display_name || ''),
+        phone_country_code: String(profileData.phone_country_code || '+52'),
+        phone: String(profileData.phone || ''),
+      };
+      if (!current) return next;
+      if (Number(current.__user_id || 0) !== Number(initialUser.id)) {
+        return { ...next, __user_id: initialUser.id };
+      }
+      return current;
+    });
+  }, [isBothRole, users, selectedProfileUser, selectedUserId, J]);
 
   return c.jsxs("div", {
     className: isDesktopLayout
@@ -108,7 +170,12 @@ const ProfileSection = V.memo(function ProfileSection() {
           !!String((profileSettingsForm.phone || "").trim()) &&
             c.jsxs("p", {
               className: "mt-4 text-sm text-text-main text-center",
-              children: ["Tel: ", String((profileSettingsForm.phone || "").trim())],
+              children: [
+                "Tel: ",
+                String((profileSettingsForm.phone_country_code || "+52").trim()),
+                " ",
+                String((profileSettingsForm.phone || "").trim()),
+              ],
             }),
         ],
       }),
@@ -133,13 +200,13 @@ const ProfileSection = V.memo(function ProfileSection() {
           }),
           isBothRole &&
             c.jsxs("div", {
-              className: "grid grid-cols-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
+              className: "grid grid-cols-3 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
               children: [
                 c.jsx("button", {
                   type: "button",
                   onClick: () => setProfileTab('general'),
                   className:
-                    `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab !== 'clients' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                    `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab === 'general' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                   children: "Configuracion",
                 }),
                 c.jsx("button", {
@@ -148,6 +215,13 @@ const ProfileSection = V.memo(function ProfileSection() {
                   className:
                     `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab === 'clients' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
                   children: "Clientes",
+                }),
+                c.jsx("button", {
+                  type: "button",
+                  onClick: () => setProfileTab('users'),
+                  className:
+                    `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab === 'users' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                  children: "Usuarios",
                 }),
               ],
             }),
@@ -186,6 +260,29 @@ const ProfileSection = V.memo(function ProfileSection() {
                             display_name: o.target.value,
                           })),
                         placeholder: J.username,
+                        className:
+                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("label", {
+                    className: "block",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                        children: "Codigo de pais",
+                      }),
+                      c.jsx("input", {
+                        type: "text",
+                        inputMode: "numeric",
+                        value: profileSettingsForm.phone_country_code || "+52",
+                        onChange: (o) =>
+                          setProfileSettingsForm((N) => ({
+                            ...N,
+                            phone_country_code: sanitizeClientCountryCodeInput(o.target.value),
+                          })),
+                        placeholder: "+52",
                         className:
                           "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
                       }),
@@ -455,29 +552,6 @@ const ProfileSection = V.memo(function ProfileSection() {
                       c.jsx("span", {
                         className:
                           "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                        children: "Prefijo chatId",
-                      }),
-                      c.jsx("input", {
-                        type: "text",
-                        inputMode: "numeric",
-                        value: profileSettingsForm.waha_phone_prefix || "521",
-                        onChange: (o) =>
-                          setProfileSettingsForm((N) => ({
-                            ...N,
-                            waha_phone_prefix: normalizeDigits(o.target.value),
-                          })),
-                        placeholder: "521",
-                        className:
-                          "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
-                      }),
-                    ],
-                  }),
-                  c.jsxs("label", {
-                    className: "block",
-                    children: [
-                      c.jsx("span", {
-                        className:
-                          "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
                         children: "Sufijo chatId",
                       }),
                       c.jsx("input", {
@@ -499,7 +573,7 @@ const ProfileSection = V.memo(function ProfileSection() {
               c.jsx("p", {
                 className: "text-[11px] text-text-sub",
                 children:
-                  "El chatId se arma como prefijo + telefono del cliente + sufijo. Ejemplo: 5215512345678@c.us.",
+                  "El chatId se arma automaticamente para WAHA con el codigo de pais y el telefono.",
               }),
               c.jsx("button", {
                 type: "button",
@@ -611,6 +685,340 @@ const ProfileSection = V.memo(function ProfileSection() {
                         }, client.id),
                       ),
                     }),
+              ],
+            }),
+          isBothRole && profileTab === 'users' &&
+            c.jsxs("div", {
+              className: "rounded-2xl border border-border-light dark:border-border-dark px-4 py-4 space-y-4",
+              children: [
+                c.jsxs("div", {
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-sm font-bold text-text-main",
+                      children: "Gestion de usuarios",
+                    }),
+                    c.jsx("p", {
+                      className: "mt-1 text-xs text-text-sub",
+                      children: "Solo visible para usuarios BOTH. Aqui puedes editar usuarios y guardar su telefono con codigo de pais.",
+                    }),
+                  ],
+                }),
+                c.jsx("input", {
+                  type: "text",
+                  value: userSearch,
+                  onChange: (event) => setUserSearch(event.target.value),
+                  placeholder: "Buscar usuario, correo, telefono o rol...",
+                  className:
+                    "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                }),
+                c.jsxs("div", {
+                  className: "grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]",
+                  children: [
+                    c.jsxs("div", {
+                      className: "space-y-2 max-h-[420px] overflow-y-auto pr-1",
+                      children: filteredUsers.length === 0
+                        ? c.jsx("p", {
+                            className: "text-xs text-text-sub",
+                            children: "No hay usuarios que coincidan con el filtro.",
+                          })
+                        : filteredUsers.map((user) => {
+                            const profileData = user.profile || {};
+                            const isSelected = Number(selectedUserId) === Number(user.id);
+                            return c.jsxs("button", {
+                              type: "button",
+                              onClick: () => {
+                                setSelectedUserId(user.id);
+                                setUserForm({
+                                  username: String(user.username || ''),
+                                  email: String(user.email || ''),
+                                  first_name: String(user.first_name || ''),
+                                  last_name: String(user.last_name || ''),
+                                  is_active: !!user.is_active,
+                                  role: String(profileData.role || 'AV'),
+                                  display_name: String(profileData.display_name || ''),
+                                  phone_country_code: String(profileData.phone_country_code || '+52'),
+                                  phone: String(profileData.phone || ''),
+                                });
+                              },
+                              className: `w-full text-left rounded-2xl border px-3 py-3 transition ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                                  : "border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-900"
+                              }`,
+                              children: [
+                                c.jsxs("div", {
+                                  className: "flex items-start justify-between gap-3",
+                                  children: [
+                                    c.jsxs("div", {
+                                      className: "min-w-0",
+                                      children: [
+                                        c.jsx("p", {
+                                          className: "text-sm font-bold text-text-main truncate",
+                                          children: getUserOptionLabel(user),
+                                        }),
+                                        c.jsx("p", {
+                                          className: "text-[11px] text-text-sub truncate",
+                                          children: `@${user.username || ""}`,
+                                        }),
+                                      ],
+                                    }),
+                                    c.jsx("span", {
+                                      className: `rounded-full px-2 py-1 text-[10px] font-bold ${
+                                        user.is_active
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : "bg-gray-100 text-gray-500"
+                                      }`,
+                                      children: user.is_active ? "Activo" : "Inactivo",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className: "mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-sub",
+                                  children: [
+                                    c.jsx("span", {
+                                      children: `Rol: ${String(profileData.role || "AV")}`,
+                                    }),
+                                    c.jsx("span", {
+                                      children: getUserPhoneDisplay(user) || "Sin telefono",
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }, user.id);
+                          }),
+                    }),
+                    c.jsxs("div", {
+                      className: "rounded-2xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-gray-900/30 px-3 py-3 space-y-3",
+                      children: [
+                        c.jsxs("div", {
+                          className: "flex items-center justify-between gap-3",
+                          children: [
+                            c.jsxs("div", {
+                              children: [
+                                c.jsx("h4", {
+                                  className: "text-sm font-bold text-text-main",
+                                  children: "Editar usuario",
+                                }),
+                                c.jsx("p", {
+                                  className: "text-[11px] text-text-sub mt-0.5",
+                                  children: selectedProfileUser
+                                    ? `@${selectedProfileUser.username}`
+                                    : "Selecciona un usuario para editarlo.",
+                                }),
+                              ],
+                            }),
+                            userSaving &&
+                              c.jsx("span", {
+                                className: "text-[11px] font-semibold text-primary",
+                                children: "Guardando...",
+                              }),
+                          ],
+                        }),
+                        userForm
+                          ? c.jsxs("div", {
+                              className: "grid gap-3 md:grid-cols-2",
+                              children: [
+                                c.jsxs("label", {
+                                  className: "block md:col-span-2",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Username",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      value: userForm.username || "",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({ ...current, username: event.target.value })),
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block md:col-span-2",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Correo",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "email",
+                                      value: userForm.email || "",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({ ...current, email: event.target.value })),
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Nombre visible",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      value: userForm.display_name || "",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({ ...current, display_name: event.target.value })),
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Rol",
+                                    }),
+                                    c.jsx("select", {
+                                      value: userForm.role || "AV",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({ ...current, role: event.target.value })),
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                      children: [
+                                        c.jsx("option", { value: "AV", children: "AV" }, "AV"),
+                                        c.jsx("option", { value: "PS", children: "PS" }, "PS"),
+                                        c.jsx("option", { value: "BOTH", children: "BOTH" }, "BOTH"),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Codigo de pais",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      inputMode: "numeric",
+                                      value: userForm.phone_country_code || "+52",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({
+                                          ...current,
+                                          phone_country_code: sanitizeClientCountryCodeInput(event.target.value),
+                                        })),
+                                      placeholder: "+1",
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Telefono",
+                                    }),
+                                    c.jsx("input", {
+                                      type: "text",
+                                      inputMode: "numeric",
+                                      value: userForm.phone || "",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({
+                                          ...current,
+                                          phone: normalizeDigits(event.target.value),
+                                        })),
+                                      placeholder: "5551234567",
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("label", {
+                                  className: "block md:col-span-2",
+                                  children: [
+                                    c.jsx("span", {
+                                      className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                      children: "Activo",
+                                    }),
+                                    c.jsx("select", {
+                                      value: userForm.is_active ? "1" : "0",
+                                      onChange: (event) =>
+                                        setUserForm((current) => ({
+                                          ...current,
+                                          is_active: event.target.value === "1",
+                                        })),
+                                      className:
+                                        "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                                      children: [
+                                        c.jsx("option", { value: "1", children: "Si" }, "1"),
+                                        c.jsx("option", { value: "0", children: "No" }, "0"),
+                                      ],
+                                    }),
+                                  ],
+                                }),
+                                c.jsxs("div", {
+                                  className: "md:col-span-2 flex flex-wrap items-center gap-2 pt-1",
+                                  children: [
+                                    c.jsx("button", {
+                                      type: "button",
+                                      onClick: async () => {
+                                        if (!selectedProfileUser || !userForm || userSaving) return;
+                                        const payload = {
+                                          username: String(userForm.username || "").trim(),
+                                          email: String(userForm.email || "").trim(),
+                                          first_name: String(userForm.first_name || "").trim(),
+                                          last_name: String(userForm.last_name || "").trim(),
+                                          is_active: !!userForm.is_active,
+                                          role: String(userForm.role || "AV").trim(),
+                                          display_name: String(userForm.display_name || "").trim(),
+                                          phone_country_code: String(userForm.phone_country_code || "+52").trim(),
+                                          phone: String(userForm.phone || "").trim(),
+                                        };
+                                        setUserSaving(true);
+                                        try {
+                                          const savedUser = await saveUserRecord(selectedProfileUser.id, payload);
+                                          if (savedUser) {
+                                            const savedProfile = savedUser.profile || {};
+                                            setUserForm({
+                                              username: String(savedUser.username || ''),
+                                              email: String(savedUser.email || ''),
+                                              first_name: String(savedUser.first_name || ''),
+                                              last_name: String(savedUser.last_name || ''),
+                                              is_active: !!savedUser.is_active,
+                                              role: String(savedProfile.role || 'AV'),
+                                              display_name: String(savedProfile.display_name || ''),
+                                              phone_country_code: String(savedProfile.phone_country_code || '+52'),
+                                              phone: String(savedProfile.phone || ''),
+                                            });
+                                          }
+                                        } catch (error) {
+                                          console.error("Failed saving user from profile", error);
+                                        } finally {
+                                          setUserSaving(false);
+                                        }
+                                      },
+                                      disabled: userSaving || !selectedProfileUser,
+                                      className:
+                                        "px-4 py-2 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
+                                      children: userSaving ? "Guardando..." : "Guardar usuario",
+                                    }),
+                                    c.jsx("p", {
+                                      className: "text-[11px] text-text-sub",
+                                      children: "El numero se guardara junto con el codigo de pais para WAHA.",
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            })
+                          : c.jsx("p", {
+                              className: "text-sm text-text-sub",
+                              children: "Selecciona un usuario para editarlo.",
+                            }),
+                      ],
+                    }),
+                  ],
+                }),
               ],
             }),
           c.jsxs("button", {

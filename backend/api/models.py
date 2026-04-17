@@ -22,6 +22,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=4, choices=Role.choices, default=Role.AV)
     display_name = models.CharField(max_length=255, blank=True, default='')
+    phone_country_code = models.CharField(max_length=8, blank=True, default='+52')
     phone = models.CharField(max_length=30, blank=True, default='')
     waha_api_url = models.URLField(max_length=500, blank=True, default='')
     waha_api_key = models.CharField(max_length=500, blank=True, default='')

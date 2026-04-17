@@ -9,6 +9,7 @@ import {
   normalizeClientCountryCode, normalizeClientPhoneDigits,
   sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
   normalizeClientShippingAddresses, getClientPhoneDisplay, getClientWahaChatId,
+  getUserPhoneDisplay, getUserWahaChatId,
   normalizeShipmentStatusValue, getShipmentStatusLabel, getShipmentTrackingUrl,
   SHIPMENT_CARRIER_OPTIONS, canEditShipmentBox,
   getPublicShareInfoFromPath, getPublicShareFocusShipmentIdFromSearch,
@@ -31,6 +32,7 @@ const MissionStartModal = V.lazy(() => import('./components/MissionStartModal.js
 const CreateClientModal = V.lazy(() => import('./components/CreateClientModal.jsx'));
 const EditClientModal = V.lazy(() => import('./components/EditClientModal.jsx'));
 const MissionSummaryModal = V.lazy(() => import('./components/MissionSummaryModal.jsx'));
+const ReviewNotifyModal = V.lazy(() => import('./components/ReviewNotifyModal.jsx'));
 const ShipmentProductPickerModal = V.lazy(() => import('./components/ShipmentProductPickerModal.jsx'));
 const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
@@ -382,6 +384,7 @@ function nh() {
     }),
     [profileSettingsForm, setProfileSettingsForm] = V.useState({
       display_name: "",
+      phone_country_code: "+52",
       phone: "",
       waha_api_url: "",
       waha_api_key: "",
@@ -392,6 +395,12 @@ function nh() {
     [profileSettingsSaving, setProfileSettingsSaving] = V.useState(!1),
     [fullscreenImage, setFullscreenImage] = V.useState(null),
     [users, setUsers] = V.useState([]),
+    [reviewNotifyModalOpen, setReviewNotifyModalOpen] = V.useState(!1),
+    [reviewNotifyProduct, setReviewNotifyProduct] = V.useState(null),
+    [reviewNotifyClient, setReviewNotifyClient] = V.useState(null),
+    [reviewNotifyMessage, setReviewNotifyMessage] = V.useState(""),
+    [reviewNotifyRecipientIds, setReviewNotifyRecipientIds] = V.useState([]),
+    [reviewNotifySending, setReviewNotifySending] = V.useState(!1),
     [stores, setStores] = V.useState([]),
     [storeRecommendations, setStoreRecommendations] = V.useState([]),
     [shippingCarrierRecommendations, setShippingCarrierRecommendations] = V.useState([]),
@@ -711,6 +720,16 @@ function nh() {
         loadStoreData(!0),
         loadCarrierRecommendations(!0),
       ]);
+    },
+    refreshUsers = async () => {
+      try {
+        const o = await I("/users/");
+        setUsers(o || []);
+        return o || [];
+      } catch (o) {
+        console.error("Failed loading users", o);
+        return [];
+      }
     },
     refreshSelectedClient = async () => {
       const o = selectedClientIdRef.current;
@@ -1127,6 +1146,7 @@ function nh() {
   V.useEffect(() => {
     setProfileSettingsForm({
       display_name: String((J && J.profile && J.profile.display_name) || ""),
+      phone_country_code: String((J && J.profile && J.profile.phone_country_code) || "+52"),
       phone: String((J && J.profile && J.profile.phone) || ""),
       waha_api_url: String((J && J.profile && J.profile.waha_api_url) || ""),
       waha_api_key: String((J && J.profile && J.profile.waha_api_key) || ""),
@@ -5532,8 +5552,82 @@ function nh() {
           },
           ...El,
         ]);
+        const reviewClient =
+          (W && Number(W.id) === Number(o.client) && W) ||
+          (Kl || []).find((El) => Number(El.id) === Number(o.client)) ||
+          null;
+        openReviewNotifyModal(o, reviewClient);
       } catch (El) {
         console.error("Failed creating product review", El);
+      }
+    },
+    openReviewNotifyModal = (product, client = null) => {
+      if (!product) return;
+      const creatorId = Number(w && w.shopper && w.shopper.id ? w.shopper.id : w && w.shopper ? w.shopper : 0) || null;
+      const defaultRecipients = creatorId ? [creatorId] : [];
+      const clientName = String((client && client.name) || (W && W.name) || "").trim() || "cliente";
+      setReviewNotifyProduct(product);
+      setReviewNotifyClient(client || null);
+      setReviewNotifyMessage(`Tienes un producto para Revision del cliente ${clientName}`);
+      setReviewNotifyRecipientIds(defaultRecipients);
+      setReviewNotifyModalOpen(!0);
+    },
+    closeReviewNotifyModal = () => {
+      if (reviewNotifySending) return;
+      setReviewNotifyModalOpen(!1);
+      setReviewNotifyProduct(null);
+      setReviewNotifyClient(null);
+      setReviewNotifyMessage("");
+      setReviewNotifyRecipientIds([]);
+    },
+    sendReviewNotifyMessage = async () => {
+      if (!reviewNotifyProduct || reviewNotifySending) return;
+      const recipientIds = Array.from(
+        new Set(
+          (reviewNotifyRecipientIds || [])
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0),
+        ),
+      );
+      const recipientUsers = recipientIds
+        .map((userId) => (users || []).find((value) => Number(value.id) === Number(userId)))
+        .filter(Boolean);
+      if (recipientUsers.length === 0) {
+        notifyError("Selecciona al menos un usuario con telefono.");
+        return;
+      }
+      const message = String(reviewNotifyMessage || "").trim();
+      if (!message) {
+        notifyError("Escribe un mensaje para enviar.");
+        return;
+      }
+      setReviewNotifySending(!0);
+      try {
+        for (const recipient of recipientUsers) {
+          const chatId = getUserWahaChatId(recipient);
+          if (!chatId) {
+            throw new Error(`El usuario ${recipient.username || recipient.id} no tiene telefono configurado.`);
+          }
+          await I("/whatsapp/send-text/", {
+            method: "POST",
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: message,
+            }),
+          });
+        }
+        notifySuccess("Mensaje enviado por WhatsApp.");
+        closeReviewNotifyModal();
+      } catch (El) {
+        console.error("Failed sending review notify message", El);
+        notifyError(
+          getApiErrorMessage(
+            El,
+            "No se pudo enviar el mensaje de revisión por WhatsApp.",
+          ),
+        );
+      } finally {
+        setReviewNotifySending(!1);
       }
     },
     updateProductReviewAction = async (o, N, A = {}) => {
@@ -8569,6 +8663,7 @@ function nh() {
     saveProfileSettings = async () => {
       if (!J || profileSettingsSaving) return;
       const o = String((profileSettingsForm.display_name || "")).trim(),
+        Pc = String((profileSettingsForm.phone_country_code || "+52").trim()),
         N = String((profileSettingsForm.phone || "")).trim(),
         A = String((profileSettingsForm.waha_api_url || "").trim()),
         vl = String((profileSettingsForm.waha_api_key || "").trim()),
@@ -8576,19 +8671,21 @@ function nh() {
         Se = String((profileSettingsForm.waha_phone_prefix || "521").replace(/\D+/g, "") || "521"),
         ea = String((profileSettingsForm.waha_chat_id_suffix || "").trim()),
         gl = String((J && J.profile && J.profile.display_name) || "").trim(),
+        qc = String((J && J.profile && J.profile.phone_country_code) || "+52").trim(),
         ae = String((J && J.profile && J.profile.phone) || "").trim(),
         qa = String((J && J.profile && J.profile.waha_api_url) || "").trim(),
         Nn = String((J && J.profile && J.profile.waha_api_key) || "").trim(),
         Ta = String((J && J.profile && J.profile.waha_session) || "").trim(),
         qaPrefix = String((J && J.profile && J.profile.waha_phone_prefix) || "521").replace(/\D+/g, "") || "521",
         za = String((J && J.profile && J.profile.waha_chat_id_suffix) || "").trim();
-      if (o === gl && N === ae && A === qa && vl === Nn && El === Ta && Se === qaPrefix && ea === za) return;
+      if (o === gl && Pc === qc && N === ae && A === qa && vl === Nn && El === Ta && Se === qaPrefix && ea === za) return;
       setProfileSettingsSaving(!0);
       try {
         const oi = await I("/auth/me/", {
           method: "PATCH",
           body: JSON.stringify({
             display_name: o,
+            phone_country_code: Pc,
             phone: N,
             waha_api_url: A,
             waha_api_key: vl,
@@ -8603,6 +8700,30 @@ function nh() {
         notifyError("No se pudo guardar la configuracion del perfil.");
       } finally {
         setProfileSettingsSaving(!1);
+      }
+    },
+    saveUserRecord = async (userId, payload) => {
+      const targetId = Number(userId || 0);
+      if (!targetId) return null;
+      try {
+        const updated = await I(`/users/${targetId}/`, {
+          method: "PATCH",
+          body: JSON.stringify(payload || {}),
+        });
+        if (updated && updated.id) {
+          setUsers((values) =>
+            (values || []).map((user) =>
+              Number(user.id) === Number(updated.id) ? updated : user,
+            ),
+          );
+          if (J && Number(J.id) === Number(updated.id)) {
+            b(updated);
+          }
+        }
+        return updated;
+      } catch (error) {
+        console.error("Failed saving user record", error);
+        throw error;
       }
     };
   // Calculator section extracted to sections/CalculatorSection.jsx
@@ -8656,9 +8777,13 @@ function nh() {
     setProfileSettingsForm,
     profileSettingsSaving,
     saveProfileSettings,
+    saveUserRecord,
+    refreshUsers,
     handleLogout: iu,
     clients: Kl,
+    users,
     getClientPhoneDisplay,
+    getUserPhoneDisplay,
     onEditClient: openEditClientModal,
     onDeleteClient: Ea,
     // ShipmentsSection dependencies
@@ -9374,6 +9499,25 @@ function nh() {
           setFullscreenImage,
           resolveMediaUrl,
           getReviewFlowLabel,
+        }),
+      }),
+      reviewNotifyModalOpen &&
+      c.jsx(V.Suspense, {
+        fallback: null,
+        children: c.jsx(ReviewNotifyModal, {
+          open: reviewNotifyModalOpen,
+          product: reviewNotifyProduct,
+          client: reviewNotifyClient,
+          users,
+          selectedRecipientIds: reviewNotifyRecipientIds,
+          setSelectedRecipientIds: setReviewNotifyRecipientIds,
+          message: reviewNotifyMessage,
+          setMessage: setReviewNotifyMessage,
+          sending: reviewNotifySending,
+          onSend: sendReviewNotifyMessage,
+          onClose: closeReviewNotifyModal,
+          overlayBackdropClass,
+          overlaySheetClass,
         }),
       }),
       getFullscreenImageUrl(fullscreenImage) &&

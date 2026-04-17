@@ -49,6 +49,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'role',
             'display_name',
+            'phone_country_code',
             'phone',
             'layout_mode',
             'theme_mode',
@@ -59,6 +60,70 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'waha_phone_prefix',
             'waha_chat_id_suffix',
         ]
+
+
+class UserManageSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='userprofile.role', required=False)
+    display_name = serializers.CharField(source='userprofile.display_name', required=False, allow_blank=True)
+    phone_country_code = serializers.CharField(source='userprofile.phone_country_code', required=False, allow_blank=True)
+    phone = serializers.CharField(source='userprofile.phone', required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'is_active',
+            'role',
+            'display_name',
+            'phone_country_code',
+            'phone',
+        ]
+
+    def validate_phone_country_code(self, value):
+        raw_value = str(value or '').strip()
+        digits = ''.join(ch for ch in raw_value if ch.isdigit())
+        if not digits:
+            return '+52'
+        return f'+{digits[:4]}'
+
+    def validate_phone(self, value):
+        raw_value = str(value or '').strip()
+        if not raw_value:
+            return ''
+        digits = ''.join(ch for ch in raw_value if ch.isdigit())
+        if len(digits) > 15:
+            raise serializers.ValidationError('Phone must contain at most 15 digits.')
+        return digits
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('userprofile', {})
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if validated_data:
+            instance.save()
+        profile, _ = UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={'role': 'AV'},
+        )
+        profile_update_fields = []
+        for attr, value in profile_data.items():
+            normalized_value = value
+            if attr == 'role':
+                normalized_value = str(value or 'AV').strip().upper()
+            elif attr == 'phone_country_code':
+                normalized_value = self.validate_phone_country_code(value)
+            elif attr == 'phone':
+                normalized_value = self.validate_phone(value)
+            if getattr(profile, attr) != normalized_value:
+                setattr(profile, attr, normalized_value)
+                profile_update_fields.append(attr)
+        if profile_update_fields:
+            profile.save(update_fields=profile_update_fields)
+        return instance
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(source='userprofile', read_only=True)

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db.models import Count, F, Q
 from django.utils import timezone
@@ -57,6 +58,7 @@ from .serializers import (
     ReviewAlternativeSerializer,
     ClientHistoryShareLinkSerializer,
     ClientMissionShareProductSerializer,
+    UserManageSerializer,
     ShoppingPaymentSerializer,
     ShipmentSerializer,
     ShipmentListSerializer,
@@ -451,6 +453,13 @@ def me(request):
             if profile.waha_session != normalized_waha_session:
                 profile.waha_session = normalized_waha_session
                 update_fields.append('waha_session')
+        phone_country_code = request.data.get('phone_country_code')
+        if phone_country_code is not None:
+            normalized_phone_country_code = normalize_digits(phone_country_code) or '52'
+            normalized_phone_country_code = f'+{normalized_phone_country_code[:4]}'
+            if profile.phone_country_code != normalized_phone_country_code:
+                profile.phone_country_code = normalized_phone_country_code
+                update_fields.append('phone_country_code')
         waha_phone_prefix = request.data.get('waha_phone_prefix')
         if waha_phone_prefix is not None:
             normalized_waha_phone_prefix = normalize_digits(waha_phone_prefix) or '521'
@@ -626,9 +635,13 @@ def send_waha_text(request):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        prefix = normalize_digits(profile.waha_phone_prefix) or '521'
-        suffix = str(profile.waha_chat_id_suffix or '').strip()
-        chat_digits = phone if len(phone) > 10 and phone.startswith(prefix) else f'{prefix}{phone}'
+        country_code = normalize_digits(
+            request.data.get('phone_country_code')
+            or profile.phone_country_code
+            or '52'
+        ) or '52'
+        suffix = str(profile.waha_chat_id_suffix or '@c.us').strip() or '@c.us'
+        chat_digits = phone if country_code and phone.startswith(country_code) else f'{country_code}{phone}'
         chat_id = f'{chat_digits}{suffix}'
     payload = {
         'session': session,
@@ -700,6 +713,27 @@ def list_users(request):
     ).order_by('username')
     serializer = UserSerializer(queryset, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def user_detail(request, user_id):
+    target_user = get_object_or_404(User.objects.select_related('userprofile'), id=user_id)
+    try:
+        current_role = str(request.user.userprofile.role or 'AV').upper()
+    except Exception:
+        current_role = 'AV'
+    if current_role != 'BOTH' and request.user.id != target_user.id:
+        return Response(
+            {'error': 'No tienes permiso para editar otros usuarios.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    if request.method == 'GET':
+        return Response(UserSerializer(target_user).data)
+    serializer = UserManageSerializer(target_user, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(UserSerializer(target_user).data)
 
 
 def touch_store_recommendation(user, store):
