@@ -92,6 +92,18 @@ const ProfileSection = V.memo(function ProfileSection() {
                 String((profileSettingsForm.phone || "").trim()),
               ],
             }),
+          c.jsx("button", {
+            onClick: handleLogout,
+            className:
+              "mt-4 w-full py-4 text-red-600 bg-red-50 hover:bg-red-100 font-bold rounded-xl transition flex justify-center items-center gap-2",
+            children: [
+              c.jsx("span", {
+                className: "material-symbols-outlined",
+                children: "logout",
+              }),
+              "Logout",
+            ],
+          }),
         ],
       }),
       c.jsxs("div", {
@@ -481,18 +493,6 @@ const ProfileSection = V.memo(function ProfileSection() {
                 "w-full px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 text-sm font-bold transition",
               children: "EDICION DE USUARIOS",
             }),
-          c.jsx("button", {
-            onClick: handleLogout,
-            className:
-              "w-full py-4 text-red-600 bg-red-50 hover:bg-red-100 font-bold rounded-xl transition flex justify-center items-center gap-2",
-            children: [
-              c.jsx("span", {
-                className: "material-symbols-outlined",
-                children: "logout",
-              }),
-              "Logout",
-            ],
-          }),
         ],
       }),
       isBothRole &&

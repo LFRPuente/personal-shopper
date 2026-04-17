@@ -67,6 +67,7 @@ class UserManageSerializer(serializers.ModelSerializer):
     display_name = serializers.CharField(source='userprofile.display_name', required=False, allow_blank=True)
     phone_country_code = serializers.CharField(source='userprofile.phone_country_code', required=False, allow_blank=True)
     phone = serializers.CharField(source='userprofile.phone', required=False, allow_blank=True)
+    password = serializers.CharField(required=False, write_only=True, allow_blank=True, trim_whitespace=False)
 
     class Meta:
         model = User
@@ -77,6 +78,7 @@ class UserManageSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'is_active',
+            'password',
             'role',
             'display_name',
             'phone_country_code',
@@ -101,9 +103,12 @@ class UserManageSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('userprofile', {})
+        password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if validated_data:
+        if password:
+            instance.set_password(password)
+        if validated_data or password:
             instance.save()
         profile, _ = UserProfile.objects.get_or_create(
             user=instance,

@@ -430,28 +430,30 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                             }),
                           ],
                         }),
-                        isCreating &&
-                          c.jsxs("label", {
-                            className: "block md:col-span-2",
-                            children: [
-                              c.jsx("span", {
-                                className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                                children: "Password",
-                              }),
-                              c.jsx("input", {
-                                type: "password",
-                                value: userForm.password || "",
-                                onChange: (event) =>
-                                  setUserForm((current) => ({
-                                    ...current,
-                                    password: event.target.value,
-                                  })),
-                                autoComplete: "new-password",
-                                className:
-                                  "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
-                              }),
-                            ],
-                          }),
+                        c.jsxs("label", {
+                          className: "block md:col-span-2",
+                          children: [
+                            c.jsx("span", {
+                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              children: isCreating ? "Password" : "Nuevo password",
+                            }),
+                            c.jsx("input", {
+                              type: "password",
+                              value: userForm.password || "",
+                              onChange: (event) =>
+                                setUserForm((current) => ({
+                                  ...current,
+                                  password: event.target.value,
+                                })),
+                              autoComplete: isCreating ? "new-password" : "off",
+                              placeholder: isCreating
+                                ? "Password del nuevo usuario"
+                                : "Deja vacio para mantener el actual",
+                              className:
+                                "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                            }),
+                          ],
+                        }),
                         c.jsxs("div", {
                           className: "md:col-span-2 flex flex-wrap items-center gap-2 pt-1",
                           children: [
