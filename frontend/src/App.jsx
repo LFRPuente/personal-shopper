@@ -6950,11 +6950,11 @@ function nh() {
     ),
     filteredMissionSummaryPurchaseTotal = V.useMemo(
       () =>
-        filteredMissionSummaryProducts.reduce((o, N) => {
-          const A = toNumber(N && N.real_price, Number.NaN);
-          return Number.isFinite(A) ? o + A : o;
-        }, 0),
-      [filteredMissionSummaryProducts],
+        filteredMissionSummaryProducts.reduce(
+          (o, N) => o + getProductPaymentAmount(N),
+          0,
+        ),
+      [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
