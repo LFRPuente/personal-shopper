@@ -24,6 +24,19 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
   const [userSaving, setUserSaving] = V.useState(false);
   const [userDeleting, setUserDeleting] = V.useState(false);
 
+  V.useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event) => {
+      const key = String(event.key || "");
+      if (key !== "Escape" && key !== "Esc" && event.keyCode !== 27) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose?.();
+    };
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [open, onClose]);
+
   const buildBlankUserForm = () => ({
     username: "",
     password: "",
@@ -148,15 +161,15 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
               className: "min-w-0",
               children: [
                 c.jsx("p", {
-                  className: "text-[11px] uppercase tracking-wide text-text-sub",
+                  className: "text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-300",
                   children: "EDICION DE USUARIOS",
                 }),
                 c.jsx("h3", {
-                  className: "text-base font-bold text-text-main truncate",
+                  className: "text-base font-bold text-slate-900 dark:text-slate-100 truncate",
                   children: "Usuarios del sistema",
                 }),
                 c.jsx("p", {
-                  className: "text-[11px] text-text-sub mt-0.5",
+                  className: "text-[11px] text-slate-500 dark:text-slate-300 mt-0.5",
                   children: "Solo visible para usuarios BOTH.",
                 }),
               ],
@@ -186,7 +199,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                   onChange: (event) => setUserSearch(event.target.value),
                   placeholder: "Buscar usuario, correo, telefono o rol...",
                   className:
-                    "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                    "w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-900/80 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
                 }),
                 c.jsxs("div", {
                   className: "flex flex-wrap items-center gap-2",
@@ -240,7 +253,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: `w-full text-left rounded-2xl border px-3 py-3 transition ${
                             isSelected
                               ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                              : "border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-900"
+                              : "border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/70 hover:bg-slate-50 dark:hover:bg-slate-900"
                           }`,
                           children: [
                             c.jsxs("div", {
@@ -250,24 +263,24 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                                   className: "min-w-0",
                                   children: [
                                     c.jsx("p", {
-                                      className: "text-sm font-bold text-text-main truncate",
+                                      className: "text-sm font-bold text-slate-900 dark:text-slate-100 truncate",
                                       children: getUserOptionLabel(user),
                                     }),
                                     c.jsx("p", {
-                                      className: "text-[11px] text-text-sub truncate",
+                                      className: "text-[11px] text-slate-500 dark:text-slate-300 truncate",
                                       children: `@${user.username || ""}`,
                                     }),
                                   ],
                                 }),
                                 c.jsx("span", {
                                   className:
-                                    "rounded-full px-2 py-1 text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+                                    "rounded-full px-2 py-1 text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-100",
                                   children: String(profile.role || "AV"),
                                 }),
                               ],
                             }),
                             c.jsxs("div", {
-                              className: "mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-sub",
+                              className: "mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-300",
                               children: [
                                 c.jsx("span", {
                                   children: getUserPhoneDisplay(user) || "Sin telefono",
@@ -282,7 +295,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
             }),
             c.jsxs("div", {
               className:
-                "rounded-2xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-gray-900/30 px-3 py-3 space-y-3",
+                "rounded-2xl border border-border-light dark:border-border-dark bg-white/85 dark:bg-slate-950/50 px-3 py-3 space-y-3",
               children: [
                 c.jsxs("div", {
                   className: "flex items-center justify-between gap-3",
@@ -290,11 +303,11 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                     c.jsxs("div", {
                       children: [
                         c.jsx("h4", {
-                          className: "text-sm font-bold text-text-main",
-                              children: isCreating ? "Crear usuario" : "Editar usuario",
+                          className: "text-sm font-bold text-slate-900 dark:text-slate-100",
+                          children: isCreating ? "Crear usuario" : "Editar usuario",
                         }),
                         c.jsx("p", {
-                          className: "text-[11px] text-text-sub mt-0.5",
+                          className: "text-[11px] text-slate-500 dark:text-slate-300 mt-0.5",
                           children: isCreating
                             ? "Completa los datos para crear un usuario."
                             : selectedUser
@@ -318,7 +331,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block md:col-span-2",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Username",
                             }),
                             c.jsx("input", {
@@ -335,7 +348,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block md:col-span-2",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Correo",
                             }),
                             c.jsx("input", {
@@ -352,7 +365,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Nombre visible",
                             }),
                             c.jsx("input", {
@@ -369,7 +382,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Rol",
                             }),
                             c.jsx("select", {
@@ -390,7 +403,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Codigo de pais",
                             }),
                             c.jsx("input", {
@@ -412,7 +425,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: "Telefono",
                             }),
                             c.jsx("input", {
@@ -434,7 +447,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           className: "block md:col-span-2",
                           children: [
                             c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                              className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
                               children: isCreating ? "Password" : "Nuevo password",
                             }),
                             c.jsx("input", {

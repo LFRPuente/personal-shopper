@@ -30,6 +30,13 @@ const ProfileSection = V.memo(function ProfileSection() {
   const profile = (J && J.profile) || {};
   const isBothRole = String(profile.role || "").toUpperCase() === "BOTH";
   const [userManagementOpen, setUserManagementOpen] = V.useState(false);
+  const [ownPassword, setOwnPassword] = V.useState("");
+  const [ownPasswordSaving, setOwnPasswordSaving] = V.useState(false);
+
+  V.useEffect(() => {
+    setOwnPassword("");
+    setOwnPasswordSaving(false);
+  }, [J && J.id]);
 
   const normalizeDigits = (value) => String(value || "").replace(/\D+/g, "");
   const profileSettingsChanged =
@@ -203,6 +210,67 @@ const ProfileSection = V.memo(function ProfileSection() {
                         placeholder: "5512345678",
                         className:
                           "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              c.jsxs("div", {
+                className:
+                  "rounded-2xl border border-border-light dark:border-border-dark bg-gray-50/80 dark:bg-slate-900/50 p-4 space-y-3",
+                children: [
+                  c.jsxs("div", {
+                    children: [
+                      c.jsx("h3", {
+                        className: "text-sm font-bold text-text-main",
+                        children: "Seguridad",
+                      }),
+                      c.jsx("p", {
+                        className: "text-xs text-text-sub mt-1",
+                        children: "Cambia tu propia contraseña sin afectar otros datos del perfil.",
+                      }),
+                    ],
+                  }),
+                  c.jsxs("div", {
+                    className: "grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]",
+                    children: [
+                      c.jsxs("label", {
+                        className: "block",
+                        children: [
+                          c.jsx("span", {
+                            className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
+                            children: "Nuevo password",
+                          }),
+                          c.jsx("input", {
+                            type: "password",
+                            value: ownPassword,
+                            onChange: (event) => setOwnPassword(event.target.value),
+                            placeholder: "Escribe tu nueva contraseña",
+                            autoComplete: "new-password",
+                            className:
+                              "w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                          }),
+                        ],
+                      }),
+                      c.jsx("button", {
+                        type: "button",
+                        onClick: async () => {
+                          const nextPassword = String(ownPassword || "").trim();
+                          if (!J || !nextPassword || ownPasswordSaving) return;
+                          setOwnPasswordSaving(true);
+                          try {
+                            const updated = await saveUserRecord(J.id, { password: nextPassword });
+                            if (updated) {
+                              setOwnPassword("");
+                            }
+                          } finally {
+                            setOwnPasswordSaving(false);
+                          }
+                        },
+                        disabled: !String(ownPassword || "").trim() || ownPasswordSaving,
+                        className:
+                          "self-end px-4 py-2 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
+                        children: ownPasswordSaving ? "Guardando..." : "Cambiar password",
                       }),
                     ],
                   }),

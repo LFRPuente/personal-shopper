@@ -589,26 +589,64 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 flex gap-1.5 items-stretch',
+              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 grid grid-cols-3 gap-2 items-stretch',
               children: [
                 c.jsxs('div', {
-                  className: 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
+                  className: isDesktopLayout
+                    ? 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right'
+                    : 'min-w-0 rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-right dark:border-sky-800 dark:bg-sky-950/35',
                   children: [
-                    c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Compra' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionPurchaseCost)] }),
-                    missionHasAnyDiscount && missionPurchaseCostWithDiscount !== missionPurchaseCost && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionPurchaseCostWithDiscount)] }),
+                    c.jsx('p', {
+                      className: isDesktopLayout
+                        ? 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70'
+                        : 'text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300',
+                      children: 'Compra',
+                    }),
+                    c.jsxs('span', {
+                      className: isDesktopLayout
+                        ? 'mt-1 block text-[9px] font-semibold text-white leading-none'
+                        : 'mt-1 block text-[10px] font-semibold text-slate-900 leading-none dark:text-white',
+                      children: ['$', money(missionPurchaseCost)],
+                    }),
+                    missionHasAnyDiscount &&
+                      missionPurchaseCostWithDiscount !== missionPurchaseCost &&
+                      c.jsxs('span', {
+                        className: isDesktopLayout
+                          ? 'mt-0.5 block text-[9px] font-semibold text-white leading-none'
+                          : 'mt-0.5 block text-[9px] font-semibold text-slate-700 leading-none dark:text-slate-200',
+                        children: ['C/desc $', money(missionPurchaseCostWithDiscount)],
+                      }),
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
+                  className: isDesktopLayout
+                    ? 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right'
+                    : 'min-w-0 rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-right dark:border-emerald-800 dark:bg-emerald-950/35',
                   children: [
-                    c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Venta' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionTotalWithTaxes)] }),
-                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionTotalWithDiscount)] }),
+                    c.jsx('p', {
+                      className: isDesktopLayout
+                        ? 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70'
+                        : 'text-[8px] font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300',
+                      children: 'Venta',
+                    }),
+                    c.jsxs('span', {
+                      className: isDesktopLayout
+                        ? 'mt-1 block text-[9px] font-semibold text-white leading-none'
+                        : 'mt-1 block text-[10px] font-semibold text-slate-900 leading-none dark:text-white',
+                      children: ['$', money(missionTotalWithTaxes)],
+                    }),
+                    missionHasAnyDiscount &&
+                      missionTotalWithDiscount !== missionTotalWithTaxes &&
+                      c.jsxs('span', {
+                        className: isDesktopLayout
+                          ? 'mt-0.5 block text-[9px] font-semibold text-white leading-none'
+                          : 'mt-0.5 block text-[9px] font-semibold text-slate-700 leading-none dark:text-slate-200',
+                        children: ['C/desc $', money(missionTotalWithDiscount)],
+                      }),
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'flex-1 min-w-0 rounded-xl border border-amber-200 bg-amber-50/85 px-2 py-2 dark:border-amber-800 dark:bg-amber-950/20',
+                  className: 'min-w-0 rounded-xl border border-amber-200 bg-amber-50 px-2 py-2 dark:border-amber-800 dark:bg-amber-950/20',
                   children: [
                     c.jsx('label', { className: 'block text-[8px] font-black uppercase tracking-[0.1em] text-amber-700 dark:text-amber-300 mb-1', children: 'Descuento (%)' }),
                     c.jsx('input', {
