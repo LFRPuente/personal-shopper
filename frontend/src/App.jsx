@@ -8736,6 +8736,7 @@ function nh() {
               Number(user.id) === Number(updated.id) ? updated : user,
             ),
           );
+          await refreshUsers();
           if (J && Number(J.id) === Number(updated.id)) {
             b(updated);
           }
@@ -8762,6 +8763,7 @@ function nh() {
             );
             return next;
           });
+          await refreshUsers();
         }
         return created;
       } catch (error) {
@@ -8777,6 +8779,7 @@ function nh() {
           method: "DELETE",
         });
         setUsers((values) => (values || []).filter((user) => Number(user.id) !== Number(targetId)));
+        await refreshUsers();
         return true;
       } catch (error) {
         console.error("Failed deleting user record", error);

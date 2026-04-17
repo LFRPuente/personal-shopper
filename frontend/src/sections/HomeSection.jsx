@@ -589,10 +589,10 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(88px,0.9fr)] gap-1.5 items-stretch',
+              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 flex gap-1.5 items-stretch',
               children: [
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
+                  className: 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
                   children: [
                     c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Compra' }),
                     c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionPurchaseCost)] }),
@@ -600,15 +600,15 @@ const HomeSection = V.memo(function HomeSection() {
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
+                  className: 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
                   children: [
                     c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Venta' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionTotalWithDiscount)] }),
-                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionTotalWithTaxes)] }),
+                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionTotalWithTaxes)] }),
+                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionTotalWithDiscount)] }),
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-amber-200 bg-amber-50/85 px-2 py-2 dark:border-amber-800 dark:bg-amber-950/20',
+                  className: 'flex-1 min-w-0 rounded-xl border border-amber-200 bg-amber-50/85 px-2 py-2 dark:border-amber-800 dark:bg-amber-950/20',
                   children: [
                     c.jsx('label', { className: 'block text-[8px] font-black uppercase tracking-[0.1em] text-amber-700 dark:text-amber-300 mb-1', children: 'Descuento (%)' }),
                     c.jsx('input', {
