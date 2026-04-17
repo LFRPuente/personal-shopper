@@ -6020,6 +6020,14 @@ function nh() {
       const Se = toNumber(o && o.real_price, Number.NaN);
       return Number.isFinite(Se) ? Se : 0;
     },
+    getProductStoreAmount = (o, N = null) => {
+      const A = getProductEffectiveDiscountPercentage(o, N),
+        vl = Math.max(0, 1 - toNumber(A, 0) / 100),
+        El = toNumber(o && o.real_price, Number.NaN);
+      if (Number.isFinite(El)) return El * vl;
+      const Se = toNumber(o && o.charged_price, Number.NaN);
+      return Number.isFinite(Se) ? Se : 0;
+    },
     getProductQuickFinalPrice = (o) => {
       const N = getProductPaymentAmount(o);
       return Number.isFinite(N) ? N : Number.NaN;
@@ -6950,11 +6958,11 @@ function nh() {
     ),
     filteredMissionSummaryPurchaseTotal = V.useMemo(
       () =>
-        filteredMissionSummaryProducts.reduce((o, N) => {
-          const A = toNumber(N && N.real_price, Number.NaN);
-          return Number.isFinite(A) ? o + A : o;
-        }, 0),
-      [filteredMissionSummaryProducts],
+        filteredMissionSummaryProducts.reduce(
+          (o, N) => o + getProductStoreAmount(N),
+          0,
+        ),
+      [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
