@@ -8,7 +8,6 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
     createUserRecord,
     saveUserRecord,
     deleteUserRecord,
-    refreshUsers,
     onClose,
     overlayBackdropClass,
     overlaySheetClass,
@@ -124,11 +123,6 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
     setUserSearch("");
     setUserForm(buildUserForm(preferred));
   }, [open, sortedUsers, currentUserId, creatingUser]);
-
-  V.useEffect(() => {
-    if (!open) return;
-    refreshUsers && refreshUsers();
-  }, [open, refreshUsers]);
 
   V.useEffect(() => {
     if (!open) return;

@@ -557,7 +557,12 @@ const ProfileSection = V.memo(function ProfileSection() {
           isBothRole &&
             c.jsx("button", {
               type: "button",
-              onClick: () => setUserManagementOpen(true),
+              onClick: async () => {
+                if (typeof refreshUsers === "function") {
+                  await refreshUsers();
+                }
+                setUserManagementOpen(true);
+              },
               className:
                 "w-full px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 text-sm font-bold transition",
               children: "EDICION DE USUARIOS",
@@ -572,7 +577,6 @@ const ProfileSection = V.memo(function ProfileSection() {
           createUserRecord,
           saveUserRecord,
           deleteUserRecord,
-          refreshUsers,
           onClose: () => setUserManagementOpen(false),
         }),
     ],
