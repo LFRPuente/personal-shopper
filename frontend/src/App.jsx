@@ -6948,6 +6948,14 @@ function nh() {
         ),
       [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
+    filteredMissionSummaryPurchaseTotal = V.useMemo(
+      () =>
+        filteredMissionSummaryProducts.reduce((o, N) => {
+          const A = toNumber(N && N.real_price, Number.NaN);
+          return Number.isFinite(A) ? o + A : o;
+        }, 0),
+      [filteredMissionSummaryProducts],
+    ),
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
       activeMissionProducts.forEach((N) => {
@@ -9161,6 +9169,7 @@ function nh() {
           missionSummaryStatusFilter,
           setMissionSummaryStatusFilter,
           filteredMissionSummaryTotal,
+          filteredMissionSummaryPurchaseTotal,
           filteredMissionSummaryProducts,
           formatAmount,
           setFullscreenImage,

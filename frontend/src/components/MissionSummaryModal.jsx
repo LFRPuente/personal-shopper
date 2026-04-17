@@ -36,7 +36,7 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
           className: "flex items-center justify-between mb-3",
           children: [
             c.jsx("h3", {
-              className: "text-base font-bold",
+              className: "text-base font-bold text-slate-900 dark:text-slate-100",
               children: "Productos de la Tienda",
             }),
             c.jsx("button", {
@@ -51,13 +51,13 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
           ],
         }),
         c.jsxs("div", {
-          className: "mb-3 grid grid-cols-[1fr_auto] gap-2 items-center",
+          className: "mb-3 grid grid-cols-[1fr_auto_auto] gap-2 items-center",
           children: [
             c.jsx("select", {
               value: missionSummaryStatusFilter,
               onChange: (event) => setMissionSummaryStatusFilter(event.target.value),
               className:
-                "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary",
+                "w-full px-3 py-2 text-sm border rounded-xl bg-white text-slate-900 border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary",
               children: [
                 c.jsx("option", { value: "ALL", children: "Todos" }),
                 c.jsx("option", { value: "ANNOTATED", children: "Anotado" }),
@@ -67,14 +67,28 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
             }),
             c.jsxs("div", {
               className:
-                "rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-right",
+                "rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-right dark:border-sky-800 dark:bg-sky-950/30",
               children: [
                 c.jsx("p", {
-                  className: "text-[10px] font-semibold text-emerald-700",
-                  children: "Total filtrado",
+                  className: "text-[10px] font-semibold text-sky-700 dark:text-sky-300",
+                  children: "COMPRA USD",
                 }),
                 c.jsxs("p", {
-                  className: "text-sm font-bold text-emerald-900",
+                  className: "text-sm font-bold text-slate-900 dark:text-slate-100",
+                  children: ["$", formatAmount(filteredMissionSummaryPurchaseTotal)],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className:
+                "rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-right dark:border-emerald-800 dark:bg-emerald-950/30",
+              children: [
+                c.jsx("p", {
+                  className: "text-[10px] font-semibold text-emerald-700 dark:text-emerald-300",
+                  children: "VENTA MXN",
+                }),
+                c.jsxs("p", {
+                  className: "text-sm font-bold text-emerald-900 dark:text-emerald-100",
                   children: ["$", formatAmount(filteredMissionSummaryTotal)],
                 }),
               ],

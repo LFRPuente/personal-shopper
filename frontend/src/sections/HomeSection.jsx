@@ -600,7 +600,7 @@ const HomeSection = V.memo(function HomeSection() {
                       className: isDesktopLayout
                         ? 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70'
                         : 'text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300',
-                      children: 'Compra',
+                      children: 'COMPRA USD',
                     }),
                     c.jsxs('span', {
                       className: isDesktopLayout
@@ -627,7 +627,7 @@ const HomeSection = V.memo(function HomeSection() {
                       className: isDesktopLayout
                         ? 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70'
                         : 'text-[8px] font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300',
-                      children: 'Venta',
+                      children: 'VENTA MXN',
                     }),
                     c.jsxs('span', {
                       className: isDesktopLayout
