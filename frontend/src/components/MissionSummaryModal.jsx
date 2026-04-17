@@ -6,6 +6,7 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
   missionSummaryStatusFilter,
   setMissionSummaryStatusFilter,
   filteredMissionSummaryTotal,
+  filteredMissionSummaryPurchaseTotal,
   filteredMissionSummaryProducts = [],
   formatAmount,
   setFullscreenImage,
