@@ -1,4 +1,4 @@
-import { V, c, getUserOptionLabel, getUserPhoneDisplay } from "../utils.js";
+import { V, c, getUserPhoneDisplay } from "../utils.js";
 
 const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
   const {
@@ -53,15 +53,15 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
               className: "min-w-0",
               children: [
                 c.jsx("p", {
-                  className: "text-[11px] uppercase tracking-wide text-text-sub",
+                  className: "text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-300",
                   children: "Mensaje para WAHA",
                 }),
                 c.jsx("h3", {
-                  className: "text-base font-bold text-text-main truncate",
+                  className: "text-base font-bold text-slate-900 dark:text-slate-100 truncate",
                   children: (product && product.name) || "Producto",
                 }),
                 c.jsx("p", {
-                  className: "text-[11px] text-text-sub mt-0.5",
+                  className: "text-[11px] text-slate-500 dark:text-slate-300 mt-0.5",
                   children: [
                     "Cliente: ",
                     (client && client.name) || "Cliente",
@@ -86,10 +86,10 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
           children: [
             c.jsxs("div", {
               className:
-                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/90 dark:bg-slate-950/30 px-3 py-3 space-y-2",
+                "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/90 dark:bg-slate-950/40 px-3 py-3 space-y-2",
               children: [
                   c.jsx("p", {
-                    className: "text-sm font-semibold text-text-main",
+                    className: "text-sm font-semibold text-slate-900 dark:text-slate-100",
                     children: "Mensaje",
                   }),
                   c.jsx("textarea", {
@@ -98,30 +98,30 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
                   onChange: (event) => setMessage(event.target.value),
                   placeholder: "Tienes un producto para Revision del cliente ...",
                   className:
-                    "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40 resize-none",
+                    "w-full px-3 py-2 text-sm border rounded-xl bg-white text-slate-900 border-slate-300 placeholder:text-slate-400 dark:bg-slate-950/70 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-primary/40 resize-none",
                 }),
               ],
             }),
             c.jsxs("div", {
               className:
-                "rounded-2xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-950/25 px-3 py-3 space-y-3",
+                "rounded-2xl border border-border-light dark:border-border-dark bg-white/85 dark:bg-slate-950/30 px-3 py-3 space-y-3",
               children: [
                 c.jsxs("div", {
                   className: "flex items-center justify-between gap-3",
                   children: [
                     c.jsx("p", {
-                      className: "text-sm font-semibold text-text-main",
+                      className: "text-sm font-semibold text-slate-900 dark:text-slate-100",
                       children: "Usuarios destinatarios",
                     }),
                     c.jsx("span", {
                       className:
-                        "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary",
+                        "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary dark:text-primary/90",
                       children: `${selectedSet.size} seleccionado(s)`,
                     }),
                   ],
                 }),
                 c.jsx("p", {
-                  className: "text-[11px] text-text-sub",
+                  className: "text-[11px] text-slate-500 dark:text-slate-300",
                   children:
                     "El PS que creo el shopping queda seleccionado por defecto. Puedes agregar mas usuarios con telefono configurado.",
                 }),
@@ -133,43 +133,43 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
                         const profile = user.profile || {};
                         const hasPhone = !!String(profile.phone || "").trim();
                         const checked = selectedSet.has(Number(user.id));
+                        const userLabel =
+                          String(profile.display_name || "").trim() ||
+                          String(user.username || "").trim() ||
+                          `Usuario ${user.id}`;
                         return c.jsxs(
                           "button",
                           {
                             type: "button",
                             onClick: () => hasPhone && toggleRecipient(user.id),
                             disabled: !hasPhone,
-                            className: `text-left rounded-2xl border px-3 py-3 transition ${
+                            className: `text-left rounded-2xl border px-3 py-2.5 transition ${
                               checked
                                 ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                                : "border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-900"
+                                : "border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/65 hover:bg-slate-50 dark:hover:bg-slate-900"
                             } ${!hasPhone ? "opacity-50 cursor-not-allowed" : ""}`,
                             children: [
                               c.jsxs("div", {
-                                className: "flex items-start justify-between gap-3",
+                                className: "flex items-center justify-between gap-3",
                                 children: [
                                   c.jsxs("div", {
                                     className: "min-w-0",
                                     children: [
                                       c.jsx("p", {
-                                        className: "text-sm font-bold text-text-main truncate",
-                                        children: getUserOptionLabel(user),
-                                      }),
-                                      c.jsx("p", {
-                                        className: "text-[11px] text-text-sub truncate",
-                                        children: `@${user.username || ""}`,
+                                        className: "text-sm font-bold text-slate-900 dark:text-slate-100 truncate",
+                                        children: userLabel,
                                       }),
                                     ],
                                   }),
                                   c.jsx("span", {
                                     className:
-                                      "material-symbols-outlined text-[18px] text-primary",
+                                      "material-symbols-outlined text-[18px] text-primary dark:text-primary/90",
                                     children: checked ? "check_circle" : "radio_button_unchecked",
                                   }),
                                 ],
                               }),
                               c.jsx("p", {
-                                className: "mt-1 text-[11px] text-text-sub truncate",
+                                className: "mt-1 text-[11px] text-slate-500 dark:text-slate-300 truncate",
                                 children: getUserPhoneDisplay(user) || "Sin telefono",
                               }),
                             ],
@@ -194,7 +194,7 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
               type: "button",
               onClick: onClose,
               className:
-                "px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-sm font-semibold",
+                "px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 text-sm font-semibold",
               children: "Cancelar",
             }),
             c.jsx("button", {
