@@ -100,6 +100,10 @@ const EditClientModal = V.memo(function EditClientModal({
                         }),
                       ],
                     }),
+                    c.jsx("p", {
+                      className: "mt-1 text-[11px] text-gray-500",
+                      children: "Codigo de pais. Para USA usa +1; el numero se guarda sin espacios ni guiones.",
+                    }),
                   ],
                 }),
               ],

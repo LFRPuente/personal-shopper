@@ -589,35 +589,35 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 grid grid-cols-1 gap-2',
+              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(88px,0.9fr)] gap-1.5 items-stretch',
               children: [
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-right',
+                  className: 'rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
                   children: [
-                    c.jsx('p', { className: 'text-[9px] font-black uppercase tracking-[0.14em] text-white/70', children: 'Compra' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionPurchaseCost)] }),
-                    missionHasAnyDiscount && missionPurchaseCostWithDiscount !== missionPurchaseCost && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['C/desc $', money(missionPurchaseCostWithDiscount)] }),
+                    c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Compra' }),
+                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionPurchaseCost)] }),
+                    missionHasAnyDiscount && missionPurchaseCostWithDiscount !== missionPurchaseCost && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionPurchaseCostWithDiscount)] }),
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-right',
+                  className: 'rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right',
                   children: [
-                    c.jsx('p', { className: 'text-[9px] font-black uppercase tracking-[0.14em] text-white/70', children: 'Venta' }),
-                    c.jsxs('span', { className: 'mt-1 block text-[10px] font-semibold text-white', children: ['$', money(missionTotalWithDiscount)] }),
-                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[10px] font-semibold text-white', children: ['Base $', money(missionTotalWithTaxes)] }),
+                    c.jsx('p', { className: 'text-[8px] font-black uppercase tracking-[0.12em] text-white/70', children: 'Venta' }),
+                    c.jsxs('span', { className: 'mt-1 block text-[9px] font-semibold text-white leading-none', children: ['$', money(missionTotalWithDiscount)] }),
+                    missionHasAnyDiscount && missionTotalWithDiscount !== missionTotalWithTaxes && c.jsxs('span', { className: 'mt-0.5 block text-[9px] font-semibold text-white leading-none', children: ['C/desc $', money(missionTotalWithTaxes)] }),
                   ],
                 }),
                 c.jsxs('div', {
-                  className: 'rounded-xl border border-amber-200 bg-amber-50/85 px-2.5 py-2 dark:border-amber-800 dark:bg-amber-950/20',
+                  className: 'rounded-xl border border-amber-200 bg-amber-50/85 px-2 py-2 dark:border-amber-800 dark:bg-amber-950/20',
                   children: [
-                    c.jsx('label', { className: 'block text-[9px] font-black uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300 mb-1', children: 'Descuento (%)' }),
+                    c.jsx('label', { className: 'block text-[8px] font-black uppercase tracking-[0.1em] text-amber-700 dark:text-amber-300 mb-1', children: 'Descuento (%)' }),
                     c.jsx('input', {
                       type: 'number',
                       step: '0.01',
                       min: '0',
                       value: calcDiscount,
                       onChange: (event) => applyCalcDiscountChange(event.target.value),
-                      className: 'w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-[12px] font-bold text-amber-800 caret-amber-800 outline-none focus:ring-2 focus:ring-amber-300 dark:border-amber-800 dark:bg-slate-950 dark:text-amber-100 dark:caret-amber-100',
+                      className: 'w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-[11px] font-bold text-amber-800 caret-amber-800 outline-none focus:ring-2 focus:ring-amber-300 dark:border-amber-800 dark:bg-slate-950 dark:text-amber-100 dark:caret-amber-100',
                     }),
                   ],
                 }),

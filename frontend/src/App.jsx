@@ -8,7 +8,7 @@ import {
   toFormUserId, toFormShoppingId, getUserOptionLabel,
   normalizeClientCountryCode, normalizeClientPhoneDigits,
   sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
-  normalizeClientShippingAddresses, getClientPhoneDisplay,
+  normalizeClientShippingAddresses, getClientPhoneDisplay, getClientWahaChatId,
   normalizeShipmentStatusValue, getShipmentStatusLabel, getShipmentTrackingUrl,
   SHIPMENT_CARRIER_OPTIONS, canEditShipmentBox,
   getPublicShareInfoFromPath, getPublicShareFocusShipmentIdFromSearch,
@@ -3356,20 +3356,15 @@ function nh() {
       return Math.abs(Se) > 0.009 ? Se : 0;
     },
     getWahaChatPreview = (o) => {
-      const N = normalizeClientPhoneDigits(o && o.phone);
-      if (!N) return "";
-      const A = String((J && J.profile && J.profile.waha_phone_prefix) || "521").replace(/\D+/g, "") || "521",
-        vl = String((J && J.profile && J.profile.waha_chat_id_suffix) || "@c.us").trim(),
-        El = N.length > 10 && N.startsWith(A) ? N : `${A}${N}`;
-      return `${El}${vl}`;
+      return getClientWahaChatId(o, J && J.profile ? J.profile : null);
     },
     sendBreakdownWhatsApp = async (o, N, A = "") => {
       if (!o) return !1;
       const vl = J && J.profile ? J.profile : {},
         El = String((vl && vl.waha_api_url) || "").trim(),
         Se = String((vl && vl.waha_session) || "").trim(),
-        ea = normalizeClientPhoneDigits(o && o.phone),
-        gl = getWahaChatPreview(o);
+        ea = getWahaChatPreview(o),
+        gl = ea;
       if (!El || !Se) {
         notifyInfo("Configura WAHA API URL y session en Perfil antes de enviar.");
         return !1;
@@ -3390,7 +3385,7 @@ function nh() {
         await I("/whatsapp/send-text/", {
           method: "POST",
           body: JSON.stringify({
-            phone: ea,
+            chat_id: ea,
             text: N,
           }),
         });
@@ -8662,6 +8657,10 @@ function nh() {
     profileSettingsSaving,
     saveProfileSettings,
     handleLogout: iu,
+    clients: Kl,
+    getClientPhoneDisplay,
+    onEditClient: openEditClientModal,
+    onDeleteClient: Ea,
     // ShipmentsSection dependencies
     shipments,
     shipmentSearch,
@@ -8761,8 +8760,6 @@ function nh() {
     filteredEditingRequestClients,
     getClientNameById,
     getRelativeTime,
-    // ClientsSection dependencies
-    clients: Kl,
     clientSearch: j,
     selectedClientId: W ? W.id : null,
     currentShopping: w,
@@ -8773,7 +8770,6 @@ function nh() {
     openClientPaymentModal,
     deletePayment,
     onOpenClientCreate: openCreateClientModal,
-    onEditClient: openEditClientModal,
     onToggleClientStatus: Jt,
     onOpenClientGallery: openClientSectionGallery,
   }), [
@@ -8794,7 +8790,7 @@ function nh() {
     saveRequestModify, cancelRequestModify, pickEditingRequestImage,
     clearEditingRequestImage, filteredEditingRequestClients,
     getClientNameById, getRelativeTime,
-    Ta, openMissionClientView, openClientSectionGallery, deletePayment, openCreateClientModal, openEditClientModal, Jt,
+    Ta, openMissionClientView, openClientSectionGallery, deletePayment, openCreateClientModal, openEditClientModal, Jt, Ea,
     copyClientMissionShareLink, copyMissionBreakdown, openPaymentModal, copyAnnotatedMissionBreakdown,
     getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
     openClientShoppingGallery, openClientPaymentModal,

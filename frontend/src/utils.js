@@ -247,6 +247,18 @@ export const getClientPhoneDisplay = (o) => {
   if (!N) return "";
   return `${normalizeClientCountryCode(o && o.phone_country_code)} ${N}`;
 };
+export const getClientWahaChatId = (client, profile = null) => {
+  const phoneDigits = normalizeClientPhoneDigits(client && client.phone);
+  if (!phoneDigits) return "";
+  const clientCountryCode = normalizeClientCountryCode(client && client.phone_country_code).replace(/\D+/g, "");
+  const profilePrefix = String((profile && profile.waha_phone_prefix) || "521").replace(/\D+/g, "") || "521";
+  const countryCode = clientCountryCode || profilePrefix;
+  const fullPhone = phoneDigits.length > 10 && clientCountryCode && phoneDigits.startsWith(clientCountryCode)
+    ? phoneDigits
+    : `${countryCode}${phoneDigits}`;
+  const suffix = String((profile && profile.waha_chat_id_suffix) || "@c.us").trim() || "@c.us";
+  return `${fullPhone}${suffix}`;
+};
 export const normalizeShipmentStatusValue = (o) => {
   const N = String(o || "").trim().toUpperCase();
   return N === "SHIPPED"

@@ -1,4 +1,4 @@
-import { V, c } from '../utils.js';
+import { V, c, getClientPhoneDisplay } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 
 const DEFAULT_BREAKDOWN_TEMPLATE =
@@ -19,13 +19,40 @@ const ProfileSection = V.memo(function ProfileSection() {
     profileSettingsSaving,
     saveProfileSettings,
     handleLogout,
-    notifySuccess,
-    notifyError,
+    clients,
+    onEditClient,
+    onDeleteClient,
   } = useApp();
 
   const J = user;
   const profile = (J && J.profile) || {};
+  const isBothRole = String(profile.role || '').toUpperCase() === 'BOTH';
+  const [profileTab, setProfileTab] = V.useState('general');
+  const [clientSearch, setClientSearch] = V.useState('');
   const normalizeDigits = (value) => String(value || '').replace(/\D+/g, '');
+  const filteredProfileClients = V.useMemo(() => {
+    const search = String(clientSearch || '').trim().toLowerCase();
+    const source = Array.isArray(clients) ? clients : [];
+    if (!search) return [...source].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'es', { sensitivity: 'base' }));
+    return source
+      .filter((client) => {
+        const blob = [
+          client?.name,
+          client?.tags,
+          client?.phone,
+          client?.phone_country_code,
+          client?.email,
+          client?.shipping_address,
+          ...(Array.isArray(client?.shipping_addresses) ? client.shipping_addresses : []),
+          getClientPhoneDisplay(client),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return blob.includes(search);
+      })
+      .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'es', { sensitivity: 'base' }));
+  }, [clients, clientSearch]);
   const profileSettingsChanged =
     String((profileSettingsForm.display_name || '').trim()) !==
       String((profile.display_name || '').trim()) ||
@@ -104,6 +131,26 @@ const ProfileSection = V.memo(function ProfileSection() {
               }),
             ],
           }),
+          isBothRole &&
+            c.jsxs("div", {
+              className: "grid grid-cols-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
+              children: [
+                c.jsx("button", {
+                  type: "button",
+                  onClick: () => setProfileTab('general'),
+                  className:
+                    `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab !== 'clients' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                  children: "Configuracion",
+                }),
+                c.jsx("button", {
+                  type: "button",
+                  onClick: () => setProfileTab('clients'),
+                  className:
+                    `rounded-xl px-3 py-2 text-xs font-bold transition ${profileTab === 'clients' ? "bg-primary text-white shadow-sm" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`,
+                  children: "Clientes",
+                }),
+              ],
+            }),
           c.jsxs("div", {
             className: "space-y-3",
             children: [
@@ -469,12 +516,106 @@ const ProfileSection = V.memo(function ProfileSection() {
                   : "Guardar WAHA",
               }),
             ],
+              }),
+            ],
           }),
-        ],
-      }),
-      c.jsxs("button", {
-        onClick: handleLogout,
-        className:
+          isBothRole && profileTab === 'clients' &&
+            c.jsxs("div", {
+              className: "rounded-2xl border border-border-light dark:border-border-dark px-4 py-4 space-y-3",
+              children: [
+                c.jsxs("div", {
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-sm font-bold text-text-main",
+                      children: "Gestion de clientes",
+                    }),
+                    c.jsx("p", {
+                      className: "mt-1 text-xs text-text-sub",
+                      children: "Solo visible para usuarios BOTH. Aqui puedes editar o borrar clientes.",
+                    }),
+                  ],
+                }),
+                c.jsx("input", {
+                  type: "text",
+                  value: clientSearch,
+                  onChange: (event) => setClientSearch(event.target.value),
+                  placeholder: "Buscar cliente, telefono, email o tags...",
+                  className:
+                    "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                }),
+                filteredProfileClients.length === 0
+                  ? c.jsx("p", {
+                      className: "text-xs text-text-sub",
+                      children: "No hay clientes que coincidan con el filtro.",
+                    })
+                  : c.jsx("div", {
+                      className: "space-y-2 max-h-[360px] overflow-y-auto pr-1",
+                      children: filteredProfileClients.map((client) =>
+                        c.jsxs("div", {
+                          className: "rounded-2xl border border-border-light dark:border-border-dark bg-white/70 dark:bg-gray-900/40 px-3 py-3 space-y-2",
+                          children: [
+                            c.jsxs("div", {
+                              className: "flex items-start justify-between gap-3",
+                              children: [
+                                c.jsxs("div", {
+                                  className: "min-w-0",
+                                  children: [
+                                    c.jsx("p", {
+                                      className: "font-bold text-sm text-text-main truncate",
+                                      children: client.name || "Cliente",
+                                    }),
+                                    !!getClientPhoneDisplay(client) &&
+                                      c.jsx("p", {
+                                        className: "text-[11px] text-text-sub truncate",
+                                        children: getClientPhoneDisplay(client),
+                                      }),
+                                    client.email &&
+                                      c.jsx("p", {
+                                        className: "text-[11px] text-text-sub truncate",
+                                        children: client.email,
+                                      }),
+                                  ],
+                                }),
+                                c.jsx("span", {
+                                  className:
+                                    "rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300",
+                                  children: String(client.status || "Pending"),
+                                }),
+                              ],
+                            }),
+                            client.tags &&
+                              c.jsx("p", {
+                                className: "text-[11px] text-text-sub",
+                                children: client.tags,
+                              }),
+                            c.jsxs("div", {
+                              className: "flex flex-wrap items-center gap-2",
+                              children: [
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: () => typeof onEditClient === "function" && onEditClient(client),
+                                  className:
+                                    "px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition",
+                                  children: "Editar",
+                                }),
+                                c.jsx("button", {
+                                  type: "button",
+                                  onClick: () => typeof onDeleteClient === "function" && onDeleteClient(client.id),
+                                  className:
+                                    "px-3 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition",
+                                  children: "Borrar",
+                                }),
+                              ],
+                            }),
+                          ],
+                        }, client.id),
+                      ),
+                    }),
+              ],
+            }),
+          c.jsxs("button", {
+            onClick: handleLogout,
+            className:
           "w-full py-4 text-red-600 bg-red-50 hover:bg-red-100 font-bold rounded-xl transition flex justify-center items-center gap-2",
         children: [
           c.jsx("span", {

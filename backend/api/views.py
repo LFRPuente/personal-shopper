@@ -1759,21 +1759,12 @@ class ClientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
         base_queryset = Client.objects.prefetch_related(
             'products',
             'receipts',
             'payments',
             'payments__products',
         ).order_by('created_at', 'id')
-        # Si la persona autenticada tiene perfil de AV, solo ve a sus clientes
-        if hasattr(user, 'userprofile'):
-            if user.userprofile.role == 'AV':
-                return base_queryset.filter(added_by=user)
-            elif user.userprofile.role in ['PS', 'BOTH']:
-                # Si es PS (Shopper) o Ambos, ve todos para poder comprar
-                return base_queryset.all()
-        # Fallback en caso de que no tenga profile
         return base_queryset.all()
 
     def perform_create(self, serializer):
