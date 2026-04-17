@@ -103,13 +103,16 @@ class UserManageSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('userprofile', {})
-        password = validated_data.pop('password', None)
+        password = str(validated_data.pop('password', '') or '').strip()
+        update_fields = []
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+            update_fields.append(attr)
         if password:
             instance.set_password(password)
-        if validated_data or password:
-            instance.save()
+            update_fields.append('password')
+        if update_fields:
+            instance.save(update_fields=update_fields)
         profile, _ = UserProfile.objects.get_or_create(
             user=instance,
             defaults={'role': 'AV'},
