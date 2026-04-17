@@ -22,6 +22,21 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
   const [userSaving, setUserSaving] = V.useState(false);
   const [userDeleting, setUserDeleting] = V.useState(false);
 
+  const buildUserForm = (user) => {
+    const profile = user?.profile || {};
+    return {
+      username: String(user?.username || ""),
+      email: String(user?.email || ""),
+      first_name: String(user?.first_name || ""),
+      last_name: String(user?.last_name || ""),
+      is_active: !!user?.is_active,
+      role: String(profile.role || "AV"),
+      display_name: String(profile.display_name || ""),
+      phone_country_code: String(profile.phone_country_code || "+52"),
+      phone: String(profile.phone || ""),
+    };
+  };
+
   const sortedUsers = V.useMemo(
     () =>
       [...(Array.isArray(users) ? users : [])].sort((a, b) =>
@@ -67,24 +82,27 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
       sortedUsers.find((user) => Number(user?.id) === Number(currentUserId)) ||
       sortedUsers[0] ||
       null;
-    if (!preferred) return;
-    if (Number(selectedUserId) !== Number(preferred.id)) {
-      setSelectedUserId(preferred.id);
+    if (!preferred) {
+      setSelectedUserId(null);
+      setUserForm(null);
+      return;
     }
-    const profile = preferred.profile || {};
-    setUserForm({
-      username: String(preferred.username || ""),
-      email: String(preferred.email || ""),
-      first_name: String(preferred.first_name || ""),
-      last_name: String(preferred.last_name || ""),
-      is_active: !!preferred.is_active,
-      role: String(profile.role || "AV"),
-      display_name: String(profile.display_name || ""),
-      phone_country_code: String(profile.phone_country_code || "+52"),
-      phone: String(profile.phone || ""),
-    });
+    setSelectedUserId((value) =>
+      value && sortedUsers.some((user) => Number(user.id) === Number(value))
+        ? value
+        : preferred.id,
+    );
     setUserSearch("");
-  }, [open, sortedUsers, currentUserId, selectedUserId]);
+    setUserForm(buildUserForm(preferred));
+  }, [open, sortedUsers, currentUserId]);
+
+  V.useEffect(() => {
+    if (!open) return;
+    const selected =
+      sortedUsers.find((user) => Number(user?.id) === Number(selectedUserId)) ||
+      null;
+    setUserForm(selected ? buildUserForm(selected) : null);
+  }, [open, selectedUserId, sortedUsers]);
 
   if (!open) return null;
 
@@ -96,9 +114,9 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
     onClick: onClose,
     children: c.jsxs("div", {
       className: sheetClass(
-      "w-full sm:max-w-5xl max-h-[92vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
-      "users",
-    ),
+        "w-full sm:max-w-5xl max-h-[92vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
+        "users",
+      ),
       onClick: (event) => event.stopPropagation(),
       children: [
         c.jsxs("div", {
@@ -110,7 +128,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
               children: [
                 c.jsx("p", {
                   className: "text-[11px] uppercase tracking-wide text-text-sub",
-                  children: "Edicion de Usuario",
+                  children: "EDICION DE USUARIOS",
                 }),
                 c.jsx("h3", {
                   className: "text-base font-bold text-text-main truncate",
@@ -161,20 +179,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                         const isSelected = Number(selectedUserId) === Number(user.id);
                         return c.jsxs("button", {
                           type: "button",
-                          onClick: () => {
-                            setSelectedUserId(user.id);
-                            setUserForm({
-                              username: String(user.username || ""),
-                              email: String(user.email || ""),
-                              first_name: String(user.first_name || ""),
-                              last_name: String(user.last_name || ""),
-                              is_active: !!user.is_active,
-                              role: String(profile.role || "AV"),
-                              display_name: String(profile.display_name || ""),
-                              phone_country_code: String(profile.phone_country_code || "+52"),
-                              phone: String(profile.phone || ""),
-                            });
-                          },
+                          onClick: () => setSelectedUserId(user.id),
                           className: `w-full text-left rounded-2xl border px-3 py-3 transition ${
                             isSelected
                               ? "border-primary bg-primary/10 ring-2 ring-primary/20"
@@ -198,12 +203,9 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                                   ],
                                 }),
                                 c.jsx("span", {
-                                  className: `rounded-full px-2 py-1 text-[10px] font-bold ${
-                                    user.is_active
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "bg-gray-100 text-gray-500"
-                                  }`,
-                                  children: user.is_active ? "Activo" : "Inactivo",
+                                  className:
+                                    "rounded-full px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-700",
+                                  children: "Activo",
                                 }),
                               ],
                             }),

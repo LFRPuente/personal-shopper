@@ -478,7 +478,7 @@ const ProfileSection = V.memo(function ProfileSection() {
               onClick: () => setUserManagementOpen(true),
               className:
                 "w-full px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 text-sm font-bold transition",
-              children: "Edicion de Usuario",
+              children: "EDICION DE USUARIOS",
             }),
           c.jsx("button", {
             onClick: handleLogout,

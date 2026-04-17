@@ -54,7 +54,7 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
               children: [
                 c.jsx("p", {
                   className: "text-[11px] uppercase tracking-wide text-text-sub",
-                  children: "Aviso de revision",
+                  children: "Mensaje para WAHA",
                 }),
                 c.jsx("h3", {
                   className: "text-base font-bold text-text-main truncate",
@@ -88,16 +88,15 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
               className:
                 "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/90 dark:bg-slate-950/30 px-3 py-3 space-y-2",
               children: [
-                c.jsx("p", {
-                  className: "text-sm font-semibold text-text-main",
-                  children: "Mensaje",
-                }),
-                c.jsx("textarea", {
+                  c.jsx("p", {
+                    className: "text-sm font-semibold text-text-main",
+                    children: "Mensaje",
+                  }),
+                  c.jsx("textarea", {
                   rows: 4,
                   value: message,
                   onChange: (event) => setMessage(event.target.value),
-                  placeholder:
-                    "Tienes un producto para Revision del cliente ...",
+                  placeholder: "Tienes un producto para Revision del cliente ...",
                   className:
                     "w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40 resize-none",
                 }),
