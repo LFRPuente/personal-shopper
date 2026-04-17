@@ -8725,6 +8725,20 @@ function nh() {
         console.error("Failed saving user record", error);
         throw error;
       }
+    },
+    deleteUserRecord = async (userId) => {
+      const targetId = Number(userId || 0);
+      if (!targetId) return false;
+      try {
+        await I(`/users/${targetId}/`, {
+          method: "DELETE",
+        });
+        setUsers((values) => (values || []).filter((user) => Number(user.id) !== Number(targetId)));
+        return true;
+      } catch (error) {
+        console.error("Failed deleting user record", error);
+        throw error;
+      }
     };
   // Calculator section extracted to sections/CalculatorSection.jsx
   // Missions section extracted to sections/MissionsSection.jsx
@@ -8778,6 +8792,7 @@ function nh() {
     profileSettingsSaving,
     saveProfileSettings,
     saveUserRecord,
+    deleteUserRecord,
     refreshUsers,
     handleLogout: iu,
     clients: Kl,

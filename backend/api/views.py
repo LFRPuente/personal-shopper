@@ -715,7 +715,7 @@ def list_users(request):
     return Response(serializer.data)
 
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def user_detail(request, user_id):
     target_user = get_object_or_404(User.objects.select_related('userprofile'), id=user_id)
@@ -728,6 +728,14 @@ def user_detail(request, user_id):
             {'error': 'No tienes permiso para editar otros usuarios.'},
             status=status.HTTP_403_FORBIDDEN,
         )
+    if request.method == 'DELETE':
+        if request.user.id == target_user.id:
+            return Response(
+                {'error': 'No puedes eliminar tu propio usuario desde aqui.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        target_user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
         return Response(UserSerializer(target_user).data)
     serializer = UserManageSerializer(target_user, data=request.data, partial=True)
