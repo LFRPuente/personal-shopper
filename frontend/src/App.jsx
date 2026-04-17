@@ -9054,29 +9054,50 @@ function nh() {
           ? "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200 ml-20"
           : "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200",
         children: c.jsx("div", {
-          className: "px-5 py-4 flex items-center gap-3",
+          className: "px-5 py-4 flex items-center justify-between gap-3",
           children: [
-            c.jsx("div", {
-              className:
-                "h-10 w-10 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg uppercase shrink-0",
-              children: J.username.charAt(0),
-            }),
             c.jsxs("div", {
+              className: "flex items-center gap-3 min-w-0",
               children: [
-                c.jsxs("h2", {
+                c.jsx("div", {
                   className:
-                    "text-sm font-semibold text-text-main dark:text-white leading-tight",
-                  children: ["Hi, ", J.username],
+                    "h-10 w-10 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg uppercase shrink-0",
+                  children: J.username.charAt(0),
                 }),
-                c.jsx("p", {
-                  className:
-                    "text-xs text-text-sub dark:text-slate-400 font-medium",
-                  children:
-                    X === "PS"
-                      ? "Personal Shopper (Tienda)"
-                      : "Agente de Ventas (Oficina)",
+                c.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    c.jsxs("h2", {
+                      className:
+                        "text-sm font-semibold text-text-main dark:text-white leading-tight truncate",
+                      children: ["Hi, ", J.username],
+                    }),
+                    c.jsx("p", {
+                      className:
+                        "text-xs text-text-sub dark:text-slate-400 font-medium truncate",
+                      children:
+                        X === "PS"
+                          ? "Personal Shopper (Tienda)"
+                          : "Agente de Ventas (Oficina)",
+                    }),
+                  ],
                 }),
               ],
+            }),
+            c.jsx("button", {
+              type: "button",
+              onClick: () => {
+                if (typeof window !== "undefined") {
+                  window.location.reload();
+                }
+              },
+              title: "Refrescar la pagina",
+              className:
+                "shrink-0 h-10 w-10 rounded-full border border-border-light dark:border-border-dark bg-white/90 dark:bg-slate-900/70 text-slate-700 dark:text-slate-100 flex items-center justify-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition",
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[20px]",
+                children: "refresh",
+              }),
             }),
           ],
         }),
