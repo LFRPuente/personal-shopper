@@ -390,6 +390,9 @@ def register_user(request):
     password = data.get('password')
     email = data.get('email', '')
     role = data.get('role', 'AV')
+    display_name = data.get('display_name', '')
+    phone_country_code = data.get('phone_country_code', '+52')
+    phone = data.get('phone', '')
     
     if not username or not password:
         return Response({'error': 'Please provide username and password'}, status=status.HTTP_400_BAD_REQUEST)
@@ -398,9 +401,15 @@ def register_user(request):
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
         
     user = User.objects.create_user(username=username, email=email, password=password)
-    UserProfile.objects.create(user=user, role=role)
-    
-    return Response({'message': 'User created successfully', 'username': username, 'role': role}, status=status.HTTP_201_CREATED)
+    UserProfile.objects.create(
+        user=user,
+        role=str(role or 'AV').strip().upper(),
+        display_name=str(display_name or '').strip(),
+        phone_country_code=f"+{normalize_digits(phone_country_code)[:4] or '52'}",
+        phone=''.join(ch for ch in str(phone or '') if ch.isdigit()),
+    )
+
+    return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -708,9 +717,7 @@ def send_waha_text(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_users(request):
-    queryset = User.objects.select_related('userprofile').filter(
-        is_active=True
-    ).order_by('username')
+    queryset = User.objects.select_related('userprofile').order_by('username')
     serializer = UserSerializer(queryset, many=True)
     return Response(serializer.data)
 

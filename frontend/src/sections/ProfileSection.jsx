@@ -21,6 +21,7 @@ const ProfileSection = V.memo(function ProfileSection() {
     saveProfileSettings,
     handleLogout,
     users,
+    createUserRecord,
     saveUserRecord,
     deleteUserRecord,
   } = useApp();
@@ -499,6 +500,7 @@ const ProfileSection = V.memo(function ProfileSection() {
           open: userManagementOpen,
           users,
           currentUserId: J && J.id,
+          createUserRecord,
           saveUserRecord,
           deleteUserRecord,
           onClose: () => setUserManagementOpen(false),

@@ -5,6 +5,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
     open,
     users = [],
     currentUserId,
+    createUserRecord,
     saveUserRecord,
     deleteUserRecord,
     onClose,
@@ -18,18 +19,31 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
 
   const [userSearch, setUserSearch] = V.useState("");
   const [selectedUserId, setSelectedUserId] = V.useState(null);
+  const [creatingUser, setCreatingUser] = V.useState(false);
   const [userForm, setUserForm] = V.useState(null);
   const [userSaving, setUserSaving] = V.useState(false);
   const [userDeleting, setUserDeleting] = V.useState(false);
+
+  const buildBlankUserForm = () => ({
+    username: "",
+    password: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    role: "AV",
+    display_name: "",
+    phone_country_code: "+52",
+    phone: "",
+  });
 
   const buildUserForm = (user) => {
     const profile = user?.profile || {};
     return {
       username: String(user?.username || ""),
+      password: "",
       email: String(user?.email || ""),
       first_name: String(user?.first_name || ""),
       last_name: String(user?.last_name || ""),
-      is_active: !!user?.is_active,
       role: String(profile.role || "AV"),
       display_name: String(profile.display_name || ""),
       phone_country_code: String(profile.phone_country_code || "+52"),
@@ -78,6 +92,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
 
   V.useEffect(() => {
     if (!open) return;
+    if (creatingUser) return;
     const preferred =
       sortedUsers.find((user) => Number(user?.id) === Number(currentUserId)) ||
       sortedUsers[0] ||
@@ -94,17 +109,23 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
     );
     setUserSearch("");
     setUserForm(buildUserForm(preferred));
-  }, [open, sortedUsers, currentUserId]);
+  }, [open, sortedUsers, currentUserId, creatingUser]);
 
   V.useEffect(() => {
     if (!open) return;
+    if (creatingUser) {
+      setUserForm(buildBlankUserForm());
+      return;
+    }
     const selected =
       sortedUsers.find((user) => Number(user?.id) === Number(selectedUserId)) ||
       null;
     setUserForm(selected ? buildUserForm(selected) : null);
-  }, [open, selectedUserId, sortedUsers]);
+  }, [open, selectedUserId, sortedUsers, creatingUser]);
 
   if (!open) return null;
+
+  const isCreating = creatingUser || !selectedUserId;
 
   return c.jsx("div", {
     className: backdropClass(
@@ -167,6 +188,39 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                   className:
                     "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
                 }),
+                c.jsxs("div", {
+                  className: "flex flex-wrap items-center gap-2",
+                  children: [
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () => {
+                        setCreatingUser(true);
+                        setSelectedUserId(null);
+                        setUserSearch("");
+                        setUserForm(buildBlankUserForm());
+                      },
+                      className:
+                        "px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition",
+                      children: "Nuevo usuario",
+                    }),
+                    creatingUser &&
+                      c.jsx("button", {
+                        type: "button",
+                        onClick: () => {
+                          setCreatingUser(false);
+                          const preferred =
+                            sortedUsers.find((user) => Number(user?.id) === Number(currentUserId)) ||
+                            sortedUsers[0] ||
+                            null;
+                          setSelectedUserId(preferred ? preferred.id : null);
+                          setUserForm(preferred ? buildUserForm(preferred) : null);
+                        },
+                        className:
+                          "px-3 py-2 rounded-xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition",
+                        children: "Cancelar alta",
+                      }),
+                  ],
+                }),
                 c.jsx("div", {
                   className: "space-y-2 max-h-[64vh] overflow-y-auto pr-1",
                   children: filteredUsers.length === 0
@@ -179,7 +233,10 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                         const isSelected = Number(selectedUserId) === Number(user.id);
                         return c.jsxs("button", {
                           type: "button",
-                          onClick: () => setSelectedUserId(user.id),
+                          onClick: () => {
+                            setCreatingUser(false);
+                            setSelectedUserId(user.id);
+                          },
                           className: `w-full text-left rounded-2xl border px-3 py-3 transition ${
                             isSelected
                               ? "border-primary bg-primary/10 ring-2 ring-primary/20"
@@ -204,17 +261,14 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                                 }),
                                 c.jsx("span", {
                                   className:
-                                    "rounded-full px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-700",
-                                  children: "Activo",
+                                    "rounded-full px-2 py-1 text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+                                  children: String(profile.role || "AV"),
                                 }),
                               ],
                             }),
                             c.jsxs("div", {
                               className: "mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-sub",
                               children: [
-                                c.jsx("span", {
-                                  children: `Rol: ${String(profile.role || "AV")}`,
-                                }),
                                 c.jsx("span", {
                                   children: getUserPhoneDisplay(user) || "Sin telefono",
                                 }),
@@ -237,13 +291,15 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                       children: [
                         c.jsx("h4", {
                           className: "text-sm font-bold text-text-main",
-                          children: "Editar usuario",
+                              children: isCreating ? "Crear usuario" : "Editar usuario",
                         }),
                         c.jsx("p", {
                           className: "text-[11px] text-text-sub mt-0.5",
-                          children: selectedUser
-                            ? `@${selectedUser.username}`
-                            : "Selecciona un usuario para editarlo.",
+                          children: isCreating
+                            ? "Completa los datos para crear un usuario."
+                            : selectedUser
+                              ? `@${selectedUser.username}`
+                              : "Selecciona un usuario para editarlo.",
                         }),
                       ],
                     }),
@@ -374,58 +430,63 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                             }),
                           ],
                         }),
-                        c.jsxs("label", {
-                          className: "block md:col-span-2",
-                          children: [
-                            c.jsx("span", {
-                              className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                              children: "Activo",
-                            }),
-                            c.jsx("select", {
-                              value: userForm.is_active ? "1" : "0",
-                              onChange: (event) =>
-                                setUserForm((current) => ({
-                                  ...current,
-                                  is_active: event.target.value === "1",
-                                })),
-                              className:
-                                "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
-                              children: [
-                                c.jsx("option", { value: "1", children: "Si" }, "1"),
-                                c.jsx("option", { value: "0", children: "No" }, "0"),
-                              ],
-                            }),
-                          ],
-                        }),
+                        isCreating &&
+                          c.jsxs("label", {
+                            className: "block md:col-span-2",
+                            children: [
+                              c.jsx("span", {
+                                className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+                                children: "Password",
+                              }),
+                              c.jsx("input", {
+                                type: "password",
+                                value: userForm.password || "",
+                                onChange: (event) =>
+                                  setUserForm((current) => ({
+                                    ...current,
+                                    password: event.target.value,
+                                  })),
+                                autoComplete: "new-password",
+                                className:
+                                  "w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary/40",
+                              }),
+                            ],
+                          }),
                         c.jsxs("div", {
                           className: "md:col-span-2 flex flex-wrap items-center gap-2 pt-1",
                           children: [
                             c.jsx("button", {
                               type: "button",
                               onClick: async () => {
-                                if (!selectedUser || !userForm || userSaving) return;
+                                if (!userForm || userSaving) return;
                                 const payload = {
                                   username: String(userForm.username || "").trim(),
+                                  password: String(userForm.password || "").trim(),
                                   email: String(userForm.email || "").trim(),
                                   first_name: String(userForm.first_name || "").trim(),
                                   last_name: String(userForm.last_name || "").trim(),
-                                  is_active: !!userForm.is_active,
                                   role: String(userForm.role || "AV").trim(),
                                   display_name: String(userForm.display_name || "").trim(),
                                   phone_country_code: String(userForm.phone_country_code || "+52").trim(),
                                   phone: String(userForm.phone || "").trim(),
                                 };
+                                if (!payload.username) return;
+                                if (isCreating && !payload.password) return;
                                 setUserSaving(true);
                                 try {
-                                  const savedUser = await saveUserRecord(selectedUser.id, payload);
+                                  const savedUser = isCreating
+                                    ? await createUserRecord(payload)
+                                    : await saveUserRecord(selectedUser.id, payload);
                                   if (savedUser) {
                                     const savedProfile = savedUser.profile || {};
+                                    setCreatingUser(false);
+                                    setSelectedUserId(savedUser.id);
                                     setUserForm({
                                       username: String(savedUser.username || ""),
+                                      password: "",
                                       email: String(savedUser.email || ""),
                                       first_name: String(savedUser.first_name || ""),
                                       last_name: String(savedUser.last_name || ""),
-                                      is_active: !!savedUser.is_active,
                                       role: String(savedProfile.role || "AV"),
                                       display_name: String(savedProfile.display_name || ""),
                                       phone_country_code: String(savedProfile.phone_country_code || "+52"),
@@ -436,35 +497,39 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                                   setUserSaving(false);
                                 }
                               },
-                              disabled: userSaving || !selectedUser,
+                              disabled:
+                                userSaving ||
+                                !userForm ||
+                                (isCreating && !String(userForm.password || "").trim()),
                               className:
                                 "px-4 py-2 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
-                              children: userSaving ? "Guardando..." : "Guardar usuario",
+                              children: userSaving
+                                ? "Guardando..."
+                                : isCreating
+                                  ? "Crear usuario"
+                                  : "Guardar usuario",
                             }),
-                            c.jsx("button", {
-                              type: "button",
-                              onClick: async () => {
-                                if (!selectedUser || userDeleting) return;
-                                if (!window.confirm(`Eliminar a @${selectedUser.username}?`)) return;
-                                setUserDeleting(true);
-                                try {
-                                  await deleteUserRecord(selectedUser.id);
-                                } finally {
-                                  setUserDeleting(false);
-                                }
-                              },
-                              disabled: userDeleting || !selectedUser || Number(selectedUser.id) === Number(currentUserId),
-                              className:
-                                "px-4 py-2 rounded-xl text-xs font-bold transition bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed",
-                              children: userDeleting ? "Eliminando..." : "Borrar usuario",
-                            }),
-                            c.jsx("p", {
-                              className: "text-[11px] text-text-sub",
-                              children:
-                                Number(selectedUser && selectedUser.id) === Number(currentUserId)
-                                  ? "No puedes borrar tu propio usuario desde aqui."
-                                  : "El numero se guardara junto con el codigo de pais para WAHA.",
-                            }),
+                            !isCreating &&
+                              c.jsx("button", {
+                                type: "button",
+                                onClick: async () => {
+                                  if (!selectedUser || userDeleting) return;
+                                  if (!window.confirm(`Eliminar a @${selectedUser.username}?`)) return;
+                                  setUserDeleting(true);
+                                  try {
+                                    await deleteUserRecord(selectedUser.id);
+                                  } finally {
+                                    setUserDeleting(false);
+                                  }
+                                },
+                                disabled:
+                                  userDeleting ||
+                                  !selectedUser ||
+                                  Number(selectedUser.id) === Number(currentUserId),
+                                className:
+                                  "px-4 py-2 rounded-xl text-xs font-bold transition bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                                children: userDeleting ? "Eliminando..." : "Borrar usuario",
+                              }),
                           ],
                         }),
                       ],

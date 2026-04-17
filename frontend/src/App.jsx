@@ -2977,6 +2977,10 @@ function nh() {
           N.tags && Se.append("tags", N.tags);
           !N.shopping && N.store !== null && Se.append("store", String(N.store));
           const gl = await I("/products/", { method: "POST", body: Se });
+          const shouldOpenReviewNotify =
+            String(A || "").toUpperCase() === "REVIEW" ||
+            String(N.status || "").toUpperCase() === "REVIEW" ||
+            String(N.status || "").toUpperCase() === "IN_REVIEW";
           updateClientProductState({
             ...gl,
             ...N,
@@ -2990,6 +2994,22 @@ function nh() {
               null,
               A,
             ));
+          if (shouldOpenReviewNotify) {
+            const reviewClientId = Number((gl && gl.client) || (W && W.id) || 0);
+            const reviewClient =
+              (W && Number(W.id) === reviewClientId && W) ||
+              (Kl || []).find((El) => Number(El.id) === reviewClientId) ||
+              W ||
+              null;
+            openReviewNotifyModal(
+              {
+                ...gl,
+                ...N,
+                status: normalizeProductModalStatus((gl && gl.status) || N.status || "ANNOTATED"),
+              },
+              reviewClient,
+            );
+          }
         } else {
           await I(`/products/${he.id}/`, {
             method: "PATCH",
@@ -8726,6 +8746,29 @@ function nh() {
         throw error;
       }
     },
+    createUserRecord = async (payload) => {
+      try {
+        const created = await I("/auth/register/", {
+          method: "POST",
+          body: JSON.stringify(payload || {}),
+        });
+        if (created && created.id) {
+          setUsers((values) => {
+            const next = [...(values || []).filter((user) => Number(user.id) !== Number(created.id)), created];
+            next.sort((a, b) =>
+              String(a?.username || "").localeCompare(String(b?.username || ""), "es", {
+                sensitivity: "base",
+              }),
+            );
+            return next;
+          });
+        }
+        return created;
+      } catch (error) {
+        console.error("Failed creating user record", error);
+        throw error;
+      }
+    },
     deleteUserRecord = async (userId) => {
       const targetId = Number(userId || 0);
       if (!targetId) return false;
@@ -8792,6 +8835,7 @@ function nh() {
     profileSettingsSaving,
     saveProfileSettings,
     saveUserRecord,
+    createUserRecord,
     deleteUserRecord,
     refreshUsers,
     handleLogout: iu,
