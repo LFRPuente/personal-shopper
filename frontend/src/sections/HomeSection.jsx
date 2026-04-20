@@ -599,18 +599,26 @@ const HomeSection = V.memo(function HomeSection() {
                             typeof selectShoppingTab === 'function'
                               ? selectShoppingTab(mission.id)
                               : null,
-                          className: `shrink-0 rounded-full border px-3 py-1.5 text-left transition ${
+                          className: `shrink-0 border text-left transition ${
+                            isDesktopLayout
+                              ? 'rounded-full px-3 py-1.5'
+                              : 'w-[90px] rounded-xl px-2 py-1'
+                          } ${
                             activeMission && Number(activeMission.id) === Number(mission.id)
                               ? 'border-primary bg-primary text-white shadow-sm'
                               : 'border-border-light bg-white/80 text-text-sub hover:border-primary/40 hover:text-primary dark:border-border-dark dark:bg-slate-900/80 dark:text-slate-300'
                           }`,
                           children: [
                             c.jsx('p', {
-                              className: 'max-w-[150px] truncate text-[9px] font-black leading-tight uppercase',
+                              className: isDesktopLayout
+                                ? 'max-w-[150px] truncate text-[9px] font-black leading-tight uppercase'
+                                : 'truncate text-[8px] font-black leading-tight uppercase',
                               children: String(getMissionStoreLabel(mission) || '').toUpperCase(),
                             }),
                             c.jsx('p', {
-                              className: 'mt-0.5 max-w-[150px] truncate text-[8px] font-black uppercase tracking-[0.1em] leading-tight opacity-80',
+                              className: isDesktopLayout
+                                ? 'mt-0.5 max-w-[150px] truncate text-[8px] font-black uppercase tracking-[0.1em] leading-tight opacity-80'
+                                : 'mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.08em] leading-tight opacity-80',
                               children: String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
                             }),
                           ],

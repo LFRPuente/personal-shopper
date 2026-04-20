@@ -46,6 +46,20 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
     setSearch('');
   }, [open, activeMission && activeMission.id]);
 
+  V.useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+
   const currentMission = open ? activeMission : null;
   const currentClientIds = getShoppingClientIds(currentMission);
   const filteredClients = [...(Array.isArray(clients) ? clients : [])]
@@ -89,8 +103,11 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
               type: 'button',
               onClick: onClose,
               className:
-                'rounded-full border border-border-light px-3 py-1.5 text-[11px] font-bold text-text-sub hover:bg-gray-100 dark:border-border-dark dark:hover:bg-slate-800',
-              children: 'Cerrar',
+                'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-gray-100 dark:border-border-dark dark:hover:bg-slate-800',
+              children: c.jsx('span', {
+                className: 'material-symbols-outlined text-[18px]',
+                children: 'close',
+              }),
             }),
           ],
         }),
