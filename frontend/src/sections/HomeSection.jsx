@@ -798,6 +798,7 @@ const HomeSection = V.memo(function HomeSection() {
             ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col'
             : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
           children: [
+            c.jsxs('div', { className: 'mb-3 space-y-2', children: [c.jsxs('h3', { className: 'font-bold text-sm text-text-main dark:text-white', children: ['Clients in Shopping (', filteredHomeClientsInMission.length, ')'] }), c.jsx('input', { type: 'text', value: homeClientSearch, onChange: (event) => setHomeClientSearch(event.target.value), placeholder: 'Buscar client...', className: 'w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary' })] }),
             c.jsxs('div', {
               className: 'mb-3 space-y-2 rounded-2xl border border-border-light bg-white/70 p-3 dark:border-border-dark dark:bg-slate-950/50',
               children: [
@@ -893,11 +894,10 @@ const HomeSection = V.memo(function HomeSection() {
                 }),
               ],
             }),
-            c.jsxs('div', { className: 'mb-3 space-y-2', children: [c.jsxs('h3', { className: 'font-bold text-sm text-text-main dark:text-white', children: ['Clients in Shopping (', filteredHomeClientsInMission.length, ')'] }), c.jsx('input', { type: 'text', value: homeClientSearch, onChange: (event) => setHomeClientSearch(event.target.value), placeholder: 'Buscar client...', className: 'w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary' })] }),
             c.jsx('div', {
               className: isDesktopLayout ? 'pr-0 flex-1 min-h-0 overflow-y-auto overscroll-contain ios-scroll' : 'pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll',
               children: filteredHomeClientsInMission.length === 0
-                ? c.jsxs('div', { className: 'text-center py-8', children: [c.jsx('p', { className: 'text-gray-400 text-sm', children: 'No clients assigned to this shopping yet.' }), c.jsx('p', { className: 'text-[10px] text-gray-400 mt-1', children: 'Go to the Clients tab to add clients.' })] })
+                ? c.jsxs('div', { className: 'text-center py-8', children: [c.jsx('p', { className: 'text-gray-400 text-sm', children: 'No clients assigned to this shopping yet.' }), c.jsx('p', { className: 'text-[10px] text-gray-400 mt-1', children: 'Use the manual assign panel above to add them.' })] })
                 : filteredHomeClientsInMission.map((client) => {
                     const totals = homeClientMissionTotalsMap[client.id] || { usd: 0, sale: 0 };
                     const balance = homeClientGlobalBalanceMap[client.id] || 0;
