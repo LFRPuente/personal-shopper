@@ -53,7 +53,6 @@ const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
 const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
 const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
 const MAX_OPEN_SHOPPINGS = 3;
-const NEXT_OPEN_SHOPPINGS_CAPACITY = 4;
 
 class SectionErrorBoundary extends V.Component {
   constructor(props) {
@@ -2105,7 +2104,7 @@ function nh() {
       const openShoppingCount = getOpenShoppingMissions(Al).length;
       if (openShoppingCount >= MAX_OPEN_SHOPPINGS) {
         notifyInfo(
-          `Ya hay ${MAX_OPEN_SHOPPINGS} shoppings activos/pausados. Dejé preparado el límite para subirlo a ${NEXT_OPEN_SHOPPINGS_CAPACITY} cuando lo autorices.`,
+          `Ya hay ${MAX_OPEN_SHOPPINGS} shoppings activos/pausados. Cierra uno para crear otro.`,
         );
         return;
       }
@@ -8993,7 +8992,6 @@ function nh() {
     startHomeDesktopResize,
     shoppingTabs: getOpenShoppingMissions(Al),
     shoppingTabLimit: MAX_OPEN_SHOPPINGS,
-    shoppingTabCapacityHint: NEXT_OPEN_SHOPPINGS_CAPACITY,
     shoppingClientAssignmentSavingId,
     selectShoppingTab: (missionId) => Dl(resolveSelectedShopping(Al, missionId)),
     toggleShoppingClientAssignment,

@@ -1281,9 +1281,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             name=mission_name,
         )
         touch_store_recommendation(self.request.user, store)
-        # Auto-link currently active clients to this shopping
-        active_clients = Client.objects.filter(status__iexact='active')
-        mission.clients.set(active_clients)
         # <-------- seccion 8: notificar cambios de shoppings
         broadcast_shopping_update(action='created', object_id=mission.id)
 
@@ -1320,11 +1317,6 @@ class MissionViewSet(viewsets.ModelViewSet):
                 broadcast_update('products', action='updated')
             # <-------- seccion 8: cambios masivos en clientes
             broadcast_update('clients', action='updated')
-        # Whenever an active shopping is saved, sync active clients into it
-        elif mission.status == 'ACTIVE':
-            active_clients = Client.objects.filter(status__iexact='active')
-            for c in active_clients:
-                mission.clients.add(c)
         # <-------- seccion 8: notificar cambios de shoppings
         broadcast_shopping_update(action='updated', object_id=mission.id)
 
@@ -1833,13 +1825,6 @@ class ClientViewSet(viewsets.ModelViewSet):
         if status_value == 'active' and client.status != 'Active':
             client.status = 'Active'
             client.save(update_fields=['status'])
-        # Keep active shopping membership in sync with client toggles.
-        if status_value == 'active':
-            active_mission = Mission.objects.filter(
-                status__in=['ACTIVE', 'PAUSED']
-            ).order_by('-start_time').first()
-            if active_mission:
-                active_mission.clients.add(client)
         broadcast_update('clients', action='updated', object_id=client.id)
 
     def perform_destroy(self, instance):

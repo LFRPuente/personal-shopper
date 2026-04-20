@@ -9,7 +9,6 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'clients',
   'shoppingTabs',
   'shoppingTabLimit',
-  'shoppingTabCapacityHint',
   'shoppingClientAssignmentSavingId',
   'selectShoppingTab',
   'toggleShoppingClientAssignment',
@@ -94,7 +93,6 @@ const HomeSection = V.memo(function HomeSection() {
     clients,
     shoppingTabs,
     shoppingTabLimit,
-    shoppingTabCapacityHint,
     shoppingClientAssignmentSavingId,
     selectShoppingTab,
     toggleShoppingClientAssignment,
@@ -667,11 +665,6 @@ const HomeSection = V.memo(function HomeSection() {
                           className: 'text-[10px] font-bold text-text-main dark:text-white',
                           children: [openShoppingCount, '/', shoppingTabLimit, ' abiertos'],
                         }),
-                        shoppingTabCapacityHint > shoppingTabLimit &&
-                          c.jsxs('p', {
-                            className: 'text-[9px] text-text-sub',
-                            children: ['Listo para subir a ', shoppingTabCapacityHint, ' cuando lo confirmes.'],
-                          }),
                       ],
                     }),
                     c.jsx('button', {
@@ -797,33 +790,35 @@ const HomeSection = V.memo(function HomeSection() {
                   ? c.jsxs('div', { className: 'flex items-center gap-2', children: [c.jsx('img', { src: resolveMediaUrl(activeMission.ticket_image), className: 'ui-media-frame ui-media-sm object-cover' }), c.jsx('button', { onClick: () => setFullscreenImage(resolveMediaUrl(activeMission.ticket_image)), className: 'text-[11px] font-bold text-primary hover:text-primary-dark', children: 'Ver ticket de misión' })] })
                   : c.jsx('p', { className: 'text-[11px] text-gray-500', children: 'Ticket de misión pendiente.' }),
             }),
+          ],
+        }),
+      activeMission &&
+        c.jsxs('div', {
+          className: isDesktopLayout
+            ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col'
+            : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
+          children: [
             c.jsxs('div', {
-              className: isDesktopLayout
-                ? 'mt-3 rounded-xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 p-3'
-                : 'mt-2 rounded-xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 p-3',
+              className: 'mb-3 space-y-2 rounded-2xl border border-border-light bg-white/70 p-3 dark:border-border-dark dark:bg-slate-950/50',
               children: [
                 c.jsxs('div', {
                   className: 'flex items-center justify-between gap-2',
                   children: [
                     c.jsxs('div', {
                       children: [
-                        c.jsx('p', {
-                          className: 'text-[11px] font-bold uppercase tracking-[0.08em] text-text-sub',
-                          children: 'Clientes de este shopping',
+                        c.jsx('h3', {
+                          className: 'font-bold text-sm text-text-main dark:text-white',
+                          children: ['Asignar clientes (', currentShoppingClientIds.size, ')'],
                         }),
-                        c.jsxs('p', {
+                        c.jsx('p', {
                           className: 'text-[10px] text-text-sub',
-                          children: [
-                            currentShoppingClientIds.size,
-                            ' asignados',
-                            shoppingClientAssignmentSavingId ? ' • Guardando...' : '',
-                          ],
+                          children: ['Los cambios aplican solo a ', getMissionStoreLabel(activeMission), '.'],
                         }),
                       ],
                     }),
                     c.jsx('span', {
                       className: 'rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary',
-                      children: 'Independiente',
+                      children: 'Manual',
                     }),
                   ],
                 }),
@@ -831,12 +826,12 @@ const HomeSection = V.memo(function HomeSection() {
                   type: 'text',
                   value: shoppingClientSearch,
                   onChange: (event) => setShoppingClientSearch(event.target.value),
-                  placeholder: 'Buscar cliente para asignar...',
-                  className: 'mt-2 w-full rounded-xl border border-border-light bg-white px-3 py-2 text-[11px] outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-950',
+                  placeholder: 'Buscar cliente para agregar o quitar...',
+                  className: 'w-full rounded-xl border border-border-light bg-white px-3 py-2 text-[11px] outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-950',
                 }),
                 currentShoppingClientIds.size > 0 &&
                   c.jsx('div', {
-                    className: 'mt-2 flex flex-wrap gap-1.5',
+                    className: 'flex flex-wrap gap-1.5',
                     children: Array.from(currentShoppingClientIds)
                       .map((clientId) => clientById.get(Number(clientId)))
                       .filter(Boolean)
@@ -848,7 +843,7 @@ const HomeSection = V.memo(function HomeSection() {
                       ),
                   }),
                 c.jsx('div', {
-                  className: 'mt-2 max-h-[180px] space-y-1 overflow-y-auto pr-1 ios-scroll',
+                  className: 'max-h-[180px] space-y-1 overflow-y-auto pr-1 ios-scroll',
                   children: shoppingAssignableClients.length > 0
                     ? shoppingAssignableClients.map((client) => {
                         const isAssigned = currentShoppingClientIds.has(Number(client.id));
@@ -898,14 +893,6 @@ const HomeSection = V.memo(function HomeSection() {
                 }),
               ],
             }),
-          ],
-        }),
-      activeMission &&
-        c.jsxs('div', {
-          className: isDesktopLayout
-            ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col'
-            : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
-          children: [
             c.jsxs('div', { className: 'mb-3 space-y-2', children: [c.jsxs('h3', { className: 'font-bold text-sm text-text-main dark:text-white', children: ['Clients in Shopping (', filteredHomeClientsInMission.length, ')'] }), c.jsx('input', { type: 'text', value: homeClientSearch, onChange: (event) => setHomeClientSearch(event.target.value), placeholder: 'Buscar client...', className: 'w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary' })] }),
             c.jsx('div', {
               className: isDesktopLayout ? 'pr-0 flex-1 min-h-0 overflow-y-auto overscroll-contain ios-scroll' : 'pr-1 max-h-[240px] overflow-y-auto overscroll-contain ios-scroll',
