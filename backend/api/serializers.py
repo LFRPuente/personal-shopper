@@ -504,6 +504,7 @@ class MissionSerializer(serializers.ModelSerializer):
     payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
     store_name = serializers.CharField(source='store.name', read_only=True, default=None)
     products = ProductItemSerializer(many=True, read_only=True)
+    clients = serializers.PrimaryKeyRelatedField(many=True, queryset=Client.objects.all(), required=False)
 
     class Meta:
         model = Mission

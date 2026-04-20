@@ -6,6 +6,13 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'homeDesktopGridRef',
   'homeDesktopLayout',
   'activeMission',
+  'clients',
+  'shoppingTabs',
+  'shoppingTabLimit',
+  'shoppingTabCapacityHint',
+  'shoppingClientAssignmentSavingId',
+  'selectShoppingTab',
+  'toggleShoppingClientAssignment',
   'startHomeDesktopResize',
   'requests',
   'openMissionStart',
@@ -84,6 +91,13 @@ const HomeSection = V.memo(function HomeSection() {
     homeDesktopGridRef,
     homeDesktopLayout,
     activeMission,
+    clients,
+    shoppingTabs,
+    shoppingTabLimit,
+    shoppingTabCapacityHint,
+    shoppingClientAssignmentSavingId,
+    selectShoppingTab,
+    toggleShoppingClientAssignment,
     startHomeDesktopResize,
     requests,
     openMissionStart,
@@ -149,6 +163,39 @@ const HomeSection = V.memo(function HomeSection() {
     getClientNameById,
     getRelativeTime,
   } = useApp();
+
+  const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
+  const canCreateShopping = openShoppingCount < shoppingTabLimit;
+  const [shoppingClientSearch, setShoppingClientSearch] = V.useState('');
+  const clientById = new Map(
+    (Array.isArray(clients) ? clients : []).map((client) => [Number(client.id), client]),
+  );
+  const currentShoppingClientIds = new Set(
+    Array.isArray(activeMission?.clients)
+      ? activeMission.clients
+          .map((value) => Number(value && typeof value === 'object' ? value.id : value))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      : [],
+  );
+  if (Array.isArray(activeMission?.products)) {
+    activeMission.products.forEach((product) => {
+      const clientId = Number(product && product.client);
+      if (Number.isFinite(clientId) && clientId > 0) {
+        currentShoppingClientIds.add(clientId);
+      }
+    });
+  }
+  const shoppingAssignableClients = [...(Array.isArray(clients) ? clients : [])]
+    .filter((client) =>
+      String(client.name || '')
+        .toLowerCase()
+        .includes(shoppingClientSearch.trim().toLowerCase()),
+    )
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' }));
+
+  V.useEffect(() => {
+    setShoppingClientSearch('');
+  }, [activeMission && activeMission.id]);
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -569,12 +616,82 @@ const HomeSection = V.memo(function HomeSection() {
           c.jsx('button', { onClick: openMissionStart, className: 'px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition shadow-sm', children: 'Comenzar Shopping' }),
         ],
       }),
-    activeMission &&
+      activeMission &&
       c.jsxs('div', {
         className: isDesktopLayout
             ? 'col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto'
             : 'bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4',
           children: [
+            c.jsxs('div', {
+              className: 'mb-3 flex flex-wrap items-center justify-between gap-2',
+              children: [
+                c.jsxs('div', {
+                  className: 'flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 pr-2 ios-scroll',
+                  children: (shoppingTabs || []).length > 0
+                    ? shoppingTabs.map((mission) =>
+                        c.jsxs('button', {
+                          type: 'button',
+                          onClick: () =>
+                            typeof selectShoppingTab === 'function'
+                              ? selectShoppingTab(mission.id)
+                              : null,
+                          className: `shrink-0 rounded-full border px-3 py-1.5 text-left transition ${
+                            activeMission && Number(activeMission.id) === Number(mission.id)
+                              ? 'border-primary bg-primary text-white shadow-sm'
+                              : 'border-border-light bg-white/80 text-text-sub hover:border-primary/40 hover:text-primary dark:border-border-dark dark:bg-slate-900/80 dark:text-slate-300'
+                          }`,
+                          children: [
+                            c.jsx('p', {
+                              className: 'max-w-[150px] truncate text-[10px] font-bold leading-none',
+                              children: `${getMissionStoreLabel(mission)} - ${String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim()}`,
+                            }),
+                            c.jsx('p', {
+                              className: 'mt-0.5 text-[8px] font-black uppercase tracking-[0.1em] opacity-75',
+                              children: `#${mission.id}`,
+                            }),
+                          ],
+                        }, `shopping-tab-${mission.id}`),
+                      )
+                    : c.jsx('p', {
+                        className: 'text-[11px] text-text-sub',
+                        children: 'Sin shoppings abiertos.',
+                      }),
+                }),
+                c.jsxs('div', {
+                  className: 'flex shrink-0 items-center gap-2',
+                  children: [
+                    c.jsxs('div', {
+                      className: 'text-right leading-tight',
+                      children: [
+                        c.jsxs('p', {
+                          className: 'text-[10px] font-bold text-text-main dark:text-white',
+                          children: [openShoppingCount, '/', shoppingTabLimit, ' abiertos'],
+                        }),
+                        shoppingTabCapacityHint > shoppingTabLimit &&
+                          c.jsxs('p', {
+                            className: 'text-[9px] text-text-sub',
+                            children: ['Listo para subir a ', shoppingTabCapacityHint, ' cuando lo confirmes.'],
+                          }),
+                      ],
+                    }),
+                    c.jsx('button', {
+                      type: 'button',
+                      onClick: openMissionStart,
+                      disabled: !canCreateShopping,
+                      className: `rounded-full px-3 py-1.5 text-[10px] font-bold transition ${
+                        canCreateShopping
+                          ? 'bg-primary text-white hover:bg-primary-dark'
+                          : 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-500'
+                      }`,
+                      title: canCreateShopping
+                        ? 'Crear shopping activo'
+                        : `Límite actual de ${shoppingTabLimit} shoppings alcanzado.`,
+                      children: 'Nuevo',
+                    }),
+                  ],
+                }),
+              ],
+            }),
             c.jsxs('div', {
               className: isDesktopLayout ? 'flex items-start justify-between gap-4' : 'flex items-center justify-between gap-2',
               children: [
@@ -679,6 +796,107 @@ const HomeSection = V.memo(function HomeSection() {
                 : activeMission.ticket_image
                   ? c.jsxs('div', { className: 'flex items-center gap-2', children: [c.jsx('img', { src: resolveMediaUrl(activeMission.ticket_image), className: 'ui-media-frame ui-media-sm object-cover' }), c.jsx('button', { onClick: () => setFullscreenImage(resolveMediaUrl(activeMission.ticket_image)), className: 'text-[11px] font-bold text-primary hover:text-primary-dark', children: 'Ver ticket de misión' })] })
                   : c.jsx('p', { className: 'text-[11px] text-gray-500', children: 'Ticket de misión pendiente.' }),
+            }),
+            c.jsxs('div', {
+              className: isDesktopLayout
+                ? 'mt-3 rounded-xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 p-3'
+                : 'mt-2 rounded-xl border border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/50 p-3',
+              children: [
+                c.jsxs('div', {
+                  className: 'flex items-center justify-between gap-2',
+                  children: [
+                    c.jsxs('div', {
+                      children: [
+                        c.jsx('p', {
+                          className: 'text-[11px] font-bold uppercase tracking-[0.08em] text-text-sub',
+                          children: 'Clientes de este shopping',
+                        }),
+                        c.jsxs('p', {
+                          className: 'text-[10px] text-text-sub',
+                          children: [
+                            currentShoppingClientIds.size,
+                            ' asignados',
+                            shoppingClientAssignmentSavingId ? ' • Guardando...' : '',
+                          ],
+                        }),
+                      ],
+                    }),
+                    c.jsx('span', {
+                      className: 'rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary',
+                      children: 'Independiente',
+                    }),
+                  ],
+                }),
+                c.jsx('input', {
+                  type: 'text',
+                  value: shoppingClientSearch,
+                  onChange: (event) => setShoppingClientSearch(event.target.value),
+                  placeholder: 'Buscar cliente para asignar...',
+                  className: 'mt-2 w-full rounded-xl border border-border-light bg-white px-3 py-2 text-[11px] outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-950',
+                }),
+                currentShoppingClientIds.size > 0 &&
+                  c.jsx('div', {
+                    className: 'mt-2 flex flex-wrap gap-1.5',
+                    children: Array.from(currentShoppingClientIds)
+                      .map((clientId) => clientById.get(Number(clientId)))
+                      .filter(Boolean)
+                      .map((client) =>
+                        c.jsx('span', {
+                          className: 'inline-flex max-w-full items-center rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200',
+                          children: String(client.name || '').trim(),
+                        }, `assigned-client-chip-${client.id}`),
+                      ),
+                  }),
+                c.jsx('div', {
+                  className: 'mt-2 max-h-[180px] space-y-1 overflow-y-auto pr-1 ios-scroll',
+                  children: shoppingAssignableClients.length > 0
+                    ? shoppingAssignableClients.map((client) => {
+                        const isAssigned = currentShoppingClientIds.has(Number(client.id));
+                        const savingKey = `${Number(activeMission.id)}-${Number(client.id)}`;
+                        const isSaving = shoppingClientAssignmentSavingId === savingKey;
+                        return c.jsxs('button', {
+                          type: 'button',
+                          onClick: () =>
+                            !isSaving &&
+                            typeof toggleShoppingClientAssignment === 'function' &&
+                            toggleShoppingClientAssignment(activeMission, client),
+                          disabled: isSaving,
+                          className: `flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                            isAssigned
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/25 dark:text-emerald-100'
+                              : 'border-border-light bg-white text-text-main hover:border-primary/40 hover:bg-primary/5 dark:border-border-dark dark:bg-slate-950/70 dark:text-slate-100'
+                          } ${isSaving ? 'cursor-wait opacity-70' : ''}`,
+                          children: [
+                            c.jsxs('div', {
+                              className: 'min-w-0',
+                              children: [
+                                c.jsx('p', {
+                                  className: 'truncate text-[11px] font-semibold',
+                                  children: client.name,
+                                }),
+                                c.jsx('p', {
+                                  className: 'truncate text-[9px] text-text-sub',
+                                  children: client.tags || 'Sin etiquetas',
+                                }),
+                              ],
+                            }),
+                            c.jsx('span', {
+                              className: `shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${
+                                isAssigned
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-gray-200 text-gray-600 dark:bg-slate-800 dark:text-slate-300'
+                              }`,
+                              children: isAssigned ? 'Quitar' : 'Agregar',
+                            }),
+                          ],
+                        }, `shopping-assign-client-${client.id}`);
+                      })
+                    : c.jsx('p', {
+                        className: 'py-4 text-center text-[11px] text-text-sub',
+                        children: 'No hay clientes que coincidan.',
+                      }),
+                }),
+              ],
             }),
           ],
         }),

@@ -1303,9 +1303,14 @@ class MissionViewSet(viewsets.ModelViewSet):
             if not mission.end_time:
                 mission.end_time = timezone.now()
                 mission.save(update_fields=['end_time'])
-            # Ensure every active client returns to idle when shopping ends.
-            Client.objects.filter(status__iexact='active').update(status='Pending')
-            mission.clients.all().update(status='Pending')
+            # Only release clients that are no longer linked to any open shopping.
+            for client in mission.clients.all():
+                still_used_elsewhere = client.missions_history.filter(
+                    status__in=['ACTIVE', 'PAUSED'],
+                ).exclude(id=mission.id).exists()
+                if not still_used_elsewhere and str(client.status or '').strip().lower() == 'active':
+                    client.status = 'Pending'
+                    client.save(update_fields=['status'])
             # <-------- seccion 9: limpiar productos rechazados al cerrar shopping
             if previous_status != 'COMPLETED':
                 ProductItem.objects.filter(

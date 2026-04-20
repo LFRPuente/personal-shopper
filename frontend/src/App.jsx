@@ -51,6 +51,9 @@ const APP_SECTION_PATHS = {
 
 const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
 const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
+const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
+const MAX_OPEN_SHOPPINGS = 3;
+const NEXT_OPEN_SHOPPINGS_CAPACITY = 4;
 
 class SectionErrorBoundary extends V.Component {
   constructor(props) {
@@ -524,6 +527,7 @@ function nh() {
     [seenReviewItemMap, setSeenReviewItemMap] = V.useState({}),
     [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
     [missionTicketUploading, setMissionTicketUploading] = V.useState(!1),
+    [shoppingClientAssignmentSavingId, setShoppingClientAssignmentSavingId] = V.useState(null),
     [receiptUploading, setReceiptUploading] = V.useState(!1),
     [newProductUploading, setNewProductUploading] = V.useState(!1),
     [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
@@ -640,10 +644,7 @@ function nh() {
         zl(A || []);
         setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         setUsers(Vs || []);
-        const vl = A.find(
-          (El) => El.status === "ACTIVE" || El.status === "PAUSED",
-        );
-        Dl(vl || null);
+        Dl(resolveSelectedShopping(A || []));
       } catch (o) {
         console.error("Failed loading data", o);
       }
@@ -709,10 +710,7 @@ function nh() {
         _l(N || []);
         zl(A || []);
         yl && setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
-        const El = (A || []).find(
-          (Se) => Se.status === "ACTIVE" || Se.status === "PAUSED",
-        );
-        Dl(El || null);
+        Dl(resolveSelectedShopping(A || []));
       } catch {}
     },
     loadAuxiliaryData = async () => {
@@ -1279,9 +1277,7 @@ function nh() {
         _l(N || []);
         zl(A || []);
         setUsers(Vs || []);
-        const vl = (A || []).find(
-          (El) => El.status === "ACTIVE" || El.status === "PAUSED",
-        );
+        const vl = resolveSelectedShopping(A || []);
         Dl(vl || null);
         // Inline calc sync to avoid extra render cycle from the calc sync effect
         if (vl) {
@@ -2106,6 +2102,13 @@ function nh() {
       setShowMissionStartModal(!0);
     },
     ye = async (o = missionStartForm) => {
+      const openShoppingCount = getOpenShoppingMissions(Al).length;
+      if (openShoppingCount >= MAX_OPEN_SHOPPINGS) {
+        notifyInfo(
+          `Ya hay ${MAX_OPEN_SHOPPINGS} shoppings activos/pausados. Dejé preparado el límite para subirlo a ${NEXT_OPEN_SHOPPINGS_CAPACITY} cuando lo autorices.`,
+        );
+        return;
+      }
       const N = String(o.store_name || o.name || "").trim();
       if (!N) {
         notifyInfo("Selecciona o escribe la tienda para iniciar el shopping.");
@@ -2192,6 +2195,35 @@ function nh() {
           (zl(Al.map((N) => (N.id === w.id ? o : N))), Dl(o));
         } catch { }
     },
+    toggleShoppingClientAssignment = async (mission, client) => {
+      const missionId = Number(mission && mission.id);
+      const clientId = Number(client && client.id);
+      if (!missionId || !clientId) return;
+      const currentClientIds = Array.isArray(mission && mission.clients)
+        ? mission.clients
+            .map((value) => Number(value && typeof value === "object" ? value.id : value))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+      const nextClientIds = currentClientIds.includes(clientId)
+        ? currentClientIds.filter((value) => value !== clientId)
+        : [...currentClientIds, clientId];
+      setShoppingClientAssignmentSavingId(`${missionId}-${clientId}`);
+      try {
+        const updatedMission = await I(`/shoppings/${missionId}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ clients: nextClientIds }),
+        });
+        zl((items) => items.map((item) => (Number(item.id) === missionId ? updatedMission : item)));
+        if (w && Number(w.id) === missionId) {
+          Dl(updatedMission);
+        }
+      } catch (error) {
+        console.error("Failed updating shopping client assignment", error);
+        notifyError("No se pudo actualizar los clientes de este shopping.");
+      } finally {
+        setShoppingClientAssignmentSavingId(null);
+      }
+    },
     on = async () => {
       if (w)
         try {
@@ -2200,7 +2232,10 @@ function nh() {
             body: JSON.stringify({ status: "COMPLETED" }),
           });
           const N = await I("/clients/");
-          (_l(N || []), zl(Al.map((A) => (A.id === w.id ? o : A))), Dl(null));
+          const remainingOpenShoppings = getOpenShoppingMissions(
+            Al.map((Se) => (Se.id === w.id ? o : Se)),
+          );
+          (_l(N || []), zl(Al.map((A) => (A.id === w.id ? o : A))), Dl(remainingOpenShoppings[0] || null));
         } catch { }
     },
     mn = async (o) => {
@@ -2214,10 +2249,12 @@ function nh() {
       )
         return;
       try {
-        (await I(`/shoppings/${o}/`, { method: "DELETE" }),
-          zl(Al.filter((N) => N.id !== o)),
-          w && w.id === o && Dl(null),
-          fn === o && rn(null));
+        await I(`/shoppings/${o}/`, { method: "DELETE" });
+        const remainingMissions = Al.filter((Se) => Se.id !== o);
+        const remainingOpenShoppings = getOpenShoppingMissions(remainingMissions);
+        zl(remainingMissions);
+        w && w.id === o && Dl(remainingOpenShoppings[0] || null);
+        fn === o && rn(null);
       } catch {
         notifyError("Error deleting shopping");
       }
@@ -5228,6 +5265,31 @@ function nh() {
     },
     getMissionStoreLabel = (o) =>
       o ? o.store_name || o.name || `Tienda #${o.id}` : "",
+    getOpenShoppingMissions = (list = Al) =>
+      (Array.isArray(list) ? list : [])
+        .filter((mission) =>
+          OPEN_SHOPPING_STATUSES.has(
+            String((mission && mission.status) || "").toUpperCase(),
+          ),
+        )
+        .sort((a, b) => {
+          const aTime = new Date((a && a.start_time) || 0).getTime();
+          const bTime = new Date((b && b.start_time) || 0).getTime();
+          if (aTime !== bTime) return bTime - aTime;
+          return Number(b && b.id ? b.id : 0) - Number(a && a.id ? a.id : 0);
+        }),
+    resolveSelectedShopping = (list = Al, preferredId = null) => {
+      const openMissions = getOpenShoppingMissions(list);
+      const selectedId =
+        Number.isFinite(Number(preferredId)) && Number(preferredId) > 0
+          ? Number(preferredId)
+          : Number(w && w.id) || Number(activeMissionIdRef.current || 0) || 0;
+      if (selectedId > 0) {
+        const match = openMissions.find((mission) => Number(mission.id) === selectedId);
+        if (match) return match;
+      }
+      return openMissions[0] || null;
+    },
     normalizeSearchText = (o) =>
       String(o || "")
         .toLowerCase()
@@ -5827,8 +5889,26 @@ function nh() {
       }
     },
     Rt = V.useMemo(
-      () => Kl.filter((o) => String(o.status || "").toLowerCase() === "active"),
-      [Kl],
+      () => {
+        const openShoppingClientIds = new Set();
+        if (w && Array.isArray(w.clients)) {
+          w.clients.forEach((value) => {
+            const id = Number(value && typeof value === "object" ? value.id : value);
+            if (Number.isFinite(id) && id > 0) openShoppingClientIds.add(id);
+          });
+        }
+        if (w && Array.isArray(w.products)) {
+          w.products.forEach((product) => {
+            const id = Number(product && product.client);
+            if (Number.isFinite(id) && id > 0) openShoppingClientIds.add(id);
+          });
+        }
+        if (!openShoppingClientIds.size) {
+          return Kl.filter((o) => String(o.status || "").toLowerCase() === "active");
+        }
+        return Kl.filter((client) => openShoppingClientIds.has(Number(client.id)));
+      },
+      [Kl, w],
     );
   const toNumber = (o, N = 0) => {
       const A = parseFloat(o);
@@ -8911,6 +8991,12 @@ function nh() {
     homeDesktopGridRef,
     homeDesktopLayout,
     startHomeDesktopResize,
+    shoppingTabs: getOpenShoppingMissions(Al),
+    shoppingTabLimit: MAX_OPEN_SHOPPINGS,
+    shoppingTabCapacityHint: NEXT_OPEN_SHOPPINGS_CAPACITY,
+    shoppingClientAssignmentSavingId,
+    selectShoppingTab: (missionId) => Dl(resolveSelectedShopping(Al, missionId)),
+    toggleShoppingClientAssignment,
     requests,
     setMissionSummaryOpen,
     openMissionTicketPicker,
@@ -8980,6 +9066,7 @@ function nh() {
     J, isDesktopLayout, layoutMode, themeMode, defaultBreakdownTemplate,
     profileSettingsForm, profileSettingsSaving,
     Al, w, missionSearch, fn, pa, Sa, copiedMissionClients, clientLookupById,
+    toggleShoppingClientAssignment, shoppingClientAssignmentSavingId,
     shipments, shipmentSearch, shipmentDetailLoadingIds, shipmentForm,
     shipmentSelectedProducts, shipmentEvidenceUploadingId, copiedClientShareLinks,
     shipmentSaving, openShipmentEvidenceMenuId, shipmentEvidenceReplacingId,
@@ -8998,6 +9085,7 @@ function nh() {
     getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
     openClientShoppingGallery, openClientPaymentModal,
     homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
+    shoppingClientAssignmentSavingId,
     missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
     missionTotalWithTaxes, missionTotalWithDiscount, missionHasAnyDiscount, newRequestText,
     newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
