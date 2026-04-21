@@ -168,7 +168,11 @@ const HomeSection = V.memo(function HomeSection() {
     if (!mission) return 0;
     const summaryMap = shoppingUnreadSummaryMap || {};
     const summary = summaryMap[String(mission.id)] || null;
-    return Array.isArray(summary && summary.product_ids) ? summary.product_ids.length : 0;
+    if (!summary || typeof summary !== 'object') return 0;
+    return Object.values(summary).reduce((total, clientSummary) => {
+      const productIds = clientSummary && clientSummary.product_ids;
+      return Array.isArray(productIds) ? total + productIds.length : total;
+    }, 0);
   };
 
   return c.jsxs('div', {
