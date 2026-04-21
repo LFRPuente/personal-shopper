@@ -1611,6 +1611,9 @@ function nh() {
             ) {
               queueCoreRefresh();
               queueSelectedClientRefresh();
+              refreshReviewsForCurrentContext().catch((ea) => {
+                console.error("Failed refreshing reviews after product update", ea);
+              });
             }
             if (currentView === "HOME" || currentView === "MISSIONS") {
               refreshUnreadSummaryForActiveMission().catch((ea) => {
