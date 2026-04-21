@@ -5790,9 +5790,20 @@ function nh() {
         setReviewConversationEntry({ review: A, product: vl }),
         setReviewConversationWahaEnabled(!1),
         setReviewConversationRecipientIds(
-          Array.isArray(defaultRecipientIds)
-            ? defaultRecipientIds.filter((value) => Number.isFinite(Number(value)) && Number(value) > 0)
-            : [],
+          (
+            Array.isArray(defaultRecipientIds) && defaultRecipientIds.length > 0
+              ? defaultRecipientIds
+              : (() => {
+                  const creatorId = Number(
+                    (W && W.shopper && W.shopper.id ? W.shopper.id : W && W.shopper ? W.shopper : 0) || 0,
+                  ) || null;
+                  const creatorUser = creatorId
+                    ? (users || []).find((value) => Number(value && value.id) === Number(creatorId))
+                    : null;
+                  const hasPhone = !!String((creatorUser && creatorUser.profile && creatorUser.profile.phone) || "").trim();
+                  return creatorId && hasPhone ? [creatorId] : [];
+                })()
+          ).filter((value) => Number.isFinite(Number(value)) && Number(value) > 0),
         ),
         setAltUploadReviewId(A ? A.id : null),
         setAltUploadProductId(vl ? vl.id : A && A.product ? A.product : null),

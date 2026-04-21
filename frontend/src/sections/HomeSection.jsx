@@ -651,7 +651,7 @@ const HomeSection = V.memo(function HomeSection() {
                     c.jsxs('p', {
                       className: isDesktopLayout ? 'truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300' : 'truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300',
                       children: [
-                        'Anotados: ',
+                        'TOTAL ANOTADOS: ',
                         missionProductsCount,
                       ],
                     }),

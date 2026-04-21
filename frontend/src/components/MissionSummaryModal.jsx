@@ -97,32 +97,6 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
             }),
           ],
         }),
-        c.jsxs("div", {
-          className:
-            "mb-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-semibold",
-          children: [
-            c.jsxs("div", {
-              className:
-                "rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200",
-              children: ["Todos: ", missionSummaryStatusCounts.ALL || 0],
-            }),
-            c.jsxs("div", {
-              className:
-                "rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200",
-              children: ["Anotado: ", missionSummaryStatusCounts.ANNOTATED || 0],
-            }),
-            c.jsxs("div", {
-              className:
-                "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700 dark:border-amber-800 dark:bg-amber-950/25 dark:text-amber-200",
-              children: ["Revision: ", missionSummaryStatusCounts.IN_REVIEW || 0],
-            }),
-            c.jsxs("div", {
-              className:
-                "rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 dark:border-rose-800 dark:bg-rose-950/25 dark:text-rose-200",
-              children: ["Rechazado: ", missionSummaryStatusCounts.REJECTED || 0],
-            }),
-          ],
-        }),
         activeMission &&
           c.jsx("div", {
             className:
