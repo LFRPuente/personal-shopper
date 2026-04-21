@@ -28,6 +28,7 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'missionTotalWithTaxes',
   'missionTotalWithDiscount',
   'missionHasAnyDiscount',
+  'activeMissionUnreadReviewMessageCount',
   'calcDiscount',
   'applyCalcDiscountChange',
   'newRequestText',
@@ -109,6 +110,7 @@ const HomeSection = V.memo(function HomeSection() {
     missionTotalWithTaxes,
     missionTotalWithDiscount,
     missionHasAnyDiscount,
+    activeMissionUnreadReviewMessageCount,
     calcDiscount,
     applyCalcDiscountChange,
     newRequestText,
@@ -611,11 +613,30 @@ const HomeSection = V.memo(function HomeSection() {
                               : 'border-border-light bg-white/80 text-text-sub hover:border-primary/40 hover:text-primary dark:border-border-dark dark:bg-slate-900/80 dark:text-slate-300'
                           }`,
                           children: [
-                            c.jsx('p', {
+                            c.jsxs('div', {
                               className: isDesktopLayout
-                                ? 'max-w-[240px] truncate text-[13px] font-black leading-tight uppercase tracking-[0.08em]'
-                                : 'truncate text-[9px] font-black leading-tight uppercase',
-                              children: String(getMissionStoreLabel(mission) || '').toUpperCase(),
+                                ? 'flex min-w-0 items-center gap-1.5'
+                                : 'flex min-w-0 items-center gap-1',
+                              children: [
+                                c.jsx('p', {
+                                  className: isDesktopLayout
+                                    ? 'max-w-[240px] truncate text-[13px] font-black leading-tight uppercase tracking-[0.08em]'
+                                    : 'truncate text-[9px] font-black leading-tight uppercase',
+                                  children: String(getMissionStoreLabel(mission) || '').toUpperCase(),
+                                }),
+                                activeMission &&
+                                Number(activeMission.id) === Number(mission.id) &&
+                                Number(activeMissionUnreadReviewMessageCount || 0) > 0 &&
+                                c.jsx('span', {
+                                  className: isDesktopLayout
+                                    ? 'inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-sm'
+                                    : 'inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm',
+                                  children:
+                                    Number(activeMissionUnreadReviewMessageCount || 0) > 99
+                                      ? '99+'
+                                      : activeMissionUnreadReviewMessageCount,
+                                }),
+                              ],
                             }),
                             c.jsx('p', {
                               className: isDesktopLayout

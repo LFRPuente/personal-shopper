@@ -7521,6 +7521,23 @@ function nh() {
         ? "Deuda"
         : "Sin saldo",
     missionReviewAlertCount = missionReviewAlerts.length,
+    activeMissionUnreadReviewMessageCount = V.useMemo(
+      () =>
+        (missionReviewAlerts || []).reduce((total, review) => {
+          const messages = Array.isArray(review && review.messages) ? review.messages : [];
+          if (!messages.length) return total;
+          const lastSeenMessageId = Number(
+            (review && review.current_user_last_seen_message_id) || 0,
+          );
+          const unreadCount = messages.reduce(
+            (count, message) =>
+              count + (Number(message && message.id) > lastSeenMessageId ? 1 : 0),
+            0,
+          );
+          return total + unreadCount;
+        }, 0),
+      [missionReviewAlerts],
+    ),
     isDesktopLayout = layoutMode === "WEB" && isWideViewport;
   V.useEffect(() => {
     homeDesktopLayoutRef.current = homeDesktopLayout;
@@ -9256,6 +9273,7 @@ function nh() {
     shoppingClientAssignmentSavingId,
     missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
     missionTotalWithTaxes, missionTotalWithDiscount, missionHasAnyDiscount, newRequestText,
+    activeMissionUnreadReviewMessageCount,
     newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
     homeClientSearch, homeClientMissionTotalsMap, homeClientGlobalBalanceMap,
     homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap,
