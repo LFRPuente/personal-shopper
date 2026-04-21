@@ -640,7 +640,21 @@ const HomeSection = V.memo(function HomeSection() {
                   className: 'min-w-0',
                   children: [
                     c.jsx('h3', { className: isDesktopLayout ? 'truncate font-bold text-lg text-text-main dark:text-white' : 'truncate font-bold text-sm text-text-main dark:text-white', children: 'Shopping en Tienda' }),
-                    c.jsx('p', { className: isDesktopLayout ? 'mt-0.5 truncate text-xs text-gray-500' : 'truncate text-[10px] text-gray-500', children: `${getMissionStoreLabel(activeMission)} • ${activeMission.status}${activeMissionPayerLabel ? ` • Paga: ${activeMissionPayerLabel}` : ''}` }),
+                    c.jsxs('p', {
+                      className: isDesktopLayout ? 'mt-0.5 truncate text-xs text-gray-500' : 'truncate text-[10px] text-gray-500',
+                      children: [
+                        getMissionStoreLabel(activeMission),
+                        ' • ACTIVE',
+                        activeMissionPayerLabel ? ` • ${activeMissionPayerLabel}` : '',
+                      ],
+                    }),
+                    c.jsxs('p', {
+                      className: isDesktopLayout ? 'truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300' : 'truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300',
+                      children: [
+                        'Anotados: ',
+                        missionProductsCount,
+                      ],
+                    }),
                   ],
                 }),
                 c.jsxs('div', {

@@ -326,9 +326,10 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                   }),
                   c.jsx('div', {
                     className: 'grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1',
-                    children: selectableUsers.length > 0
-                      ? selectableUsers.map((user) => {
+                  children: selectableUsers.length > 0
+                    ? selectableUsers.map((user) => {
                           const profile = user.profile || {};
+                          const hasPhone = !!String(profile.phone || '').trim();
                           const userLabel =
                             String(profile.display_name || '').trim() ||
                             String(user.username || '').trim() ||
@@ -338,12 +339,13 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                             'button',
                             {
                               type: 'button',
-                              onClick: () => toggleRecipient(user.id),
+                              onClick: () => hasPhone && toggleRecipient(user.id),
+                              disabled: !hasPhone,
                               className: `min-w-0 inline-flex items-center justify-between gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold transition ${
                                 checked
                                   ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
                                   : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                              }`,
+                              } ${!hasPhone ? 'opacity-50 cursor-not-allowed' : ''}`,
                               children: [
                                 c.jsx('span', {
                                   className: 'min-w-0 truncate text-left',

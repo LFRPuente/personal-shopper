@@ -5763,7 +5763,7 @@ function nh() {
         return null;
       }
     },
-    openProductConversation = (o, N = null) => {
+    openProductConversation = (o, N = null, defaultRecipientIds = []) => {
       if (!o && !N) return;
       const A = N || (o && latestReviewsByProduct[o.id]) || null,
         vl = o || (A && W && (W.products || []).find((El) => Number(El.id) === Number(A.product))) || null,
@@ -5786,10 +5786,14 @@ function nh() {
             body: JSON.stringify({}),
         }).catch((ea) => {
             console.error("Failed marking review conversation as seen", ea);
-          }),
+        }),
         setReviewConversationEntry({ review: A, product: vl }),
         setReviewConversationWahaEnabled(!1),
-        setReviewConversationRecipientIds([]),
+        setReviewConversationRecipientIds(
+          Array.isArray(defaultRecipientIds)
+            ? defaultRecipientIds.filter((value) => Number.isFinite(Number(value)) && Number(value) > 0)
+            : [],
+        ),
         setAltUploadReviewId(A ? A.id : null),
         setAltUploadProductId(vl ? vl.id : A && A.product ? A.product : null),
         setAltUploadTargetStatus(El),
@@ -5911,9 +5915,18 @@ function nh() {
     },
     sendProductToAv = (o) => {
       if (!o || X !== "PS") return;
+      const shoppingCreatorId = Number(
+        (w && w.shopper && w.shopper.id ? w.shopper.id : w && w.shopper ? w.shopper : 0) || 0,
+      ) || null;
+      const shoppingCreator = shoppingCreatorId
+        ? (users || []).find((value) => Number(value && value.id) === Number(shoppingCreatorId))
+        : null;
+      const hasCreatorPhone = !!String((shoppingCreator && shoppingCreator.profile && shoppingCreator.profile.phone) || "").trim();
+      const defaultConversationRecipientIds = shoppingCreatorId && hasCreatorPhone ? [shoppingCreatorId] : [];
       openProductConversation(
         o,
         latestReviewsByProduct[o.id] || null,
+        defaultConversationRecipientIds,
       );
     },
     markProductAnnotated = async (o, N = null) => {
@@ -6950,6 +6963,34 @@ function nh() {
           return N === "ANNOTATED";
         }),
       [activeMissionProducts],
+    ),
+    activeMissionReviewProducts = V.useMemo(
+      () =>
+        activeMissionProducts.filter(
+          (o) => String((o && o.status) || "").toUpperCase() === "IN_REVIEW",
+        ),
+      [activeMissionProducts],
+    ),
+    activeMissionRejectedProducts = V.useMemo(
+      () =>
+        activeMissionProducts.filter(
+          (o) => String((o && o.status) || "").toUpperCase() === "REJECTED",
+        ),
+      [activeMissionProducts],
+    ),
+    missionSummaryStatusCounts = V.useMemo(
+      () => ({
+        ALL: activeMissionProducts.length,
+        ANNOTATED: activeMissionSummaryProducts.length,
+        IN_REVIEW: activeMissionReviewProducts.length,
+        REJECTED: activeMissionRejectedProducts.length,
+      }),
+      [
+        activeMissionProducts.length,
+        activeMissionSummaryProducts.length,
+        activeMissionReviewProducts.length,
+        activeMissionRejectedProducts.length,
+      ],
     ),
     requestAssignableClients = V.useMemo(
       () =>
@@ -9358,6 +9399,7 @@ function nh() {
           activeMission: w,
           missionSummaryStatusFilter,
           setMissionSummaryStatusFilter,
+          missionSummaryStatusCounts,
           filteredMissionSummaryTotal,
           filteredMissionSummaryPurchaseTotal,
           filteredMissionSummaryProducts,
