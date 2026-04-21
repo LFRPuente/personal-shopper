@@ -29,6 +29,7 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'missionTotalWithDiscount',
   'missionHasAnyDiscount',
   'activeMissionUnreadReviewMessageCount',
+  'homeUnreadSummary',
   'shoppingUnreadSummaryMap',
   'calcDiscount',
   'applyCalcDiscountChange',
@@ -112,6 +113,7 @@ const HomeSection = V.memo(function HomeSection() {
     missionTotalWithDiscount,
     missionHasAnyDiscount,
     activeMissionUnreadReviewMessageCount,
+    homeUnreadSummary,
     shoppingUnreadSummaryMap,
     calcDiscount,
     applyCalcDiscountChange,
@@ -164,15 +166,24 @@ const HomeSection = V.memo(function HomeSection() {
   const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
-  const getShoppingUnreadReviewBadgeCount = (mission) => {
-    if (!mission) return 0;
-    const summaryMap = shoppingUnreadSummaryMap || {};
-    const summary = summaryMap[String(mission.id)] || null;
+  const countUnreadSummaryProducts = (summary) => {
     if (!summary || typeof summary !== 'object') return 0;
     return Object.values(summary).reduce((total, clientSummary) => {
       const productIds = clientSummary && clientSummary.product_ids;
       return Array.isArray(productIds) ? total + productIds.length : total;
     }, 0);
+  };
+  const getShoppingUnreadReviewBadgeCount = (mission) => {
+    if (!mission) return 0;
+    const summaryMap = shoppingUnreadSummaryMap || {};
+    const summary = summaryMap[String(mission.id)] || null;
+    const summaryCount = countUnreadSummaryProducts(summary);
+    if (summaryCount > 0) return summaryCount;
+    if (activeMission && Number(activeMission.id) === Number(mission.id)) {
+      const activeSummaryCount = countUnreadSummaryProducts(homeUnreadSummary);
+      if (activeSummaryCount > 0) return activeSummaryCount;
+    }
+    return summaryCount;
   };
 
   return c.jsxs('div', {

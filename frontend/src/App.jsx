@@ -9366,6 +9366,7 @@ function nh() {
     newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
     homeClientSearch, homeClientMissionTotalsMap, homeClientGlobalBalanceMap,
     homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap,
+    homeUnreadSummary,
     shoppingUnreadSummaryMap,
     Kl, j, W, publicClientShareToken, C,
   ]);
