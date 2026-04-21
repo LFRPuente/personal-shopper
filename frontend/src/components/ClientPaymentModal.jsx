@@ -179,13 +179,14 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
   };
 
   const renderHistoryRow = (row) => {
+    const rowData = row || {};
     const isEditing =
-      String(clientPaymentEntryEditingId || "") === String(row.id);
-    const allocations = Array.isArray(row.shopping_allocations)
-      ? row.shopping_allocations
+      String(clientPaymentEntryEditingId || "") === String(rowData.id);
+    const allocations = Array.isArray(rowData.shopping_allocations)
+      ? rowData.shopping_allocations
       : [];
     const isBatch =
-      String((row && row.entry_kind) || "").toUpperCase() === "CLIENT_BATCH";
+      String((rowData && rowData.entry_kind) || "").toUpperCase() === "CLIENT_BATCH";
 
     return c.jsxs(
       "div",
@@ -203,7 +204,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                     className:
                       "text-[11px] font-bold text-violet-700 dark:text-violet-200 truncate",
                     children:
-                      row.shopping_title || `Shopping #${row.shopping_id}`,
+                      rowData.shopping_title || `Shopping #${rowData.shopping_id}`,
                   }),
                   allocations.length > 0 &&
                     c.jsx("div", {
@@ -226,7 +227,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               ),
                             ],
                           },
-                          `client-payment-history-tag-${row.id}-${allocation.shopping_id}`,
+                          `client-payment-history-tag-${rowData.id}-${allocation.shopping_id}`,
                         ),
                       ),
                     }),
@@ -251,17 +252,17 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                             type: "button",
                             onClick: () => saveClientPaymentHistoryRow(row),
                             disabled:
-                              clientPaymentEntrySavingId === String(row.id),
+                              clientPaymentEntrySavingId === String(rowData.id),
                             className:
                               "w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center disabled:opacity-60",
                             children: c.jsx("span", {
                               className: `material-symbols-outlined text-[14px] ${
-                                clientPaymentEntrySavingId === String(row.id)
+                                clientPaymentEntrySavingId === String(rowData.id)
                                   ? "animate-spin"
                                   : ""
                               }`,
                               children:
-                                clientPaymentEntrySavingId === String(row.id)
+                                clientPaymentEntrySavingId === String(rowData.id)
                                   ? "progress_activity"
                                   : "check",
                             }),
@@ -270,7 +271,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                             type: "button",
                             onClick: cancelEditingClientPaymentEntry,
                             disabled:
-                              clientPaymentEntrySavingId === String(row.id),
+                              clientPaymentEntrySavingId === String(rowData.id),
                             className:
                               "w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-60",
                             children: c.jsx("span", {
@@ -285,20 +286,20 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         className:
                           "text-[12px] font-bold mt-0.5 text-emerald-700 dark:text-emerald-300",
                         children: [
-                          paymentLocalToNumber(row.amount, 0) < 0 ? "-$" : "+$",
+                          paymentLocalToNumber(rowData.amount, 0) < 0 ? "-$" : "+$",
                           formatAmount(
-                            Math.abs(paymentLocalToNumber(row.amount, 0)),
+                            Math.abs(paymentLocalToNumber(rowData.amount, 0)),
                           ),
                         ],
                       }),
                   c.jsxs("p", {
                     className: "text-[10px] text-text-sub mt-0.5",
                     children: [
-                      row.created_at
-                        ? new Date(row.created_at).toLocaleString()
+                      rowData.created_at
+                        ? new Date(rowData.created_at).toLocaleString()
                         : "Sin fecha",
-                      row.created_by_username
-                        ? ` - ${row.created_by_username}`
+                      rowData.created_by_username
+                        ? ` - ${rowData.created_by_username}`
                         : "",
                     ],
                   }),
@@ -312,7 +313,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                       "text-[10px] font-bold text-violet-700 dark:text-violet-200",
                     children: [
                       isBatch ? "Global $" : "Total $",
-                      formatAmount(paymentLocalToNumber(row.total_after, 0)),
+                      formatAmount(paymentLocalToNumber(rowData.total_after, 0)),
                     ],
                   }),
                   !isEditing &&
@@ -323,7 +324,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           type: "button",
                           onClick: () => startEditingClientPaymentEntry(row),
                           disabled:
-                            clientPaymentEntrySavingId === String(row.id),
+                            clientPaymentEntrySavingId === String(rowData.id),
                           className:
                             "w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center disabled:opacity-60",
                           children: c.jsx("span", {
@@ -336,17 +337,17 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           type: "button",
                           onClick: () => deleteClientPaymentHistoryRow(row),
                           disabled:
-                            clientPaymentEntrySavingId === String(row.id),
+                            clientPaymentEntrySavingId === String(rowData.id),
                           className:
                             "w-7 h-7 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center disabled:opacity-60",
                           children: c.jsx("span", {
                             className: `material-symbols-outlined text-[14px] ${
-                              clientPaymentEntrySavingId === String(row.id)
+                              clientPaymentEntrySavingId === String(rowData.id)
                                 ? "animate-spin"
                                 : ""
                             }`,
                             children:
-                              clientPaymentEntrySavingId === String(row.id)
+                              clientPaymentEntrySavingId === String(rowData.id)
                                 ? "progress_activity"
                                 : "delete",
                           }),
@@ -359,7 +360,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
           }),
         ],
       },
-      `client-payment-history-entry-${row.id}`,
+      `client-payment-history-entry-${rowData.id}`,
     );
   };
 
