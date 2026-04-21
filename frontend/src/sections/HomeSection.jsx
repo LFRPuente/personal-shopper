@@ -162,14 +162,18 @@ const HomeSection = V.memo(function HomeSection() {
   const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
-  const activeMissionUnreadReviewBadgeCount = V.useMemo(() => {
-    if (!activeMission) return 0;
-    return Object.entries(homeClientMissionProductsMap || {}).reduce((total, [clientId, products]) => {
-      if (!Array.isArray(products) || products.length === 0) return total;
-      const unreadCount = Object.keys(effectiveHomeClientReviewUnreadMap[clientId] || {}).length;
-      return unreadCount > 0 ? total + unreadCount : total;
+  const getShoppingUnreadReviewBadgeCount = (mission) => {
+    if (!mission) return 0;
+    const products = Array.isArray(mission.products)
+      ? mission.products
+      : [];
+    return products.reduce((total, product) => {
+      const clientId = Number(product && product.client) || 0;
+      if (!clientId) return total;
+      const unreadProducts = effectiveHomeClientReviewUnreadMap[clientId] || {};
+      return unreadProducts[product.id] ? total + 1 : total;
     }, 0);
-  }, [activeMission, homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap]);
+  };
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -640,17 +644,15 @@ const HomeSection = V.memo(function HomeSection() {
                                 : 'mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.08em] leading-tight opacity-80',
                               children: [
                                 String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
-                                activeMission &&
-                                Number(activeMission.id) === Number(mission.id) &&
-                                Number(activeMissionUnreadReviewBadgeCount || 0) > 0
+                                Number(getShoppingUnreadReviewBadgeCount(mission) || 0) > 0
                                   ? c.jsx('span', {
                                       className: isDesktopLayout
                                         ? 'ml-1 inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-sm align-middle'
                                         : 'ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm align-middle',
                                       children:
-                                        Number(activeMissionUnreadReviewBadgeCount || 0) > 99
+                                        Number(getShoppingUnreadReviewBadgeCount(mission) || 0) > 99
                                           ? '99+'
-                                          : activeMissionUnreadReviewBadgeCount,
+                                          : getShoppingUnreadReviewBadgeCount(mission),
                                     })
                                   : null,
                               ],
