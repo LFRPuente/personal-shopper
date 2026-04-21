@@ -65,7 +65,7 @@ const DEFAULT_CONTEXT = {
   isShipmentExpanded: () => false,
   shipmentHasHydratedDetail: () => false,
   shipmentDetailLoadingIds: [],
-  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', shipping_address: '', product_ids: [] },
+  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', includes_insurance: false, insurance_price: '', shipping_address: '', product_ids: [] },
   getShipmentFormState: () => null,
   shipmentSelectedProducts: [],
   toggleExpandedShipment: () => {},
@@ -596,7 +596,7 @@ function ShipmentExpandedPanel(props) {
         ],
       }),
       c.jsxs('div', {
-        className: 'grid grid-cols-1 sm:grid-cols-4 gap-2',
+        className: 'grid grid-cols-1 sm:grid-cols-3 gap-2',
         children: [
           c.jsxs('label', {
             className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
@@ -653,20 +653,61 @@ function ShipmentExpandedPanel(props) {
               }),
             ],
           }),
+          c.jsxs('div', {
+            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
+                children: 'Items',
+              }),
+              c.jsxs('p', {
+                className:
+                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
+                children: [selectedProducts.length || 0, ' producto(s)'],
+              }),
+            ],
+          }),
+        ],
+      }),
+      c.jsxs('div', {
+        className: 'grid grid-cols-1 sm:grid-cols-3 gap-2',
+        children: [
+          c.jsxs('label', {
+            className: 'rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-violet-700 dark:text-violet-300',
+                children: 'Incluye seguro',
+              }),
+              c.jsx('select', {
+                value: formState.includes_insurance ? 'true' : 'false',
+                onChange: (event) =>
+                  updateShipmentForm('includes_insurance', event.target.value === 'true'),
+                className:
+                  'mt-1 w-full bg-transparent text-xs font-semibold outline-none',
+                children: [
+                  c.jsx('option', { value: 'false', children: 'No' }, 'shipment-inline-insurance-no'),
+                  c.jsx('option', { value: 'true', children: 'Sí' }, 'shipment-inline-insurance-yes'),
+                ],
+              }),
+            ],
+          }),
           c.jsxs('label', {
             className: 'rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-2',
             children: [
               c.jsx('p', {
                 className:
                   'text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300',
-                children: 'Costo de compra',
+                children: 'Costo del seguro',
               }),
               c.jsx('input', {
                 type: 'text',
                 inputMode: 'decimal',
-                value: formState.guide_price,
+                value: formState.insurance_price,
                 onChange: (event) =>
-                  updateShipmentForm('guide_price', event.target.value),
+                  updateShipmentForm('insurance_price', event.target.value),
                 placeholder: '0.00',
                 className:
                   'mt-1 w-full bg-transparent text-xs font-semibold text-amber-800 dark:text-amber-200 outline-none',
@@ -691,21 +732,6 @@ function ShipmentExpandedPanel(props) {
                 placeholder: '0.00',
                 className:
                   'mt-1 w-full bg-transparent text-xs font-semibold text-emerald-800 dark:text-emerald-200 outline-none',
-              }),
-            ],
-          }),
-          c.jsxs('div', {
-            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
-            children: [
-              c.jsx('p', {
-                className:
-                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
-                children: 'Items',
-              }),
-              c.jsxs('p', {
-                className:
-                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
-                children: [selectedProducts.length || 0, ' producto(s)'],
               }),
             ],
           }),

@@ -448,6 +448,8 @@ function nh() {
       tracking_number: "",
       guide_price: "",
       client_price: "",
+      includes_insurance: !1,
+      insurance_price: "",
       shipping_address: "",
       product_ids: [],
       initial_product_ids: [],
@@ -3993,6 +3995,11 @@ function nh() {
           o && o.client_price !== null && typeof o.client_price != "undefined"
             ? String(o.client_price)
             : "",
+        includes_insurance: !!(o && o.includes_insurance),
+        insurance_price:
+          o && o.insurance_price !== null && typeof o.insurance_price != "undefined"
+            ? String(o.insurance_price)
+            : "",
         shipping_address: (o && o.shipping_address) || "",
         product_ids: [],
         initial_product_ids: [],
@@ -4052,6 +4059,10 @@ function nh() {
         String(shipmentForm.client_price || "").trim() === ""
           ? null
           : String(shipmentForm.client_price || "").trim();
+      const insurancePriceValue =
+        String(shipmentForm.insurance_price || "").trim() === ""
+          ? null
+          : String(shipmentForm.insurance_price || "").trim();
       if (!o) {
         notifyInfo("Selecciona un cliente.");
         return;
@@ -4097,6 +4108,8 @@ function nh() {
               ).trim(),
               guide_price: A,
               client_price: vl,
+              includes_insurance: !!shipmentForm.includes_insurance,
+              insurance_price: insurancePriceValue,
               shipping_address: String(
                 shipmentForm.shipping_address || "",
               ).trim(),

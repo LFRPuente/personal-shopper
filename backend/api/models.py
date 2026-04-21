@@ -522,6 +522,8 @@ class Shipment(models.Model):
     tracking_number = models.CharField(max_length=120, blank=True, null=True)
     guide_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     client_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    includes_insurance = models.BooleanField(default=False)
+    insurance_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     shipping_address = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20,

@@ -171,7 +171,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
               ],
             }),
             c.jsxs("div", {
-              className: "grid grid-cols-1 sm:grid-cols-4 gap-3",
+              className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
               children: [
                 c.jsxs("label", {
                   className: "block",
@@ -240,6 +240,61 @@ const ShipmentModal = V.memo(function ShipmentModal({
                       inputMode: "decimal",
                       value: shipmentForm.guide_price,
                       onChange: (o) => updateShipmentForm("guide_price", o.target.value),
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            c.jsxs("div", {
+              className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
+              children: [
+                c.jsxs("label", {
+                  className: "block",
+                  children: [
+                    c.jsx("span", {
+                      className: "text-[11px] font-semibold text-text-sub",
+                      children: "Incluye seguro",
+                    }),
+                    c.jsx("select", {
+                      value: shipmentForm.includes_insurance ? "true" : "false",
+                      onChange: (o) =>
+                        updateShipmentForm(
+                          "includes_insurance",
+                          o.target.value === "true",
+                        ),
+                      style: DARK_NATIVE_SELECT_STYLE,
+                      className:
+                        "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl border-slate-700 bg-slate-900 text-white outline-none focus:ring-2 focus:ring-primary/40",
+                      children: [
+                        c.jsx("option", {
+                          value: "false",
+                          style: NATIVE_DROPDOWN_OPTION_STYLE,
+                          children: "No",
+                        }, "shipment-insurance-no"),
+                        c.jsx("option", {
+                          value: "true",
+                          style: NATIVE_DROPDOWN_OPTION_STYLE,
+                          children: "Sí",
+                        }, "shipment-insurance-yes"),
+                      ],
+                    }),
+                  ],
+                }),
+                c.jsxs("label", {
+                  className: "block",
+                  children: [
+                    c.jsx("span", {
+                      className: "text-[11px] font-semibold text-text-sub",
+                      children: "Costo del seguro",
+                    }),
+                    c.jsx("input", {
+                      type: "text",
+                      inputMode: "decimal",
+                      value: shipmentForm.insurance_price,
+                      onChange: (o) =>
+                        updateShipmentForm("insurance_price", o.target.value),
                       className:
                         "mt-1 w-full px-3 py-2.5 text-sm border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary/40",
                     }),
