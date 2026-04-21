@@ -398,19 +398,9 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                           c.jsxs("div", {
                             className: "min-w-0",
                             children: [
-                              c.jsx("p", { className: "text-xs text-text-sub dark:text-slate-400 truncate", children: client.tags }),
-                              c.jsxs("div", {
-                                className: "mt-1.5 space-y-0.5",
-                                children: [
-                                  c.jsxs("p", {
-                                    className: `inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold ${selectedClientHomeGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : selectedClientHomeGlobalBalance > 0 ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"}`,
-                                    children: [selectedClientHomeGlobalBalance < 0 ? "A favor: " : "Deuda: ", "$", formatAmount(Math.abs(selectedClientHomeGlobalBalance))],
-                                  }),
-                                  c.jsxs("p", {
-                                    className: "inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-blue-700 dark:text-blue-300",
-                                    children: ["Venta: $", formatAmount(selectedClientHomeAnnotatedTotals.sale)],
-                                  }),
-                                ],
+                              c.jsx("p", {
+                                className: "text-sm font-bold text-text-main dark:text-white truncate",
+                                children: client.name,
                               }),
                             ],
                           }),

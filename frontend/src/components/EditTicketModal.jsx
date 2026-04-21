@@ -121,7 +121,7 @@ const EditTicketModal = V.memo(function EditTicketModal({
                       }),
                       c.jsx("span", {
                         className: "text-sm font-medium",
-                        children: "Shipping Paid",
+                        children: "Shopping pagado por",
                       }),
                     ],
                   }),

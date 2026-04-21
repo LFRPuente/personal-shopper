@@ -2886,7 +2886,7 @@ function nh() {
               ? String(ElScopedShoppingId)
               : "",
           store: Se,
-          status: normalizeProductModalStatus(vl),
+          status: vl,
           discount_uses_global: productDefaultDiscount > 0,
           discount_percentage: productDefaultDiscount > 0
             ? productDefaultDiscount.toFixed(2)
@@ -4637,6 +4637,12 @@ function nh() {
     paymentModalDiscountPercent = paymentLocalShoppingDiscount(
       paymentModalShopping || paymentForm.shopping,
     ),
+    paymentModalClientGlobalBalance = paymentModalClient
+      ? getClientShoppingHistoryEntries(paymentModalClient).reduce(
+        (o, N) => o + toNumber(N && N.balance, 0),
+        0,
+      )
+      : 0,
     paymentModalProducts = paymentModalClient && paymentForm.shopping
       ? paymentLocalShoppingProducts(
         paymentModalClient,
@@ -7611,7 +7617,6 @@ function nh() {
       : publicClientBalanceTotal > 0
         ? "Deuda"
         : "Sin saldo",
-    missionReviewAlertCount = missionReviewAlerts.length,
     activeMissionUnreadReviewMessageCount = V.useMemo(
       () =>
         (missionReviewAlerts || []).reduce((total, review) => {
@@ -7628,6 +7633,17 @@ function nh() {
           return total + unreadCount;
         }, 0),
       [missionReviewAlerts],
+    ),
+    missionReviewUnreadMessageCount = (missionReviewAlerts || []).reduce(
+      (o, N) => {
+        const A = String((N && N.current_user_last_seen_message_at) || "");
+        const vl = Array.isArray(N && N.messages) ? N.messages : [];
+        return o + vl.reduce((El, Se) => {
+          const ea = `REVIEW:${Se && Se.created_at ? Se.created_at : ""}`;
+          return isReviewTokenUnread(ea, A ? `REVIEW:${A}` : "") ? El + 1 : El;
+        }, 0);
+      },
+      0,
     ),
     isDesktopLayout = layoutMode === "WEB" && isWideViewport;
   V.useEffect(() => {
@@ -9277,6 +9293,8 @@ function nh() {
     setMissionSummaryOpen,
     openMissionTicketPicker,
     missionTicketUploading,
+    activeMissionUnreadReviewMessageCount,
+    missionReviewUnreadMessageCount: activeMissionUnreadReviewMessageCount,
     activeMissionPayerLabel,
     missionProductsCount,
     missionPurchaseCost,
@@ -9360,7 +9378,7 @@ function nh() {
     copyClientMissionShareLink, copyMissionBreakdown, openPaymentModal, copyAnnotatedMissionBreakdown,
     getHomeVisibleProducts, getHomeClientTotals, getClientShoppingHistoryEntries,
     openClientShoppingGallery, openClientPaymentModal,
-    homeDesktopLayout, requests, missionTicketUploading, activeMissionPayerLabel,
+    homeDesktopLayout, requests, missionTicketUploading, activeMissionUnreadReviewMessageCount, activeMissionPayerLabel,
     shoppingClientAssignmentSavingId,
     missionProductsCount, missionPurchaseCost, missionPurchaseCostWithDiscount,
     missionTotalWithTaxes, missionTotalWithDiscount, missionHasAnyDiscount, newRequestText,
@@ -9866,6 +9884,7 @@ function nh() {
           paymentModalShopping,
           paymentModalProducts,
           paymentModalDiscountPercent,
+          paymentModalClientGlobalBalance,
           paymentReservedProductIds,
           paymentFilteredProducts,
           paymentSelectedProducts,

@@ -13,6 +13,7 @@ const PaymentModal = V.memo(function PaymentModal(props) {
     paymentModalShopping,
     paymentModalProducts,
     paymentModalDiscountPercent,
+    paymentModalClientGlobalBalance = 0,
     paymentReservedProductIds,
     paymentFilteredProducts,
     paymentSelectedProducts,
@@ -581,17 +582,20 @@ const PaymentModal = V.memo(function PaymentModal(props) {
                   children: [
                     c.jsxs("div", {
                       className:
-                        "rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2",
+                        `rounded-2xl border px-3 py-2 ${paymentModalClientGlobalBalance < 0 ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900" : paymentModalClientGlobalBalance > 0 ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800" : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900"}`,
                       children: [
                         c.jsx("p", {
                           className:
-                            "text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300",
-                          children: "Deuda",
+                            `text-[10px] uppercase font-bold ${paymentModalClientGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-300" : paymentModalClientGlobalBalance > 0 ? "text-slate-700 dark:text-slate-300" : "text-emerald-700 dark:text-emerald-300"}`,
+                          children: paymentModalClientGlobalBalance < 0 ? "A favor" : "Deuda",
                         }),
                         c.jsxs("p", {
                           className:
-                            "text-lg font-bold text-blue-700 dark:text-blue-100 mt-1",
-                          children: ["$", formatAmount(paymentSelectedProductsTotal)],
+                            `text-lg font-bold mt-1 ${paymentModalClientGlobalBalance < 0 ? "text-emerald-700 dark:text-emerald-100" : paymentModalClientGlobalBalance > 0 ? "text-slate-700 dark:text-slate-100" : "text-emerald-700 dark:text-emerald-100"}`,
+                          children: [
+                            "$",
+                            formatAmount(Math.abs(paymentModalClientGlobalBalance)),
+                          ],
                         }),
                       ],
                     }),
