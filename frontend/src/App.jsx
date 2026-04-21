@@ -1615,14 +1615,12 @@ function nh() {
                 console.error("Failed refreshing reviews after product update", ea);
               });
             }
-            if (currentView === "HOME" || currentView === "MISSIONS") {
-              refreshUnreadSummaryForActiveMission().catch((ea) => {
-                console.error("Failed refreshing unread summary", ea);
-              });
-              refreshUnreadSummaryForOpenShoppings().catch((ea) => {
-                console.error("Failed refreshing unread summaries for open shoppings", ea);
-              });
-            }
+            refreshUnreadSummaryForActiveMission().catch((ea) => {
+              console.error("Failed refreshing unread summary", ea);
+            });
+            refreshUnreadSummaryForOpenShoppings().catch((ea) => {
+              console.error("Failed refreshing unread summaries for open shoppings", ea);
+            });
             return;
           }
           if (vl === "requests") {
@@ -1646,14 +1644,12 @@ function nh() {
                 console.error("Failed refreshing reviews", ea);
               });
             }
-            if (currentView === "HOME" || currentView === "MISSIONS") {
-              refreshUnreadSummaryForActiveMission().catch((ea) => {
-                console.error("Failed refreshing unread summary", ea);
-              });
-              refreshUnreadSummaryForOpenShoppings().catch((ea) => {
-                console.error("Failed refreshing unread summaries for open shoppings", ea);
-              });
-            }
+            refreshUnreadSummaryForActiveMission().catch((ea) => {
+              console.error("Failed refreshing unread summary", ea);
+            });
+            refreshUnreadSummaryForOpenShoppings().catch((ea) => {
+              console.error("Failed refreshing unread summaries for open shoppings", ea);
+            });
             return;
           }
           if (vl === "stores") {
