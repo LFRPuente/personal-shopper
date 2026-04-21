@@ -253,7 +253,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         children: [
                                           'Creado por: ',
                                           mission.shopper_name || 'Sin dato',
-                                          ' • Shipping pagado por: ',
+                                          ' • Shopping pagado por: ',
                                           mission.payer_username || 'Sin dato',
                                         ],
                                       }),

@@ -2801,12 +2801,14 @@ function nh() {
               : (w && w.id) || ""),
         ),
         Se =
-          typeof A.formStatus === "string" && A.formStatus.trim()
-            ? normalizeProductModalStatus(A.formStatus)
-            : getProductReviewState(
-              o,
-              o && o.id ? latestReviewsByProduct[o.id] || null : null,
-            ),
+          getUnifiedReviewState(
+            typeof A.formStatus === "string" && A.formStatus.trim()
+              ? A.formStatus
+              : getProductReviewState(
+                o,
+                o && o.id ? latestReviewsByProduct[o.id] || null : null,
+              ),
+          ),
         ea =
           !!SeChargedPrice &&
           (!computedFinalPriceText || SeChargedPrice !== computedFinalPriceText);
