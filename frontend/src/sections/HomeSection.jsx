@@ -166,7 +166,8 @@ const HomeSection = V.memo(function HomeSection() {
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
   const getShoppingUnreadReviewBadgeCount = (mission) => {
     if (!mission) return 0;
-    const summary = shoppingUnreadSummaryMap[String(mission.id)] || null;
+    const summaryMap = shoppingUnreadSummaryMap || {};
+    const summary = summaryMap[String(mission.id)] || null;
     return Array.isArray(summary && summary.product_ids) ? summary.product_ids.length : 0;
   };
 
