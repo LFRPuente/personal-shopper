@@ -182,6 +182,9 @@ const HomeSection = V.memo(function HomeSection() {
     if (activeMission && Number(activeMission.id) === Number(mission.id)) {
       const activeSummaryCount = countUnreadSummaryProducts(homeUnreadSummary);
       if (activeSummaryCount > 0) return activeSummaryCount;
+      if (Number(activeMissionUnreadReviewMessageCount || 0) > 0) {
+        return Number(activeMissionUnreadReviewMessageCount || 0);
+      }
     }
     return summaryCount;
   };
