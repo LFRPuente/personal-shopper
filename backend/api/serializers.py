@@ -717,6 +717,7 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
             'client_price',
             'includes_insurance',
             'insurance_price',
+            'insurance_sale_price',
             'shipping_address',
             'evidence',
             'updated_at',
@@ -895,6 +896,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
             'client_price': {'required': False, 'allow_null': True},
             'includes_insurance': {'required': False},
             'insurance_price': {'required': False, 'allow_null': True},
+            'insurance_sale_price': {'required': False, 'allow_null': True},
             'shipping_address': {'required': False, 'allow_null': True, 'allow_blank': True},
             'products': {'required': False},
         }
@@ -938,6 +940,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
             'client_price',
             'includes_insurance',
             'insurance_price',
+            'insurance_sale_price',
             'shipping_address',
             'status',
             'product_count',

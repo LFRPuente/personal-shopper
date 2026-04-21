@@ -65,7 +65,7 @@ const DEFAULT_CONTEXT = {
   isShipmentExpanded: () => false,
   shipmentHasHydratedDetail: () => false,
   shipmentDetailLoadingIds: [],
-  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', includes_insurance: false, insurance_price: '', shipping_address: '', product_ids: [] },
+  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', includes_insurance: false, insurance_price: '', insurance_sale_price: '', shipping_address: '', product_ids: [] },
   getShipmentFormState: () => null,
   shipmentSelectedProducts: [],
   toggleExpandedShipment: () => {},
@@ -596,7 +596,7 @@ function ShipmentExpandedPanel(props) {
         ],
       }),
       c.jsxs('div', {
-        className: 'grid grid-cols-1 sm:grid-cols-3 gap-2',
+        className: 'grid grid-cols-1 sm:grid-cols-4 gap-2',
         children: [
           c.jsxs('label', {
             className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
@@ -653,61 +653,20 @@ function ShipmentExpandedPanel(props) {
               }),
             ],
           }),
-          c.jsxs('div', {
-            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
-            children: [
-              c.jsx('p', {
-                className:
-                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
-                children: 'Items',
-              }),
-              c.jsxs('p', {
-                className:
-                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
-                children: [selectedProducts.length || 0, ' producto(s)'],
-              }),
-            ],
-          }),
-        ],
-      }),
-      c.jsxs('div', {
-        className: 'grid grid-cols-1 sm:grid-cols-3 gap-2',
-        children: [
-          c.jsxs('label', {
-            className: 'rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-2',
-            children: [
-              c.jsx('p', {
-                className:
-                  'text-[10px] uppercase font-bold text-violet-700 dark:text-violet-300',
-                children: 'Incluye seguro',
-              }),
-              c.jsx('select', {
-                value: formState.includes_insurance ? 'true' : 'false',
-                onChange: (event) =>
-                  updateShipmentForm('includes_insurance', event.target.value === 'true'),
-                className:
-                  'mt-1 w-full bg-transparent text-xs font-semibold outline-none',
-                children: [
-                  c.jsx('option', { value: 'false', children: 'No' }, 'shipment-inline-insurance-no'),
-                  c.jsx('option', { value: 'true', children: 'Sí' }, 'shipment-inline-insurance-yes'),
-                ],
-              }),
-            ],
-          }),
           c.jsxs('label', {
             className: 'rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-2',
             children: [
               c.jsx('p', {
                 className:
                   'text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300',
-                children: 'Costo del seguro',
+                children: 'Costo de compra',
               }),
               c.jsx('input', {
                 type: 'text',
                 inputMode: 'decimal',
-                value: formState.insurance_price,
+                value: formState.guide_price,
                 onChange: (event) =>
-                  updateShipmentForm('insurance_price', event.target.value),
+                  updateShipmentForm('guide_price', event.target.value),
                 placeholder: '0.00',
                 className:
                   'mt-1 w-full bg-transparent text-xs font-semibold text-amber-800 dark:text-amber-200 outline-none',
@@ -735,6 +694,108 @@ function ShipmentExpandedPanel(props) {
               }),
             ],
           }),
+          c.jsxs('div', {
+            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
+                children: 'Items',
+              }),
+              c.jsxs('p', {
+                className:
+                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
+                children: [selectedProducts.length || 0, ' producto(s)'],
+              }),
+            ],
+          }),
+        ],
+      }),
+      c.jsxs('div', {
+        className: 'grid grid-cols-1 gap-2',
+        children: [
+          c.jsxs('label', {
+            className: 'rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-2',
+            children: [
+              c.jsx('p', {
+                className:
+                  'text-[10px] uppercase font-bold text-violet-700 dark:text-violet-300',
+                children: 'Incluye seguro',
+              }),
+              c.jsxs('button', {
+                type: 'button',
+                role: 'switch',
+                'aria-checked': formState.includes_insurance,
+                onClick: () =>
+                  updateShipmentForm(
+                    'includes_insurance',
+                    !formState.includes_insurance,
+                  ),
+                className:
+                  `mt-1 inline-flex h-10 w-full items-center justify-between rounded-xl border px-3 text-xs font-semibold transition ${formState.includes_insurance ? 'border-primary/40 bg-primary/10 text-primary' : 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'}`,
+                children: [
+                  c.jsx('span', {
+                    children: formState.includes_insurance ? 'Sí' : 'No',
+                  }),
+                  c.jsx('span', {
+                    className:
+                      `inline-flex h-5 w-10 items-center rounded-full p-0.5 transition ${formState.includes_insurance ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`,
+                    children: c.jsx('span', {
+                      className:
+                        `h-4 w-4 rounded-full bg-white shadow transition ${formState.includes_insurance ? 'translate-x-5' : 'translate-x-0'}`,
+                    }),
+                  }),
+                ],
+              }),
+            ],
+          }),
+          formState.includes_insurance &&
+            c.jsxs('div', {
+              className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
+              children: [
+                c.jsxs('label', {
+                  className: 'rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2.5 py-2',
+                  children: [
+                    c.jsx('p', {
+                      className:
+                        'text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300',
+                      children: 'Costo del seguro',
+                    }),
+                    c.jsx('input', {
+                      type: 'text',
+                      inputMode: 'decimal',
+                      value: formState.insurance_price,
+                      onChange: (event) =>
+                        updateShipmentForm('insurance_price', event.target.value),
+                      placeholder: '0.00',
+                      className:
+                        'mt-1 w-full bg-transparent text-xs font-semibold text-amber-800 dark:text-amber-200 outline-none',
+                    }),
+                  ],
+                }),
+                c.jsxs('label', {
+                  className:
+                    'rounded-lg bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-2',
+                  children: [
+                    c.jsx('p', {
+                      className:
+                        'text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300',
+                      children: 'Costo de venta',
+                    }),
+                    c.jsx('input', {
+                      type: 'text',
+                      inputMode: 'decimal',
+                      value: formState.insurance_sale_price,
+                      onChange: (event) =>
+                        updateShipmentForm('insurance_sale_price', event.target.value),
+                      placeholder: '0.00',
+                      className:
+                        'mt-1 w-full bg-transparent text-xs font-semibold text-emerald-800 dark:text-emerald-200 outline-none',
+                    }),
+                  ],
+                }),
+              ],
+            }),
         ],
       }),
       c.jsxs('label', {

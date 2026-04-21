@@ -450,6 +450,7 @@ function nh() {
       client_price: "",
       includes_insurance: !1,
       insurance_price: "",
+      insurance_sale_price: "",
       shipping_address: "",
       product_ids: [],
       initial_product_ids: [],
@@ -4000,6 +4001,11 @@ function nh() {
           o && o.insurance_price !== null && typeof o.insurance_price != "undefined"
             ? String(o.insurance_price)
             : "",
+        insurance_sale_price:
+          o && o.insurance_sale_price !== null &&
+          typeof o.insurance_sale_price != "undefined"
+            ? String(o.insurance_sale_price)
+            : "",
         shipping_address: (o && o.shipping_address) || "",
         product_ids: [],
         initial_product_ids: [],
@@ -4063,6 +4069,10 @@ function nh() {
         String(shipmentForm.insurance_price || "").trim() === ""
           ? null
           : String(shipmentForm.insurance_price || "").trim();
+      const insuranceSalePriceValue =
+        String(shipmentForm.insurance_sale_price || "").trim() === ""
+          ? null
+          : String(shipmentForm.insurance_sale_price || "").trim();
       if (!o) {
         notifyInfo("Selecciona un cliente.");
         return;
@@ -4110,6 +4120,7 @@ function nh() {
               client_price: vl,
               includes_insurance: !!shipmentForm.includes_insurance,
               insurance_price: insurancePriceValue,
+              insurance_sale_price: insuranceSalePriceValue,
               shipping_address: String(
                 shipmentForm.shipping_address || "",
               ).trim(),
