@@ -652,7 +652,7 @@ function nh() {
         zl(A || []);
         setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         setUsers(Vs || []);
-        Dl(resolveSelectedShopping(A || []));
+        Dl(resolveSelectedShopping(A || [], activeMissionIdRef.current));
       } catch (o) {
         console.error("Failed loading data", o);
       }
@@ -1287,7 +1287,7 @@ function nh() {
         _l(N || []);
         zl(A || []);
         setUsers(Vs || []);
-        const vl = resolveSelectedShopping(A || []);
+        const vl = resolveSelectedShopping(A || [], activeMissionIdRef.current);
         Dl(vl || null);
         // Inline calc sync to avoid extra render cycle from the calc sync effect
         if (vl) {
