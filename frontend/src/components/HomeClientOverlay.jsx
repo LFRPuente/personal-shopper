@@ -1,4 +1,5 @@
 import { V, c } from "../utils.js";
+import HomeClientGalleryPanel from "./HomeClientGalleryPanel.jsx";
 
 const fmt = (value) => {
   const n = Number(value);
@@ -336,28 +337,6 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
   const overlayKey = "client-home";
   const copyKey = `client-history-${client.id}`;
   const isCopied = copiedClientShareLinks.includes(copyKey);
-  const galleryTabConfig = {
-    REVIEW: {
-      label: "Revision",
-      count: galleryReviewCount,
-      title: "Productos en revision",
-    },
-    ANNOTATED: {
-      label: "Anotado",
-      count: galleryAnnotatedCount,
-      title: "Productos anotados",
-    },
-    REJECTED: {
-      label: "Rechazado",
-      count: galleryRejectedCount,
-      title: "Productos rechazados",
-    },
-  };
-  const orderedGalleryTabs = (Array.isArray(galleryTabOrder) && galleryTabOrder.length
-    ? galleryTabOrder
-    : DEFAULT_GALLERY_TAB_ORDER
-  ).filter((status) => galleryTabConfig[status]);
-  const activeGalleryTab = galleryTabConfig[galleryTab] || galleryTabConfig.ANNOTATED;
 
   return c.jsxs("div", {
     className: overlayBackdropClass(
@@ -393,20 +372,10 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                     children: c.jsx("button", {
                       onClick: onRefresh,
                       className: "opacity-50 hover:opacity-100",
-                      children: c.jsx("span", { className: "material-symbols-outlined", children: "refresh" }),
+                    children: c.jsx("span", { className: "material-symbols-outlined", children: "refresh" }),
                     }),
                   }),
                 ],
-              }),
-              c.jsxs("div", {
-                className: isDesktopLayout ? "flex px-6 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-3 overflow-x-auto" : "flex px-4 gap-6 text-sm font-bold border-t border-border-light dark:border-border-dark pt-2",
-                children: orderedGalleryTabs.map((status) =>
-                  c.jsxs("button", {
-                    onClick: () => setGalleryTab(status),
-                    className: `pb-3 border-b-2 transition-colors ${galleryTab === status ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"}`,
-                    children: [galleryTabConfig[status].label, " (", galleryTabConfig[status].count, ")"],
-                  }, status),
-                ),
               }),
             ],
           }),
@@ -475,75 +444,71 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                   }),
                 ],
               }),
-              c.jsxs("div", {
-                className: isDesktopLayout ? "animate-in fade-in duration-200 space-y-4" : "animate-in fade-in duration-200",
-                children: [
-                  c.jsxs("div", {
-                    className: "mb-4",
-                    children: [
-                      c.jsx("h4", { className: "font-bold text-lg", children: activeGalleryTab.title }),
-                      c.jsxs("p", { className: "text-xs text-gray-500 mt-1", children: ["Anotado: ", galleryAnnotatedCount, " - Revision: ", galleryReviewCount, " - Rechazado: ", galleryRejectedCount] }),
-                    ],
-                  }),
-                  c.jsxs("div", {
-                    className: isDesktopLayout ? "grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3" : "grid grid-cols-3 gap-1",
-                    children: [
-                      sortedVisibleGalleryProducts.map((product) => {
-                        const reviewEntry = latestReviewsByProduct[product.id];
-                        const unread = !!(effectiveHomeClientReviewUnreadMap[client.id] || {})[product.id];
-                        const currentGalleryStatus = getUnifiedReviewState(getProductReviewState(product, reviewEntry || null));
-                        const galleryStatusActions = getChatStatusActionOptions(currentGalleryStatus);
-                        const galleryStatusButtonTone = currentGalleryStatus === "REVIEW"
-                          ? "bg-amber-100/88 text-amber-800 border-amber-200/80 hover:bg-amber-100"
-                          : currentGalleryStatus === "REJECTED"
-                            ? "bg-rose-100/88 text-rose-800 border-rose-200/80 hover:bg-rose-100"
-                            : "bg-emerald-100/88 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100";
-                        return c.jsx(HomeClientProductCard, {
-                          product,
-                          reviewEntry,
-                          unread,
-                          currentGalleryStatus,
-                          galleryStatusActions,
-                          galleryStatusButtonTone,
-                          isDesktopLayout,
-                          openProductMenuId,
-                          openProductInfoId,
-          openProductStatusId,
-          productImageUploadingId,
-          productStatusUpdatingId,
-          resolveMediaUrl,
-          setFullscreenImage,
-          onToggleProductMenu,
-          onToggleProductInfo,
-          onToggleProductStatus,
-          onEditProduct,
-          onChangeProductPhoto,
-          onDeleteProduct,
-          onOpenConversation,
-          onSetProductStatus,
-          getReviewFlowLabel,
-                          getProductImagePrimaryPrice,
-                          hasProductDiscountedFinalPrice,
-                          getProductBaseFinalPrice,
-                          formatProductQuickFinalPrice,
-                          parseVisualTag,
-                          getTagClassName,
-                          hasValue,
-                          formatAmount,
-                        }, product.id);
-                      }),
-                      c.jsxs("div", {
-                        onClick: newProductUploading ? void 0 : onAddNewProduct,
-                        className: `bg-gray-50 dark:bg-gray-800 ${isDesktopLayout ? "rounded-2xl h-52" : "rounded-lg h-40"} flex flex-col items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 transition group ${newProductUploading ? "cursor-wait opacity-75 border-primary/40" : "cursor-pointer hover:bg-primary/5 hover:border-primary/40"}`,
-                        children: [
-                          c.jsx("span", { className: `material-symbols-outlined text-3xl text-primary mb-2 transition-transform ${newProductUploading ? "animate-spin" : "group-hover:scale-110"}`, children: newProductUploading ? "progress_activity" : "add_photo_alternate" }),
-                          c.jsx("span", { className: "text-sm font-semibold text-center px-4", children: newProductUploading ? "Subiendo imagen..." : userRole === "PS" ? "+ Photo / Found Product" : "+ Photo / Pre-order" }),
-                          newProductUploading && c.jsx("span", { className: "text-[11px] text-text-sub mt-1 px-4 text-center", children: "No cierres la ventana hasta que termine la carga." }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
+              c.jsx(HomeClientGalleryPanel, {
+                isDesktopLayout,
+                client,
+                galleryTab,
+                setGalleryTab,
+                galleryTabOrder,
+                galleryReviewCount,
+                galleryAnnotatedCount,
+                galleryRejectedCount,
+                sortedVisibleGalleryProducts,
+                latestReviewsByProduct,
+                effectiveHomeClientReviewUnreadMap,
+                onAddNewProduct,
+                newProductUploading,
+                userRole,
+                renderProductCard: ({ product, reviewEntry, unread }) => {
+                  const currentGalleryStatus = getUnifiedReviewState(
+                    getProductReviewState(product, reviewEntry || null),
+                  );
+                  const galleryStatusActions =
+                    getChatStatusActionOptions(currentGalleryStatus);
+                  const galleryStatusButtonTone =
+                    currentGalleryStatus === "REVIEW"
+                      ? "bg-amber-100/88 text-amber-800 border-amber-200/80 hover:bg-amber-100"
+                      : currentGalleryStatus === "REJECTED"
+                        ? "bg-rose-100/88 text-rose-800 border-rose-200/80 hover:bg-rose-100"
+                        : "bg-emerald-100/88 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100";
+                  return c.jsx(
+                    HomeClientProductCard,
+                    {
+                      product,
+                      reviewEntry,
+                      unread,
+                      currentGalleryStatus,
+                      galleryStatusActions,
+                      galleryStatusButtonTone,
+                      isDesktopLayout,
+                      openProductMenuId,
+                      openProductInfoId,
+                      openProductStatusId,
+                      productImageUploadingId,
+                      productStatusUpdatingId,
+                      resolveMediaUrl,
+                      setFullscreenImage,
+                      onToggleProductMenu,
+                      onToggleProductInfo,
+                      onToggleProductStatus,
+                      onEditProduct,
+                      onChangeProductPhoto,
+                      onDeleteProduct,
+                      onOpenConversation,
+                      onSetProductStatus,
+                      getReviewFlowLabel,
+                      getProductImagePrimaryPrice,
+                      hasProductDiscountedFinalPrice,
+                      getProductBaseFinalPrice,
+                      formatProductQuickFinalPrice,
+                      parseVisualTag,
+                      getTagClassName,
+                      hasValue,
+                      formatAmount,
+                    },
+                    product.id,
+                  );
+                },
               }),
             ],
           }),

@@ -5670,10 +5670,9 @@ function nh() {
       if (!product) return;
       const creatorId = Number(w && w.shopper && w.shopper.id ? w.shopper.id : w && w.shopper ? w.shopper : 0) || null;
       const defaultRecipients = creatorId ? [creatorId] : [];
-      const clientName = String((client && client.name) || (W && W.name) || "").trim() || "cliente";
       setReviewNotifyProduct(product);
       setReviewNotifyClient(client || null);
-      setReviewNotifyMessage(`Tienes un producto para Revision del cliente ${clientName}`);
+      setReviewNotifyMessage("");
       setReviewNotifyRecipientIds(defaultRecipients);
       setReviewNotifyModalOpen(!0);
     },
@@ -5701,11 +5700,14 @@ function nh() {
         notifyError("Selecciona al menos un usuario con telefono.");
         return;
       }
-      const message = String(reviewNotifyMessage || "").trim();
-      if (!message) {
+      const comment = String(reviewNotifyMessage || "").trim();
+      if (!comment) {
         notifyError("Escribe un mensaje para enviar.");
         return;
       }
+      const productName = String((reviewNotifyProduct && reviewNotifyProduct.name) || "PRODUCTO").trim();
+      const clientName = String((reviewNotifyClient && reviewNotifyClient.name) || "CLIENTE").trim();
+      const message = `${comment}\n${productName} DEL CLIENTE ${clientName} 💬`;
       setReviewNotifySending(!0);
       try {
         for (const recipient of recipientUsers) {
