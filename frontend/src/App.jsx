@@ -2802,7 +2802,7 @@ function nh() {
         ),
         Se =
           typeof A.formStatus === "string" && A.formStatus.trim()
-            ? A.formStatus
+            ? normalizeProductModalStatus(A.formStatus)
             : getProductReviewState(
               o,
               o && o.id ? latestReviewsByProduct[o.id] || null : null,
@@ -6683,6 +6683,9 @@ function nh() {
       0,
     ),
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
+    clientPaymentGlobalBalance = clientPaymentModalClient
+      ? toNumber(homeClientGlobalBalanceMap[clientPaymentModalClient.id], 0)
+      : 0,
     clientPaymentHistoryEntries = clientPaymentModalClient
       ? getClientPaymentHistoryEntries(clientPaymentModalClient)
       : [],
@@ -9845,6 +9848,7 @@ function nh() {
           startEditingClientPaymentEntry,
           deleteClientPaymentHistoryRow,
           clientPaymentBalance,
+          clientPaymentGlobalBalance,
           clientPaymentSaving,
           saveClientPayment,
           clientPaymentAmountValue,

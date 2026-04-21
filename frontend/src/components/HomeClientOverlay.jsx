@@ -398,10 +398,6 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
                           c.jsxs("div", {
                             className: "min-w-0",
                             children: [
-                              c.jsx("span", {
-                                className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mb-1 inline-block ${client.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`,
-                                children: client.status === "Active" ? "In Shopping" : "Idle",
-                              }),
                               c.jsx("p", { className: "text-xs text-text-sub dark:text-slate-400 truncate", children: client.tags }),
                               c.jsxs("div", {
                                 className: "mt-1.5 space-y-0.5",

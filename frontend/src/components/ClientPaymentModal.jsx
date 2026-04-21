@@ -24,6 +24,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
     startEditingClientPaymentEntry,
     deleteClientPaymentHistoryRow,
     clientPaymentBalance,
+    clientPaymentGlobalBalance,
     clientPaymentSaving,
     saveClientPayment,
     clientPaymentAmountValue,
@@ -588,14 +589,21 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                 c.jsx("p", {
                                   className:
                                     "text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300",
-                                  children: "Deuda",
+                                  children:
+                                    clientPaymentGlobalBalance < 0
+                                      ? "A favor"
+                                      : "Deuda",
                                 }),
                                 c.jsxs("p", {
                                   className:
                                     "text-lg font-bold text-blue-700 dark:text-blue-100 mt-1",
                                   children: [
-                                    "$",
-                                    formatAmount(clientPaymentTotalDebt),
+                                    clientPaymentGlobalBalance < 0
+                                      ? "A favor: $"
+                                      : "Deuda: $",
+                                    formatAmount(
+                                      Math.abs(clientPaymentGlobalBalance),
+                                    ),
                                   ],
                                 }),
                               ],

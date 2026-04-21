@@ -173,18 +173,39 @@ const HomeSection = V.memo(function HomeSection() {
       return Array.isArray(productIds) ? total + productIds.length : total;
     }, 0);
   };
+  const countUnreadMissionProducts = (mission) => {
+    const missionProducts = Array.isArray(mission && mission.products) ? mission.products : [];
+    if (!missionProducts.length) return 0;
+    const unreadMap = effectiveHomeClientReviewUnreadMap || {};
+    const unreadProductIds = new Set();
+    missionProducts.forEach((product) => {
+      const productId = Number(product && product.id);
+      const clientId = Number(product && product.client);
+      if (!Number.isFinite(productId) || productId <= 0 || !Number.isFinite(clientId) || clientId <= 0) {
+        return;
+      }
+      const clientUnreadMap = unreadMap[String(clientId)] || unreadMap[clientId] || {};
+      if (clientUnreadMap && Object.prototype.hasOwnProperty.call(clientUnreadMap, String(productId))) {
+        unreadProductIds.add(productId);
+      }
+    });
+    return unreadProductIds.size;
+  };
   const getShoppingUnreadReviewBadgeCount = (mission) => {
     if (!mission) return 0;
     const summaryMap = shoppingUnreadSummaryMap || {};
     const summary = summaryMap[String(mission.id)] || null;
     const summaryCount = countUnreadSummaryProducts(summary);
     if (summaryCount > 0) return summaryCount;
+    const derivedCount = countUnreadMissionProducts(mission);
+    if (derivedCount > 0) return derivedCount;
     if (activeMission && Number(activeMission.id) === Number(mission.id)) {
       const activeSummaryCount = countUnreadSummaryProducts(homeUnreadSummary);
       if (activeSummaryCount > 0) return activeSummaryCount;
       if (Number(activeMissionUnreadReviewMessageCount || 0) > 0) {
         return Number(activeMissionUnreadReviewMessageCount || 0);
       }
+      if (derivedCount > 0) return derivedCount;
     }
     return summaryCount;
   };

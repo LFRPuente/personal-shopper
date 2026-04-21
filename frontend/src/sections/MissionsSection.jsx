@@ -245,6 +245,18 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         ' products',
                                       ],
                                     }),
+                                    mission.status === 'COMPLETED' &&
+                                      c.jsxs('p', {
+                                        className: isDesktopLayout
+                                          ? 'text-[11px] text-gray-500 mt-0.5'
+                                          : 'text-[10px] text-gray-500 mt-0.5',
+                                        children: [
+                                          'Creado por: ',
+                                          mission.shopper_name || 'Sin dato',
+                                          ' • Shipping pagado por: ',
+                                          mission.payer_username || 'Sin dato',
+                                        ],
+                                      }),
                                   ],
                                 }),
                           }),
