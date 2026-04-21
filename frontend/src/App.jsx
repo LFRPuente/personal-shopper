@@ -49,7 +49,7 @@ const APP_SECTION_PATHS = {
   PROFILE: "/profile",
 };
 
-const HOME_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
+const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
 const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
 const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
 const MAX_OPEN_SHOPPINGS = 3;
@@ -7225,9 +7225,14 @@ function nh() {
           reviewConversationEntry.review || null,
         ))
       : "ANNOTATED",
-    currentConversationStatusActions = getChatStatusActionOptions(
-      currentConversationProductState,
-    ),
+    currentConversationStatusActions = [
+      "REVIEW",
+      "ANNOTATED",
+      "REJECTED",
+    ].map((status) => ({
+      value: status,
+      label: getReviewFlowLabel(status),
+    })),
     selectedClientHomeProducts = V.useMemo(
       () => (W ? getHomeVisibleProducts(W) : []),
       [W],
