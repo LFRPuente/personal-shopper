@@ -5837,6 +5837,13 @@ function nh() {
         notifyError("Escribe un comentario para poder enviar.");
         return;
       }
+      reviewConversationSendCooldownTimerRef.current &&
+        clearTimeout(reviewConversationSendCooldownTimerRef.current);
+      setReviewConversationSendCooling(!0);
+      reviewConversationSendCooldownTimerRef.current = setTimeout(() => {
+        reviewConversationSendCooldownTimerRef.current = null;
+        setReviewConversationSendCooling(!1);
+      }, 3000);
       try {
         await syncProductReviewState(
           Nl,
@@ -5895,13 +5902,6 @@ function nh() {
             }
           }
         }
-        reviewConversationSendCooldownTimerRef.current &&
-          clearTimeout(reviewConversationSendCooldownTimerRef.current);
-        setReviewConversationSendCooling(!0);
-        reviewConversationSendCooldownTimerRef.current = setTimeout(() => {
-          reviewConversationSendCooldownTimerRef.current = null;
-          setReviewConversationSendCooling(!1);
-        }, 3000);
         o.closeAfterSave !== !1
           ? closeAlternativeUploadModal()
           : (setAltUploadDescription(""), setAltUploadFiles([]));
