@@ -1647,12 +1647,6 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
                     message=message_obj,
                     file=file_obj,
                 )
-            if review.product_id:
-                ProductReviewReadState.objects.update_or_create(
-                    user=request.user,
-                    product_id=review.product_id,
-                    defaults={'last_seen_message': message_obj},
-                )
         broadcast_update('reviews', action='updated', object_id=review.id)
         return Response(self.get_serializer(review).data)
 
