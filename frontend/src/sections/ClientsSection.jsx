@@ -297,14 +297,6 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                         className:
                           'w-full sm:w-auto shrink-0 self-start flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1.5 pt-0.5',
                         children: [
-                          currentShopping
-                            ? c.jsx('div', {
-                                onClick: () => typeof onToggleClientStatus === 'function' && onToggleClientStatus(client),
-                                className:
-                                  `px-2.5 py-1 rounded-full text-[8px] font-bold uppercase leading-none tracking-[0.08em] whitespace-nowrap transition cursor-pointer ${String(client.status || '') === 'Active' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`,
-                                children: String(client.status || '') === 'Active' ? 'In Shopping' : 'Idle',
-                              })
-                            : null,
                           c.jsxs('div', {
                             className: 'flex items-center justify-end gap-0.5 shrink-0',
                             children: [

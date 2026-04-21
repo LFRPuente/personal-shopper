@@ -291,7 +291,7 @@ const HomeSection = V.memo(function HomeSection() {
                                 onChange: (event) => setEditingRequestText(event.target.value),
                                 className:
                                   'w-full px-2.5 py-2 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary resize-none',
-                                placeholder: 'Describe la modificaciÃ³n...',
+                                placeholder: 'Describe la modificación...',
                               }),
                               c.jsxs('div', {
                                 className: 'relative',
@@ -610,7 +610,7 @@ const HomeSection = V.memo(function HomeSection() {
               c.jsxs('div', {
                 className: 'flex gap-2 items-center flex-wrap sm:flex-nowrap w-full',
                 children: [
-                  c.jsx('input', { type: 'text', value: newRequestText, onChange: (event) => setNewRequestText(event.target.value), placeholder: 'Nueva peticiÃ³n...', className: 'flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full' }),
+                  c.jsx('input', { type: 'text', value: newRequestText, onChange: (event) => setNewRequestText(event.target.value), placeholder: 'Nueva petición...', className: 'flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full' }),
                   c.jsx('button', { onClick: pickRequestImage, className: 'px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200 flex-shrink-0', children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add_photo_alternate' }) }),
                   c.jsx('button', { onClick: createMissionRequest, disabled: !newRequestText.trim() && !newRequestImageFile, className: `px-4 py-2 rounded-xl text-sm font-semibold transition flex-shrink-0 flex-1 sm:flex-none ${newRequestText.trim() || newRequestImageFile ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`, children: 'Enviar' }),
                 ],
@@ -626,8 +626,8 @@ const HomeSection = V.memo(function HomeSection() {
           : 'bg-surface-light dark:bg-surface-dark px-4 py-8 flex flex-col items-center text-center border-b border-border-light dark:border-border-dark',
         children: [
           c.jsx('div', { className: 'w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4', children: c.jsx('span', { className: 'material-symbols-outlined text-[32px]', children: 'shopping_bag' }) }),
-          c.jsx('h3', { className: 'font-bold text-lg text-text-main dark:text-white mb-2', children: 'NingÃºn Shopping Activo' }),
-          c.jsx('p', { className: 'text-sm text-gray-500 mb-6 max-w-sm', children: 'Inicia un nuevo shopping en tienda para comenzar a registrar peticiones, compras y separar artÃ­culos.' }),
+          c.jsx('h3', { className: 'font-bold text-lg text-text-main dark:text-white mb-2', children: 'Ningún Shopping Activo' }),
+          c.jsx('p', { className: 'text-sm text-gray-500 mb-6 max-w-sm', children: 'Inicia un nuevo shopping en tienda para comenzar a registrar peticiones, compras y separar artículos.' }),
           c.jsx('button', { onClick: openMissionStart, className: 'px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition shadow-sm', children: 'Comenzar Shopping' }),
         ],
       }),

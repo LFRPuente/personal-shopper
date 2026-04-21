@@ -37,13 +37,29 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
 
   const clientPaymentIsDebtAdjustment =
     paymentLocalToNumber(clientPaymentForm.amount, 0) < 0;
+  const clientPaymentPlanList = Array.isArray(clientPaymentPlan)
+    ? clientPaymentPlan
+    : [];
+  const clientPaymentTargetsList = Array.isArray(clientPaymentTargets)
+    ? clientPaymentTargets
+    : [];
+  const clientPaymentReceivingTargetsList = Array.isArray(
+    clientPaymentReceivingTargets,
+  )
+    ? clientPaymentReceivingTargets
+    : [];
+  const clientPaymentHistoryRowsList = Array.isArray(clientPaymentHistoryRows)
+    ? clientPaymentHistoryRows
+    : [];
   const clientPaymentIsCreditAdjustment =
     !clientPaymentIsDebtAdjustment &&
-    clientPaymentPlan.some((plan) => plan && plan.isCreditAdjustment);
+    clientPaymentPlanList.some((plan) => plan && plan.isCreditAdjustment);
 
   const renderShoppingPlanCard = (plan) => {
-    const isDebtAdjustment = Boolean(plan.isDebtAdjustment);
-    const isCreditAdjustment = Boolean(plan.isCreditAdjustment);
+    const planData = plan || {};
+    const planItems = Array.isArray(plan?.items) ? plan.items : [];
+    const isDebtAdjustment = Boolean(planData.isDebtAdjustment);
+    const isCreditAdjustment = Boolean(planData.isCreditAdjustment);
     return c.jsxs(
       "div",
       {
@@ -52,7 +68,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
             ? "border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
             : isCreditAdjustment
               ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
-            : plan.isReceiving
+            : planData.isReceiving
             ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/30"
             : "border-border-light bg-white dark:border-border-dark dark:bg-slate-900/50"
         }`,
@@ -66,18 +82,18 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                   c.jsx("p", {
                     className:
                       "text-sm font-semibold truncate text-text-main dark:text-white",
-                    children: plan.title,
+                    children: planData.title,
                   }),
                   c.jsxs("p", {
                     className: "text-[11px] text-text-sub mt-0.5",
                     children: [
-                      plan.date
-                        ? new Date(plan.date).toLocaleDateString()
+                      planData.date
+                        ? new Date(planData.date).toLocaleDateString()
                         : "Sin fecha",
                       " - ",
-                      Number.isFinite(plan.annotatedCount)
-                        ? plan.annotatedCount
-                        : plan.items.length,
+                      Number.isFinite(planData.annotatedCount)
+                        ? planData.annotatedCount
+                        : planItems.length,
                       " item(s)",
                     ],
                   }),
@@ -89,7 +105,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           "inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700",
                         children: [
                           "Venta: $",
-                          formatAmount(plan.productsTotal),
+                          formatAmount(planData.productsTotal),
                         ],
                       }),
                       c.jsxs("span", {
@@ -97,7 +113,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           "inline-flex rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700",
                         children: [
                           "Pagado: $",
-                          formatAmount(plan.paymentsTotal),
+                          formatAmount(planData.paymentsTotal),
                         ],
                       }),
                       c.jsxs("span", {
@@ -105,7 +121,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                           "inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-700",
                         children: [
                           "Deuda: $",
-                          formatAmount(plan.debtAmount),
+                          formatAmount(planData.debtAmount),
                         ],
                       }),
                     ],
@@ -115,8 +131,8 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
               c.jsxs("div", {
                 className: "shrink-0 text-right flex flex-col items-end gap-1",
                 children: [
-                  plan.isReceiving
-                    ? c.jsx("span", {
+                    planData.isReceiving
+                      ? c.jsx("span", {
                         className:
                           isDebtAdjustment
                             ? "inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-700"
@@ -133,7 +149,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         }),
                       })
                     : null,
-                  plan.isReceiving &&
+                    planData.isReceiving &&
                     c.jsxs("span", {
                       className:
                         isDebtAdjustment
@@ -148,7 +164,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                             ? "A favor +$"
                             : "Abona $",
                         formatAmount(
-                          Math.abs(paymentLocalToNumber(plan.appliedAmount, 0)),
+                          Math.abs(paymentLocalToNumber(planData.appliedAmount, 0)),
                         ),
                       ],
                     }),
@@ -158,7 +174,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
           }),
         ],
       },
-      `client-payment-shopping-${plan.key}`,
+      `client-payment-shopping-${planData.key}`,
     );
   };
 
@@ -430,7 +446,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                       ? "Ajuste de deuda"
                                       : clientPaymentIsCreditAdjustment
                                         ? "Ajuste a favor"
-                                      : `${clientPaymentReceivingTargets.length} de ${clientPaymentTargets.length}`,
+                      : `${clientPaymentReceivingTargetsList.length} de ${clientPaymentTargetsList.length}`,
                                   ],
                                 }),
                               ],
@@ -455,7 +471,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                         }),
                       ],
                     }),
-                    clientPaymentPlan.length === 0
+                    clientPaymentPlanList.length === 0
                       ? c.jsx("div", {
                           className:
                             "px-4 py-10 text-sm text-center text-text-sub",
@@ -469,7 +485,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                       : c.jsx("div", {
                           className:
                             "max-h-[52vh] overflow-y-auto ios-scroll p-3 space-y-2",
-                          children: clientPaymentPlan.map(renderShoppingPlanCard),
+                          children: clientPaymentPlanList.map(renderShoppingPlanCard),
                         }),
                   ],
                 }),
@@ -556,13 +572,13 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                   className:
                                     "inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700",
                                   children: [
-                                    clientPaymentHistoryRows.length,
+                                    clientPaymentHistoryRowsList.length,
                                     " movimiento(s)",
                                   ],
                                 }),
                               ],
                             }),
-                            clientPaymentHistoryRows.length === 0
+                            clientPaymentHistoryRowsList.length === 0
                               ? c.jsx("p", {
                                   className:
                                     "text-[11px] leading-5 text-text-sub",
@@ -573,7 +589,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                                   className:
                                     "space-y-2 max-h-56 overflow-y-auto ios-scroll pr-1",
                                   children:
-                                    clientPaymentHistoryRows.map(
+                                    clientPaymentHistoryRowsList.map(
                                       renderHistoryRow,
                                     ),
                                 }),
@@ -685,7 +701,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
                               ? "La deuda inicial se registra como un cargo negativo en la shopping mas antigua del cliente o en la shopping activa."
                               : clientPaymentIsCreditAdjustment
                                 ? "El saldo a favor inicial se registra como un movimiento positivo en la shopping mas antigua del cliente o en la shopping activa."
-                              : clientPaymentReceivingTargets.length > 0
+                              : clientPaymentReceivingTargetsList.length > 0
                               ? "El abono se reparte automaticamente empezando por la shopping mas antigua."
                               : "Captura un monto para repartirlo automaticamente entre las shoppings con deuda.",
                         }),
@@ -712,7 +728,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
               onClick: saveClientPayment,
               disabled:
                 clientPaymentSaving ||
-                clientPaymentReceivingTargets.length === 0 ||
+                clientPaymentReceivingTargetsList.length === 0 ||
                 !Number.isFinite(clientPaymentAmountValue) ||
                 clientPaymentAmountValue === 0,
               className:
