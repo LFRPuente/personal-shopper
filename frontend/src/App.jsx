@@ -508,6 +508,8 @@ function nh() {
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
     [openProductStatusId, setOpenProductStatusId] = V.useState(null),
     [reviewConversationEntry, setReviewConversationEntry] = V.useState(null),
+    [reviewConversationWahaEnabled, setReviewConversationWahaEnabled] = V.useState(!1),
+    [reviewConversationRecipientIds, setReviewConversationRecipientIds] = V.useState([]),
     [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
     [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
     [missionStartForm, setMissionStartForm] = V.useState({
@@ -1007,6 +1009,8 @@ function nh() {
       }
       if (reviewConversationEntry) {
         setReviewConversationEntry(null);
+        setReviewConversationWahaEnabled(!1);
+        setReviewConversationRecipientIds([]);
         closeAlternativeUploadModal();
         return;
       }
@@ -5772,6 +5776,8 @@ function nh() {
             console.error("Failed marking review conversation as seen", ea);
           }),
         setReviewConversationEntry({ review: A, product: vl }),
+        setReviewConversationWahaEnabled(!1),
+        setReviewConversationRecipientIds([]),
         setAltUploadReviewId(A ? A.id : null),
         setAltUploadProductId(vl ? vl.id : A && A.product ? A.product : null),
         setAltUploadTargetStatus(El),
@@ -5809,6 +5815,53 @@ function nh() {
         );
         await refreshProductReviews(W && W.id);
         await Qt();
+        if (reviewConversationWahaEnabled) {
+          const recipientIds = Array.from(
+            new Set(
+              (reviewConversationRecipientIds || [])
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value) && value > 0),
+            ),
+          );
+          const recipientUsers = recipientIds
+            .map((userId) => (users || []).find((value) => Number(value.id) === Number(userId)))
+            .filter((user) => user && String((user.profile && user.profile.phone) || "").trim());
+          if (recipientUsers.length === 0) {
+            notifyInfo("Activa el switch y selecciona al menos un usuario con telefono para enviar por WAHA.");
+          } else {
+            const productName = String((Nl && Nl.name) || "").trim() || "Producto";
+            const clientName = String(
+              (Nl && Nl.client_name) ||
+                ((clientLookupById.get(Number(Nl.client)) || {}).name) ||
+                "Cliente",
+            ).trim() || "Cliente";
+            const wahaMessage = [A, `${productName} DEL CLIENTE ${clientName} 💬`]
+              .filter((value) => String(value || "").trim())
+              .join("\n");
+            try {
+              for (const recipient of recipientUsers) {
+                const chatId = getUserWahaChatId(recipient);
+                if (!chatId) continue;
+                await I("/whatsapp/send-text/", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    text: wahaMessage,
+                  }),
+                });
+              }
+              notifySuccess("Comentario enviado por WAHA.");
+            } catch (wahaError) {
+              console.error("Failed sending review conversation via WAHA", wahaError);
+              notifyError(
+                getApiErrorMessage(
+                  wahaError,
+                  "No se pudo enviar el comentario por WAHA.",
+                ),
+              );
+            }
+          }
+        }
         o.closeAfterSave !== !1
           ? closeAlternativeUploadModal()
           : (setAltUploadDescription(""), setAltUploadFiles([]));
@@ -9705,6 +9758,7 @@ function nh() {
           overlayBackdropClass,
           overlaySheetClass,
           J,
+          users,
           currentConversationStatusActions,
           altUploadTargetStatus,
           setAltUploadTargetStatus,
@@ -9713,6 +9767,10 @@ function nh() {
           altUploadFiles,
           pickAlternativeUploadImages,
           sendReviewAlternatives,
+          reviewConversationWahaEnabled,
+          setReviewConversationWahaEnabled,
+          reviewConversationRecipientIds,
+          setReviewConversationRecipientIds,
           setFullscreenImage,
           resolveMediaUrl,
           getReviewFlowLabel,
