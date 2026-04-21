@@ -510,6 +510,7 @@ function nh() {
     [reviewConversationEntry, setReviewConversationEntry] = V.useState(null),
     [reviewConversationWahaEnabled, setReviewConversationWahaEnabled] = V.useState(!1),
     [reviewConversationRecipientIds, setReviewConversationRecipientIds] = V.useState([]),
+    [reviewConversationSendCooling, setReviewConversationSendCooling] = V.useState(!1),
     [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
     [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
     [missionStartForm, setMissionStartForm] = V.useState({
@@ -550,6 +551,7 @@ function nh() {
     wsStoppedRef = V.useRef(!1),
     reviewConversationScrollRef = V.useRef(null),
     reviewConversationStateRef = V.useRef(""),
+    reviewConversationSendCooldownTimerRef = V.useRef(null),
     currentTabRef = V.useRef(initialAppRoute.section),
     pendingHomeClientRouteRef = V.useRef(initialAppRoute.homeClientSlug),
     selectedClientIdRef = V.useRef(null),
@@ -5831,6 +5833,10 @@ function nh() {
         notifyError("No se encontro el producto para aplicar el cambio.");
         return;
       }
+      if (!A) {
+        notifyError("Escribe un comentario para poder enviar.");
+        return;
+      }
       try {
         await syncProductReviewState(
           Nl,
@@ -5889,6 +5895,13 @@ function nh() {
             }
           }
         }
+        reviewConversationSendCooldownTimerRef.current &&
+          clearTimeout(reviewConversationSendCooldownTimerRef.current);
+        setReviewConversationSendCooling(!0);
+        reviewConversationSendCooldownTimerRef.current = setTimeout(() => {
+          reviewConversationSendCooldownTimerRef.current = null;
+          setReviewConversationSendCooling(!1);
+        }, 3000);
         o.closeAfterSave !== !1
           ? closeAlternativeUploadModal()
           : (setAltUploadDescription(""), setAltUploadFiles([]));
@@ -7350,6 +7363,15 @@ function nh() {
       value: status,
       label: getReviewFlowLabel(status),
     })),
+    reviewConversationDefaultRecipientIds = V.useMemo(() => {
+      const creatorId = Number(
+        (w && w.shopper && w.shopper.id ? w.shopper.id : w && w.shopper ? w.shopper : 0) || 0,
+      ) || null;
+      if (!creatorId) return [];
+      const creatorUser = (users || []).find((value) => Number(value && value.id) === Number(creatorId));
+      const hasPhone = !!String((creatorUser && creatorUser.profile && creatorUser.profile.phone) || "").trim();
+      return hasPhone ? [creatorId] : [];
+    }, [w, users]),
     selectedClientHomeProducts = V.useMemo(
       () => (W ? getHomeVisibleProducts(W) : []),
       [W],
@@ -9836,6 +9858,8 @@ function nh() {
           setReviewConversationWahaEnabled,
           reviewConversationRecipientIds,
           setReviewConversationRecipientIds,
+          reviewConversationDefaultRecipientIds,
+          reviewConversationSendCooling,
           setFullscreenImage,
           resolveMediaUrl,
           getReviewFlowLabel,

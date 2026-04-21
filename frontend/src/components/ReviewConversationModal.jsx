@@ -20,6 +20,8 @@ export const REVIEW_CONVERSATION_MODAL_REQUIRED_PROPS = [
   'setReviewConversationWahaEnabled',
   'reviewConversationRecipientIds',
   'setReviewConversationRecipientIds',
+  'reviewConversationDefaultRecipientIds',
+  'reviewConversationSendCooling',
   'setFullscreenImage',
   'resolveMediaUrl',
   'getReviewFlowLabel',
@@ -45,6 +47,8 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
   setReviewConversationWahaEnabled,
   reviewConversationRecipientIds,
   setReviewConversationRecipientIds,
+  reviewConversationDefaultRecipientIds,
+  reviewConversationSendCooling,
   setFullscreenImage,
   resolveMediaUrl,
   getReviewFlowLabel,
@@ -70,6 +74,20 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
       const next = new Set((values || []).map((value) => Number(value)));
       next.has(numericId) ? next.delete(numericId) : next.add(numericId);
       return Array.from(next);
+    });
+  };
+  const handleToggleWaha = () => {
+    setReviewConversationWahaEnabled((value) => {
+      const nextValue = !value;
+      if (nextValue && (!reviewConversationRecipientIds || reviewConversationRecipientIds.length === 0)) {
+        const fallbackRecipientIds = Array.isArray(reviewConversationDefaultRecipientIds)
+          ? reviewConversationDefaultRecipientIds.filter((value) => Number.isFinite(Number(value)) && Number(value) > 0)
+          : [];
+        if (fallbackRecipientIds.length > 0) {
+          setReviewConversationRecipientIds(fallbackRecipientIds);
+        }
+      }
+      return nextValue;
     });
   };
 
@@ -302,7 +320,7 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                   type: 'button',
                   role: 'switch',
                   'aria-checked': !!reviewConversationWahaEnabled,
-                  onClick: () => setReviewConversationWahaEnabled((value) => !value),
+                  onClick: handleToggleWaha,
                   className: `relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
                     reviewConversationWahaEnabled
                       ? 'bg-primary border-primary'
@@ -367,9 +385,9 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                   }),
                 ],
               }),
-            c.jsxs('div', {
-              className: 'grid grid-cols-2 gap-2',
-              children: [
+                c.jsxs('div', {
+                  className: 'grid grid-cols-2 gap-2',
+                  children: [
                 c.jsx('button', {
                   onClick: onDismiss,
                   className:
@@ -378,9 +396,16 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                 }),
                 c.jsx('button', {
                   onClick: () => sendReviewAlternatives({ closeAfterSave: !1 }),
+                  disabled:
+                    reviewConversationSendCooling ||
+                    !String(altUploadDescription || '').trim(),
                   className:
-                    'py-2 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-dark',
-                  children: 'Enviar',
+                    `py-2 rounded-lg text-xs font-semibold text-white ${
+                      reviewConversationSendCooling || !String(altUploadDescription || '').trim()
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-primary hover:bg-primary-dark'
+                    }`,
+                  children: reviewConversationSendCooling ? 'Espera 3s' : 'Enviar',
                 }),
               ],
             }),
