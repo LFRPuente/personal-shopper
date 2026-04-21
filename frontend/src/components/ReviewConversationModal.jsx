@@ -57,9 +57,7 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
     (o, N) => new Date(o.created_at || 0).getTime() - new Date(N.created_at || 0).getTime(),
   );
   const selectedRecipientSet = new Set((reviewConversationRecipientIds || []).map((value) => Number(value)));
-  const selectableUsers = (users || []).filter(
-    (user) => user && user.id && String((user.profile && user.profile.phone) || '').trim(),
-  );
+  const selectableUsers = (users || []).filter((user) => user && user.id);
 
   const toggleRecipient = (userId) => {
     const numericId = Number(userId);
@@ -287,11 +285,7 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                   children: [
                     c.jsx('p', {
                       className: 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400',
-                      children: 'Usuarios',
-                    }),
-                    c.jsx('span', {
-                      className: 'text-[10px] text-slate-500 dark:text-slate-400',
-                      children: `${selectedRecipientSet.size} seleccionado(s)`,
+                      children: 'Destinatarios',
                     }),
                   ],
                 }),
