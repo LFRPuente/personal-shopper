@@ -529,6 +529,7 @@ function nh() {
     [homeClientSearch, setHomeClientSearch] = V.useState(""),
     [missionSearch, setMissionSearch] = V.useState(""),
     [homeUnreadSummary, setHomeUnreadSummary] = V.useState({}),
+    [shoppingUnreadSummaryMap, setShoppingUnreadSummaryMap] = V.useState({}),
     [seenReviewItemMap, setSeenReviewItemMap] = V.useState({}),
     [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
     [missionTicketUploading, setMissionTicketUploading] = V.useState(!1),
@@ -556,6 +557,7 @@ function nh() {
     pendingHomeClientRouteRef = V.useRef(initialAppRoute.homeClientSlug),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
+    openShoppingTabsRef = V.useRef([]),
     shipmentsLoadedRef = V.useRef(!1),
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
@@ -1357,6 +1359,9 @@ function nh() {
     if (nl === "HOME") setHomeNeedsAttention(!1);
   }, [nl]);
   V.useEffect(() => {
+    openShoppingTabsRef.current = getOpenShoppingMissions(Al);
+  }, [Al]);
+  V.useEffect(() => {
     if (publicShareType || typeof window === "undefined") return;
     const o = () => {
       const N = getAppRouteFromPath(window.location.pathname);
@@ -1390,6 +1395,52 @@ function nh() {
     const N = buildAppPath(nl, { homeClientSlug: o });
     window.location.pathname !== N && window.history.replaceState({}, "", N);
   }, [C, publicShareType, nl, W]);
+  V.useEffect(() => {
+    if (!C) {
+      setShoppingUnreadSummaryMap({});
+      return;
+    }
+    const shoppingTabs = openShoppingTabsRef.current || [];
+    if (!shoppingTabs.length) {
+      setShoppingUnreadSummaryMap({});
+      return;
+    }
+    let cancelled = !1;
+    (async () => {
+      try {
+        const entries = await Promise.all(
+          shoppingTabs.map(async (mission) => {
+            const missionId = Number(mission && mission.id) || 0;
+            if (!missionId) return [null, null];
+            try {
+              const summary = await I(`/reviews/unread-summary/?shopping=${missionId}`);
+              return [String(missionId), summary || {}];
+            } catch (error) {
+              console.error("Failed loading unread summary for shopping", missionId, error);
+              return [String(missionId), {}];
+            }
+          }),
+        );
+        if (cancelled) return;
+        setShoppingUnreadSummaryMap(
+          entries.reduce((acc, entry) => {
+            const [key, value] = entry || [];
+            if (!key) return acc;
+            acc[key] = value || {};
+            return acc;
+          }, {}),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed loading unread summaries for open shoppings", error);
+          setShoppingUnreadSummaryMap({});
+        }
+      }
+    })();
+    return () => {
+      cancelled = !0;
+    };
+  }, [C, Al]);
   V.useEffect(() => {
     const o = () => setIsWideViewport(window.innerWidth >= 1024);
     o();
@@ -1474,6 +1525,38 @@ function nh() {
         console.error("Failed loading unread review summary", N);
       }
     };
+    const refreshUnreadSummaryForOpenShoppings = async () => {
+      const openShoppingTabs = openShoppingTabsRef.current || [];
+      if (!openShoppingTabs.length) {
+        setShoppingUnreadSummaryMap({});
+        return;
+      }
+      try {
+        const entries = await Promise.all(
+          openShoppingTabs.map(async (mission) => {
+            const missionId = Number(mission && mission.id) || 0;
+            if (!missionId) return [null, null];
+            try {
+              const summary = await I(`/reviews/unread-summary/?shopping=${missionId}`);
+              return [String(missionId), summary || {}];
+            } catch (error) {
+              console.error("Failed refreshing unread summary for shopping", missionId, error);
+              return [String(missionId), {}];
+            }
+          }),
+        );
+        setShoppingUnreadSummaryMap(
+          entries.reduce((acc, entry) => {
+            const [key, value] = entry || [];
+            if (!key) return acc;
+            acc[key] = value || {};
+            return acc;
+          }, {}),
+        );
+      } catch (error) {
+        console.error("Failed refreshing unread summaries for open shoppings", error);
+      }
+    };
     const connect = () => {
       if (wsStoppedRef.current) return;
       const o = new WebSocket(
@@ -1533,6 +1616,9 @@ function nh() {
               refreshUnreadSummaryForActiveMission().catch((ea) => {
                 console.error("Failed refreshing unread summary", ea);
               });
+              refreshUnreadSummaryForOpenShoppings().catch((ea) => {
+                console.error("Failed refreshing unread summaries for open shoppings", ea);
+              });
             }
             return;
           }
@@ -1560,6 +1646,9 @@ function nh() {
             if (currentView === "HOME" || currentView === "MISSIONS") {
               refreshUnreadSummaryForActiveMission().catch((ea) => {
                 console.error("Failed refreshing unread summary", ea);
+              });
+              refreshUnreadSummaryForOpenShoppings().catch((ea) => {
+                console.error("Failed refreshing unread summaries for open shoppings", ea);
               });
             }
             return;
@@ -9277,6 +9366,7 @@ function nh() {
     newRequestImagePreview, newRequestImageFile, filteredHomeClientsInMission,
     homeClientSearch, homeClientMissionTotalsMap, homeClientGlobalBalanceMap,
     homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap,
+    shoppingUnreadSummaryMap,
     Kl, j, W, publicClientShareToken, C,
   ]);
   const lazySectionFallback = c.jsxs("div", {

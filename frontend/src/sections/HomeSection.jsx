@@ -29,6 +29,7 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'missionTotalWithDiscount',
   'missionHasAnyDiscount',
   'activeMissionUnreadReviewMessageCount',
+  'shoppingUnreadSummaryMap',
   'calcDiscount',
   'applyCalcDiscountChange',
   'newRequestText',
@@ -111,6 +112,7 @@ const HomeSection = V.memo(function HomeSection() {
     missionTotalWithDiscount,
     missionHasAnyDiscount,
     activeMissionUnreadReviewMessageCount,
+    shoppingUnreadSummaryMap,
     calcDiscount,
     applyCalcDiscountChange,
     newRequestText,
@@ -164,15 +166,8 @@ const HomeSection = V.memo(function HomeSection() {
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
   const getShoppingUnreadReviewBadgeCount = (mission) => {
     if (!mission) return 0;
-    const products = Array.isArray(mission.products)
-      ? mission.products
-      : [];
-    return products.reduce((total, product) => {
-      const clientId = Number(product && product.client) || 0;
-      if (!clientId) return total;
-      const unreadProducts = effectiveHomeClientReviewUnreadMap[clientId] || {};
-      return unreadProducts[product.id] ? total + 1 : total;
-    }, 0);
+    const summary = shoppingUnreadSummaryMap[String(mission.id)] || null;
+    return Array.isArray(summary && summary.product_ids) ? summary.product_ids.length : 0;
   };
 
   return c.jsxs('div', {
