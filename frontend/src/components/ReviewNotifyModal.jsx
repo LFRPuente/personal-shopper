@@ -1,5 +1,4 @@
 import { V, c } from "../utils.js";
-import ReviewNotifyRecipientSwitch from "./ReviewNotifyRecipientSwitch.jsx";
 
 const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
   const {
@@ -17,13 +16,21 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
     overlayBackdropClass,
     overlaySheetClass,
   } = props;
-  const [recipientSelectorOpen, setRecipientSelectorOpen] = V.useState(false);
-
-  V.useEffect(() => {
-    if (open) setRecipientSelectorOpen(false);
-  }, [open, product && product.id, client && client.id]);
 
   if (!open) return null;
+
+  const selectedSet = new Set((selectedRecipientIds || []).map((value) => Number(value)));
+  const selectableUsers = (users || []).filter((user) => user && user.id);
+
+  const toggleRecipient = (userId) => {
+    const numericId = Number(userId);
+    if (!numericId) return;
+    setSelectedRecipientIds((values) => {
+      const next = new Set((values || []).map((value) => Number(value)));
+      next.has(numericId) ? next.delete(numericId) : next.add(numericId);
+      return Array.from(next);
+    });
+  };
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -93,26 +100,58 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
                   className:
                     "w-full px-3 py-2 text-sm border rounded-xl bg-white text-slate-900 border-slate-300 placeholder:text-slate-400 dark:bg-slate-950/70 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-primary/40 resize-none",
                 }),
-                c.jsx("p", {
-                  className: "text-[11px] text-slate-500 dark:text-slate-300",
-                  children: [
-                    "Se enviará como: ",
-                    message ? `"${String(message).trim()}"` : "\"\"",
-                    " ",
-                    (product && product.name) || "PRODUCTO",
-                    " DEL CLIENTE ",
-                    (client && client.name) || "CLIENTE",
-                    " 💬",
-                  ],
-                }),
               ],
             }),
-            c.jsx(ReviewNotifyRecipientSwitch, {
-              enabled: recipientSelectorOpen,
-              setEnabled: setRecipientSelectorOpen,
-              users,
-              selectedRecipientIds,
-              setSelectedRecipientIds,
+            c.jsxs("div", {
+              className:
+                "rounded-2xl border border-border-light dark:border-border-dark bg-white/85 dark:bg-slate-950/30 px-3 py-3 space-y-3",
+              children: [
+                c.jsx("p", {
+                  className: "text-sm font-semibold text-slate-900 dark:text-slate-100",
+                  children: "Destinatarios",
+                }),
+                c.jsx("div", {
+                  className: "grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1",
+                  children: selectableUsers.length > 0
+                    ? selectableUsers.map((user) => {
+                        const profile = user.profile || {};
+                        const hasPhone = !!String(profile.phone || "").trim();
+                        const checked = selectedSet.has(Number(user.id));
+                        const userLabel =
+                          String(profile.display_name || "").trim() ||
+                          String(user.username || "").trim() ||
+                          `Usuario ${user.id}`;
+                        return c.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => hasPhone && toggleRecipient(user.id),
+                            disabled: !hasPhone,
+                            className: `min-w-0 inline-flex items-center justify-between gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold transition ${
+                              checked
+                                ? "border-primary bg-primary/10 text-primary dark:bg-primary/20"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                            } ${!hasPhone ? "opacity-50 cursor-not-allowed" : ""}`,
+                            children: [
+                              c.jsx("span", {
+                                className: "min-w-0 truncate text-left",
+                                children: userLabel,
+                              }),
+                              c.jsx("span", {
+                                className: "material-symbols-outlined text-[14px] leading-none shrink-0",
+                                children: checked ? "check_circle" : "radio_button_unchecked",
+                              }),
+                            ],
+                          },
+                          user.id,
+                        );
+                      })
+                    : c.jsx("p", {
+                        className: "col-span-2 text-sm text-slate-500 dark:text-slate-400",
+                        children: "No hay usuarios disponibles.",
+                      }),
+                }),
+              ],
             }),
           ],
         }),

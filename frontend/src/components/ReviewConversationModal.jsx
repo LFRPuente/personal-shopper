@@ -16,6 +16,8 @@ export const REVIEW_CONVERSATION_MODAL_REQUIRED_PROPS = [
   'altUploadFiles',
   'pickAlternativeUploadImages',
   'sendReviewAlternatives',
+  'reviewConversationWahaEnabled',
+  'setReviewConversationWahaEnabled',
   'reviewConversationRecipientIds',
   'setReviewConversationRecipientIds',
   'setFullscreenImage',
@@ -39,6 +41,8 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
   altUploadFiles,
   pickAlternativeUploadImages,
   sendReviewAlternatives,
+  reviewConversationWahaEnabled,
+  setReviewConversationWahaEnabled,
   reviewConversationRecipientIds,
   setReviewConversationRecipientIds,
   setFullscreenImage,
@@ -278,58 +282,89 @@ const ReviewConversationModal = V.memo(function ReviewConversationModal({
                 'w-full min-h-[38px] max-h-32 px-3 py-2 text-xs border rounded-xl dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto ios-scroll',
             }),
             c.jsxs('div', {
-              className: 'space-y-2 rounded-xl border border-border-light dark:border-border-dark bg-slate-50/90 dark:bg-slate-950/25 px-3 py-3',
+              className:
+                'flex items-center justify-between gap-3 rounded-xl border border-border-light dark:border-border-dark bg-white/85 dark:bg-slate-950/30 px-3 py-2',
               children: [
                 c.jsxs('div', {
-                  className: 'flex items-center justify-between gap-2',
+                  className: 'min-w-0',
                   children: [
                     c.jsx('p', {
-                      className: 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400',
-                      children: 'Destinatarios',
+                      className: 'text-[11px] font-semibold text-slate-900 dark:text-slate-100',
+                      children: 'Enviar por WAHA',
+                    }),
+                    c.jsx('p', {
+                      className: 'text-[10px] text-slate-500 dark:text-slate-400',
+                      children: 'Activa el switch para elegir a qué usuario enviar el mensaje por WAHA.',
                     }),
                   ],
                 }),
-                c.jsx('div', {
-                  className: 'grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1',
-                  children: selectableUsers.length > 0
-                    ? selectableUsers.map((user) => {
-                        const profile = user.profile || {};
-                        const userLabel =
-                          String(profile.display_name || '').trim() ||
-                          String(user.username || '').trim() ||
-                          `Usuario ${user.id}`;
-                        const checked = selectedRecipientSet.has(Number(user.id));
-                        return c.jsx(
-                          'button',
-                          {
-                            type: 'button',
-                            onClick: () => toggleRecipient(user.id),
-                            className: `min-w-0 inline-flex items-center justify-between gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold transition ${
-                              checked
-                                ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
-                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                            }`,
-                            children: [
-                              c.jsx('span', {
-                                className: 'min-w-0 truncate text-left',
-                                children: userLabel,
-                              }),
-                              c.jsx('span', {
-                                className: 'material-symbols-outlined text-[14px] leading-none shrink-0',
-                                children: checked ? 'check_circle' : 'radio_button_unchecked',
-                              }),
-                            ],
-                          },
-                          user.id,
-                        );
-                      })
-                    : c.jsx('p', {
-                        className: 'col-span-2 text-sm text-slate-500 dark:text-slate-400',
-                        children: 'No hay usuarios con telefono configurado.',
-                      }),
+                c.jsx('button', {
+                  type: 'button',
+                  role: 'switch',
+                  'aria-checked': !!reviewConversationWahaEnabled,
+                  onClick: () => setReviewConversationWahaEnabled((value) => !value),
+                  className: `relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
+                    reviewConversationWahaEnabled
+                      ? 'bg-primary border-primary'
+                      : 'bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700'
+                  }`,
+                  children: c.jsx('span', {
+                    className: `inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
+                      reviewConversationWahaEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`,
+                  }),
                 }),
               ],
             }),
+            reviewConversationWahaEnabled &&
+              c.jsxs('div', {
+                className: 'space-y-2 rounded-xl border border-border-light dark:border-border-dark bg-slate-50/90 dark:bg-slate-950/25 px-3 py-3',
+                children: [
+                  c.jsx('p', {
+                    className: 'text-[11px] text-slate-500 dark:text-slate-400',
+                    children: 'Selecciona a qué usuario enviar el mensaje por WAHA.',
+                  }),
+                  c.jsx('div', {
+                    className: 'grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1',
+                    children: selectableUsers.length > 0
+                      ? selectableUsers.map((user) => {
+                          const profile = user.profile || {};
+                          const userLabel =
+                            String(profile.display_name || '').trim() ||
+                            String(user.username || '').trim() ||
+                            `Usuario ${user.id}`;
+                          const checked = selectedRecipientSet.has(Number(user.id));
+                          return c.jsx(
+                            'button',
+                            {
+                              type: 'button',
+                              onClick: () => toggleRecipient(user.id),
+                              className: `min-w-0 inline-flex items-center justify-between gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold transition ${
+                                checked
+                                  ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                              }`,
+                              children: [
+                                c.jsx('span', {
+                                  className: 'min-w-0 truncate text-left',
+                                  children: userLabel,
+                                }),
+                                c.jsx('span', {
+                                  className: 'material-symbols-outlined text-[14px] leading-none shrink-0',
+                                  children: checked ? 'check_circle' : 'radio_button_unchecked',
+                                }),
+                              ],
+                            },
+                            user.id,
+                          );
+                        })
+                      : c.jsx('p', {
+                          className: 'col-span-2 text-sm text-slate-500 dark:text-slate-400',
+                          children: 'No hay usuarios disponibles.',
+                        }),
+                  }),
+                ],
+              }),
             c.jsxs('div', {
               className: 'grid grid-cols-2 gap-2',
               children: [
