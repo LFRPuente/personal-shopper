@@ -624,25 +624,28 @@ const HomeSection = V.memo(function HomeSection() {
                                     : 'truncate text-[9px] font-black leading-tight uppercase',
                                   children: String(getMissionStoreLabel(mission) || '').toUpperCase(),
                                 }),
-                                activeMission &&
-                                Number(activeMission.id) === Number(mission.id) &&
-                                Number(activeMissionUnreadReviewMessageCount || 0) > 0 &&
-                                c.jsx('span', {
-                                  className: isDesktopLayout
-                                    ? 'inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-sm'
-                                    : 'inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm',
-                                  children:
-                                    Number(activeMissionUnreadReviewMessageCount || 0) > 99
-                                      ? '99+'
-                                      : activeMissionUnreadReviewMessageCount,
-                                }),
                               ],
                             }),
                             c.jsx('p', {
                               className: isDesktopLayout
                                 ? 'mt-0.5 max-w-[240px] truncate text-[10px] font-black uppercase tracking-[0.12em] leading-tight opacity-80'
                                 : 'mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.08em] leading-tight opacity-80',
-                              children: String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
+                              children: [
+                                String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
+                                activeMission &&
+                                Number(activeMission.id) === Number(mission.id) &&
+                                Number(activeMissionUnreadReviewMessageCount || 0) > 0
+                                  ? c.jsx('span', {
+                                      className: isDesktopLayout
+                                        ? 'ml-1 inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-sm align-middle'
+                                        : 'ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm align-middle',
+                                      children:
+                                        Number(activeMissionUnreadReviewMessageCount || 0) > 99
+                                          ? '99+'
+                                          : activeMissionUnreadReviewMessageCount,
+                                    })
+                                  : null,
+                              ],
                             }),
                           ],
                         }, `shopping-tab-${mission.id}`),
