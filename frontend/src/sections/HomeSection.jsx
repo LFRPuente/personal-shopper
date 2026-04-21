@@ -162,6 +162,14 @@ const HomeSection = V.memo(function HomeSection() {
   const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
+  const activeMissionUnreadReviewBadgeCount = V.useMemo(() => {
+    if (!activeMission) return 0;
+    return Object.entries(homeClientMissionProductsMap || {}).reduce((total, [clientId, products]) => {
+      if (!Array.isArray(products) || products.length === 0) return total;
+      const unreadCount = Object.keys(effectiveHomeClientReviewUnreadMap[clientId] || {}).length;
+      return unreadCount > 0 ? total + unreadCount : total;
+    }, 0);
+  }, [activeMission, homeClientMissionProductsMap, effectiveHomeClientReviewUnreadMap]);
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -634,15 +642,15 @@ const HomeSection = V.memo(function HomeSection() {
                                 String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
                                 activeMission &&
                                 Number(activeMission.id) === Number(mission.id) &&
-                                Number(activeMissionUnreadReviewMessageCount || 0) > 0
+                                Number(activeMissionUnreadReviewBadgeCount || 0) > 0
                                   ? c.jsx('span', {
                                       className: isDesktopLayout
                                         ? 'ml-1 inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-sm align-middle'
                                         : 'ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm align-middle',
                                       children:
-                                        Number(activeMissionUnreadReviewMessageCount || 0) > 99
+                                        Number(activeMissionUnreadReviewBadgeCount || 0) > 99
                                           ? '99+'
-                                          : activeMissionUnreadReviewMessageCount,
+                                          : activeMissionUnreadReviewBadgeCount,
                                     })
                                   : null,
                               ],
