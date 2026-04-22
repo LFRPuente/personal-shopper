@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 
 const RUNTIME_CRASH_STORAGE_KEY = 'ps-runtime-crash'
+const CURRENT_RUNTIME_BUILD_ID = import.meta.url
 
 function buildCrashPayload(error, context = {}) {
   const message =
@@ -17,6 +18,7 @@ function buildCrashPayload(error, context = {}) {
       ? String(error.stack)
       : ''
   return {
+    buildId: CURRENT_RUNTIME_BUILD_ID,
     message,
     stack,
     source: context.source || 'runtime',
@@ -46,7 +48,12 @@ function readPersistedCrashPayload() {
     const raw = window.sessionStorage.getItem(RUNTIME_CRASH_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : null
+    if (!parsed || typeof parsed !== 'object') return null
+    if (parsed.buildId && parsed.buildId !== CURRENT_RUNTIME_BUILD_ID) {
+      clearPersistedCrashPayload()
+      return null
+    }
+    return parsed
   } catch (error) {
     console.error('Failed reading runtime crash payload', error)
     return null
