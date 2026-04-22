@@ -16,8 +16,8 @@ import {
   MODULE_NUMBER_FORMAT, MODULE_AMOUNT_FORMAT,
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
+import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
-const ClientPaymentModal = V.lazy(() => import('./components/ClientPaymentModal.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
 const EditTicketModal = V.lazy(() => import('./components/EditTicketModal.jsx'));
@@ -9856,40 +9856,38 @@ function nh() {
         }),
       }),
       clientPaymentModalOpen &&
-      c.jsx(V.Suspense, {
-        fallback: lazySectionFallback,
-        children: c.jsx(ClientPaymentModal, {
-          clientPaymentModalOpen,
-          clientPaymentModalClient,
-          clientPaymentReceivingTargets,
-          clientPaymentTargets,
-          clientPaymentAllocatedTotal,
-          clientPaymentPlan,
-          clientPaymentForm,
-          setClientPaymentAmountManual,
-          setClientPaymentForm,
-          clientPaymentTotalDebt,
-          clientPaymentHistoryRows,
-          clientPaymentEntryEditingId,
-          clientPaymentEntryDraftAmount,
-          setClientPaymentEntryDraftAmount,
-          saveClientPaymentHistoryRow,
-          clientPaymentEntrySavingId,
-          cancelEditingClientPaymentEntry,
-          paymentLocalToNumber,
-          formatAmount,
-          startEditingClientPaymentEntry,
-          deleteClientPaymentHistoryRow,
-          clientPaymentBalance,
-          clientPaymentGlobalBalance,
-          clientPaymentSaving,
-          saveClientPayment,
-          clientPaymentAmountValue,
-          onDismiss: () => dismissActiveOverlayRef.current(),
-          overlayBackdropClass,
-          overlaySheetClass,
-        }),
-      }),      paymentModalOpen &&
+      c.jsx(ClientPaymentModal, {
+        clientPaymentModalOpen,
+        clientPaymentModalClient,
+        clientPaymentReceivingTargets,
+        clientPaymentTargets,
+        clientPaymentAllocatedTotal,
+        clientPaymentPlan,
+        clientPaymentForm,
+        setClientPaymentAmountManual,
+        setClientPaymentForm,
+        clientPaymentTotalDebt,
+        clientPaymentHistoryRows,
+        clientPaymentEntryEditingId,
+        clientPaymentEntryDraftAmount,
+        setClientPaymentEntryDraftAmount,
+        saveClientPaymentHistoryRow,
+        clientPaymentEntrySavingId,
+        cancelEditingClientPaymentEntry,
+        paymentLocalToNumber,
+        formatAmount,
+        startEditingClientPaymentEntry,
+        deleteClientPaymentHistoryRow,
+        clientPaymentBalance,
+        clientPaymentGlobalBalance,
+        clientPaymentSaving,
+        saveClientPayment,
+        clientPaymentAmountValue,
+        onDismiss: () => dismissActiveOverlayRef.current(),
+        overlayBackdropClass,
+        overlaySheetClass,
+      }),
+      paymentModalOpen &&
       c.jsx(V.Suspense, {
         fallback: lazySectionFallback,
         children: c.jsx(PaymentModal, {
