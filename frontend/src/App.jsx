@@ -1236,7 +1236,7 @@ function nh() {
     const o = Kl.find(
         (A) => String(A.id) === String(clientPaymentForm.client || ""),
       ) || null,
-      N = (o ? getClientPaymentTargets(o) : []).reduce(
+      N = safeClientPaymentArray(() => (o ? getClientPaymentTargets(o) : [])).reduce(
         (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
         0,
       ),
@@ -4750,7 +4750,7 @@ function nh() {
     },
     openClientPaymentModal = (o) => {
       if (!o) return;
-      const N = getClientPaymentTargets(o).reduce(
+      const N = safeClientPaymentArray(() => getClientPaymentTargets(o)).reduce(
         (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
         0,
       );
@@ -6666,17 +6666,30 @@ function nh() {
       });
       return vl;
     },
+    safeClientPaymentArray = (o) => {
+      try {
+        const N = o();
+        return Array.isArray(N) ? N : [];
+      } catch (A) {
+        console.error("Failed computing client payment data", A);
+        return [];
+      }
+    },
     clientPaymentModalClient = Kl.find(
       (o) => String(o.id) === String(clientPaymentForm.client || ""),
     ) || null,
     clientPaymentTargets = clientPaymentModalClient
-      ? getClientPaymentTargets(clientPaymentModalClient)
+      ? safeClientPaymentArray(() =>
+        getClientPaymentTargets(clientPaymentModalClient),
+      )
       : [],
     clientPaymentAmountValue = paymentLocalToNumber(clientPaymentForm.amount, 0),
     clientPaymentPlan = clientPaymentModalClient
-      ? getClientPaymentPlan(
-        clientPaymentModalClient,
-        clientPaymentAmountValue,
+      ? safeClientPaymentArray(() =>
+        getClientPaymentPlan(
+          clientPaymentModalClient,
+          clientPaymentAmountValue,
+        ),
       )
       : [],
     clientPaymentReceivingTargets = clientPaymentPlan.filter(
