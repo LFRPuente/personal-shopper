@@ -105,6 +105,42 @@ class SectionErrorBoundary extends V.Component {
   }
 }
 
+class OverlayErrorBoundary extends V.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Overlay render crashed", error, info);
+    if (typeof this.props.onError === "function") {
+      this.props.onError(error);
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      if (typeof this.props.renderFallback === "function") {
+        return this.props.renderFallback(this.state.error, () =>
+          this.setState({ error: null }),
+        );
+      }
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
 function slugifyRouteToken(value) {
   return String(value || "")
     .toLowerCase()
@@ -9860,36 +9896,95 @@ function nh() {
         }),
       }),
       clientPaymentModalOpen &&
-      c.jsx(ClientPaymentModal, {
-        clientPaymentModalOpen,
-        clientPaymentModalClient,
-        clientPaymentReceivingTargets,
-        clientPaymentTargets,
-        clientPaymentAllocatedTotal,
-        clientPaymentPlan,
-        clientPaymentForm,
-        setClientPaymentAmountManual,
-        setClientPaymentForm,
-        clientPaymentTotalDebt,
-        clientPaymentHistoryRows,
-        clientPaymentEntryEditingId,
-        clientPaymentEntryDraftAmount,
-        setClientPaymentEntryDraftAmount,
-        saveClientPaymentHistoryRow,
-        clientPaymentEntrySavingId,
-        cancelEditingClientPaymentEntry,
-        paymentLocalToNumber,
-        formatAmount,
-        startEditingClientPaymentEntry,
-        deleteClientPaymentHistoryRow,
-        clientPaymentBalance,
-        clientPaymentGlobalBalance,
-        clientPaymentSaving,
-        saveClientPayment,
-        clientPaymentAmountValue,
-        onDismiss: () => dismissActiveOverlayRef.current(),
-        overlayBackdropClass,
-        overlaySheetClass,
+      c.jsx(OverlayErrorBoundary, {
+        resetKey: `client-payment-${String(clientPaymentForm.client || "")}-${String(clientPaymentEntryEditingId || "")}-${clientPaymentModalOpen ? "open" : "closed"}`,
+        onError: (error) =>
+          notifyError(
+            (error && error.message) ||
+              "El modal de pago del cliente fallo al abrir.",
+          ),
+        renderFallback: (error, retry) =>
+          c.jsx("div", {
+            className: overlayBackdropClass(
+              "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
+              "client-payment-modal-error",
+            ),
+            onClick: () => dismissActiveOverlayRef.current(),
+            children: c.jsxs("div", {
+              className: overlaySheetClass(
+                "bg-surface-light dark:bg-surface-dark w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-rose-200 dark:border-rose-900 shadow-2xl overflow-hidden ui-sheet",
+                "client-payment-modal-error",
+              ),
+              onClick: (event) => event.stopPropagation(),
+              children: [
+                c.jsxs("div", {
+                  className:
+                    "px-4 py-4 border-b border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30",
+                  children: [
+                    c.jsx("p", {
+                      className: "text-sm font-bold text-rose-800 dark:text-rose-100",
+                      children: "El modal de pago del cliente fallo al renderizar.",
+                    }),
+                    c.jsx("p", {
+                      className: "mt-1 text-xs text-rose-700/90 dark:text-rose-200/90",
+                      children:
+                        (error && error.message) || "Error desconocido.",
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: "px-4 py-4 grid grid-cols-2 gap-2",
+                  children: [
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () => dismissActiveOverlayRef.current(),
+                      className:
+                        "py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900",
+                      children: "Cerrar",
+                    }),
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: retry,
+                      className:
+                        "py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold",
+                      children: "Intentar otra vez",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          }),
+        children: c.jsx(ClientPaymentModal, {
+          clientPaymentModalOpen,
+          clientPaymentModalClient,
+          clientPaymentReceivingTargets,
+          clientPaymentTargets,
+          clientPaymentAllocatedTotal,
+          clientPaymentPlan,
+          clientPaymentForm,
+          setClientPaymentAmountManual,
+          setClientPaymentForm,
+          clientPaymentTotalDebt,
+          clientPaymentHistoryRows,
+          clientPaymentEntryEditingId,
+          clientPaymentEntryDraftAmount,
+          setClientPaymentEntryDraftAmount,
+          saveClientPaymentHistoryRow,
+          clientPaymentEntrySavingId,
+          cancelEditingClientPaymentEntry,
+          paymentLocalToNumber,
+          formatAmount,
+          startEditingClientPaymentEntry,
+          deleteClientPaymentHistoryRow,
+          clientPaymentBalance,
+          clientPaymentGlobalBalance,
+          clientPaymentSaving,
+          saveClientPayment,
+          clientPaymentAmountValue,
+          onDismiss: () => dismissActiveOverlayRef.current(),
+          overlayBackdropClass,
+          overlaySheetClass,
+        }),
       }),
       paymentModalOpen &&
       c.jsx(V.Suspense, {
