@@ -635,7 +635,7 @@ function nh() {
       try {
         const o = await I("/auth/me/");
         (b(o),
-          o.profile.role === "BOTH" ? H("PS") : H(o.profile.role),
+          o.profile.role === "BOTH" ? H("AV") : H(o.profile.role),
           setLayoutMode(
             o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
           ),
@@ -1271,7 +1271,7 @@ function nh() {
         const o = await I("/auth/me/");
         if (cancelled) return;
         b(o);
-        o.profile.role === "BOTH" ? H("PS") : H(o.profile.role);
+        o.profile.role === "BOTH" ? H("AV") : H(o.profile.role);
         setLayoutMode(
           o.profile.layout_mode === "WEB" ? "WEB" : "MOBILE",
         );
@@ -6708,10 +6708,14 @@ function nh() {
       ? toNumber(homeClientGlobalBalanceMap[clientPaymentModalClient.id], 0)
       : 0,
     clientPaymentHistoryEntries = clientPaymentModalClient
-      ? getClientPaymentHistoryEntries(clientPaymentModalClient)
+      ? safeClientPaymentArray(() =>
+        getClientPaymentHistoryEntries(clientPaymentModalClient),
+      )
       : [],
     clientPaymentHistoryRows = clientPaymentModalClient
-      ? getClientPaymentHistoryRows(clientPaymentModalClient)
+      ? safeClientPaymentArray(() =>
+        getClientPaymentHistoryRows(clientPaymentModalClient),
+      )
       : [],
     paymentHistoryRows = paymentModalClient
       ? getClientPaymentHistoryRows(paymentModalClient)

@@ -183,7 +183,7 @@ const ClientPaymentModal = V.memo(function ClientPaymentModal(props) {
     const isEditing =
       String(clientPaymentEntryEditingId || "") === String(rowData.id);
     const allocations = Array.isArray(rowData.shopping_allocations)
-      ? rowData.shopping_allocations
+      ? rowData.shopping_allocations.filter(Boolean)
       : [];
     const isBatch =
       String((rowData && rowData.entry_kind) || "").toUpperCase() === "CLIENT_BATCH";
