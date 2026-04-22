@@ -6741,7 +6741,10 @@ function nh() {
     ),
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
     clientPaymentGlobalBalance = clientPaymentModalClient
-      ? toNumber(homeClientGlobalBalanceMap[clientPaymentModalClient.id], 0)
+      ? getClientShoppingHistoryEntries(clientPaymentModalClient).reduce(
+        (o, N) => o + toNumber(N && N.balance, 0),
+        0,
+      )
       : 0,
     clientPaymentHistoryEntries = clientPaymentModalClient
       ? safeClientPaymentArray(() =>
