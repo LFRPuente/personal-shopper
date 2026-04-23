@@ -81,7 +81,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                             setClientPhoneCountryCode(
                               sanitizeClientCountryCodeInput(event.target.value),
                             ),
-                          placeholder: "+52",
+                          placeholder: "+521",
                           maxLength: 8,
                           className:
                             "w-full px-4 py-3 text-lg border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none",

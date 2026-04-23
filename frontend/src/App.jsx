@@ -342,7 +342,7 @@ function nh() {
     [me, ut] = V.useState(!1),
     [Vl, Yt] = V.useState(""),
     [Nt, it] = V.useState(""),
-    [clientPhoneCountryCode, setClientPhoneCountryCode] = V.useState("+52"),
+    [clientPhoneCountryCode, setClientPhoneCountryCode] = V.useState("+521"),
     [p, z] = V.useState(""),
     [q, sl] = V.useState(""),
     [rl, d] = V.useState(""),
@@ -2083,7 +2083,7 @@ function nh() {
       name = "",
       status = "Pending",
       tags = "",
-      phone_country_code = "+52",
+      phone_country_code = "+521",
       phone = "",
       email = "",
       shipping_address = "",
@@ -2104,7 +2104,7 @@ function nh() {
     openCreateClientModal = () => {
       Yt("");
       it("");
-      setClientPhoneCountryCode("+52");
+      setClientPhoneCountryCode("+521");
       z("");
       sl("");
       d("");
@@ -2152,7 +2152,7 @@ function nh() {
           (_l([...Kl, N]),
             Yt(""),
             it(""),
-            setClientPhoneCountryCode("+52"),
+            setClientPhoneCountryCode("+521"),
             z(""),
             sl(""),
             d(""),
@@ -9042,7 +9042,7 @@ function nh() {
             }),
             c.jsx("p", {
               className: "text-gray-500",
-              children: "Log in or create an account to start.",
+              children: "Inicia sesión para continuar.",
             }),
           ],
         }),
@@ -9077,49 +9077,13 @@ function nh() {
                 required: !0,
               }),
             }),
-            Q === "REGISTER" &&
-            c.jsx("div", {
-              children: c.jsxs("select", {
-                value: cl.role,
-                onChange: (o) => Ql({ ...cl, role: o.target.value }),
-                className:
-                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
-                children: [
-                  c.jsx("option", {
-                    value: "AV",
-                    children: "Agente de Ventas (Oficina)",
-                  }),
-                  c.jsx("option", {
-                    value: "PS",
-                    children: "Personal Shopper (Tienda)",
-                  }),
-                  c.jsx("option", {
-                    value: "BOTH",
-                    children: "Ambos (Admin / Tester)",
-                  }),
-                ],
-              }),
-            }),
             c.jsx("button", {
               type: "submit",
               className:
                 "w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 md:py-4 rounded-xl shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all",
-              children: Q === "LOGIN" ? "Access Account" : "Register Account",
+              children: "Access Account",
             }),
           ],
-        }),
-        c.jsx("div", {
-          className: "mt-6 md:mt-8 pb-4 text-center text-sm",
-          children: c.jsx("button", {
-            onClick: () => {
-              (al(Q === "LOGIN" ? "REGISTER" : "LOGIN"), T(""));
-            },
-            className: "font-bold text-gray-500 hover:text-primary transition",
-            children:
-              Q === "LOGIN"
-                ? "Don't have an account? Register"
-                : "Already have an account? Login",
-          }),
         }),
       ],
     });
