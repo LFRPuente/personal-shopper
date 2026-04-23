@@ -19,7 +19,14 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
   overlayBackdropClass,
   overlaySheetClass,
 }) {
+  const [showPurchaseWithTaxes, setShowPurchaseWithTaxes] = V.useState(false);
   if (!open) return null;
+  const missionTaxPercentage = Number(activeMission && activeMission.tax_percentage) || 0;
+  const purchaseTaxMultiplier = 1 + missionTaxPercentage / 100;
+  const purchaseDisplayLabel = showPurchaseWithTaxes ? "COMPRA USD CON TAX" : "COMPRA USD";
+  const purchaseDisplayTotal = showPurchaseWithTaxes
+    ? filteredMissionSummaryPurchaseTotal * purchaseTaxMultiplier
+    : filteredMissionSummaryPurchaseTotal;
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -71,13 +78,16 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
               className:
                 "rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-right dark:border-sky-800 dark:bg-sky-950/30",
               children: [
-                c.jsx("p", {
-                  className: "text-[10px] font-semibold text-sky-700 dark:text-sky-300",
-                  children: "COMPRA USD",
+                c.jsx("button", {
+                  type: "button",
+                  onClick: () => setShowPurchaseWithTaxes((value) => !value),
+                  className:
+                    "w-full bg-transparent p-0 border-0 text-right text-[10px] font-semibold text-sky-700 dark:text-sky-300",
+                  children: purchaseDisplayLabel,
                 }),
                 c.jsxs("p", {
                   className: "text-sm font-bold text-slate-900 dark:text-slate-100",
-                  children: ["$", formatAmount(filteredMissionSummaryPurchaseTotal)],
+                  children: ["$", formatAmount(purchaseDisplayTotal)],
                 }),
               ],
             }),
