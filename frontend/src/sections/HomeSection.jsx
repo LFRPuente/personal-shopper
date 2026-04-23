@@ -168,6 +168,7 @@ const HomeSection = V.memo(function HomeSection() {
   const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
+  const [showShoppingPurchaseWithTaxes, setShowShoppingPurchaseWithTaxes] = V.useState(false);
   const countUnreadSummaryProducts = (summary) => {
     if (!summary || typeof summary !== 'object') return 0;
     return Object.values(summary).reduce((total, clientSummary) => {
@@ -211,6 +212,14 @@ const HomeSection = V.memo(function HomeSection() {
     }
     return summaryCount;
   };
+  const shoppingPurchaseTaxMultiplier = 1 + (Number(activeMission && activeMission.tax_percentage) || 0) / 100;
+  const shoppingPurchaseDisplayTotal = showShoppingPurchaseWithTaxes
+    ? missionPurchaseCost * shoppingPurchaseTaxMultiplier
+    : missionPurchaseCost;
+  const shoppingPurchaseDisplayDiscountTotal = showShoppingPurchaseWithTaxes
+    ? missionPurchaseCostWithDiscount * shoppingPurchaseTaxMultiplier
+    : missionPurchaseCostWithDiscount;
+  const shoppingPurchaseDisplayLabel = showShoppingPurchaseWithTaxes ? 'COMPRA USD CON TAX' : 'COMPRA USD';
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -761,25 +770,27 @@ const HomeSection = V.memo(function HomeSection() {
                     ? 'flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-right'
                     : 'min-w-0 rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-right dark:border-sky-800 dark:bg-sky-950/35',
                   children: [
-                    c.jsx('p', {
+                    c.jsx('button', {
+                      type: 'button',
+                      onClick: () => setShowShoppingPurchaseWithTaxes((value) => !value),
                       className: isDesktopLayout
-                        ? 'text-[8px] font-black uppercase tracking-[0.12em] text-slate-700 dark:text-white/70'
-                        : 'text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300',
-                      children: 'COMPRA USD',
+                        ? 'w-full text-[8px] font-black uppercase tracking-[0.12em] text-slate-700 dark:text-white/70 text-right'
+                        : 'w-full text-[8px] font-black uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300 text-right',
+                      children: shoppingPurchaseDisplayLabel,
                     }),
                     c.jsxs('span', {
                       className: isDesktopLayout
                         ? 'mt-1 block text-[9px] font-semibold text-slate-900 dark:text-white leading-none'
                         : 'mt-1 block text-[10px] font-semibold text-slate-900 leading-none dark:text-white',
-                      children: ['$', money(missionPurchaseCost)],
+                      children: ['$', money(shoppingPurchaseDisplayTotal)],
                     }),
                     missionHasAnyDiscount &&
-                      missionPurchaseCostWithDiscount !== missionPurchaseCost &&
+                      shoppingPurchaseDisplayDiscountTotal !== shoppingPurchaseDisplayTotal &&
                       c.jsxs('span', {
                         className: isDesktopLayout
                           ? 'mt-0.5 block text-[9px] font-semibold text-slate-700 dark:text-slate-200 leading-none'
                           : 'mt-0.5 block text-[9px] font-semibold text-slate-700 leading-none dark:text-slate-200',
-                        children: ['C/desc $', money(missionPurchaseCostWithDiscount)],
+                        children: ['C/desc $', money(shoppingPurchaseDisplayDiscountTotal)],
                       }),
                   ],
                 }),
