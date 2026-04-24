@@ -908,9 +908,9 @@ const HomeSection = V.memo(function HomeSection() {
                       (product) => String((product && product.status) || '').toUpperCase() === 'REJECTED',
                     ).length;
                     const statusSummary = [
-                      `${annotatedCount} ${annotatedCount === 1 ? 'anotado' : 'anotados'}`,
-                      `${inReviewCount} ${inReviewCount === 1 ? 'en revisión' : 'en revisión'}`,
-                      `${rejectedCount} ${rejectedCount === 1 ? 'rechazado' : 'rechazados'}`,
+                      `${annotatedCount} ${annotatedCount === 1 ? 'Anotado' : 'Anotados'}`,
+                      `${inReviewCount} ${inReviewCount === 1 ? 'Revision' : 'Revision'}`,
+                      `${rejectedCount} ${rejectedCount === 1 ? 'Rechazado' : 'Rechazados'}`,
                     ].join(', ');
                     const totals = homeClientMissionTotalsMap[client.id] || { usd: 0, sale: 0 };
                     const balance = homeClientGlobalBalanceMap[client.id] || 0;
