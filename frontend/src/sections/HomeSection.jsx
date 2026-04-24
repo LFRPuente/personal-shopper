@@ -908,10 +908,16 @@ const HomeSection = V.memo(function HomeSection() {
                       (product) => String((product && product.status) || '').toUpperCase() === 'REJECTED',
                     ).length;
                     const statusSummary = [
-                      `${annotatedCount} ${annotatedCount === 1 ? 'Anotado' : 'Anotados'}`,
-                      `${inReviewCount} ${inReviewCount === 1 ? 'Revision' : 'Revision'}`,
-                      `${rejectedCount} ${rejectedCount === 1 ? 'Rechazado' : 'Rechazados'}`,
-                    ].join(', ');
+                      annotatedCount > 0
+                        ? `${annotatedCount} ${annotatedCount === 1 ? 'Anotado' : 'Anotados'}`
+                        : '',
+                      inReviewCount > 0
+                        ? `${inReviewCount} ${inReviewCount === 1 ? 'Revision' : 'Revision'}`
+                        : '',
+                      rejectedCount > 0
+                        ? `${rejectedCount} ${rejectedCount === 1 ? 'Rechazado' : 'Rechazados'}`
+                        : '',
+                    ].filter(Boolean).join(', ');
                     const totals = homeClientMissionTotalsMap[client.id] || { usd: 0, sale: 0 };
                     const balance = homeClientGlobalBalanceMap[client.id] || 0;
                     return c.jsxs('div', {
@@ -947,10 +953,11 @@ const HomeSection = V.memo(function HomeSection() {
                                   }),
                               ],
                             }),
-                            c.jsx('p', {
-                              className: 'text-[10px] text-gray-500',
-                              children: statusSummary,
-                            }),
+                            statusSummary &&
+                              c.jsx('p', {
+                                className: 'text-[10px] text-gray-500',
+                                children: statusSummary,
+                              }),
                             c.jsxs('div', {
                               className: 'flex gap-2 mt-1',
                               children: [
