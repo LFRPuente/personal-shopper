@@ -1272,10 +1272,7 @@ function nh() {
     const o = Kl.find(
         (A) => String(A.id) === String(clientPaymentForm.client || ""),
       ) || null,
-      N = safeClientPaymentArray(() => (o ? getClientPaymentTargets(o) : [])).reduce(
-        (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
-        0,
-      ),
+      N = o ? getClientPaymentGlobalDebtAmount(o) : 0,
       A = N > 0 ? N.toFixed(2) : "";
     setClientPaymentForm((vl) =>
       String((vl && vl.amount) || "") === A ? vl : { ...vl, amount: A },
@@ -2709,8 +2706,11 @@ function nh() {
       const vl = he.id;
       setProductImageUploadingId(vl);
       try {
-        await I(`/products/${vl}/`, { method: "PATCH", body: A });
+        const updatedProduct = await I(`/products/${vl}/`, { method: "PATCH", body: A });
+        updateClientProductState(updatedProduct || { ...he, image: he.image });
+        await refreshCoreData();
         await Qt();
+        notifySuccess("Foto actualizada.");
       } catch {
         notifyError("Error updating photo");
       } finally {
@@ -4786,10 +4786,7 @@ function nh() {
     },
     openClientPaymentModal = (o) => {
       if (!o) return;
-      const N = safeClientPaymentArray(() => getClientPaymentTargets(o)).reduce(
-        (A, vl) => A + Math.max(toNumber(vl && vl.balance, 0), 0),
-        0,
-      );
+      const N = getClientPaymentGlobalDebtAmount(o);
       setClientPaymentForm({
         client: String(o.id),
         amount: N > 0 ? N.toFixed(2) : "",
@@ -6522,6 +6519,13 @@ function nh() {
           (N, A) =>
             new Date(N.date || 0).getTime() - new Date(A.date || 0).getTime(),
         ),
+    getClientPaymentGlobalBalanceAmount = (o) =>
+      getClientShoppingHistoryEntries(o).reduce(
+        (N, A) => N + toNumber(A && A.balance, 0),
+        0,
+      ),
+    getClientPaymentGlobalDebtAmount = (o) =>
+      Math.max(getClientPaymentGlobalBalanceAmount(o), 0),
     getClientPaymentBalanceAdjustmentTarget = (o) => {
       if (!o) return null;
       const N = getClientShoppingHistoryEntries(o)
@@ -6731,20 +6735,16 @@ function nh() {
     clientPaymentReceivingTargets = clientPaymentPlan.filter(
       (o) => toNumber(o && o.appliedAmount, 0) !== 0,
     ),
-    clientPaymentTotalDebt = clientPaymentTargets.reduce(
-      (o, N) => o + Math.max(paymentLocalToNumber(N && N.balance, 0), 0),
-      0,
-    ),
+    clientPaymentTotalDebt = clientPaymentModalClient
+      ? getClientPaymentGlobalDebtAmount(clientPaymentModalClient)
+      : 0,
     clientPaymentAllocatedTotal = clientPaymentPlan.reduce(
       (o, N) => o + paymentLocalToNumber(N && N.appliedAmount, 0),
       0,
     ),
     clientPaymentBalance = clientPaymentTotalDebt - clientPaymentAllocatedTotal,
     clientPaymentGlobalBalance = clientPaymentModalClient
-      ? getClientShoppingHistoryEntries(clientPaymentModalClient).reduce(
-        (o, N) => o + toNumber(N && N.balance, 0),
-        0,
-      )
+      ? getClientPaymentGlobalBalanceAmount(clientPaymentModalClient)
       : 0,
     clientPaymentHistoryEntries = clientPaymentModalClient
       ? safeClientPaymentArray(() =>
