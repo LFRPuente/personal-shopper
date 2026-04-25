@@ -506,9 +506,9 @@ const HomeSection = V.memo(function HomeSection() {
                                             'Usuario',
                                           ' (',
                                           request.created_by_role || 'AV',
-                                          ') â€¢ ',
+                                          ') • ',
                                           request.client_name
-                                            ? `${request.client_name} â€¢ `
+                                            ? `${request.client_name} • `
                                             : '',
                                           getRelativeTime(
                                             request.updated_at ||
