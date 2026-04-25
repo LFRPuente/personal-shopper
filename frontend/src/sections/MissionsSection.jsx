@@ -36,6 +36,24 @@ const getMissionProductStatusClassName = (status) => {
           : 'bg-white/90 text-gray-700';
 };
 
+const getShoppingProductStatusSummary = (products = []) => {
+  const counts = (Array.isArray(products) ? products : []).reduce(
+    (summary, product) => {
+      const status = String((product && product.status) || '').toUpperCase();
+      if (status === 'ANNOTATED') summary.annotated += 1;
+      if (status === 'IN_REVIEW') summary.review += 1;
+      if (status === 'REJECTED') summary.rejected += 1;
+      return summary;
+    },
+    { annotated: 0, review: 0, rejected: 0 },
+  );
+  return [
+    counts.annotated > 0 ? `${counts.annotated} Anotados` : '',
+    counts.review > 0 ? `${counts.review} Revision` : '',
+    counts.rejected > 0 ? `${counts.rejected} Rechazados` : '',
+  ].filter(Boolean).join(', ');
+};
+
 const MissionsSection = V.memo(function MissionsSection() {
   const {
     isDesktopLayout,
@@ -165,6 +183,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                     'ANNOTATED'
                   : true,
               );
+              const productStatusSummary = getShoppingProductStatusSummary(missionProducts);
 
               return c.jsxs(
                 'div',
@@ -237,12 +256,14 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         mission.store_name &&
                                           c.jsxs(c.Fragment, {
                                             children: [' • ', mission.store_name],
-                                          }),
+                                        }),
                                         ' • ',
                                         clients.length,
-                                        ' clients • ',
-                                        visibleProducts.length,
-                                        ' products',
+                                        ' clients',
+                                        productStatusSummary &&
+                                          c.jsxs(c.Fragment, {
+                                            children: [' • ', productStatusSummary],
+                                          }),
                                       ],
                                     }),
                                     mission.status === 'COMPLETED' &&
@@ -375,14 +396,10 @@ const MissionsSection = V.memo(function MissionsSection() {
                                   className: 'space-y-2',
                                   children: clients.map((client) => {
                                     const copyKey = `${mission.id}-${client.id}`;
-                                    const clientProducts = (client.products || []).filter(
-                                      (product) =>
-                                        Number(product.shopping) === Number(mission.id) &&
-                                        (mission.status === 'COMPLETED'
-                                          ? String(
-                                              (product && product.status) || '',
-                                            ).toUpperCase() === 'ANNOTATED'
-                                          : true),
+                                    const clientStatusSummary = getShoppingProductStatusSummary(
+                                      (client.products || []).filter(
+                                        (product) => Number(product.shopping) === Number(mission.id),
+                                      ),
                                     );
                                     return c.jsxs(
                                       'div',
@@ -410,8 +427,8 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                 className:
                                                   'text-[10px] text-gray-500',
                                                 children: [
-                                                  clientProducts.length,
-                                                  ' items • ',
+                                                  clientStatusSummary,
+                                                  clientStatusSummary ? ' • ' : '',
                                                   (client.receipts || []).length,
                                                   ' tickets',
                                                 ],
