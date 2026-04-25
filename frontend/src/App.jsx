@@ -7602,20 +7602,10 @@ function nh() {
             : galleryAnnotatedProducts,
     sortedVisibleGalleryProducts = V.useMemo(
       () => [...visibleGalleryProducts].sort((o, N) => {
-        const A = latestReviewsByProduct[o.id],
-          vl = latestReviewsByProduct[N.id],
-          El = A && (A.status === "PENDING" || A.status === "ALTERNATIVE_SENT")
-            ? 0
-            : 1,
-          Se = vl && (vl.status === "PENDING" || vl.status === "ALTERNATIVE_SENT")
-            ? 0
-            : 1;
-        if (El !== Se) return El - Se;
-        const ea = A ? new Date(A.updated_at || A.created_at || 0).getTime() : 0,
-          gl = vl ? new Date(vl.updated_at || vl.created_at || 0).getTime() : 0;
-        return gl - ea;
+        const A = new Date(N.created_at || 0).getTime() - new Date(o.created_at || 0).getTime();
+        return A || Number(N.id || 0) - Number(o.id || 0);
       }),
-      [visibleGalleryProducts, latestReviewsByProduct],
+      [visibleGalleryProducts],
     ),
     publicFocusedShipment =
       publicClientShareData &&
