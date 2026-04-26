@@ -13,22 +13,15 @@ const ExpensesSection = V.memo(function ExpensesSection() {
   const { apiFetch, notifySuccess, notifyError, isDesktopLayout, formatAmount } = useApp();
   const nowYear = currentYear();
   const [month, setMonth] = V.useState(currentMonthKey());
+  const [monthPickerOpen, setMonthPickerOpen] = V.useState(false);
   const [expenses, setExpenses] = V.useState([]);
   const [saving, setSaving] = V.useState(false);
   const [form, setForm] = V.useState({ expense_date: today(), expense_type: '', description: '', amount: '' });
-  const monthOptions = V.useMemo(() => {
-    const options = [];
-    for (let year = nowYear - 2; year <= nowYear; year += 1) {
-      const limit = year === nowYear ? currentMonthNumber() : 12;
-      for (let monthNumber = 1; monthNumber <= limit; monthNumber += 1) {
-        options.push({
-          value: `${year}-${padMonth(monthNumber)}`,
-          label: `${MONTH_NAMES[monthNumber - 1]} ${year}`,
-        });
-      }
-    }
-    return options.reverse();
-  }, [nowYear]);
+  const selectedYear = Number(month.slice(0, 4));
+  const selectedMonth = Number(month.slice(5, 7));
+  const yearOptions = V.useMemo(() => [nowYear, nowYear - 1, nowYear - 2], [nowYear]);
+  const monthLimit = selectedYear === nowYear ? currentMonthNumber() : 12;
+  const monthLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
   const loadExpenses = V.useCallback(async () => {
     const [start, end] = monthBounds(month);
     setExpenses(await apiFetch(`/expenses/?start=${start}&end=${end}`) || []);
@@ -58,7 +51,30 @@ const ExpensesSection = V.memo(function ExpensesSection() {
   return c.jsxs('div', { className: isDesktopLayout ? 'space-y-5' : 'hidden', children: [
     c.jsxs('div', { className: 'flex items-center justify-between gap-4', children: [
       c.jsx('h2', { className: 'text-lg font-bold text-text-main dark:text-white', children: 'Gastos' }),
-      c.jsx('select', { value: month, onChange: (event) => setMonth(event.target.value), className: 'rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-3 py-2 text-sm font-bold dark:text-white', children: monthOptions.map((option) => c.jsx('option', { value: option.value, children: option.label }, option.value)) }),
+      c.jsxs('div', { className: 'relative', children: [
+        c.jsxs('button', { type: 'button', onClick: () => setMonthPickerOpen((value) => !value), className: 'flex min-w-[170px] items-center justify-between gap-3 rounded-xl border border-border-light bg-white px-3 py-2 text-sm font-bold text-text-main shadow-sm hover:bg-slate-50 dark:border-border-dark dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800', children: [
+          monthLabel,
+          c.jsx('span', { className: 'material-symbols-outlined text-[18px] text-text-sub', children: 'expand_more' }),
+        ] }),
+        monthPickerOpen &&
+        c.jsxs('div', { className: 'absolute right-0 top-full z-50 mt-2 grid w-[320px] grid-cols-[1fr_92px] overflow-hidden rounded-2xl border border-border-light bg-white shadow-xl dark:border-border-dark dark:bg-slate-900', children: [
+          c.jsx('div', { className: 'grid grid-cols-2 gap-1 p-3', children: MONTH_NAMES.slice(0, monthLimit).map((name, index) => {
+            const monthNumber = index + 1;
+            const active = monthNumber === selectedMonth;
+            return c.jsx('button', { type: 'button', onClick: () => {
+              setMonth(`${selectedYear}-${padMonth(monthNumber)}`);
+              setMonthPickerOpen(false);
+            }, className: `rounded-lg px-2 py-2 text-left text-[11px] font-bold transition ${active ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`, children: name }, name);
+          }) }),
+          c.jsx('div', { className: 'border-l border-border-light p-2 dark:border-border-dark', children: yearOptions.map((year) => {
+            const active = year === selectedYear;
+            return c.jsx('button', { type: 'button', onClick: () => {
+              const nextMonth = year === nowYear && selectedMonth > currentMonthNumber() ? currentMonthNumber() : selectedMonth;
+              setMonth(`${year}-${padMonth(nextMonth)}`);
+            }, className: `mb-1 w-full rounded-lg px-2 py-2 text-xs font-bold transition ${active ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`, children: year }, year);
+          }) }),
+        ] }),
+      ] }),
     ] }),
     c.jsxs('form', { onSubmit: saveExpense, className: 'grid grid-cols-1 gap-3 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 md:grid-cols-[150px_1fr_1.5fr_150px_auto]', children: [
       c.jsx('input', { type: 'date', value: form.expense_date, onChange: (event) => setForm({ ...form, expense_date: event.target.value }), className: 'rounded-xl border dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),

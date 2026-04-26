@@ -9,7 +9,7 @@ const monthStart = () => {
 };
 
 const ReportsSection = V.memo(function ReportsSection() {
-  const { apiFetch, missions, users, isDesktopLayout, notifySuccess, notifyError } = useApp();
+  const { apiFetch, missions, shipments, users, isDesktopLayout, notifySuccess, notifyInfo, notifyError } = useApp();
   const [startDate, setStartDate] = V.useState(monthStart());
   const [endDate, setEndDate] = V.useState(dateOnly(new Date()));
   const [generating, setGenerating] = V.useState(false);
@@ -17,12 +17,18 @@ const ReportsSection = V.memo(function ReportsSection() {
     if (startDate && endDate && startDate > endDate) return notifyError('El rango de fechas no es valido.');
     setGenerating(true);
     try {
-      const [shipments, expenses] = await Promise.all([
-        apiFetch('/shipments/'),
+      const [shipmentsResult, expensesResult] = await Promise.allSettled([
+        Array.isArray(shipments) && shipments.length ? Promise.resolve(shipments) : apiFetch('/shipments/'),
         apiFetch(`/expenses/?start=${startDate || ''}&end=${endDate || ''}`),
       ]);
-      downloadGeneralWorkbook({ missions, shipments, expenses, users, startDate, endDate });
-      notifySuccess('Reporte generado.');
+      const reportShipments = shipmentsResult.status === 'fulfilled' ? shipmentsResult.value || [] : [];
+      const reportExpenses = expensesResult.status === 'fulfilled' ? expensesResult.value || [] : [];
+      downloadGeneralWorkbook({ missions, shipments: reportShipments, expenses: reportExpenses, users, startDate, endDate });
+      if (shipmentsResult.status === 'rejected' || expensesResult.status === 'rejected') {
+        notifyInfo('Reporte generado con la informacion disponible.');
+      } else {
+        notifySuccess('Reporte generado.');
+      }
     } catch (error) {
       console.error('Failed generating report', error);
       notifyError((error && error.message) || 'No se pudo generar el reporte.');

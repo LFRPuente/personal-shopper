@@ -1,9 +1,10 @@
 const esc = (value) =>
   String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 const amount = (value) => {
   const number = Number(value ?? 0);
@@ -88,12 +89,24 @@ export const downloadGeneralWorkbook = ({ missions = [], shipments = [], expense
       ${worksheet('GASTOS', gastoColumns, gastoRows)}
     </Workbook>`;
   const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+  const filename = `reporte_general_${startDate || 'inicio'}_${endDate || 'fin'}.xls`;
+  if (typeof navigator !== 'undefined' && navigator.msSaveOrOpenBlob) {
+    navigator.msSaveOrOpenBlob(blob, filename);
+    return;
+  }
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `reporte_general_${startDate || 'inicio'}_${endDate || 'fin'}.xls`;
+  link.download = filename;
+  if (typeof URL !== 'undefined' && URL.createObjectURL) {
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    return;
+  }
+  link.href = `data:application/vnd.ms-excel;charset=utf-8,${encodeURIComponent(workbook)}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 };
