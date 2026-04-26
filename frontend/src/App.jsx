@@ -17,6 +17,7 @@ import {
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
+import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
 const ConfirmDialog = V.lazy(() => import('./components/ConfirmDialog.jsx'));
@@ -40,7 +41,6 @@ const ReviewConversationModal = V.lazy(() => import('./components/ReviewConversa
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
-const ReportsSection = V.lazy(() => import('./sections/ReportsSection.jsx'));
 
 const APP_SECTION_PATHS = {
   HOME: "/home",
@@ -9548,7 +9548,7 @@ function nh() {
                         : nl === "EXPENSES" && canUseWebBothSections
                           ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ExpensesSection, {}) })
                           : nl === "REPORTS" && canUseWebBothSections
-                            ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ReportsSection, {}) })
+                            ? c.jsx(ReportsSection, {})
                             : nl === "CALCULATOR"
                               ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
                               : nl === "PROFILE"

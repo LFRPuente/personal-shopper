@@ -2,20 +2,37 @@ import { V, c, NATIVE_DROPDOWN_OPTION_STYLE } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const monthOf = (date = new Date()) => date.toISOString().slice(0, 7);
 const monthBounds = (month) => [`${month}-01`, new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10)];
+const MONTH_NAMES = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+const currentYear = () => new Date().getFullYear();
+const currentMonthNumber = () => new Date().getMonth() + 1;
+const padMonth = (value) => String(value).padStart(2, '0');
+const currentMonthKey = () => `${currentYear()}-${padMonth(currentMonthNumber())}`;
 
 const ExpensesSection = V.memo(function ExpensesSection() {
   const { apiFetch, notifySuccess, notifyError, isDesktopLayout, formatAmount } = useApp();
-  const maxMonth = monthOf();
-  const [month, setMonth] = V.useState(maxMonth);
+  const nowYear = currentYear();
+  const [month, setMonth] = V.useState(currentMonthKey());
   const [expenses, setExpenses] = V.useState([]);
   const [saving, setSaving] = V.useState(false);
   const [form, setForm] = V.useState({ expense_date: today(), expense_type: '', description: '', amount: '' });
+  const monthOptions = V.useMemo(() => {
+    const options = [];
+    for (let year = nowYear - 2; year <= nowYear; year += 1) {
+      const limit = year === nowYear ? currentMonthNumber() : 12;
+      for (let monthNumber = 1; monthNumber <= limit; monthNumber += 1) {
+        options.push({
+          value: `${year}-${padMonth(monthNumber)}`,
+          label: `${MONTH_NAMES[monthNumber - 1]} ${year}`,
+        });
+      }
+    }
+    return options.reverse();
+  }, [nowYear]);
   const loadExpenses = V.useCallback(async () => {
-    const [start, end] = monthBounds(month > maxMonth ? maxMonth : month);
+    const [start, end] = monthBounds(month);
     setExpenses(await apiFetch(`/expenses/?start=${start}&end=${end}`) || []);
-  }, [apiFetch, month, maxMonth]);
+  }, [apiFetch, month]);
   V.useEffect(() => { loadExpenses().catch((error) => console.error('Failed loading expenses', error)); }, [loadExpenses]);
   const types = V.useMemo(() => [...new Set((expenses || []).map((expense) => expense.expense_type).filter(Boolean))], [expenses]);
   const lastAmount = V.useMemo(() => {
@@ -41,7 +58,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
   return c.jsxs('div', { className: isDesktopLayout ? 'space-y-5' : 'hidden', children: [
     c.jsxs('div', { className: 'flex items-center justify-between gap-4', children: [
       c.jsx('h2', { className: 'text-lg font-bold text-text-main dark:text-white', children: 'Gastos' }),
-      c.jsx('input', { type: 'month', max: maxMonth, value: month, onChange: (event) => setMonth(event.target.value > maxMonth ? maxMonth : event.target.value), className: 'rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),
+      c.jsx('select', { value: month, onChange: (event) => setMonth(event.target.value), className: 'rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-3 py-2 text-sm font-bold dark:text-white', children: monthOptions.map((option) => c.jsx('option', { value: option.value, children: option.label }, option.value)) }),
     ] }),
     c.jsxs('form', { onSubmit: saveExpense, className: 'grid grid-cols-1 gap-3 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 md:grid-cols-[150px_1fr_1.5fr_150px_auto]', children: [
       c.jsx('input', { type: 'date', value: form.expense_date, onChange: (event) => setForm({ ...form, expense_date: event.target.value }), className: 'rounded-xl border dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),
