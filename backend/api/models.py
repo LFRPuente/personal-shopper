@@ -587,6 +587,28 @@ class ShipmentEvidence(models.Model):
         return f"Shipment evidence {self.id} for shipment {self.shipment_id}"
 
 
+class Expense(models.Model):
+    expense_date = models.DateField(default=timezone.localdate)
+    expense_type = models.CharField(max_length=120)
+    description = models.CharField(max_length=255, blank=True, default='')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-expense_date', '-id']
+
+    def __str__(self):
+        return f"{self.expense_date} - {self.expense_type}"
+
+
 class ShipmentShareLink(models.Model):
     shipment = models.ForeignKey(
         Shipment,

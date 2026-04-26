@@ -39,12 +39,16 @@ const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ReviewConversationModal = V.lazy(() => import('./components/ReviewConversationModal.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
+const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
+const ReportsSection = V.lazy(() => import('./sections/ReportsSection.jsx'));
 
 const APP_SECTION_PATHS = {
   HOME: "/home",
   MISSIONS: "/shoppings",
   CLIENTS: "/clients",
   SHIPMENTS: "/shipments",
+  EXPENSES: "/expenses",
+  REPORTS: "/reports",
   CALCULATOR: "/calculator",
   PROFILE: "/profile",
 };
@@ -178,6 +182,12 @@ function getAppRouteFromPath(pathname) {
   }
   if (parts[0] === "shipments") {
     return { section: "SHIPMENTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "expenses") {
+    return { section: "EXPENSES", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "reports") {
+    return { section: "REPORTS", homeClientSlug: null, isPublicShare: !1 };
   }
   if (parts[0] === "calculator") {
     return { section: "CALCULATOR", homeClientSlug: null, isPublicShare: !1 };
@@ -9192,6 +9202,7 @@ function nh() {
   // Profile section extracted to sections/ProfileSection.jsx
   // Shipments section extracted to sections/ShipmentsSection.jsx
   const appContextValue = V.useMemo(() => ({
+    apiFetch: I,
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
     applyCalcModeChange, applyCalcFactorChange, applyCalcDiscountChange,
     applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
@@ -9414,6 +9425,7 @@ function nh() {
     ],
   });
   if (!C || !J) return authScreen;
+  const canUseWebBothSections = isDesktopLayout && J && J.profile && J.profile.role === "BOTH";
   return c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
@@ -9533,11 +9545,15 @@ function nh() {
                       ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ClientsSection, {}) })
                       : nl === "SHIPMENTS"
                         ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ShipmentsSection, {}) })
-                        : nl === "CALCULATOR"
-                          ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
-                          : nl === "PROFILE"
-                            ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
-                            : null,
+                        : nl === "EXPENSES" && canUseWebBothSections
+                          ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ExpensesSection, {}) })
+                          : nl === "REPORTS" && canUseWebBothSections
+                            ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ReportsSection, {}) })
+                            : nl === "CALCULATOR"
+                              ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
+                              : nl === "PROFILE"
+                                ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
+                                : null,
             }, nl),
           }),
           c.jsx("div", {
@@ -10242,6 +10258,26 @@ function nh() {
                     className: "material-symbols-outlined text-[20px]",
                     children: "local_shipping",
                   }),
+            }),
+            canUseWebBothSections &&
+            c.jsx("button", {
+              onClick: () => navigateSection("EXPENSES"),
+              title: "Gastos",
+              className: `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "EXPENSES" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[22px]",
+                children: "receipt_long",
+              }),
+            }),
+            canUseWebBothSections &&
+            c.jsx("button", {
+              onClick: () => navigateSection("REPORTS"),
+              title: "Reportes",
+              className: `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "REPORTS" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[22px]",
+                children: "analytics",
+              }),
             }),
             c.jsx("button", {
               onClick: () => navigateSection("CALCULATOR"),

@@ -9,6 +9,7 @@ from .views import (
     RequestViewSet,
     ShipmentViewSet,
     ShoppingPaymentViewSet,
+    ExpenseViewSet,
     ProductReviewViewSet,
     ReviewAlternativeViewSet,
     scan_receipt,
@@ -38,6 +39,7 @@ router.register(r'stores', StoreViewSet, basename='store')
 router.register(r'requests', RequestViewSet, basename='request')
 router.register(r'payments', ShoppingPaymentViewSet, basename='payment')
 router.register(r'shipments', ShipmentViewSet, basename='shipment')
+router.register(r'expenses', ExpenseViewSet, basename='expense')
 # <-------- seccion 7: rutas de revisiones AV <-> PS
 router.register(r'reviews', ProductReviewViewSet, basename='review')
 router.register(r'review-alternatives', ReviewAlternativeViewSet, basename='review-alternative')

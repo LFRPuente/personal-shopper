@@ -43,6 +43,7 @@ from .models import (
     Shipment,
     ShipmentEvidence,
     ShipmentShareLink,
+    Expense,
 )
 from .serializers import (
     ClientSerializer,
@@ -65,6 +66,7 @@ from .serializers import (
     ShipmentEvidenceSerializer,
     ShipmentShareLinkSerializer,
     PublicClientReceiptSerializer,
+    ExpenseSerializer,
 )
 import random
 from datetime import date, timedelta
@@ -2305,3 +2307,34 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(self.get_serializer(shipment).data)
+
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def _is_both_user(self):
+        profile = getattr(self.request.user, 'userprofile', None)
+        return str(getattr(profile, 'role', '') or '').upper() == 'BOTH'
+
+    def get_queryset(self):
+        queryset = Expense.objects.select_related('created_by').all().order_by('-expense_date', '-id')
+        if not self._is_both_user():
+            return queryset.none()
+        start_date = self.request.query_params.get('start')
+        end_date = self.request.query_params.get('end')
+        if start_date:
+            queryset = queryset.filter(expense_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(expense_date__lte=end_date)
+        return queryset
+
+    def perform_create(self, serializer):
+        if not self._is_both_user():
+            raise serializers.ValidationError({'detail': 'Only BOTH users can create expenses.'})
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        if not self._is_both_user():
+            raise serializers.ValidationError({'detail': 'Only BOTH users can update expenses.'})
+        serializer.save()
