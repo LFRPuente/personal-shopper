@@ -10,7 +10,8 @@ const padMonth = (value) => String(value).padStart(2, '0');
 const currentMonthKey = () => `${currentYear()}-${padMonth(currentMonthNumber())}`;
 
 const ExpensesSection = V.memo(function ExpensesSection() {
-  const { apiFetch, notifySuccess, notifyError, isDesktopLayout, formatAmount } = useApp();
+  const { apiFetch, confirmAction, notifySuccess, notifyError, isDesktopLayout, formatAmount } = useApp();
+  const apiFetchRef = V.useRef(apiFetch);
   const nowYear = currentYear();
   const [month, setMonth] = V.useState(currentMonthKey());
   const [monthPickerOpen, setMonthPickerOpen] = V.useState(false);
@@ -22,10 +23,11 @@ const ExpensesSection = V.memo(function ExpensesSection() {
   const yearOptions = V.useMemo(() => [nowYear, nowYear - 1, nowYear - 2], [nowYear]);
   const monthLimit = selectedYear === nowYear ? currentMonthNumber() : 12;
   const monthLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
+  V.useEffect(() => { apiFetchRef.current = apiFetch; }, [apiFetch]);
   const loadExpenses = V.useCallback(async () => {
     const [start, end] = monthBounds(month);
-    setExpenses(await apiFetch(`/expenses/?start=${start}&end=${end}`) || []);
-  }, [apiFetch, month]);
+    setExpenses(await apiFetchRef.current(`/expenses/?start=${start}&end=${end}`) || []);
+  }, [month]);
   V.useEffect(() => { loadExpenses().catch((error) => console.error('Failed loading expenses', error)); }, [loadExpenses]);
   const types = V.useMemo(() => [...new Set((expenses || []).map((expense) => expense.expense_type).filter(Boolean))], [expenses]);
   const lastAmount = V.useMemo(() => {
@@ -37,7 +39,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
     if (!form.expense_type.trim() || !(Number(form.amount) > 0)) return notifyError('Captura tipo de gasto y monto.');
     setSaving(true);
     try {
-      await apiFetch('/expenses/', { method: 'POST', body: JSON.stringify({ ...form, expense_type: form.expense_type.trim(), amount: Number(form.amount) }) });
+      await apiFetchRef.current('/expenses/', { method: 'POST', body: JSON.stringify({ ...form, expense_type: form.expense_type.trim(), amount: Number(form.amount) }) });
       setForm({ expense_date: today(), expense_type: form.expense_type, description: '', amount: '' });
       await loadExpenses();
       notifySuccess('Gasto guardado.');
@@ -46,6 +48,27 @@ const ExpensesSection = V.memo(function ExpensesSection() {
       notifyError((error && error.message) || 'No se pudo guardar el gasto.');
     } finally {
       setSaving(false);
+    }
+  };
+  const deleteExpense = async (expense) => {
+    if (!expense || !expense.id) return;
+    const confirmed = typeof confirmAction === 'function'
+      ? await confirmAction({
+        title: 'Eliminar gasto',
+        message: 'Este gasto se quitara del historial.',
+        confirmLabel: 'Eliminar',
+        cancelLabel: 'Cancelar',
+        tone: 'danger',
+      })
+      : window.confirm('Eliminar este gasto?');
+    if (!confirmed) return;
+    try {
+      await apiFetchRef.current(`/expenses/${expense.id}/`, { method: 'DELETE' });
+      await loadExpenses();
+      notifySuccess('Gasto eliminado.');
+    } catch (error) {
+      console.error('Failed deleting expense', error);
+      notifyError((error && error.message) || 'No se pudo eliminar el gasto.');
     }
   };
   return c.jsxs('div', { className: isDesktopLayout ? 'space-y-5' : 'hidden', children: [
@@ -87,12 +110,13 @@ const ExpensesSection = V.memo(function ExpensesSection() {
       c.jsx('button', { disabled: saving, className: 'rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60', children: saving ? 'Guardando...' : 'Guardar' }),
     ] }),
     c.jsx('div', { className: 'overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark', children: c.jsxs('table', { className: 'w-full text-left text-sm', children: [
-      c.jsx('thead', { className: 'bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900 dark:text-slate-400', children: c.jsxs('tr', { children: ['Fecha', 'Tipo', 'Descripcion', 'Monto'].map((header) => c.jsx('th', { className: 'px-4 py-3 font-bold', children: header }, header)) }) }),
+      c.jsx('thead', { className: 'bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900 dark:text-slate-400', children: c.jsxs('tr', { children: ['Fecha', 'Tipo', 'Descripcion', 'Monto', ''].map((header) => c.jsx('th', { className: 'px-4 py-3 font-bold', children: header }, header || 'actions')) }) }),
       c.jsx('tbody', { className: 'divide-y divide-border-light dark:divide-border-dark', children: (expenses || []).slice(0, 50).map((expense) => c.jsxs('tr', { className: 'text-text-main dark:text-white', children: [
         c.jsx('td', { className: 'px-4 py-3 whitespace-nowrap', children: expense.expense_date }),
         c.jsx('td', { className: 'px-4 py-3 font-semibold', children: expense.expense_type }),
         c.jsx('td', { className: 'px-4 py-3 text-text-sub dark:text-slate-400', children: expense.description || '-' }),
         c.jsx('td', { className: 'px-4 py-3 font-bold', children: `$${formatAmount ? formatAmount(expense.amount) : expense.amount}` }),
+        c.jsx('td', { className: 'px-4 py-3 text-right', children: c.jsx('button', { type: 'button', onClick: () => deleteExpense(expense), title: 'Eliminar gasto', className: 'inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30', children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'delete' }) }) }),
       ] }, expense.id)) }),
     ] }) }),
   ] });

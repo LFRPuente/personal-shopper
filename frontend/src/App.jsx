@@ -9207,6 +9207,7 @@ function nh() {
     applyCalcModeChange, applyCalcFactorChange, applyCalcDiscountChange,
     applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
     notifySuccess, notifyError, notifyInfo,
+    confirmAction,
     // MissionsSection dependencies
     missions: Al,
     activeMission: w,
