@@ -12,7 +12,7 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
 
   return c.jsx("div", {
     className: overlayBackdropClass(
-      "fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
+      "fixed inset-0 z-[130] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
       "fullscreen-image",
     ),
     onClick: () => dismissActiveOverlayRef.current(),

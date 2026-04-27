@@ -802,10 +802,10 @@ function ShipmentExpandedPanel(props) {
         className:
           'grid grid-cols-4 gap-2 rounded-lg bg-slate-50 dark:bg-slate-900/40 px-2.5 py-2',
         children: [
-          ['package_length', 'Largo'],
-          ['package_width', 'Ancho'],
-          ['package_height', 'Alto'],
-          ['package_weight', 'Peso'],
+          ['package_length', 'Largo CM'],
+          ['package_width', 'Ancho CM'],
+          ['package_height', 'Alto CM'],
+          ['package_weight', 'Peso KG'],
         ].map(([field, label]) =>
           c.jsxs(
             'label',

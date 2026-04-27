@@ -353,10 +353,10 @@ const ShipmentModal = V.memo(function ShipmentModal({
               className:
                 "grid grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-slate-900/40",
               children: [
-                ["package_length", "Largo"],
-                ["package_width", "Ancho"],
-                ["package_height", "Alto"],
-                ["package_weight", "Peso"],
+                ["package_length", "Largo CM"],
+                ["package_width", "Ancho CM"],
+                ["package_height", "Alto CM"],
+                ["package_weight", "Peso KG"],
               ].map(([field, label]) =>
                 c.jsxs(
                   "label",

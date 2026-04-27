@@ -970,10 +970,10 @@ function nh() {
           ? "payment-modal"
         : shipmentProductPickerOpen
           ? "shipment-product-picker"
-          : shipmentModalOpen
-            ? "shipment-modal"
         : fullscreenImage
           ? "fullscreen-image"
+        : shipmentModalOpen
+            ? "shipment-modal"
           : reviewConversationEntry
             ? "review-conversation"
             : Pl
@@ -1053,13 +1053,13 @@ function nh() {
         setShipmentProductPickerOpen(!1);
         return;
       }
+      if (fullscreenImage) {
+        setFullscreenImage(null);
+        return;
+      }
       if (shipmentModalOpen) {
         setShipmentModalOpen(!1);
         setShipmentProductPickerOpen(!1);
-        return;
-      }
-      if (fullscreenImage) {
-        setFullscreenImage(null);
         return;
       }
       if (reviewConversationEntry) {
