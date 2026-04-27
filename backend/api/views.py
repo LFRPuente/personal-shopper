@@ -1841,6 +1841,7 @@ class ProductItemViewSet(viewsets.ModelViewSet):
     """
     queryset = ProductItem.objects.all()
     serializer_class = ProductItemSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filterset_fields = ['client', 'status', 'receipt']
 
     def get_queryset(self):
