@@ -377,6 +377,7 @@ function nh() {
     [st, Gt] = V.useState(() => createEmptyProductForm()),
     [productModalMode, setProductModalMode] = V.useState("edit"),
     [pendingProductFile, setPendingProductFile] = V.useState(null),
+    [pendingProductPreviewUrl, setPendingProductPreviewUrl] = V.useState(""),
     [productPriceAutoInfoOpen, setProductPriceAutoInfoOpen] = V.useState(!1),
     [productPriceAutoSync, setProductPriceAutoSync] = V.useState(!0),
     [productPriceSyncSource, setProductPriceSyncSource] = V.useState("real"),
@@ -497,6 +498,10 @@ function nh() {
       includes_insurance: !1,
       insurance_price: "",
       insurance_sale_price: "",
+      package_length: "",
+      package_width: "",
+      package_height: "",
+      package_weight: "",
       shipping_address: "",
       product_ids: [],
       initial_product_ids: [],
@@ -1197,6 +1202,15 @@ function nh() {
     localStorage.setItem("theme_mode", normalized);
     document.documentElement.classList.toggle("dark", normalized === "DARK");
   }, [themeMode]);
+  V.useEffect(() => {
+    if (!pendingProductFile) {
+      setPendingProductPreviewUrl("");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(pendingProductFile);
+    setPendingProductPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [pendingProductFile]);
   V.useEffect(() => {
     setProfileSettingsForm({
       display_name: String((J && J.profile && J.profile.display_name) || ""),
@@ -2897,6 +2911,7 @@ function nh() {
         Gt(createEmptyProductForm()),
         setProductModalMode("edit"),
         setPendingProductFile(null),
+        setPendingProductPreviewUrl(""),
         setProductPriceAutoInfoOpen(!1),
         setProductPriceAutoSync(!0),
         setProductPriceSyncSource("real"),
@@ -4089,6 +4104,32 @@ function nh() {
         tracking_number: (o && o.tracking_number) || "",
         guide_price: vl,
         client_price: El,
+        includes_insurance: !!(o && o.includes_insurance),
+        insurance_price:
+          o && o.insurance_price !== null && typeof o.insurance_price != "undefined"
+            ? String(o.insurance_price)
+            : "",
+        insurance_sale_price:
+          o && o.insurance_sale_price !== null &&
+          typeof o.insurance_sale_price != "undefined"
+            ? String(o.insurance_sale_price)
+            : "",
+        package_length:
+          o && o.package_length !== null && typeof o.package_length != "undefined"
+            ? String(o.package_length)
+            : "",
+        package_width:
+          o && o.package_width !== null && typeof o.package_width != "undefined"
+            ? String(o.package_width)
+            : "",
+        package_height:
+          o && o.package_height !== null && typeof o.package_height != "undefined"
+            ? String(o.package_height)
+            : "",
+        package_weight:
+          o && o.package_weight !== null && typeof o.package_weight != "undefined"
+            ? String(o.package_weight)
+            : "",
         shipping_address:
           (o && o.shipping_address) ||
           getClientShipmentAddressOptions(A)[0] ||
@@ -4148,6 +4189,22 @@ function nh() {
           o && o.insurance_sale_price !== null &&
           typeof o.insurance_sale_price != "undefined"
             ? String(o.insurance_sale_price)
+            : "",
+        package_length:
+          o && o.package_length !== null && typeof o.package_length != "undefined"
+            ? String(o.package_length)
+            : "",
+        package_width:
+          o && o.package_width !== null && typeof o.package_width != "undefined"
+            ? String(o.package_width)
+            : "",
+        package_height:
+          o && o.package_height !== null && typeof o.package_height != "undefined"
+            ? String(o.package_height)
+            : "",
+        package_weight:
+          o && o.package_weight !== null && typeof o.package_weight != "undefined"
+            ? String(o.package_weight)
             : "",
         shipping_address: (o && o.shipping_address) || "",
         product_ids: [],
@@ -4216,6 +4273,22 @@ function nh() {
         String(shipmentForm.insurance_sale_price || "").trim() === ""
           ? null
           : String(shipmentForm.insurance_sale_price || "").trim();
+      const packageLengthValue =
+        String(shipmentForm.package_length || "").trim() === ""
+          ? null
+          : String(shipmentForm.package_length || "").trim();
+      const packageWidthValue =
+        String(shipmentForm.package_width || "").trim() === ""
+          ? null
+          : String(shipmentForm.package_width || "").trim();
+      const packageHeightValue =
+        String(shipmentForm.package_height || "").trim() === ""
+          ? null
+          : String(shipmentForm.package_height || "").trim();
+      const packageWeightValue =
+        String(shipmentForm.package_weight || "").trim() === ""
+          ? null
+          : String(shipmentForm.package_weight || "").trim();
       if (!o) {
         notifyInfo("Selecciona un cliente.");
         return;
@@ -4264,6 +4337,10 @@ function nh() {
               includes_insurance: !!shipmentForm.includes_insurance,
               insurance_price: insurancePriceValue,
               insurance_sale_price: insuranceSalePriceValue,
+              package_length: packageLengthValue,
+              package_width: packageWidthValue,
+              package_height: packageHeightValue,
+              package_weight: packageWeightValue,
               shipping_address: String(
                 shipmentForm.shipping_address || "",
               ).trim(),
@@ -4410,10 +4487,12 @@ function nh() {
           const El = await prepareShipmentEvidenceFile(vl);
           El && A.append("files", El);
         }
-        await I(`/shipments/${o.id}/upload-evidence/`, {
+        const uploadedEvidenceResult = await I(`/shipments/${o.id}/upload-evidence/`, {
           method: "POST",
           body: A,
         });
+        uploadedEvidenceResult && uploadedEvidenceResult.shipment &&
+          upsertShipmentListItem(uploadedEvidenceResult.shipment);
         queueCoreRefresh(180);
         queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
@@ -4459,10 +4538,12 @@ function nh() {
           return;
         }
         vl.append("file", El);
-        await I(`/shipments/${o.id}/evidence/${N.id}/replace/`, {
+        const replacedEvidenceResult = await I(`/shipments/${o.id}/evidence/${N.id}/replace/`, {
           method: "POST",
           body: vl,
         });
+        replacedEvidenceResult && replacedEvidenceResult.shipment &&
+          upsertShipmentListItem(replacedEvidenceResult.shipment);
         queueCoreRefresh(180);
         queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
@@ -4487,9 +4568,11 @@ function nh() {
       setOpenShipmentEvidenceMenuId(null);
       setShipmentEvidenceDeletingId(N);
       try {
-        await I(`/shipments/${o.id}/evidence/${N}/`, {
+        const deletedEvidenceResult = await I(`/shipments/${o.id}/evidence/${N}/`, {
           method: "DELETE",
         });
+        deletedEvidenceResult && deletedEvidenceResult.id &&
+          upsertShipmentListItem(deletedEvidenceResult);
         queueCoreRefresh(180);
         queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
@@ -9708,6 +9791,9 @@ function nh() {
           setNewStoreName,
           createStoreFromModal,
           newProductUploading,
+          productImagePreviewUrl: pendingProductPreviewUrl,
+          openProductImagePreview: () =>
+            pendingProductPreviewUrl && setFullscreenImage(pendingProductPreviewUrl),
           modalHasRequiredProductFields,
           overlayBackdropClass,
           overlaySheetClass,

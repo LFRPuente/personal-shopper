@@ -65,7 +65,7 @@ const DEFAULT_CONTEXT = {
   isShipmentExpanded: () => false,
   shipmentHasHydratedDetail: () => false,
   shipmentDetailLoadingIds: [],
-  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', includes_insurance: false, insurance_price: '', insurance_sale_price: '', shipping_address: '', product_ids: [] },
+  shipmentForm: { id: null, carrier: '', status: 'PENDING', tracking_number: '', guide_price: '', client_price: '', includes_insurance: false, insurance_price: '', insurance_sale_price: '', package_length: '', package_width: '', package_height: '', package_weight: '', shipping_address: '', product_ids: [] },
   getShipmentFormState: () => null,
   shipmentSelectedProducts: [],
   toggleExpandedShipment: () => {},
@@ -797,6 +797,39 @@ function ShipmentExpandedPanel(props) {
               ],
             }),
         ],
+      }),
+      c.jsx('div', {
+        className:
+          'grid grid-cols-4 gap-2 rounded-lg bg-slate-50 dark:bg-slate-900/40 px-2.5 py-2',
+        children: [
+          ['package_length', 'Largo'],
+          ['package_width', 'Ancho'],
+          ['package_height', 'Alto'],
+          ['package_weight', 'Peso'],
+        ].map(([field, label]) =>
+          c.jsxs(
+            'label',
+            {
+              className: 'block min-w-0',
+              children: [
+                c.jsx('p', {
+                  className:
+                    'text-center text-[9px] uppercase font-bold text-text-sub',
+                  children: label,
+                }),
+                c.jsx('input', {
+                  type: 'text',
+                  inputMode: 'decimal',
+                  value: formState[field] || '',
+                  onChange: (event) => updateShipmentForm(field, event.target.value),
+                  className:
+                    'mt-1 h-7 w-full rounded-md border border-slate-200 bg-white px-1 text-center text-xs font-semibold text-text-main outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100',
+                }),
+              ],
+            },
+            `shipment-inline-package-${field}`,
+          ),
+        ),
       }),
       c.jsxs('label', {
         className:

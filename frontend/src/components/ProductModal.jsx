@@ -59,6 +59,8 @@ const ProductModal = V.memo(function ProductModal({
   setNewStoreName,
   createStoreFromModal,
   newProductUploading,
+  productImagePreviewUrl,
+  openProductImagePreview,
   modalHasRequiredProductFields,
   overlayBackdropClass,
   overlaySheetClass,
@@ -82,9 +84,22 @@ const ProductModal = V.memo(function ProductModal({
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 className="text-xl font-bold mb-4">
-          {productModalMode === "create" ? "Agregar producto" : "Edit Product Info"}
-        </h3>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-xl font-bold">
+            {productModalMode === "create" ? "Agregar producto" : "Edit Product Info"}
+          </h3>
+          {productModalMode === "create" && productImagePreviewUrl && (
+            <button
+              type="button"
+              onClick={openProductImagePreview}
+              title="Revisar imagen"
+              aria-label="Revisar imagen del producto"
+              className="w-9 h-9 shrink-0 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-[19px]">image</span>
+            </button>
+          )}
+        </div>
         <form
           onSubmit={onSubmit}
           onKeyDown={(event) => {

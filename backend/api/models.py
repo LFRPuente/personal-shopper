@@ -525,6 +525,10 @@ class Shipment(models.Model):
     includes_insurance = models.BooleanField(default=False)
     insurance_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     insurance_sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    package_length = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    package_width = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    package_height = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    package_weight = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     shipping_address = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20,

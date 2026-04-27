@@ -349,6 +349,39 @@ const ShipmentModal = V.memo(function ShipmentModal({
                   }),
               ],
             }),
+            c.jsxs("div", {
+              className:
+                "grid grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-slate-900/40",
+              children: [
+                ["package_length", "Largo"],
+                ["package_width", "Ancho"],
+                ["package_height", "Alto"],
+                ["package_weight", "Peso"],
+              ].map(([field, label]) =>
+                c.jsxs(
+                  "label",
+                  {
+                    className: "block min-w-0",
+                    children: [
+                      c.jsx("span", {
+                        className:
+                          "block text-center text-[9px] font-bold uppercase text-text-sub",
+                        children: label,
+                      }),
+                      c.jsx("input", {
+                        type: "text",
+                        inputMode: "decimal",
+                        value: shipmentForm[field] || "",
+                        onChange: (o) => updateShipmentForm(field, o.target.value),
+                        className:
+                          "mt-1 h-8 w-full rounded-lg border border-slate-200 bg-white px-1.5 text-center text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-gray-800",
+                      }),
+                    ],
+                  },
+                  `shipment-package-${field}`,
+                ),
+              ),
+            }),
             c.jsxs("label", {
               className: "block",
               children: [
