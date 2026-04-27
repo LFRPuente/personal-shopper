@@ -2650,7 +2650,7 @@ function nh() {
     },
     Xt = (o) => {
       if (productImageUploadingId) return;
-      (Ke(o), openImageSourcePicker(Xl, { title: "Cambiar foto" }));
+      (Ke(o), openImageSourcePicker((N) => Xl(N, o), { title: "Cambiar foto" }));
     },
     // <-------- seccion 8: comprimir imagen antes de subir para no saturar 3G/4G
     compressImage = (file, maxWidth = 1200, quality = 0.8) => {
@@ -2705,19 +2705,20 @@ function nh() {
         ? compressImage(o).catch(() => o)
         : o;
     },
-    Xl = async (o) => {
-      if (!he) return;
+    Xl = async (o, selectedProduct = he) => {
+      const targetProduct = selectedProduct || he;
+      if (!targetProduct) return;
       const N = o.target.files;
       if (!N || N.length === 0) return;
       const originalFile = N[0];
       const compressedFile = await compressImage(originalFile).catch(() => originalFile);
       const A = new FormData();
       A.append("image", compressedFile);
-      const vl = he.id;
+      const vl = targetProduct.id;
       setProductImageUploadingId(vl);
       try {
         const updatedProduct = await I(`/products/${vl}/`, { method: "PATCH", body: A });
-        updateClientProductState(updatedProduct || { ...he, image: he.image });
+        updateClientProductState(updatedProduct || { ...targetProduct, image: targetProduct.image });
         await refreshCoreData();
         await Qt();
         notifySuccess("Foto actualizada.");
