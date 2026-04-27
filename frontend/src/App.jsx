@@ -6301,7 +6301,7 @@ function nh() {
     },
     getShipmentSalePriceSummary = (o) => {
       const N = getShipmentSalePriceAmount(o);
-      return N <= 0 ? "Costo de envio gratis" : `Costo de venta: $${formatAmount(N)}`;
+      return N <= 0 ? "Costo de envio gratis" : `Costo: $${formatAmount(N)}`;
     },
     getPublicShipmentSalePriceSummary = (o) => {
       if (!hasShipmentTrackingReady(o)) return "";
