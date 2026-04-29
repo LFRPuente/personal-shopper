@@ -191,7 +191,14 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         );
         return tokens.every((token) => blob.includes(token));
       })
-      .sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
+      .sort((a, b) => {
+        const byName = String(a?.name || '').localeCompare(
+          String(b?.name || ''),
+          'es',
+          { sensitivity: 'base' },
+        );
+        return byName || Number(a?.id || 0) - Number(b?.id || 0);
+      });
   }, [clients, search]);
 
   return c.jsxs('section', {
