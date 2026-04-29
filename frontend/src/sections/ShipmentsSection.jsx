@@ -547,6 +547,11 @@ function ShipmentExpandedPanel(props) {
     });
   }
 
+  const shipmentTrackingUrl = getShipmentTrackingUrl(
+    formState.carrier,
+    formState.tracking_number,
+  );
+
   return c.jsxs('div', {
     className: 'space-y-2.5 pt-0.5',
     children: [
@@ -583,14 +588,36 @@ function ShipmentExpandedPanel(props) {
                 className: 'text-[10px] uppercase font-bold text-text-sub',
                 children: 'Guia',
               }),
-              c.jsx('input', {
-                type: 'text',
-                value: formState.tracking_number,
-                onChange: (event) =>
-                  updateShipmentForm('tracking_number', event.target.value),
-                placeholder: 'Numero de rastreo',
-                className:
-                  'mt-1 w-full bg-transparent text-xs font-semibold outline-none',
+              c.jsxs('div', {
+                className: 'mt-1 flex items-center gap-2',
+                children: [
+                  c.jsx('input', {
+                    type: 'text',
+                    value: formState.tracking_number,
+                    onChange: (event) =>
+                      updateShipmentForm('tracking_number', event.target.value),
+                    placeholder: 'Numero de rastreo',
+                    className:
+                      'min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none',
+                  }),
+                  shipmentTrackingUrl &&
+                    c.jsxs('a', {
+                      href: shipmentTrackingUrl,
+                      target: '_blank',
+                      rel: 'noreferrer',
+                      onClick: (event) => event.stopPropagation(),
+                      className:
+                        'shrink-0 inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:bg-sky-900/40',
+                      title: 'Abrir rastreo de guia',
+                      children: [
+                        c.jsx('span', {
+                          className: 'material-symbols-outlined text-[13px]',
+                          children: 'open_in_new',
+                        }),
+                        'Rastrear',
+                      ],
+                    }),
+                ],
               }),
             ],
           }),
@@ -1047,11 +1074,6 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                     ? shipment.products_detail || []
                     : []
                 : [];
-              const shipmentTrackingUrl = getShipmentTrackingUrl(
-                shipment.carrier,
-                shipment.tracking_number,
-              );
-
               return c.jsxs(
                 'div',
                 {
@@ -1085,35 +1107,6 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                   : 'Sin fecha',
                               ],
                             }),
-                            shipment.tracking_number &&
-                              c.jsxs('div', {
-                                className:
-                                  'mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-text-sub',
-                                children: [
-                                  c.jsxs('span', {
-                                    className: 'truncate',
-                                    children: ['Guia: ', shipment.tracking_number],
-                                  }),
-                                  shipmentTrackingUrl &&
-                                    c.jsxs('a', {
-                                      href: shipmentTrackingUrl,
-                                      target: '_blank',
-                                      rel: 'noreferrer',
-                                      onClick: (event) => event.stopPropagation(),
-                                      className:
-                                        'inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:bg-sky-900/40',
-                                      title: 'Abrir rastreo de guia',
-                                      children: [
-                                        c.jsx('span', {
-                                          className:
-                                            'material-symbols-outlined text-[13px]',
-                                          children: 'open_in_new',
-                                        }),
-                                        'Rastrear',
-                                      ],
-                                    }),
-                                ],
-                              }),
                             c.jsxs('div', {
                               className: 'mt-1 flex items-center gap-2 text-[11px]',
                               children: [

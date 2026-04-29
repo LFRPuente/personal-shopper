@@ -40,7 +40,9 @@ const getShoppingProductStatusSummary = (products = []) => {
   const counts = (Array.isArray(products) ? products : []).reduce(
     (summary, product) => {
       const status = String((product && product.status) || '').toUpperCase();
-      if (status === 'ANNOTATED') summary.annotated += 1;
+      if (status === 'ANNOTATED' || status === 'BOUGHT' || status === 'SHIPPED') {
+        summary.annotated += 1;
+      }
       if (status === 'IN_REVIEW') summary.review += 1;
       if (status === 'REJECTED') summary.rejected += 1;
       return summary;
@@ -429,12 +431,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                               c.jsxs('p', {
                                                 className:
                                                   'text-[10px] text-gray-500',
-                                                children: [
-                                                  clientStatusSummary,
-                                                  clientStatusSummary ? ' • ' : '',
-                                                  (client.receipts || []).length,
-                                                  ' tickets',
-                                                ],
+                                                children: clientStatusSummary || 'Sin items',
                                               }),
                                             ],
                                           }),

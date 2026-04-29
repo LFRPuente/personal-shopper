@@ -6547,10 +6547,16 @@ function nh() {
         A = N.reduce((gl, ae) => {
           const qa = String(ae.shopping || "");
           return (gl[qa] || (gl[qa] = []), gl[qa].push(ae), gl);
+        }, {}),
+        vlStatusItems = ((o && o.products) || []).reduce((gl, ae) => {
+          const qa = String((ae && (ae.shopping || ae.mission)) || "");
+          if (!qa) return gl;
+          return (gl[qa] || (gl[qa] = []), gl[qa].push(ae), gl);
         }, {});
       return Array.from(
         new Set([
           ...Object.keys(A),
+          ...Object.keys(vlStatusItems),
           ...(((o && o.payments) || []).map((gl) =>
             String((gl && (gl.shopping || gl.mission)) || ""),
           ).filter(Boolean)),
@@ -6558,10 +6564,12 @@ function nh() {
       )
         .map((gl) => {
           const ae = A[gl] || [],
-            qa = ae.filter(
+            SeStatusItems = vlStatusItems[gl] || ae,
+            qa = SeStatusItems.filter(
               (miProduct) =>
-                String((miProduct && miProduct.status) || "").toUpperCase() ===
-                "ANNOTATED",
+                ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(
+                  String((miProduct && miProduct.status) || "").toUpperCase(),
+                ),
             ),
             Pi = getClientShoppingPayments(o, gl),
             pa = getClientShoppingPaymentSummary(o, gl),
@@ -6575,6 +6583,8 @@ function nh() {
                 ? oi.name
                 : ae[0] && (ae[0].shopping_name || ae[0].mission_name)
                   ? String(ae[0].shopping_name || ae[0].mission_name).trim()
+                  : SeStatusItems[0] && (SeStatusItems[0].shopping_name || SeStatusItems[0].mission_name)
+                    ? String(SeStatusItems[0].shopping_name || SeStatusItems[0].mission_name).trim()
                   : oiPaymentName
                     ? oiPaymentName
                     : `Tienda #${gl}`,
@@ -6582,6 +6592,8 @@ function nh() {
               (oi && oi.start_time) ||
               (ae[0] &&
                 (ae[0].shopping_date || ae[0].mission_date || ae[0].created_at)) ||
+              (SeStatusItems[0] &&
+                (SeStatusItems[0].shopping_date || SeStatusItems[0].mission_date || SeStatusItems[0].created_at)) ||
               oiPaymentDate ||
               "";
           return {
@@ -6590,6 +6602,7 @@ function nh() {
             title: mi,
             date: Ri,
             items: ae,
+            statusItems: SeStatusItems,
             annotatedItems: qa,
             annotatedCount: qa.length,
             payments: Pi,

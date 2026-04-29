@@ -119,6 +119,26 @@ const getTokens = (value) =>
 const getEntryTitle = (entry) =>
   String(entry?.title || entry?.shopping_name || entry?.mission_name || entry?.store_name || `Shopping #${entry?.key || ''}`).trim();
 
+const getProductStatusSummary = (products = []) => {
+  const counts = (Array.isArray(products) ? products : []).reduce(
+    (summary, product) => {
+      const status = String((product && product.status) || '').toUpperCase();
+      if (status === 'ANNOTATED' || status === 'BOUGHT' || status === 'SHIPPED') {
+        summary.annotated += 1;
+      }
+      if (status === 'IN_REVIEW') summary.review += 1;
+      if (status === 'REJECTED') summary.rejected += 1;
+      return summary;
+    },
+    { annotated: 0, review: 0, rejected: 0 },
+  );
+  return [
+    counts.annotated > 0 ? `${counts.annotated} Anotados` : '',
+    counts.review > 0 ? `${counts.review} Revision` : '',
+    counts.rejected > 0 ? `${counts.rejected} Rechazados` : '',
+  ].filter(Boolean).join(', ');
+};
+
 const ClientsSection = V.memo(function ClientsSection(props = {}) {
   const app = useApp();
   const ctx = { ...DEFAULT_CONTEXT, ...(app || {}), ...props };
@@ -222,10 +242,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
               const visibleProducts = getHomeVisibleProducts(client);
               const totals = getHomeClientTotals(visibleProducts);
               const history = getClientShoppingHistoryEntries(client);
-              const itemsTotal = history.reduce(
-                (sum, entry) => sum + (Number.isFinite(entry.annotatedCount) ? entry.annotatedCount : (entry.items || []).length),
-                0,
-              );
+              const clientStatusSummary = getProductStatusSummary(client.products || []);
               const saleTotal = history.reduce((sum, entry) => sum + Number(entry.productsTotal || 0), 0);
               const balanceTotal = history.reduce((sum, entry) => sum + Number(entry.balance || 0), 0);
 
@@ -246,9 +263,9 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                         onClick: () => setExpandedClientId((current) => (Number(current) === Number(client.id) ? null : client.id)),
                         children: [
                           c.jsx('h3', { className: 'font-bold text-sm', children: client.name || 'Cliente' }),
-                          c.jsxs('p', {
+                          c.jsx('p', {
                             className: 'text-xs text-gray-500',
-                            children: [itemsTotal, ' items - ', (client.receipts || []).length, ' tickets'],
+                            children: clientStatusSummary || 'Sin items',
                           }),
                           c.jsxs('div', {
                             className: 'mt-2 grid grid-cols-2 gap-2 w-full max-w-none sm:max-w-[18rem] min-w-0',
@@ -399,8 +416,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                     c.jsxs('p', {
                                                       className: 'text-[10px] text-gray-500',
                                                       children: [
-                                                        Number.isFinite(entry.annotatedCount) ? entry.annotatedCount : (entry.items || []).length,
-                                                        ' item(s)',
+                                                        getProductStatusSummary(entry.statusItems || entry.items || []) || 'Sin items',
                                                         (entry.payments || []).length > 0 ? c.jsxs(c.Fragment, { children: [' • ', entry.payments.length, ' pago(s)'] }) : null,
                                                         entry.date ? c.jsxs(c.Fragment, { children: [' • ', new Date(entry.date).toLocaleDateString()] }) : null,
                                                       ],
