@@ -177,12 +177,15 @@ const MissionsSection = V.memo(function MissionsSection() {
               const clients = clientIds
                 .map((clientId) => clientLookupById.get(clientId))
                 .filter(Boolean);
-              const visibleProducts = missionProducts.filter((product) =>
-                mission.status === 'COMPLETED'
-                  ? String((product && product.status) || '').toUpperCase() ===
-                    'ANNOTATED'
-                  : true,
-              );
+              const visibleProducts = missionProducts.filter((product) => {
+                if (mission.status !== 'COMPLETED') return true;
+                const productStatus = String((product && product.status) || '').toUpperCase();
+                return (
+                  productStatus === 'ANNOTATED' ||
+                  productStatus === 'BOUGHT' ||
+                  productStatus === 'SHIPPED'
+                );
+              });
               const productStatusSummary = getShoppingProductStatusSummary(missionProducts);
 
               return c.jsxs(

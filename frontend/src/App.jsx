@@ -7677,7 +7677,7 @@ function nh() {
     ),
     galleryAnnotatedProducts = V.useMemo(
       () => galleryProducts.filter((o) =>
-        o.status === "ANNOTATED" || o.status === "BOUGHT",
+        o.status === "ANNOTATED" || o.status === "BOUGHT" || o.status === "SHIPPED",
       ),
       [galleryProducts],
     ),
