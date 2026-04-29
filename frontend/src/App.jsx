@@ -2629,9 +2629,10 @@ function nh() {
       if (receiptUploading) return;
       openImageSourcePicker(ru, { title: "Subir ticket" });
     },
-    openMissionTicketPicker = () => {
-      if (!w || missionTicketUploading) return;
-      openImageSourcePicker(uploadMissionTicket, {
+    openMissionTicketPicker = (o = null) => {
+      const N = o && o.id ? o : w;
+      if (!N || missionTicketUploading) return;
+      openImageSourcePicker((A) => uploadMissionTicket(A, N), {
         title: "Subir ticket de shopping",
       });
     },
@@ -2639,17 +2640,18 @@ function nh() {
       if (newProductUploading) return;
       openImageSourcePicker(lt, { title: "Agregar producto" });
     },
-    uploadMissionTicket = async (o) => {
-      if (!w) return;
-      const N = o.target.files;
-      if (!N || N.length === 0) return;
-      const A = new FormData();
-      A.append("image", N[0]);
+    uploadMissionTicket = async (o, N = null) => {
+      const A = N && N.id ? N : w;
+      if (!A) return;
+      const files = o.target.files;
+      if (!files || files.length === 0) return;
+      const vl = new FormData();
+      vl.append("image", files[0]);
       setMissionTicketUploading(!0);
       try {
-        await I(`/shoppings/${w.id}/upload-ticket/`, {
+        await I(`/shoppings/${A.id}/upload-ticket/`, {
           method: "POST",
-          body: A,
+          body: vl,
         });
         await refreshCoreData();
         W && (await Qt());

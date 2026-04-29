@@ -87,6 +87,8 @@ const MissionsSection = V.memo(function MissionsSection() {
     formatProductQuickFinalPrice,
     setFullscreenImage,
     exportMissionCsv,
+    openMissionTicketPicker,
+    missionTicketUploading,
   } = useApp();
 
   const filteredMissions = V.useMemo(() => {
@@ -365,27 +367,53 @@ const MissionsSection = V.memo(function MissionsSection() {
                               'px-4 py-3 border-b border-border-light dark:border-border-dark',
                             children: mission.ticket_image
                               ? c.jsxs('div', {
-                                  className: 'flex items-center gap-2',
+                                  className: 'flex items-center justify-between gap-2',
                                   children: [
-                                    c.jsx('img', {
-                                      src: resolveMediaUrl(mission.ticket_image),
-                                      className:
-                                        'ui-media-frame ui-media-sm object-cover',
+                                    c.jsxs('div', {
+                                      className: 'flex items-center gap-2 min-w-0',
+                                      children: [
+                                        c.jsx('img', {
+                                          src: resolveMediaUrl(mission.ticket_image),
+                                          className:
+                                            'ui-media-frame ui-media-sm object-cover',
+                                        }),
+                                        c.jsx('button', {
+                                          onClick: () =>
+                                            setFullscreenImage(
+                                              resolveMediaUrl(mission.ticket_image),
+                                            ),
+                                          className:
+                                            'text-[11px] font-bold text-primary hover:text-primary-dark',
+                                          children: 'Ver ticket de esta misión',
+                                        }),
+                                      ],
                                     }),
                                     c.jsx('button', {
-                                      onClick: () =>
-                                        setFullscreenImage(
-                                          resolveMediaUrl(mission.ticket_image),
-                                        ),
+                                      type: 'button',
+                                      onClick: () => openMissionTicketPicker(mission),
+                                      disabled: missionTicketUploading,
                                       className:
-                                        'text-[11px] font-bold text-primary hover:text-primary-dark',
-                                      children: 'Ver ticket de esta misión',
+                                        'shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-purple-700 disabled:cursor-wait disabled:opacity-70',
+                                      children: missionTicketUploading ? 'Subiendo...' : 'Ticket',
                                     }),
                                   ],
                                 })
-                              : c.jsx('p', {
-                                  className: 'text-[11px] text-gray-500',
-                                  children: 'Sin ticket cargado para esta misión.',
+                              : c.jsxs('div', {
+                                  className: 'flex items-center justify-between gap-2',
+                                  children: [
+                                    c.jsx('p', {
+                                      className: 'text-[11px] text-gray-500',
+                                      children: 'Sin ticket cargado para esta misión.',
+                                    }),
+                                    c.jsx('button', {
+                                      type: 'button',
+                                      onClick: () => openMissionTicketPicker(mission),
+                                      disabled: missionTicketUploading,
+                                      className:
+                                        'shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-purple-700 disabled:cursor-wait disabled:opacity-70',
+                                      children: missionTicketUploading ? 'Subiendo...' : 'Ticket',
+                                    }),
+                                  ],
                                 }),
                           }),
                           clients.length > 0 &&
