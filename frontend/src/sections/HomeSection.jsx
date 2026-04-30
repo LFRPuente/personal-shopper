@@ -650,79 +650,6 @@ const HomeSection = V.memo(function HomeSection() {
           c.jsxs('div', {
             className: 'mt-3 space-y-2',
             children: [
-              isDesktopLayout &&
-                c.jsxs('div', {
-                  className: 'relative',
-                  children: [
-                    c.jsx('button', {
-                      type: 'button',
-                      onClick: () =>
-                        setNewRequestClientPickerOpen((value) => !value),
-                      className:
-                        'w-full rounded-xl border border-slate-300 bg-white/85 px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800',
-                      children:
-                        getClientNameById(newRequestClientId) ||
-                        'Asignar cliente',
-                    }),
-                    newRequestClientPickerOpen &&
-                      c.jsxs('div', {
-                        className:
-                          'absolute left-0 top-11 z-30 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2',
-                        children: [
-                          c.jsx('input', {
-                            type: 'text',
-                            value: newRequestClientSearch,
-                            onChange: (event) =>
-                              setNewRequestClientSearch(event.target.value),
-                            placeholder: 'Buscar cliente...',
-                            className:
-                              'w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary',
-                          }),
-                          c.jsxs('button', {
-                            type: 'button',
-                            onClick: () => {
-                              setNewRequestClientId('');
-                              setNewRequestClientPickerOpen(!1);
-                              setNewRequestClientSearch('');
-                            },
-                            className:
-                              'mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800',
-                            children: [
-                              'Sin cliente',
-                              getClientNameById(newRequestClientId) ? '' : ' ✓',
-                            ],
-                          }),
-                          c.jsx('div', {
-                            className: 'mt-1 max-h-44 overflow-y-auto ios-scroll',
-                            children:
-                              filteredNewRequestClients.length > 0
-                                ? filteredNewRequestClients.map((client) =>
-                                    c.jsx(
-                                      'button',
-                                      {
-                                        type: 'button',
-                                        onClick: () => {
-                                          setNewRequestClientId(String(client.id));
-                                          setNewRequestClientPickerOpen(!1);
-                                          setNewRequestClientSearch('');
-                                        },
-                                        className:
-                                          'w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800',
-                                        children: client.name,
-                                      },
-                                      `new-request-client-${client.id}`,
-                                    ),
-                                  )
-                                : c.jsx('p', {
-                                    className:
-                                      'px-2.5 py-3 text-[11px] text-gray-400 text-center',
-                                    children: 'No hay clientes que coincidan.',
-                                  }),
-                          }),
-                        ],
-                      }),
-                  ],
-                }),
               newRequestImagePreview &&
                 c.jsxs('div', {
                   className: 'flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40',
@@ -736,6 +663,85 @@ const HomeSection = V.memo(function HomeSection() {
                 className: 'flex gap-2 items-center flex-wrap sm:flex-nowrap w-full',
                 children: [
                   c.jsx('input', { type: 'text', value: newRequestText, onChange: (event) => setNewRequestText(event.target.value), placeholder: 'Nueva petición...', className: 'flex-1 min-w-[120px] px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary w-full' }),
+                  isDesktopLayout &&
+                    c.jsxs('div', {
+                      className: 'relative flex-shrink-0 w-36',
+                      children: [
+                        c.jsx('button', {
+                          type: 'button',
+                          onClick: () =>
+                            setNewRequestClientPickerOpen((value) => !value),
+                          className:
+                            'w-full rounded-xl border border-slate-300 bg-white/85 px-2.5 py-2 text-left text-[11px] font-medium text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800 truncate',
+                          children:
+                            getClientNameById(newRequestClientId) ||
+                            'Cliente',
+                        }),
+                        newRequestClientPickerOpen &&
+                          c.jsxs('div', {
+                            className:
+                              'absolute bottom-11 right-0 z-50 w-60 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2',
+                            children: [
+                              c.jsx('input', {
+                                type: 'text',
+                                value: newRequestClientSearch,
+                                onChange: (event) =>
+                                  setNewRequestClientSearch(event.target.value),
+                                placeholder: 'Buscar cliente...',
+                                className:
+                                  'w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary',
+                              }),
+                              c.jsxs('button', {
+                                type: 'button',
+                                onClick: () => {
+                                  setNewRequestClientId('');
+                                  setNewRequestClientPickerOpen(!1);
+                                  setNewRequestClientSearch('');
+                                },
+                                className:
+                                  'mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800',
+                                children: [
+                                  'Sin cliente',
+                                  getClientNameById(newRequestClientId)
+                                    ? ''
+                                    : ' ✓',
+                                ],
+                              }),
+                              c.jsx('div', {
+                                className:
+                                  'mt-1 max-h-44 overflow-y-auto ios-scroll',
+                                children:
+                                  filteredNewRequestClients.length > 0
+                                    ? filteredNewRequestClients.map((client) =>
+                                        c.jsx(
+                                          'button',
+                                          {
+                                            type: 'button',
+                                            onClick: () => {
+                                              setNewRequestClientId(
+                                                String(client.id),
+                                              );
+                                              setNewRequestClientPickerOpen(!1);
+                                              setNewRequestClientSearch('');
+                                            },
+                                            className:
+                                              'w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800',
+                                            children: client.name,
+                                          },
+                                          `new-request-client-${client.id}`,
+                                        ),
+                                      )
+                                    : c.jsx('p', {
+                                        className:
+                                          'px-2.5 py-3 text-[11px] text-gray-400 text-center',
+                                        children:
+                                          'No hay clientes que coincidan.',
+                                      }),
+                              }),
+                            ],
+                          }),
+                      ],
+                    }),
                   c.jsx('button', { onClick: pickRequestImage, className: 'px-3 py-2 rounded-xl border border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200 flex-shrink-0', children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add_photo_alternate' }) }),
                   c.jsx('button', { onClick: createMissionRequest, disabled: !newRequestText.trim() && !newRequestImageFile, className: `px-4 py-2 rounded-xl text-sm font-semibold transition flex-shrink-0 flex-1 sm:flex-none ${newRequestText.trim() || newRequestImageFile ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`, children: 'Enviar' }),
                 ],
