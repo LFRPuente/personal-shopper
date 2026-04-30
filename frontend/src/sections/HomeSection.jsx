@@ -35,11 +35,18 @@ export const HOME_SECTION_REQUIRED_CONTEXT = [
   'applyCalcDiscountChange',
   'newRequestText',
   'setNewRequestText',
+  'newRequestClientId',
+  'setNewRequestClientId',
+  'newRequestClientPickerOpen',
+  'setNewRequestClientPickerOpen',
+  'newRequestClientSearch',
+  'setNewRequestClientSearch',
   'newRequestImagePreview',
   'newRequestImageFile',
   'clearNewRequestImage',
   'pickRequestImage',
   'createMissionRequest',
+  'filteredNewRequestClients',
   'filteredHomeClientsInMission',
   'homeClientSearch',
   'setHomeClientSearch',
@@ -94,11 +101,8 @@ const REQUEST_STATUS_ORDER = {
   DISCARDED: 4,
 };
 
-const getRequestSortTimestamp = (request, status) => {
-  const rawDate =
-    status === 'PENDING'
-      ? request && request.created_at
-      : request && (request.updated_at || request.created_at);
+const getRequestSortTimestamp = (request) => {
+  const rawDate = request && (request.created_at || request.updated_at);
   const timestamp = new Date(rawDate || 0).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
@@ -137,11 +141,18 @@ const HomeSection = V.memo(function HomeSection() {
     applyCalcDiscountChange,
     newRequestText,
     setNewRequestText,
+    newRequestClientId,
+    setNewRequestClientId,
+    newRequestClientPickerOpen,
+    setNewRequestClientPickerOpen,
+    newRequestClientSearch,
+    setNewRequestClientSearch,
     newRequestImagePreview,
     newRequestImageFile,
     clearNewRequestImage,
     pickRequestImage,
     createMissionRequest,
+    filteredNewRequestClients,
     filteredHomeClientsInMission,
     homeClientSearch,
     setHomeClientSearch,
@@ -246,12 +257,9 @@ const HomeSection = V.memo(function HomeSection() {
         const rightOrder = REQUEST_STATUS_ORDER[rightStatus] ?? 5;
         if (leftOrder !== rightOrder) return leftOrder - rightOrder;
 
-        const leftTime = getRequestSortTimestamp(left, leftStatus);
-        const rightTime = getRequestSortTimestamp(right, rightStatus);
-        if (leftStatus === 'PENDING' && rightStatus === 'PENDING') {
-          return leftTime - rightTime || Number(left.id || 0) - Number(right.id || 0);
-        }
-        return rightTime - leftTime || Number(right.id || 0) - Number(left.id || 0);
+        const leftTime = getRequestSortTimestamp(left);
+        const rightTime = getRequestSortTimestamp(right);
+        return leftTime - rightTime || Number(left.id || 0) - Number(right.id || 0);
       }),
     [requests],
   );
@@ -642,6 +650,79 @@ const HomeSection = V.memo(function HomeSection() {
           c.jsxs('div', {
             className: 'mt-3 space-y-2',
             children: [
+              isDesktopLayout &&
+                c.jsxs('div', {
+                  className: 'relative',
+                  children: [
+                    c.jsx('button', {
+                      type: 'button',
+                      onClick: () =>
+                        setNewRequestClientPickerOpen((value) => !value),
+                      className:
+                        'w-full rounded-xl border border-slate-300 bg-white/85 px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-slate-800',
+                      children:
+                        getClientNameById(newRequestClientId) ||
+                        'Asignar cliente',
+                    }),
+                    newRequestClientPickerOpen &&
+                      c.jsxs('div', {
+                        className:
+                          'absolute left-0 top-11 z-30 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 shadow-xl p-2',
+                        children: [
+                          c.jsx('input', {
+                            type: 'text',
+                            value: newRequestClientSearch,
+                            onChange: (event) =>
+                              setNewRequestClientSearch(event.target.value),
+                            placeholder: 'Buscar cliente...',
+                            className:
+                              'w-full px-2.5 py-2 text-[11px] border rounded-lg dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary',
+                          }),
+                          c.jsxs('button', {
+                            type: 'button',
+                            onClick: () => {
+                              setNewRequestClientId('');
+                              setNewRequestClientPickerOpen(!1);
+                              setNewRequestClientSearch('');
+                            },
+                            className:
+                              'mt-2 w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800',
+                            children: [
+                              'Sin cliente',
+                              getClientNameById(newRequestClientId) ? '' : ' ✓',
+                            ],
+                          }),
+                          c.jsx('div', {
+                            className: 'mt-1 max-h-44 overflow-y-auto ios-scroll',
+                            children:
+                              filteredNewRequestClients.length > 0
+                                ? filteredNewRequestClients.map((client) =>
+                                    c.jsx(
+                                      'button',
+                                      {
+                                        type: 'button',
+                                        onClick: () => {
+                                          setNewRequestClientId(String(client.id));
+                                          setNewRequestClientPickerOpen(!1);
+                                          setNewRequestClientSearch('');
+                                        },
+                                        className:
+                                          'w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800',
+                                        children: client.name,
+                                      },
+                                      `new-request-client-${client.id}`,
+                                    ),
+                                  )
+                                : c.jsx('p', {
+                                    className:
+                                      'px-2.5 py-3 text-[11px] text-gray-400 text-center',
+                                    children: 'No hay clientes que coincidan.',
+                                  }),
+                          }),
+                        ],
+                      }),
+                  ],
+                }),
               newRequestImagePreview &&
                 c.jsxs('div', {
                   className: 'flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 dark:border-sky-800 dark:bg-sky-950/40',
