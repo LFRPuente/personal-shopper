@@ -1,4 +1,4 @@
-import { V, c, resolveMediaUrl } from '../utils.js';
+import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 
 const getMissionStatusClassName = (status) =>
@@ -181,6 +181,10 @@ const MissionsSection = V.memo(function MissionsSection() {
               const clients = clientIds
                 .map((clientId) => clientLookupById.get(clientId))
                 .filter(Boolean);
+              const missionTicketUrl = mission.ticket_image
+                ? resolveMediaUrl(mission.ticket_image)
+                : '';
+              const missionTicketIsPdf = isPdfMediaUrl(missionTicketUrl);
               const visibleProducts = missionProducts.filter((product) => {
                 if (mission.status !== 'COMPLETED') return true;
                 const productStatus = String((product && product.status) || '').toUpperCase();
@@ -372,16 +376,26 @@ const MissionsSection = V.memo(function MissionsSection() {
                                     c.jsxs('div', {
                                       className: 'flex items-center gap-2 min-w-0',
                                       children: [
-                                        c.jsx('img', {
-                                          src: resolveMediaUrl(mission.ticket_image),
-                                          className:
-                                            'ui-media-frame ui-media-sm object-cover',
-                                        }),
+                                        missionTicketIsPdf
+                                          ? c.jsx('span', {
+                                              className:
+                                                'w-9 h-9 rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 flex items-center justify-center material-symbols-outlined text-[18px]',
+                                              children: 'picture_as_pdf',
+                                            })
+                                          : c.jsx('img', {
+                                              src: missionTicketUrl,
+                                              className:
+                                                'ui-media-frame ui-media-sm object-cover',
+                                            }),
                                         c.jsx('button', {
                                           onClick: () =>
-                                            setFullscreenImage(
-                                              resolveMediaUrl(mission.ticket_image),
-                                            ),
+                                            missionTicketIsPdf
+                                              ? window.open(
+                                                  missionTicketUrl,
+                                                  '_blank',
+                                                  'noopener,noreferrer',
+                                                )
+                                              : setFullscreenImage(missionTicketUrl),
                                           className:
                                             'text-[11px] font-bold text-primary hover:text-primary-dark',
                                           children: 'Ver ticket de esta misión',

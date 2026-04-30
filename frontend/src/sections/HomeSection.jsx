@@ -1,4 +1,4 @@
-import { V, c, resolveMediaUrl } from '../utils.js';
+import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
 import { useApp } from '../AppContext.jsx';
 import ShoppingClientAssignmentModal from './HomeShoppingClientAssignmentModal.jsx';
 
@@ -248,6 +248,10 @@ const HomeSection = V.memo(function HomeSection() {
     ? missionPurchaseCostWithDiscount * shoppingPurchaseTaxMultiplier
     : missionPurchaseCostWithDiscount;
   const shoppingPurchaseDisplayLabel = showShoppingPurchaseWithTaxes ? 'COMPRA USD CON TAX' : 'COMPRA USD';
+  const activeMissionTicketUrl = activeMission && activeMission.ticket_image
+    ? resolveMediaUrl(activeMission.ticket_image)
+    : '';
+  const activeMissionTicketIsPdf = isPdfMediaUrl(activeMissionTicketUrl);
   const sortedRequests = V.useMemo(
     () =>
       [...(Array.isArray(requests) ? requests : [])].sort((left, right) => {
@@ -975,7 +979,7 @@ const HomeSection = V.memo(function HomeSection() {
               children: missionTicketUploading
                 ? c.jsxs('div', { className: 'flex items-center gap-2 text-purple-700', children: [c.jsx('span', { className: 'material-symbols-outlined animate-spin text-[18px]', children: 'progress_activity' }), c.jsxs('div', { children: [c.jsx('p', { className: 'text-[11px] font-bold', children: 'Subiendo ticket de mision...' }), c.jsx('p', { className: 'text-[10px] text-purple-600', children: 'Se reflejara aqui al terminar la carga.' })] })] })
                 : activeMission.ticket_image
-                  ? c.jsxs('div', { className: 'flex items-center gap-2', children: [c.jsx('img', { src: resolveMediaUrl(activeMission.ticket_image), className: 'ui-media-frame ui-media-sm object-cover' }), c.jsx('button', { onClick: () => setFullscreenImage(resolveMediaUrl(activeMission.ticket_image)), className: 'text-[11px] font-bold text-primary hover:text-primary-dark', children: 'Ver ticket de misión' })] })
+                  ? c.jsxs('div', { className: 'flex items-center gap-2', children: [activeMissionTicketIsPdf ? c.jsx('span', { className: 'w-9 h-9 rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 flex items-center justify-center material-symbols-outlined text-[18px]', children: 'picture_as_pdf' }) : c.jsx('img', { src: activeMissionTicketUrl, className: 'ui-media-frame ui-media-sm object-cover' }), c.jsx('button', { onClick: () => activeMissionTicketIsPdf ? window.open(activeMissionTicketUrl, '_blank', 'noopener,noreferrer') : setFullscreenImage(activeMissionTicketUrl), className: 'text-[11px] font-bold text-primary hover:text-primary-dark', children: 'Ver ticket de misión' })] })
                   : c.jsx('p', { className: 'text-[11px] text-gray-500', children: 'Ticket de misión pendiente.' }),
             }),
           ],

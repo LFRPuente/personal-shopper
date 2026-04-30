@@ -4,7 +4,7 @@ import {
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
   DEFAULT_PRODUCT_FORM, createEmptyProductForm, getDraftProductFlowState, normalizeProductModalStatus,
   DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE,
-  Zs, WS_UPDATES_URL, BACKEND_ORIGIN, resolveMediaUrl, revokeBlobUrl,
+  Zs, WS_UPDATES_URL, BACKEND_ORIGIN, isPdfMediaUrl, resolveMediaUrl, revokeBlobUrl,
   toFormUserId, toFormShoppingId, getUserOptionLabel,
   normalizeClientCountryCode, normalizeClientPhoneDigits,
   sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
@@ -2634,6 +2634,9 @@ function nh() {
       if (!N || missionTicketUploading) return;
       openImageSourcePicker((A) => uploadMissionTicket(A, N), {
         title: "Subir ticket de shopping",
+        description: "Elige una imagen o PDF del ticket de shopping.",
+        accept: "image/*,application/pdf",
+        deviceDescription: "Abre tu galeria o archivos y selecciona una imagen o PDF.",
       });
     },
     fu = () => {
@@ -9091,14 +9094,30 @@ function nh() {
                                 type: "button",
                                 onClick: () =>
                                   o.image &&
-                                  setFullscreenImage(resolveMediaUrl(o.image)),
+                                  (isPdfMediaUrl(resolveMediaUrl(o.image))
+                                    ? window.open(
+                                        resolveMediaUrl(o.image),
+                                        "_blank",
+                                        "noopener,noreferrer",
+                                      )
+                                    : setFullscreenImage(resolveMediaUrl(o.image))),
                                 className:
                                   "overflow-hidden rounded-xl border border-border-light dark:border-border-dark bg-slate-50 dark:bg-slate-800 aspect-square",
                                 children: o.image
-                                  ? c.jsx("img", {
-                                      src: resolveMediaUrl(o.image),
-                                      className: "w-full h-full object-cover",
-                                    })
+                                  ? isPdfMediaUrl(resolveMediaUrl(o.image))
+                                    ? c.jsx("div", {
+                                        className:
+                                          "w-full h-full flex items-center justify-center text-rose-500 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30",
+                                        children: c.jsx("span", {
+                                          className:
+                                            "material-symbols-outlined text-[28px]",
+                                          children: "picture_as_pdf",
+                                        }),
+                                      })
+                                    : c.jsx("img", {
+                                        src: resolveMediaUrl(o.image),
+                                        className: "w-full h-full object-cover",
+                                      })
                                   : c.jsx("div", {
                                       className:
                                         "w-full h-full flex items-center justify-center text-slate-400",

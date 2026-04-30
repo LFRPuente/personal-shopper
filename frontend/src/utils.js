@@ -185,6 +185,7 @@ export const resolveMediaUrl = (o) => {
     return N;
   }
 };
+export const isPdfMediaUrl = (o) => /\.pdf(?:[?#]|$)/i.test(String(o || "").trim());
 export const revokeBlobUrl = (o) => {
   const N = String(o || "").trim();
   if (!N.startsWith("blob:")) return;

@@ -1,4 +1,4 @@
-import { V, c, resolveMediaUrl } from "../utils.js";
+import { V, c, isPdfMediaUrl, resolveMediaUrl } from "../utils.js";
 
 const MissionSummaryModal = V.memo(function MissionSummaryModal({
   open,
@@ -27,6 +27,10 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
   const purchaseDisplayTotal = showPurchaseWithTaxes
     ? filteredMissionSummaryPurchaseTotal * purchaseTaxMultiplier
     : filteredMissionSummaryPurchaseTotal;
+  const missionTicketUrl = activeMission && activeMission.ticket_image
+    ? resolveMediaUrl(activeMission.ticket_image)
+    : "";
+  const missionTicketIsPdf = isPdfMediaUrl(missionTicketUrl);
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -115,13 +119,25 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
               ? c.jsxs("div", {
                   className: "flex items-center gap-2",
                   children: [
-                    c.jsx("img", {
-                      src: resolveMediaUrl(activeMission.ticket_image),
-                      className: "ui-media-frame ui-media-md object-cover",
-                    }),
+                    missionTicketIsPdf
+                      ? c.jsx("span", {
+                          className:
+                            "w-12 h-12 rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 flex items-center justify-center material-symbols-outlined text-[22px]",
+                          children: "picture_as_pdf",
+                        })
+                      : c.jsx("img", {
+                          src: missionTicketUrl,
+                          className: "ui-media-frame ui-media-md object-cover",
+                        }),
                     c.jsx("button", {
                       onClick: () =>
-                        setFullscreenImage(resolveMediaUrl(activeMission.ticket_image)),
+                        missionTicketIsPdf
+                          ? window.open(
+                              missionTicketUrl,
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          : setFullscreenImage(missionTicketUrl),
                       className:
                         "text-xs font-bold text-primary hover:text-primary-dark",
                       children: "Abrir ticket de misión",
