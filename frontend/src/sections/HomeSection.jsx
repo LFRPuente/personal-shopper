@@ -86,6 +86,23 @@ const money = (value) =>
     maximumFractionDigits: 2,
   });
 
+const REQUEST_STATUS_ORDER = {
+  PENDING: 0,
+  MODIFIED: 1,
+  NO_STOCK: 2,
+  ACKNOWLEDGED: 3,
+  DISCARDED: 4,
+};
+
+const getRequestSortTimestamp = (request, status) => {
+  const rawDate =
+    status === 'PENDING'
+      ? request && request.created_at
+      : request && (request.updated_at || request.created_at);
+  const timestamp = new Date(rawDate || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
 const HomeSection = V.memo(function HomeSection() {
   const {
     isDesktopLayout,
@@ -220,6 +237,24 @@ const HomeSection = V.memo(function HomeSection() {
     ? missionPurchaseCostWithDiscount * shoppingPurchaseTaxMultiplier
     : missionPurchaseCostWithDiscount;
   const shoppingPurchaseDisplayLabel = showShoppingPurchaseWithTaxes ? 'COMPRA USD CON TAX' : 'COMPRA USD';
+  const sortedRequests = V.useMemo(
+    () =>
+      [...(Array.isArray(requests) ? requests : [])].sort((left, right) => {
+        const leftStatus = String((left && left.status) || '').toUpperCase();
+        const rightStatus = String((right && right.status) || '').toUpperCase();
+        const leftOrder = REQUEST_STATUS_ORDER[leftStatus] ?? 5;
+        const rightOrder = REQUEST_STATUS_ORDER[rightStatus] ?? 5;
+        if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+
+        const leftTime = getRequestSortTimestamp(left, leftStatus);
+        const rightTime = getRequestSortTimestamp(right, rightStatus);
+        if (leftStatus === 'PENDING' && rightStatus === 'PENDING') {
+          return leftTime - rightTime || Number(left.id || 0) - Number(right.id || 0);
+        }
+        return rightTime - leftTime || Number(right.id || 0) - Number(left.id || 0);
+      }),
+    [requests],
+  );
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -274,9 +309,9 @@ const HomeSection = V.memo(function HomeSection() {
           }),
           c.jsx('div', {
             className: isDesktopLayout ? 'space-y-2 pr-1 flex-1 min-h-0 overflow-y-auto ios-scroll' : 'space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll',
-            children: requests.length === 0
+            children: sortedRequests.length === 0
               ? c.jsx('p', { className: 'text-xs text-gray-400 py-3 text-center', children: 'Sin peticiones activas.' })
-              : requests.map((request) =>
+              : sortedRequests.map((request) =>
                   c.jsxs('div', {
                     className: `relative rounded-xl border-l-4 px-3 py-2.5 shadow-sm transition ${
                       request.status === 'ACKNOWLEDGED'
@@ -488,7 +523,7 @@ const HomeSection = V.memo(function HomeSection() {
                                         }`,
                                         children:
                                           request.status === 'ACKNOWLEDGED'
-                                            ? 'ENTERADO'
+                                            ? 'ENVIADO'
                                             : request.status === 'NO_STOCK'
                                               ? 'NO HAY'
                                               : request.status === 'MODIFIED'
@@ -550,7 +585,7 @@ const HomeSection = V.memo(function HomeSection() {
                                       ),
                                     className:
                                       'w-8 h-8 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-200 dark:hover:bg-emerald-900/60 flex items-center justify-center',
-                                    title: 'Enterado',
+                                    title: 'Enviado',
                                     children: c.jsx('span', {
                                       className:
                                         'material-symbols-outlined text-[14px]',
