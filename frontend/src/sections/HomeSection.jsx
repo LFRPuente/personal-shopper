@@ -102,7 +102,7 @@ const REQUEST_STATUS_ORDER = {
 };
 
 const getRequestSortTimestamp = (request) => {
-  const rawDate = request && (request.created_at || request.updated_at);
+  const rawDate = request && (request.updated_at || request.created_at);
   const timestamp = new Date(rawDate || 0).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
