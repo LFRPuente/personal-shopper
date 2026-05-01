@@ -1,4 +1,4 @@
-import { V } from "../utils.js";
+import { V, getUserOptionLabel } from "../utils.js";
 import { createPortal } from "react-dom";
 
 const emptyForm = {
@@ -8,9 +8,11 @@ const emptyForm = {
   real_price: "",
   charged_price: "",
   stock_quantity: "1",
-  apply_discount: true,
+  auto_calc: true,
+  apply_discount: false,
   discount_percentage: "0",
-  discount_uses_global: true,
+  discount_uses_global: false,
+  payer: "",
   is_active: true,
 };
 
@@ -37,42 +39,103 @@ const StockProductModal = V.memo(function StockProductModal({
   calcCommission,
   calcExchangeRate,
   calcDiscount,
+  payerUserOptions,
   applyCalcModeChange,
   applyCalcFactorChange,
   applyCalcTaxesChange,
   applyCalcCommissionChange,
   applyCalcExchangeRateChange,
 }) {
+  V.useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  V.useEffect(() => {
+    if (!open || !form.auto_calc) return;
+    const parsed = parseFloat(form.real_price);
+    if (!Number.isFinite(parsed)) return;
+    const baseMultiplier =
+      String(calcMode).toUpperCase() === "FACTOR"
+        ? toNumber(calcFactor)
+        : (1 + toNumber(calcCommission) / 100) *
+          (1 + toNumber(calcTaxes) / 100) *
+          toNumber(calcExchangeRate);
+    const discountMultiplier = form.apply_discount ? Math.max(0, 1 - toNumber(form.discount_percentage) / 100) : 1;
+    const nextChargedPrice = (parsed * baseMultiplier * discountMultiplier).toFixed(2);
+    if (String(form.charged_price || "") !== nextChargedPrice) {
+      setForm((value) => ({ ...value, charged_price: nextChargedPrice }));
+    }
+  }, [
+    open,
+    form.auto_calc,
+    form.real_price,
+    form.charged_price,
+    form.apply_discount,
+    form.discount_percentage,
+    calcMode,
+    calcFactor,
+    calcTaxes,
+    calcCommission,
+    calcExchangeRate,
+    setForm,
+  ]);
+
   if (!open || typeof document === "undefined") return null;
 
   const updateForm = (patch) => setForm((value) => ({ ...value, ...patch }));
-  const effectiveDiscount = form.discount_uses_global ? calcDiscount : form.discount_percentage;
+  const effectiveDiscount = form.discount_percentage;
   const discountMultiplier = form.apply_discount ? Math.max(0, 1 - toNumber(effectiveDiscount) / 100) : 1;
-  const priceMultiplier =
+  const basePriceMultiplier =
     String(calcMode).toUpperCase() === "FACTOR"
-      ? toNumber(calcFactor) * discountMultiplier
-      : discountMultiplier *
-        (1 + toNumber(calcCommission) / 100) *
+      ? toNumber(calcFactor)
+      : (1 + toNumber(calcCommission) / 100) *
         (1 + toNumber(calcTaxes) / 100) *
         toNumber(calcExchangeRate);
-  const updateRealPrice = (value) => {
+  const priceMultiplier = basePriceMultiplier * discountMultiplier;
+  const getAutoChargedPrice = (value) => {
     const parsed = parseFloat(value);
+    return Number.isFinite(parsed) && Number.isFinite(priceMultiplier)
+      ? (parsed * priceMultiplier).toFixed(2)
+      : form.charged_price;
+  };
+  const updateRealPrice = (value) => {
     updateForm({
       real_price: value,
+      charged_price: form.auto_calc ? getAutoChargedPrice(value) : form.charged_price,
+    });
+  };
+  const toggleAutoCalc = () =>
+    updateForm({
+      auto_calc: !form.auto_calc,
+      charged_price: !form.auto_calc ? getAutoChargedPrice(form.real_price) : form.charged_price,
+    });
+  const toggleDiscount = () => {
+    const nextApplyDiscount = !form.apply_discount;
+    const nextMultiplier = basePriceMultiplier * (nextApplyDiscount ? Math.max(0, 1 - toNumber(effectiveDiscount) / 100) : 1);
+    const parsed = parseFloat(form.real_price);
+    updateForm({
+      apply_discount: nextApplyDiscount,
       charged_price:
-        Number.isFinite(parsed) && Number.isFinite(priceMultiplier)
-          ? (parsed * priceMultiplier).toFixed(2)
+        form.auto_calc && Number.isFinite(parsed) && Number.isFinite(nextMultiplier)
+          ? (parsed * nextMultiplier).toFixed(2)
           : form.charged_price,
     });
   };
-  const updateChargedPrice = (value) => {
-    const parsed = parseFloat(value);
+  const updateDiscount = (value) => {
+    const nextMultiplier = basePriceMultiplier * (form.apply_discount ? Math.max(0, 1 - toNumber(value) / 100) : 1);
+    const parsed = parseFloat(form.real_price);
     updateForm({
-      charged_price: value,
-      real_price:
-        Number.isFinite(parsed) && Number.isFinite(priceMultiplier) && priceMultiplier > 0
-          ? (parsed / priceMultiplier).toFixed(2)
-          : form.real_price,
+      discount_percentage: value,
+      discount_uses_global: false,
+      charged_price:
+        form.auto_calc && Number.isFinite(parsed) && Number.isFinite(nextMultiplier)
+          ? (parsed * nextMultiplier).toFixed(2)
+          : form.charged_price,
     });
   };
 
@@ -125,6 +188,25 @@ const StockProductModal = V.memo(function StockProductModal({
             />
           </div>
 
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-bold text-text-main dark:text-white">Quien pago</label>
+            <select
+              value={form.payer}
+              onChange={(event) => updateForm({ payer: event.target.value })}
+              className="w-full rounded-xl border px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900"
+              required
+            >
+              <option value="" disabled>
+                {payerUserOptions && payerUserOptions.length ? "Selecciona quien pago" : "Sin usuarios disponibles"}
+              </option>
+              {(payerUserOptions || []).map((user) => (
+                <option key={`stock-payer-${user.id}`} value={user.id}>
+                  {getUserOptionLabel(user)}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="mb-1 block text-sm font-bold text-text-main dark:text-white">Costo USD</label>
             <input
@@ -137,12 +219,17 @@ const StockProductModal = V.memo(function StockProductModal({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-bold text-text-main dark:text-white">Costo de Venta MXN</label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-sm font-bold text-text-main dark:text-white">Costo de Venta MXN</label>
+              <button type="button" onClick={toggleAutoCalc} className={`h-6 w-11 rounded-full border p-0.5 transition ${form.auto_calc ? "border-primary bg-primary" : "border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700"}`}>
+                <span className={`block h-4 w-4 rounded-full bg-white transition ${form.auto_calc ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
             <input
               type="number"
               step="0.01"
               value={form.charged_price}
-              onChange={(event) => updateChargedPrice(event.target.value)}
+              onChange={(event) => updateForm({ charged_price: event.target.value })}
               className="w-full rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 font-bold text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-100"
               required
             />
@@ -199,16 +286,18 @@ const StockProductModal = V.memo(function StockProductModal({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-amber-900 dark:text-amber-100">Aplicar descuento</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">Usa el descuento global o uno especial para este producto.</p>
               </div>
-              <button type="button" onClick={() => updateForm({ apply_discount: !form.apply_discount })} className={`h-7 w-12 rounded-full border ${form.apply_discount ? "bg-amber-500" : "bg-slate-300"}`} />
+              <button type="button" onClick={toggleDiscount} className={`h-7 w-12 rounded-full border p-0.5 transition ${form.apply_discount ? "border-amber-500 bg-amber-500" : "border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700"}`}>
+                <span className={`block h-5 w-5 rounded-full bg-white transition ${form.apply_discount ? "translate-x-5" : ""}`} />
+              </button>
             </div>
             <input
               type="number"
               step="0.01"
               min="0"
               value={effectiveDiscount}
-              onChange={(event) => updateForm({ discount_percentage: event.target.value, discount_uses_global: false })}
+              onChange={(event) => updateDiscount(event.target.value)}
+              disabled={!form.apply_discount}
               className="rounded-xl border border-amber-200 px-3 py-2.5 font-bold text-amber-900 outline-none dark:border-amber-800 dark:bg-slate-900 dark:text-amber-100"
             />
           </div>
@@ -220,16 +309,6 @@ const StockProductModal = V.memo(function StockProductModal({
               value={form.description}
               onChange={(event) => updateForm({ description: event.target.value })}
               className="w-full resize-none rounded-xl border px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-bold text-text-main dark:text-white">Tags</label>
-            <input
-              value={form.tags}
-              onChange={(event) => updateForm({ tags: event.target.value })}
-              placeholder="Talla, marca, color..."
-              className="w-full rounded-xl border px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900"
             />
           </div>
 

@@ -1,4 +1,4 @@
-import { V, resolveMediaUrl } from "../utils.js";
+import { V, getUserOptionLabel, resolveMediaUrl } from "../utils.js";
 import { useApp } from "../AppContext.jsx";
 import StockProductModal, { createEmptyStockProductForm } from "../components/StockProductModal.jsx";
 
@@ -34,6 +34,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     applyCalcCommissionChange,
     applyCalcExchangeRateChange,
     openImageSourcePicker,
+    users,
   } = useApp();
 
   const apiFetchRef = V.useRef(apiFetch);
@@ -112,9 +113,11 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       real_price: product.real_price || "",
       charged_price: product.charged_price || "",
       stock_quantity: String(product.stock_quantity ?? 0),
+      auto_calc: true,
       apply_discount: product.apply_discount !== false,
       discount_percentage: product.discount_percentage || "0",
-      discount_uses_global: product.discount_uses_global !== false,
+      discount_uses_global: false,
+      payer: product.payer ? String(product.payer) : "",
       is_active: product.is_active !== false,
     });
     setImageFile(null);
@@ -146,14 +149,15 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       const payload = new FormData();
       payload.append("name", String(form.name || "").trim());
       payload.append("description", String(form.description || "").trim());
-      payload.append("tags", String(form.tags || "").trim());
+      payload.append("tags", "");
       payload.append("real_price", String(form.real_price || "0"));
       payload.append("charged_price", String(form.charged_price || "0"));
       payload.append("stock_quantity", String(parseInt(form.stock_quantity, 10) || 0));
       payload.append("apply_discount", form.apply_discount ? "true" : "false");
-      payload.append("discount_uses_global", form.discount_uses_global ? "true" : "false");
-      payload.append("discount_percentage", String(form.discount_percentage || calcDiscount || "0"));
+      payload.append("discount_uses_global", "false");
+      payload.append("discount_percentage", String(form.discount_percentage || "0"));
       payload.append("is_active", form.is_active ? "true" : "false");
+      payload.append("payer", String(form.payer || ""));
       if (imageFile) payload.append("image", imageFile);
       const url = editingProduct ? `/stock-products/${editingProduct.id}/` : "/stock-products/";
       const saved = await apiFetch(url, {
@@ -235,9 +239,64 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     }
   };
 
-  const activeProducts = products.filter((product) => product.is_active !== false);
-  const availableTotal = activeProducts.reduce((sum, product) => sum + Number(product.available_quantity || 0), 0);
-  const soldTotal = activeProducts.reduce((sum, product) => sum + Number(product.sold_quantity || 0), 0);
+  const patchProduct = async (product, patch, successMessage) => {
+    if (!product || !product.id) return;
+    try {
+      const saved = await apiFetch(`/stock-products/${product.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
+      setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+      if (successMessage) notifySuccess(successMessage);
+    } catch (error) {
+      console.error("Failed updating stock product", error);
+      if (Number(error && error.status) === 404) {
+        await loadProducts();
+        notifyError("Ese producto ya no existe en stock. Se actualizo el listado.");
+      } else {
+        notifyError(getErrorMessage(error, "No se pudo actualizar el producto."));
+      }
+    }
+  };
+
+  const updateProductLocalValue = (productId, patch) => {
+    setProducts((values) =>
+      values.map((item) => (Number(item.id) === Number(productId) ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const handleInlineNumberKeyDown = (event) => {
+    if (event.key === "Enter") event.currentTarget.blur();
+  };
+
+  const pickProductImage = (product) =>
+    openImageSourcePicker(
+      async (event) => {
+        const file = event && event.target && event.target.files && event.target.files[0];
+        if (!file) return;
+        const payload = new FormData();
+        payload.append("image", file);
+        try {
+          const saved = await apiFetch(`/stock-products/${product.id}/`, {
+            method: "PATCH",
+            body: payload,
+          });
+          setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+          notifySuccess("Imagen actualizada.");
+        } catch (error) {
+          console.error("Failed updating stock product image", error);
+          notifyError(getErrorMessage(error, "No se pudo cambiar la imagen."));
+        }
+      },
+      {
+        title: "Cambiar imagen de stock",
+        description: "Elige una nueva imagen del producto desde tu dispositivo o pegala desde el portapapeles.",
+      },
+    );
+
+  const activeProductsCount = products.filter((product) => Number(product.available_quantity || 0) > 0).length;
+  const availableTotal = products.reduce((sum, product) => sum + Number(product.available_quantity || 0), 0);
+  const soldTotal = products.reduce((sum, product) => sum + Number(product.sold_quantity || 0), 0);
   const publicUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/catalogo-stock`
@@ -285,7 +344,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-border-light bg-surface-light p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-sub">Productos activos</p>
-          <p className="mt-2 text-2xl font-black">{activeProducts.length}</p>
+          <p className="mt-2 text-2xl font-black">{activeProductsCount}</p>
         </div>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Disponible</p>
@@ -331,8 +390,8 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
               return (
-                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_120px_140px_140px_200px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
-                  <div className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_200px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
+                  <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
                     ) : (
@@ -340,22 +399,63 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                         <span className="material-symbols-outlined">image</span>
                       </div>
                     )}
-                  </div>
+                  </button>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-text-main dark:text-white">{product.name}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-text-sub">{product.description || product.tags || "Sin descripcion"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-text-sub">Stock</p>
-                    <p className="text-sm font-black">{available} / {product.stock_quantity || 0}</p>
+                    <input
+                      type="number"
+                      min={sold}
+                      step="1"
+                      value={product.stock_quantity ?? 0}
+                      onChange={(event) => updateProductLocalValue(product.id, { stock_quantity: event.target.value })}
+                      onBlur={(event) => patchProduct(product, { stock_quantity: parseInt(event.target.value, 10) || 0 })}
+                      onKeyDown={handleInlineNumberKeyDown}
+                      className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-sm font-black outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
+                    />
+                    <p className="mt-1 text-[10px] font-bold text-text-sub">Disp. {available}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-text-sub">Costo USD</p>
-                    <p className="text-sm font-black text-sky-700 dark:text-sky-300">${toAmount(product.real_price)}</p>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={product.real_price ?? ""}
+                      onChange={(event) => updateProductLocalValue(product.id, { real_price: event.target.value })}
+                      onBlur={(event) => patchProduct(product, { real_price: event.target.value || "0" })}
+                      onKeyDown={handleInlineNumberKeyDown}
+                      className="mt-1 w-full rounded-lg border border-sky-200 bg-sky-50/80 px-2 py-1 text-sm font-black text-sky-900 outline-none focus:ring-2 focus:ring-sky-300 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100"
+                    />
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-text-sub">Venta MXN</p>
-                    <p className="text-sm font-black text-emerald-700 dark:text-emerald-300">${toAmount(product.charged_price)}</p>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={product.charged_price ?? ""}
+                      onChange={(event) => updateProductLocalValue(product.id, { charged_price: event.target.value })}
+                      onBlur={(event) => patchProduct(product, { charged_price: event.target.value || "0" })}
+                      onKeyDown={handleInlineNumberKeyDown}
+                      className="mt-1 w-full rounded-lg border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-sm font-black text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-100"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-text-sub">Quien compro</p>
+                    <select
+                      value={product.payer ? String(product.payer) : ""}
+                      onChange={(event) => patchProduct(product, { payer: event.target.value || null })}
+                      className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
+                    >
+                      <option value="">Sin asignar</option>
+                      {(users || []).map((user) => (
+                        <option key={`stock-row-payer-${product.id}-${user.id}`} value={user.id}>
+                          {getUserOptionLabel(user)}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex items-center justify-end gap-2">
                     <span className={`rounded-full px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
@@ -394,6 +494,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         calcCommission={calcCommission}
         calcExchangeRate={calcExchangeRate}
         calcDiscount={calcDiscount}
+        payerUserOptions={users || []}
         applyCalcModeChange={applyCalcModeChange}
         applyCalcFactorChange={applyCalcFactorChange}
         applyCalcTaxesChange={applyCalcTaxesChange}
