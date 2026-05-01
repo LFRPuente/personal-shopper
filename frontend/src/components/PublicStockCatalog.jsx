@@ -10,6 +10,18 @@ const money = (value) => {
     : "0.00";
 };
 
+const getCreatedStamp = (item) => {
+  const parsed = item && item.created_at ? new Date(item.created_at).getTime() : Number(item && item.id);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortProductsAsc = (items) => [...(Array.isArray(items) ? items : [])].sort((left, right) => {
+  const leftStamp = getCreatedStamp(left);
+  const rightStamp = getCreatedStamp(right);
+  if (leftStamp !== rightStamp) return leftStamp - rightStamp;
+  return Number(left && left.id) - Number(right && right.id);
+});
+
 const publicFetch = async (path, options = {}) => {
   const response = await fetch(`${Zs}${path}`, {
     ...options,
@@ -40,7 +52,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setError("");
     try {
       const data = await publicFetch("/public/stock-catalog/");
-      setProducts(Array.isArray(data && data.products) ? data.products : []);
+      setProducts(sortProductsAsc(data && data.products));
     } catch (requestError) {
       console.error("Failed loading public stock catalog", requestError);
       setError(getErrorMessage(requestError, "No se pudo cargar el catalogo."));
@@ -112,9 +124,9 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
       <section className="relative overflow-hidden px-4 py-2 sm:px-7 lg:px-12">
         <div className="absolute inset-x-0 top-0 h-[150px] bg-[radial-gradient(circle_at_22%_6%,rgba(168,85,247,0.20),transparent_30%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
         <div className="relative mx-auto max-w-7xl">
-          <div className="flex min-h-[105px] flex-col justify-start pt-1 pb-3 text-white">
+          <div className="flex min-h-[92px] flex-col justify-start pt-0.5 pb-2 text-white">
             <p className="text-sm font-black uppercase tracking-[0.18em] text-white/85">Compratelo con PAO</p>
-            <h1 className="mt-0.5 max-w-4xl text-3xl font-black tracking-normal sm:text-4xl lg:text-5xl">
+            <h1 className="mt-0.5 max-w-4xl text-3xl font-black leading-[0.95] tracking-normal sm:text-4xl lg:text-5xl">
               Catalogo de Stock
             </h1>
           </div>
@@ -160,13 +172,13 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                         </span>
                       </div>
                     </button>
-                    <div className="p-3">
-                      <h2 className="line-clamp-2 min-h-[38px] text-base font-black leading-tight text-slate-950">{product.name}</h2>
+                    <div className="px-3 pb-3 pt-2">
+                      <h2 className="line-clamp-2 min-h-[32px] text-[15px] font-black leading-[1.02] tracking-tight text-slate-950">{product.name}</h2>
                       <button
                         type="button"
                         onClick={() => openOrder(product)}
                         disabled={available < 1}
-                        className="mt-0.5 w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        className="mt-0.5 w-full rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                       >
                         YO
                       </button>

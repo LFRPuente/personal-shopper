@@ -17,6 +17,18 @@ const toAmount = (value) => {
     : "0.00";
 };
 
+const getCreatedStamp = (product) => {
+  const parsed = product && product.created_at ? new Date(product.created_at).getTime() : Number(product && product.id);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortProductsAsc = (items) => [...(Array.isArray(items) ? items : [])].sort((left, right) => {
+  const leftStamp = getCreatedStamp(left);
+  const rightStamp = getCreatedStamp(right);
+  if (leftStamp !== rightStamp) return leftStamp - rightStamp;
+  return Number(left && left.id) - Number(right && right.id);
+});
+
 const StockCatalogSection = V.memo(function StockCatalogSection() {
   const {
     apiFetch,
@@ -49,6 +61,14 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   const [imageFile, setImageFile] = V.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = V.useState("");
   const [salesProduct, setSalesProduct] = V.useState(null);
+  const [salesSeenMap, setSalesSeenMap] = V.useState(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(window.localStorage.getItem("stock_sales_seen_map") || "{}") || {};
+    } catch {
+      return {};
+    }
+  });
 
   apiFetchRef.current = apiFetch;
   notifyErrorRef.current = notifyError;
@@ -57,7 +77,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     setLoading(true);
     try {
       const data = await apiFetchRef.current("/stock-products/?include_inactive=1");
-      setProducts(Array.isArray(data) ? data : []);
+      setProducts(sortProductsAsc(data));
     } catch (error) {
       console.error("Failed loading stock catalog", error);
       notifyErrorRef.current(getErrorMessage(error, "No se pudo cargar el catalogo de stock."));
@@ -69,6 +89,11 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   V.useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  V.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("stock_sales_seen_map", JSON.stringify(salesSeenMap || {}));
+  }, [salesSeenMap]);
 
   V.useEffect(
     () => () => {
@@ -169,9 +194,9 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       setProducts((values) => {
         const current = Array.isArray(values) ? values : [];
         if (editingProduct) {
-          return current.map((product) => (Number(product.id) === Number(saved.id) ? saved : product));
+          return sortProductsAsc(current.map((product) => (Number(product.id) === Number(saved.id) ? saved : product)));
         }
-        return [saved, ...current];
+        return sortProductsAsc([...current, saved]);
       });
       notifySuccess(editingProduct ? "Producto actualizado." : "Producto agregado al catalogo.");
       closeModal();
@@ -200,7 +225,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         method: "PATCH",
         body: JSON.stringify({ is_active: shouldShow }),
       });
-      setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+      setProducts((values) => sortProductsAsc(values.map((item) => (Number(item.id) === Number(product.id) ? saved : item))));
       notifySuccess(shouldShow ? "Producto visible en la pagina web." : "Producto oculto de la pagina web.");
     } catch (error) {
       console.error("Failed toggling stock product", error);
@@ -228,7 +253,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     if (!confirmed) return;
     try {
       await apiFetch(`/stock-products/${product.id}/`, { method: "DELETE" });
-      setProducts((values) => values.filter((item) => Number(item.id) !== Number(product.id)));
+      setProducts((values) => sortProductsAsc(values.filter((item) => Number(item.id) !== Number(product.id))));
       notifySuccess("Producto eliminado.");
     } catch (error) {
       console.error("Failed deleting stock product", error);
@@ -248,7 +273,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         method: "PATCH",
         body: JSON.stringify(patch),
       });
-      setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+      setProducts((values) => sortProductsAsc(values.map((item) => (Number(item.id) === Number(product.id) ? saved : item))));
       if (successMessage) notifySuccess(successMessage);
     } catch (error) {
       console.error("Failed updating stock product", error);
@@ -307,7 +332,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             method: "PATCH",
             body: payload,
           });
-          setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+          setProducts((values) => sortProductsAsc(values.map((item) => (Number(item.id) === Number(product.id) ? saved : item))));
           notifySuccess("Imagen actualizada.");
         } catch (error) {
           console.error("Failed updating stock product image", error);
@@ -347,6 +372,31 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       console.error("Failed copying stock catalog link", error);
       notifyError("No se pudo copiar el link.");
     }
+  };
+
+  const handleOpenSales = (product) => {
+    const orders = Array.isArray(product && product.orders) ? product.orders : [];
+    const latestOrder = orders.reduce((latest, order) => {
+      const stamp = order && order.created_at ? new Date(order.created_at).getTime() : 0;
+      return stamp > latest ? stamp : latest;
+    }, 0);
+    if (!latestOrder) return;
+    setSalesSeenMap((value) => ({ ...(value || {}), [String(product.id)]: latestOrder }));
+  };
+
+  const getSalesBadgeCount = (product) => {
+    const orders = Array.isArray(product && product.orders) ? product.orders : [];
+    if (!orders.length) return 0;
+    const seenAt = Number((salesSeenMap && salesSeenMap[String(product.id)]) || 0);
+    return orders.reduce((count, order) => {
+      const stamp = order && order.created_at ? new Date(order.created_at).getTime() : 0;
+      return stamp > seenAt ? count + 1 : count;
+    }, 0);
+  };
+
+  const openSalesModal = (product) => {
+    setSalesProduct(product);
+    handleOpenSales(product);
   };
 
   return (
@@ -412,6 +462,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             {products.map((product) => {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
+              const newSalesCount = getSalesBadgeCount(product);
               return (
                 <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_245px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
                   <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
@@ -485,8 +536,13 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       Vendido {sold}
                     </span>
                     {sold > 0 && (
-                      <button type="button" onClick={() => setSalesProduct(product)} title="Ver compradores" className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
+                      <button type="button" onClick={() => openSalesModal(product)} title="Ver compradores" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
                         <span className="material-symbols-outlined text-[18px]">group</span>
+                        {newSalesCount > 0 && (
+                          <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg ring-2 ring-white dark:bg-white dark:text-slate-950 dark:ring-slate-900">
+                            {newSalesCount}
+                          </span>
+                        )}
                       </button>
                     )}
                     <button type="button" onClick={() => openEditModal(product)} title="Editar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50">

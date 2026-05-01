@@ -7,8 +7,15 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
 };
 
+const getOrderStamp = (order) => {
+  const parsed = order && order.created_at ? new Date(order.created_at).getTime() : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const StockSalesModal = V.memo(function StockSalesModal({ product, onClose }) {
-  const orders = Array.isArray(product && product.orders) ? product.orders : [];
+  const orders = Array.isArray(product && product.orders)
+    ? [...product.orders].sort((left, right) => getOrderStamp(left) - getOrderStamp(right))
+    : [];
 
   V.useEffect(() => {
     if (!product || typeof document === "undefined") return undefined;
