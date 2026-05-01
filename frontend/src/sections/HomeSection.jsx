@@ -271,23 +271,25 @@ const HomeSection = V.memo(function HomeSection() {
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
     className: isDesktopLayout
-      ? 'grid gap-0 items-stretch min-h-[720px]'
+      ? 'grid gap-0 items-stretch h-[calc(100dvh-9rem)] min-h-0 max-h-[calc(100dvh-9rem)] overflow-hidden'
       : 'flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark',
     style: isDesktopLayout
       ? activeMission
         ? {
             gridTemplateColumns: `minmax(0, ${homeDesktopLayout.left_width_percent}%) 6px minmax(340px, 1fr)`,
-            gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(420px, 1fr)`,
+            gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(0, 1fr)`,
           }
         : {
             gridTemplateColumns: 'minmax(0, 1fr)',
-            gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(420px, 1fr)`,
+            gridTemplateRows: `${homeDesktopLayout.top_height}px 6px minmax(0, 1fr)`,
           }
       : void 0,
     children: [
       isDesktopLayout &&
         c.jsx('div', {
-          className: 'col-start-1 row-start-2 flex items-center justify-center select-none',
+          className: activeMission
+            ? 'col-start-1 col-span-3 row-start-2 flex items-center justify-center select-none'
+            : 'col-start-1 row-start-2 flex items-center justify-center select-none',
           children: c.jsx('button', {
             type: 'button',
             onMouseDown: startHomeDesktopResize('row'),
@@ -312,7 +314,7 @@ const HomeSection = V.memo(function HomeSection() {
         }),
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full max-h-[calc(100vh-7rem)] overflow-hidden flex flex-col'
+          ? 'col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
           : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
         children: [
           c.jsxs('h3', {
@@ -987,7 +989,7 @@ const HomeSection = V.memo(function HomeSection() {
       activeMission &&
         c.jsxs('div', {
           className: isDesktopLayout
-            ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full flex flex-col'
+            ? 'col-start-3 row-start-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
             : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
           children: [
             c.jsxs('div', {
