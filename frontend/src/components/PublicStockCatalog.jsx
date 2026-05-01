@@ -30,6 +30,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
   const [loading, setLoading] = V.useState(true);
   const [error, setError] = V.useState("");
   const [selectedProduct, setSelectedProduct] = V.useState(null);
+  const [previewImage, setPreviewImage] = V.useState(null);
   const [form, setForm] = V.useState({ customer_name: "", customer_phone: "", quantity: 1 });
   const [sending, setSending] = V.useState(false);
   const [sentMessage, setSentMessage] = V.useState("");
@@ -64,6 +65,13 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setSentMessage("");
   };
 
+  const updateQuantity = (nextQuantity) => {
+    if (!selectedProduct) return;
+    const available = Math.max(1, Number(selectedProduct.available_quantity || 1));
+    const quantity = Math.min(available, Math.max(1, Number(nextQuantity) || 1));
+    setForm((value) => ({ ...value, quantity }));
+  };
+
   const submitOrder = async (event) => {
     event.preventDefault();
     if (!selectedProduct) return;
@@ -92,17 +100,14 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f3ed] text-slate-950">
-      <section className="relative overflow-hidden px-5 py-8 sm:px-8 lg:px-14">
-        <div className="absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(circle_at_22%_18%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
+      <section className="relative overflow-hidden px-4 py-4 sm:px-7 lg:px-12">
+        <div className="absolute inset-x-0 top-0 h-[220px] bg-[radial-gradient(circle_at_22%_10%,rgba(168,85,247,0.20),transparent_30%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
         <div className="relative mx-auto max-w-7xl">
-          <div className="flex min-h-[280px] flex-col justify-end pb-8 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Personal Shopper</p>
-            <h1 className="mt-3 max-w-4xl text-5xl font-black tracking-normal sm:text-6xl lg:text-7xl">
+          <div className="flex min-h-[155px] flex-col justify-end pb-5 text-white">
+            <p className="text-sm font-black uppercase tracking-[0.20em] text-white/80">Compratelo con Pao</p>
+            <h1 className="mt-1 max-w-4xl text-4xl font-black tracking-normal sm:text-5xl lg:text-6xl">
               Catalogo de Stock
             </h1>
-            <p className="mt-4 max-w-2xl text-base font-medium text-white/78 sm:text-lg">
-              Productos disponibles para apartar directo desde inventario.
-            </p>
           </div>
 
           {loading ? (
@@ -119,12 +124,17 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
               <p className="text-sm font-bold text-slate-500">No hay productos disponibles por ahora.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
               {products.map((product) => {
                 const available = Number(product.available_quantity || 0);
                 return (
-                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-[28px] bg-white shadow-[0_18px_60px_rgba(15,23,42,0.12)]">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
+                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-2xl bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
+                    <button
+                      type="button"
+                      onClick={() => product.image && setPreviewImage(resolveMediaUrl(product.image))}
+                      className="relative block aspect-square w-full overflow-hidden bg-slate-100 text-left"
+                      aria-label={`Ver imagen de ${product.name}`}
+                    >
                       {product.image ? (
                         <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
                       ) : (
@@ -132,25 +142,19 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                           <span className="material-symbols-outlined text-5xl">image</span>
                         </div>
                       )}
-                      <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
-                        <span className="rounded-full bg-white/88 px-3 py-1 text-[11px] font-black text-violet-700 backdrop-blur">
-                          {available} disponible{available === 1 ? "" : "s"}
-                        </span>
-                        <span className="rounded-full bg-slate-950/82 px-3 py-1 text-[11px] font-black text-white backdrop-blur">
+                      <div className="absolute right-2 top-2">
+                        <span className="rounded-full bg-slate-950/86 px-3 py-1.5 text-base font-black text-white shadow-lg backdrop-blur">
                           ${money(product.charged_price)}
                         </span>
                       </div>
-                    </div>
-                    <div className="p-4">
-                      <h2 className="line-clamp-2 min-h-[44px] text-lg font-black leading-tight text-slate-950">{product.name}</h2>
-                      <p className="mt-2 line-clamp-2 min-h-[40px] text-sm text-slate-500">
-                        {product.description || product.tags || "Producto disponible en stock."}
-                      </p>
+                    </button>
+                    <div className="p-3">
+                      <h2 className="line-clamp-2 min-h-[38px] text-base font-black leading-tight text-slate-950">{product.name}</h2>
                       <button
                         type="button"
                         onClick={() => openOrder(product)}
                         disabled={available < 1}
-                        className="mt-4 w-full rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                       >
                         YO
                       </button>
@@ -192,20 +196,32 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold outline-none focus:ring-2 focus:ring-violet-500"
                 required
               />
-              {Number(selectedProduct.available_quantity || 0) > 1 && (
-                <div>
-                  <label className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Cantidad</label>
-                  <select
-                    value={form.quantity}
-                    onChange={(event) => setForm((value) => ({ ...value, quantity: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-black outline-none focus:ring-2 focus:ring-violet-500"
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Cantidad</label>
+                <div className="grid grid-cols-[48px_1fr_48px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(Number(form.quantity) - 1)}
+                    className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
+                    disabled={Number(form.quantity) <= 1}
+                    aria-label="Reducir cantidad"
                   >
-                    {Array.from({ length: Number(selectedProduct.available_quantity || 0) }, (_, index) => index + 1).map((quantity) => (
-                      <option key={`quantity-${quantity}`} value={quantity}>{quantity}</option>
-                    ))}
-                  </select>
+                    <span className="material-symbols-outlined text-[20px]">remove</span>
+                  </button>
+                  <div className="flex h-12 items-center justify-center border-x border-slate-200 text-lg font-black text-slate-950">
+                    {form.quantity}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(Number(form.quantity) + 1)}
+                    className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
+                    disabled={Number(form.quantity) >= Number(selectedProduct.available_quantity || 1)}
+                    aria-label="Aumentar cantidad"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">add</span>
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
 
             {sentMessage && (
@@ -222,6 +238,22 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
               {sending ? "Enviando..." : "Enviar"}
             </button>
           </form>
+        </div>
+      )}
+
+      {previewImage && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/85 p-4" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-h-[92vh] max-w-[95vw]" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow"
+              aria-label="Cerrar imagen"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <img src={previewImage} className="max-h-[92vh] max-w-[95vw] rounded-2xl bg-black object-contain shadow-2xl" />
+          </div>
         </div>
       )}
     </div>

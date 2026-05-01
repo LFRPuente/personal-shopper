@@ -46,19 +46,14 @@ const StockProductModal = V.memo(function StockProductModal({
   applyCalcCommissionChange,
   applyCalcExchangeRateChange,
 }) {
-  V.useEffect(() => {
-    if (!open || typeof document === "undefined") return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  const priceSyncSourceRef = V.useRef("real");
+  const [imagePreviewOpen, setImagePreviewOpen] = V.useState(false);
 
   V.useEffect(() => {
-    if (!open || !form.auto_calc) return;
-    const parsed = parseFloat(form.real_price);
-    if (!Number.isFinite(parsed)) return;
+    if (!open) setImagePreviewOpen(false);
+  }, [open]);
+
+  const getPriceMultiplier = V.useCallback(() => {
     const baseMultiplier =
       String(calcMode).toUpperCase() === "FACTOR"
         ? toNumber(calcFactor)
@@ -66,7 +61,48 @@ const StockProductModal = V.memo(function StockProductModal({
           (1 + toNumber(calcTaxes) / 100) *
           toNumber(calcExchangeRate);
     const discountMultiplier = form.apply_discount ? Math.max(0, 1 - toNumber(form.discount_percentage) / 100) : 1;
-    const nextChargedPrice = (parsed * baseMultiplier * discountMultiplier).toFixed(2);
+    return baseMultiplier * discountMultiplier;
+  }, [
+    calcMode,
+    calcFactor,
+    calcTaxes,
+    calcCommission,
+    calcExchangeRate,
+    form.apply_discount,
+    form.discount_percentage,
+  ]);
+
+  V.useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        if (imagePreviewOpen) {
+          setImagePreviewOpen(false);
+          return;
+        }
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, imagePreviewOpen, onClose]);
+
+  V.useEffect(() => {
+    if (!open || !form.auto_calc) return;
+    const priceMultiplier = getPriceMultiplier();
+    if (!Number.isFinite(priceMultiplier) || priceMultiplier <= 0) return;
+    if (priceSyncSourceRef.current === "charged") {
+      const parsed = parseFloat(form.charged_price);
+      if (!Number.isFinite(parsed)) return;
+      const nextRealPrice = (parsed / priceMultiplier).toFixed(2);
+      if (String(form.real_price || "") !== nextRealPrice) {
+        setForm((value) => ({ ...value, real_price: nextRealPrice }));
+      }
+      return;
+    }
+    const parsed = parseFloat(form.real_price);
+    if (!Number.isFinite(parsed)) return;
+    const nextChargedPrice = (parsed * priceMultiplier).toFixed(2);
     if (String(form.charged_price || "") !== nextChargedPrice) {
       setForm((value) => ({ ...value, charged_price: nextChargedPrice }));
     }
@@ -75,13 +111,7 @@ const StockProductModal = V.memo(function StockProductModal({
     form.auto_calc,
     form.real_price,
     form.charged_price,
-    form.apply_discount,
-    form.discount_percentage,
-    calcMode,
-    calcFactor,
-    calcTaxes,
-    calcCommission,
-    calcExchangeRate,
+    getPriceMultiplier,
     setForm,
   ]);
 
@@ -103,16 +133,37 @@ const StockProductModal = V.memo(function StockProductModal({
       ? (parsed * priceMultiplier).toFixed(2)
       : form.charged_price;
   };
+  const getAutoRealPrice = (value) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) && Number.isFinite(priceMultiplier) && priceMultiplier > 0
+      ? (parsed / priceMultiplier).toFixed(2)
+      : form.real_price;
+  };
   const updateRealPrice = (value) => {
+    priceSyncSourceRef.current = "real";
     updateForm({
       real_price: value,
       charged_price: form.auto_calc ? getAutoChargedPrice(value) : form.charged_price,
     });
   };
+  const updateChargedPrice = (value) => {
+    priceSyncSourceRef.current = "charged";
+    updateForm({
+      charged_price: value,
+      real_price: form.auto_calc ? getAutoRealPrice(value) : form.real_price,
+    });
+  };
   const toggleAutoCalc = () =>
     updateForm({
       auto_calc: !form.auto_calc,
-      charged_price: !form.auto_calc ? getAutoChargedPrice(form.real_price) : form.charged_price,
+      charged_price:
+        !form.auto_calc && priceSyncSourceRef.current !== "charged"
+          ? getAutoChargedPrice(form.real_price)
+          : form.charged_price,
+      real_price:
+        !form.auto_calc && priceSyncSourceRef.current === "charged"
+          ? getAutoRealPrice(form.charged_price)
+          : form.real_price,
     });
   const toggleDiscount = () => {
     const nextApplyDiscount = !form.apply_discount;
@@ -140,14 +191,15 @@ const StockProductModal = V.memo(function StockProductModal({
   };
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
-      onClick={onClose}
-    >
+    <>
       <div
-        className="w-full max-w-4xl rounded-t-3xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark sm:rounded-3xl"
-        onClick={(event) => event.stopPropagation()}
+        className="fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
+        onClick={onClose}
       >
+        <div
+          className="w-full max-w-4xl rounded-t-3xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark sm:rounded-3xl"
+          onClick={(event) => event.stopPropagation()}
+        >
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Catalogo de Stock</p>
@@ -159,9 +211,9 @@ const StockProductModal = V.memo(function StockProductModal({
             {imagePreviewUrl && (
               <button
                 type="button"
-                onClick={onPickImage}
-                title="Cambiar imagen"
-                aria-label="Cambiar imagen del producto"
+                onClick={() => setImagePreviewOpen(true)}
+                title="Ver imagen"
+                aria-label="Ver imagen del producto"
                 className="h-10 w-10 overflow-hidden rounded-full border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
               >
                 <img src={imagePreviewUrl} className="h-full w-full object-cover" />
@@ -221,18 +273,21 @@ const StockProductModal = V.memo(function StockProductModal({
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
               <label className="block text-sm font-bold text-text-main dark:text-white">Costo de Venta MXN</label>
-              <button type="button" onClick={toggleAutoCalc} className={`h-6 w-11 rounded-full border p-0.5 transition ${form.auto_calc ? "border-primary bg-primary" : "border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700"}`}>
-                <span className={`block h-4 w-4 rounded-full bg-white transition ${form.auto_calc ? "translate-x-5" : ""}`} />
-              </button>
             </div>
             <input
               type="number"
               step="0.01"
               value={form.charged_price}
-              onChange={(event) => updateForm({ charged_price: event.target.value })}
+              onChange={(event) => updateChargedPrice(event.target.value)}
               className="w-full rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 font-bold text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-100"
               required
             />
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-slate-100 px-3 py-2 dark:bg-slate-900">
+              <span className="text-xs font-black text-text-sub">Calculo automatico</span>
+              <button type="button" role="switch" aria-checked={form.auto_calc} onClick={toggleAutoCalc} className={`h-6 w-11 rounded-full border p-0.5 transition ${form.auto_calc ? "border-primary bg-primary" : "border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700"}`}>
+                <span className={`block h-4 w-4 rounded-full bg-white transition ${form.auto_calc ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -319,8 +374,27 @@ const StockProductModal = V.memo(function StockProductModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>,
+      {imagePreviewOpen && imagePreviewUrl && (
+        <div
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-black/85 p-4"
+          onClick={() => setImagePreviewOpen(false)}
+        >
+          <div className="relative max-h-[92vh] max-w-[95vw]" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setImagePreviewOpen(false)}
+              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow"
+              aria-label="Cerrar imagen"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <img src={imagePreviewUrl} className="max-h-[92vh] max-w-[95vw] rounded-2xl bg-black object-contain shadow-2xl" />
+          </div>
+        </div>
+      )}
+    </>,
     document.body,
   );
 });
