@@ -29,6 +29,7 @@ from .views import (
     create_shipment_share_link,
     public_shipment_share_view,
     public_stock_catalog_view,
+    public_stock_catalog_status,
     public_stock_catalog_order,
 )
 
@@ -71,6 +72,7 @@ urlpatterns = [
     path('shipment-share-links/', create_shipment_share_link, name='create-shipment-share-link'),
     path('public/shipment-share/<str:token>/', public_shipment_share_view, name='public-shipment-share-view'),
     path('public/stock-catalog/', public_stock_catalog_view, name='public-stock-catalog'),
+    path('public/stock-catalog/status/', public_stock_catalog_status, name='public-stock-catalog-status'),
     path('public/stock-catalog/order/', public_stock_catalog_order, name='public-stock-catalog-order'),
     path('', include(router.urls)),
     path('scan-receipt/', scan_receipt, name='scan-receipt'),

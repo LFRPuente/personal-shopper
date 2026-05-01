@@ -61,6 +61,8 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   const [imageFile, setImageFile] = V.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = V.useState("");
   const [salesProduct, setSalesProduct] = V.useState(null);
+  const [publicCatalogEnabled, setPublicCatalogEnabled] = V.useState(true);
+  const [publicCatalogSaving, setPublicCatalogSaving] = V.useState(false);
   const [salesSeenMap, setSalesSeenMap] = V.useState(() => {
     if (typeof window === "undefined") return {};
     try {
@@ -89,6 +91,22 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   V.useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  V.useEffect(() => {
+    let active = true;
+    const loadPublicCatalogState = async () => {
+      try {
+        const state = await apiFetchRef.current("/public/stock-catalog/status/");
+        if (active) setPublicCatalogEnabled(state && state.enabled !== false);
+      } catch (error) {
+        console.error("Failed loading public stock catalog state", error);
+      }
+    };
+    loadPublicCatalogState();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   V.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -399,6 +417,27 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     }
   };
 
+  const togglePublicCatalog = async () => {
+    const nextEnabled = !publicCatalogEnabled;
+    const previousEnabled = publicCatalogEnabled;
+    setPublicCatalogEnabled(nextEnabled);
+    setPublicCatalogSaving(true);
+    try {
+      const saved = await apiFetch(`/public/stock-catalog/status/`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled: nextEnabled }),
+      });
+      setPublicCatalogEnabled(saved && saved.enabled !== false);
+      notifySuccess(nextEnabled ? "Catalogo publico activado." : "Catalogo publico desactivado.");
+    } catch (error) {
+      console.error("Failed toggling public stock catalog", error);
+      setPublicCatalogEnabled(previousEnabled);
+      notifyError(getErrorMessage(error, "No se pudo actualizar la pagina publica."));
+    } finally {
+      setPublicCatalogSaving(false);
+    }
+  };
+
   const getSalesBadgeCount = (product) => {
     const orders = Array.isArray(product && product.orders) ? product.orders : [];
     if (!orders.length) return 0;
@@ -422,14 +461,29 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
           <h1 className="text-3xl font-black text-text-main dark:text-white">Catalogo de Stock</h1>
           <p className="mt-1 text-sm text-text-sub">Administra productos disponibles, vendidos y pagina publica.</p>
         </div>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-primary-dark"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          Agregar stock
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-border-light bg-surface-light px-3 py-2 text-xs font-black text-text-sub shadow-sm dark:border-border-dark dark:bg-surface-dark">
+            <span>Pagina publica</span>
+            <button
+              type="button"
+              onClick={togglePublicCatalog}
+              disabled={publicCatalogSaving}
+              role="switch"
+              aria-checked={publicCatalogEnabled}
+              className={`inline-flex h-6 w-11 items-center rounded-full border p-0.5 transition ${publicCatalogEnabled ? "border-emerald-500 bg-emerald-500" : "border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700"} ${publicCatalogSaving ? "cursor-wait opacity-70" : ""}`}
+            >
+              <span className={`block h-5 w-5 rounded-full bg-white transition ${publicCatalogEnabled ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-primary-dark"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Agregar stock
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

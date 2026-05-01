@@ -41,6 +41,8 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
   const [products, setProducts] = V.useState([]);
   const [loading, setLoading] = V.useState(true);
   const [error, setError] = V.useState("");
+  const [catalogEnabled, setCatalogEnabled] = V.useState(true);
+  const [catalogMessage, setCatalogMessage] = V.useState("");
   const [selectedProduct, setSelectedProduct] = V.useState(null);
   const [previewImage, setPreviewImage] = V.useState(null);
   const [form, setForm] = V.useState({ customer_name: "", customer_phone: "", quantity: 1 });
@@ -54,7 +56,10 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setError("");
     try {
       const data = await publicFetch("/public/stock-catalog/");
-      setProducts(sortProductsAsc(data && data.products));
+      const enabled = data && data.enabled !== false;
+      setCatalogEnabled(enabled);
+      setCatalogMessage((data && data.message) || "");
+      setProducts(enabled ? sortProductsAsc(data && data.products) : []);
     } catch (requestError) {
       console.error("Failed loading public stock catalog", requestError);
       setError(getErrorMessage(requestError, "No se pudo cargar el catalogo."));
@@ -82,6 +87,10 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setOrderStage("form");
     setValidationTouched(false);
   }, []);
+
+  const maintenanceMessage =
+    catalogMessage ||
+    "POR EL MOMENTO ESTAMOS TRABAJANDO PARA TI. ESPERA NUEVAS OFERTAS O CONTACTANOS A NUESTROS WHATSAPP";
 
   V.useEffect(() => {
     if (!selectedProduct || typeof document === "undefined") return undefined;
@@ -158,6 +167,16 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
           ) : error ? (
             <div className="rounded-3xl bg-white p-12 text-center text-rose-600 shadow-xl">
               <p className="text-sm font-bold">{error}</p>
+            </div>
+          ) : !catalogEnabled ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Catalogo temporalmente cerrado</p>
+              <h2 className="mt-3 text-2xl font-black uppercase tracking-tight text-slate-950 sm:text-3xl">
+                {maintenanceMessage}
+              </h2>
+              <p className="mt-3 text-sm font-semibold text-slate-500">
+                Regresa pronto para ver nuevas ofertas.
+              </p>
             </div>
           ) : products.length === 0 ? (
             <div className="rounded-3xl bg-white p-12 text-center shadow-xl">

@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db.models import Count, F, Q
 from django.utils import timezone
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import Http404
 from collections import defaultdict
@@ -75,6 +76,7 @@ from .serializers import (
 import random
 from datetime import date, timedelta
 import os
+from pathlib import Path
 
 
 # <-------- seccion 8: helper de broadcast para websocket group "updates"
@@ -149,6 +151,37 @@ def build_public_shipment_share_url(request, raw_token):
 
 def normalize_digits(value):
     return ''.join(ch for ch in str(value or '') if ch.isdigit())
+
+
+PUBLIC_STOCK_CATALOG_STATE_FILE = Path(settings.MEDIA_ROOT) / 'public_stock_catalog_state.json'
+PUBLIC_STOCK_CATALOG_DISABLED_MESSAGE = 'POR EL MOMENTO ESTAMOS TRABAJANDO PARA TI. ESPERA NUEVAS OFERTAS O CONTACTANOS A NUESTROS WHATSAPP.'
+
+
+def get_public_stock_catalog_state():
+    try:
+        with PUBLIC_STOCK_CATALOG_STATE_FILE.open('r', encoding='utf-8') as handle:
+            payload = json.load(handle)
+        enabled = bool(payload.get('enabled', True))
+    except FileNotFoundError:
+        enabled = True
+    except Exception:
+        enabled = True
+    return {
+        'enabled': enabled,
+        'message': PUBLIC_STOCK_CATALOG_DISABLED_MESSAGE,
+    }
+
+
+def set_public_stock_catalog_state(enabled):
+    PUBLIC_STOCK_CATALOG_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        'enabled': bool(enabled),
+    }
+    temp_path = PUBLIC_STOCK_CATALOG_STATE_FILE.with_suffix('.tmp')
+    with temp_path.open('w', encoding='utf-8') as handle:
+        json.dump(payload, handle, ensure_ascii=False)
+    temp_path.replace(PUBLIC_STOCK_CATALOG_STATE_FILE)
+    return get_public_stock_catalog_state()
 
 
 PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
@@ -1979,17 +2012,42 @@ class StockCatalogProductViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_stock_catalog_view(request):
+    state = get_public_stock_catalog_state()
+    if not state['enabled']:
+        return Response({
+            'enabled': False,
+            'message': state['message'],
+            'products': [],
+        })
     products = StockCatalogProduct.objects.filter(
         is_active=True,
         stock_quantity__gt=F('sold_quantity'),
     ).order_by('-updated_at', '-id')
     serializer = PublicStockCatalogProductSerializer(products, many=True)
-    return Response({'products': serializer.data})
+    return Response({'enabled': True, 'products': serializer.data})
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([AllowAny])
+def public_stock_catalog_status(request):
+    if request.method == 'GET':
+        return Response(get_public_stock_catalog_state())
+    if not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    raw_enabled = request.data.get('enabled')
+    if isinstance(raw_enabled, str):
+        enabled = raw_enabled.strip().lower() in {'1', 'true', 'yes', 'on'}
+    else:
+        enabled = bool(raw_enabled)
+    return Response(set_public_stock_catalog_state(enabled))
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def public_stock_catalog_order(request):
+    state = get_public_stock_catalog_state()
+    if not state['enabled']:
+        return Response({'error': state['message']}, status=status.HTTP_403_FORBIDDEN)
     product_id = request.data.get('product')
     customer_name = str(request.data.get('customer_name') or '').strip()
     customer_phone = normalize_digits(request.data.get('customer_phone'))
