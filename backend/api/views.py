@@ -2057,8 +2057,7 @@ def public_stock_catalog_order(request):
                 f'Cliente: {customer_name}\n'
                 f'Telefono: {customer_phone}\n'
                 f'Producto: {product.name}\n'
-                f'Cantidad: {quantity}\n\n'
-                'Gracias por tu compra. En breve algun miembro del equipo de Compratelo con Pao se contactara contigo.'
+                f'Cantidad: {quantity}'
             )
             _send_waha_text_with_profile(sender_profile, f'{chat_digits}{suffix}', message)
             product.sold_quantity = int(product.sold_quantity or 0) + quantity

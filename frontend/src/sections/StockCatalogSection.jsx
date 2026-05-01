@@ -143,7 +143,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       auto_calc: false,
       apply_discount: product.apply_discount !== false,
       discount_percentage: product.discount_percentage || "0",
-      discount_uses_global: false,
+      discount_uses_global: product.discount_uses_global !== false,
       payer: product.payer ? String(product.payer) : "",
       is_active: product.is_active !== false,
     });
@@ -181,7 +181,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       payload.append("charged_price", String(form.charged_price || "0"));
       payload.append("stock_quantity", String(parseInt(form.stock_quantity, 10) || 0));
       payload.append("apply_discount", form.apply_discount ? "true" : "false");
-      payload.append("discount_uses_global", "false");
+      payload.append("discount_uses_global", form.discount_uses_global ? "true" : "false");
       payload.append("discount_percentage", String(form.discount_percentage || "0"));
       payload.append("is_active", form.is_active ? "true" : "false");
       payload.append("payer", String(form.payer || ""));
@@ -384,6 +384,21 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     setSalesSeenMap((value) => ({ ...(value || {}), [String(product.id)]: latestOrder }));
   };
 
+  const toggleOffer = async (product) => {
+    const nextOffer = !(product.discount_uses_global !== false);
+    try {
+      const saved = await apiFetch(`/stock-products/${product.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ discount_uses_global: nextOffer }),
+      });
+      setProducts((values) => sortProductsAsc(values.map((item) => (Number(item.id) === Number(product.id) ? saved : item))));
+    } catch (error) {
+      console.error("Failed updating stock offer flag", error);
+      notifyErrorRef.current(getErrorMessage(error, "No se pudo actualizar la oferta."));
+      await loadProducts();
+    }
+  };
+
   const getSalesBadgeCount = (product) => {
     const orders = Array.isArray(product && product.orders) ? product.orders : [];
     if (!orders.length) return 0;
@@ -462,9 +477,10 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             {products.map((product) => {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
+              const isOffer = product.discount_uses_global !== false;
               const newSalesCount = getSalesBadgeCount(product);
               return (
-                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_245px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
+                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_285px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
                   <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
@@ -532,6 +548,10 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     </select>
                   </div>
                   <div className="flex items-center justify-end gap-2">
+                    <button type="button" onClick={() => toggleOffer(product)} role="switch" aria-checked={isOffer} className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition ${isOffer ? "border-rose-500 bg-rose-500 text-white" : "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"}`}>
+                      <span className={`block h-3.5 w-3.5 rounded-full bg-white transition ${isOffer ? "translate-x-0" : ""}`} />
+                      Oferta
+                    </button>
                     <span className={`rounded-full px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
                       Vendido {sold}
                     </span>

@@ -9,9 +9,9 @@ const emptyForm = {
   charged_price: "",
   stock_quantity: "1",
   auto_calc: true,
-  apply_discount: false,
-  discount_percentage: "0",
-  discount_uses_global: false,
+    apply_discount: false,
+    discount_percentage: "0",
+    discount_uses_global: false,
   payer: "",
   is_active: true,
 };
@@ -200,34 +200,34 @@ const StockProductModal = V.memo(function StockProductModal({
           className="w-full max-w-4xl rounded-t-3xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark sm:rounded-3xl"
           onClick={(event) => event.stopPropagation()}
         >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Catalogo de Stock</p>
-            <h3 className="text-xl font-black text-text-main dark:text-white">
-              {isEditing ? "Editar producto" : "Agregar producto"}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {imagePreviewUrl && (
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Catalogo de Stock</p>
+              <h3 className="text-xl font-black text-text-main dark:text-white">
+                {isEditing ? "Editar producto" : "Agregar producto"}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {imagePreviewUrl && (
+                <button
+                  type="button"
+                  onClick={() => setImagePreviewOpen(true)}
+                  title="Ver imagen"
+                  aria-label="Ver imagen del producto"
+                  className="h-10 w-10 overflow-hidden rounded-full border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
+                >
+                  <img src={imagePreviewUrl} className="h-full w-full object-cover" />
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setImagePreviewOpen(true)}
-                title="Ver imagen"
-                aria-label="Ver imagen del producto"
-                className="h-10 w-10 overflow-hidden rounded-full border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
+                onClick={onClose}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
               >
-                <img src={imagePreviewUrl} className="h-full w-full object-cover" />
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
+            </div>
           </div>
-        </div>
 
         <form onSubmit={onSubmit} className="grid max-h-[78vh] grid-cols-1 gap-4 overflow-y-auto pr-1 ios-scroll md:grid-cols-2">
           <div className="md:col-span-2">

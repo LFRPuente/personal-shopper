@@ -46,6 +46,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
   const [form, setForm] = V.useState({ customer_name: "", customer_phone: "", quantity: 1 });
   const [sending, setSending] = V.useState(false);
   const [sentMessage, setSentMessage] = V.useState("");
+  const [orderStage, setOrderStage] = V.useState("form");
 
   const loadCatalog = V.useCallback(async () => {
     setLoading(true);
@@ -69,12 +70,14 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setSelectedProduct(product);
     setForm({ customer_name: "", customer_phone: "", quantity: 1 });
     setSentMessage("");
+    setOrderStage("form");
   };
 
   const closeOrder = V.useCallback(() => {
     setSelectedProduct(null);
     setSending(false);
     setSentMessage("");
+    setOrderStage("form");
   }, []);
 
   V.useEffect(() => {
@@ -108,9 +111,9 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
           quantity: form.quantity,
         }),
       });
-      setSentMessage("Listo, tu solicitud fue enviada.");
+      setOrderStage("thanks");
+      setSentMessage("");
       await loadCatalog();
-      setTimeout(closeOrder, 1200);
     } catch (requestError) {
       console.error("Failed sending stock order", requestError);
       setSentMessage(getErrorMessage(requestError, "No se pudo enviar la solicitud."));
@@ -122,11 +125,11 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
   return (
     <div className="min-h-[100dvh] bg-[#f7f3ed] text-slate-950">
       <section className="relative overflow-hidden px-4 py-2 sm:px-7 lg:px-12">
-        <div className="absolute inset-x-0 top-0 h-[150px] bg-[radial-gradient(circle_at_22%_6%,rgba(168,85,247,0.20),transparent_30%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
+        <div className="absolute inset-x-0 top-0 h-[150px] bg-[radial-gradient(circle_at_22%_6%,rgba(255,255,255,0.08),transparent_30%),linear-gradient(135deg,#050505,#1f1f1f_52%,#525252)]" />
         <div className="relative mx-auto max-w-7xl">
           <div className="flex min-h-[92px] flex-col justify-start pt-0.5 pb-2 text-white">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/85">Compratelo con PAO</p>
-            <h1 className="mt-0.5 max-w-4xl text-3xl font-black leading-[0.95] tracking-normal sm:text-4xl lg:text-5xl">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/80">Compratelo con PAO</p>
+            <h1 className="mt-0.5 max-w-4xl text-3xl font-black leading-[0.94] tracking-normal sm:text-4xl lg:text-5xl">
               Catalogo de Stock
             </h1>
           </div>
@@ -148,12 +151,13 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
               {products.map((product) => {
                 const available = Number(product.available_quantity || 0);
+                const isOffer = product.discount_uses_global !== false;
                 return (
-                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-2xl bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
+                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-lg bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
                     <button
                       type="button"
                       onClick={() => product.image && setPreviewImage(resolveMediaUrl(product.image))}
-                      className="relative block aspect-square w-full overflow-hidden bg-slate-100 text-left"
+                      className="relative block aspect-square w-full overflow-hidden rounded-none bg-slate-100 text-left"
                       aria-label={`Ver imagen de ${product.name}`}
                     >
                       {product.image ? (
@@ -163,22 +167,26 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                           <span className="material-symbols-outlined text-5xl">image</span>
                         </div>
                       )}
-                      <div className="absolute right-2 top-1.5">
-                        <span
-                          className="text-2xl font-black text-white sm:text-3xl"
-                          style={{ WebkitTextStroke: "1.25px #0f172a", textShadow: "0 2px 6px rgba(15,23,42,0.55)" }}
-                        >
+                      <div className="absolute right-2 top-2 flex items-center gap-2">
+                        {isOffer && (
+                          <span className="rounded-full bg-rose-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow">
+                            OFERTA
+                          </span>
+                        )}
+                        <span className="rounded-md bg-black/55 px-3 py-1.5 text-xl font-black text-white backdrop-blur-md sm:text-2xl">
                           ${money(product.charged_price)}
                         </span>
                       </div>
                     </button>
                     <div className="px-3 pb-3 pt-2">
-                      <h2 className="line-clamp-2 min-h-[32px] text-[15px] font-black leading-[1.02] tracking-tight text-slate-950">{product.name}</h2>
+                      <h2 className="line-clamp-2 min-h-[32px] text-[15px] font-black leading-[1.02] tracking-tight text-slate-950">
+                        {String(product.name || "").toUpperCase()}
+                      </h2>
                       <button
                         type="button"
                         onClick={() => openOrder(product)}
                         disabled={available < 1}
-                        className="mt-0.5 w-full rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        className="mt-0.5 w-full rounded-xl bg-slate-600 px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-slate-600/24 transition hover:bg-black focus:bg-black disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                       >
                         YO
                       </button>
@@ -193,75 +201,95 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
 
       {selectedProduct && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:items-center">
-          <form onSubmit={submitOrder} className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">Apartar producto</p>
-                <h3 className="mt-1 text-xl font-black text-slate-950">{selectedProduct.name}</h3>
-              </div>
-              <button type="button" onClick={closeOrder} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                <span className="material-symbols-outlined text-[19px]">close</span>
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              <input
-                value={form.customer_name}
-                onChange={(event) => setForm((value) => ({ ...value, customer_name: event.target.value }))}
-                placeholder="Tu nombre"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold outline-none focus:ring-2 focus:ring-violet-500"
-                required
-              />
-              <input
-                value={form.customer_phone}
-                onChange={(event) => setForm((value) => ({ ...value, customer_phone: event.target.value }))}
-                placeholder="Telefono"
-                inputMode="tel"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold outline-none focus:ring-2 focus:ring-violet-500"
-                required
-              />
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Cantidad</label>
-                <div className="grid grid-cols-[48px_1fr_48px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(Number(form.quantity) - 1)}
-                    className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
-                    disabled={Number(form.quantity) <= 1}
-                    aria-label="Reducir cantidad"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">remove</span>
-                  </button>
-                  <div className="flex h-12 items-center justify-center border-x border-slate-200 text-lg font-black text-slate-950">
-                    {form.quantity}
+          <div className="relative w-full max-w-md min-h-[430px] overflow-hidden rounded-[28px] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 p-5 shadow-2xl">
+            <div className={`transition-all duration-500 ${orderStage === "form" ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none absolute inset-0 opacity-0 translate-y-2"}`}>
+              <form onSubmit={submitOrder} className="text-white">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Apartar producto</p>
+                    <h3 className="mt-1 truncate text-xl font-black uppercase tracking-tight text-white">{String(selectedProduct.name || "").toUpperCase()}</h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(Number(form.quantity) + 1)}
-                    className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
-                    disabled={Number(form.quantity) >= Number(selectedProduct.available_quantity || 1)}
-                    aria-label="Aumentar cantidad"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">add</span>
+                  <button type="button" onClick={closeOrder} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-white hover:bg-black">
+                    <span className="material-symbols-outlined text-[19px]">close</span>
                   </button>
                 </div>
-              </div>
+
+                <div className="mt-5 space-y-3">
+                  <input
+                    value={form.customer_name}
+                    onChange={(event) => setForm((value) => ({ ...value, customer_name: event.target.value }))}
+                    placeholder="Tu nombre"
+                    className="w-full rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-400"
+                    required
+                  />
+                  <input
+                    value={form.customer_phone}
+                    onChange={(event) => setForm((value) => ({ ...value, customer_phone: event.target.value }))}
+                    placeholder="Telefono"
+                    inputMode="tel"
+                    className="w-full rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-400"
+                    required
+                  />
+                  <div>
+                    <label className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-white/60">Cantidad</label>
+                    <div className="grid grid-cols-[48px_1fr_48px] overflow-hidden rounded-2xl border border-white/10 bg-white/95">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(Number(form.quantity) - 1)}
+                        className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
+                        disabled={Number(form.quantity) <= 1}
+                        aria-label="Reducir cantidad"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">remove</span>
+                      </button>
+                      <div className="flex h-12 items-center justify-center border-x border-slate-200 text-lg font-black text-slate-950">
+                        {form.quantity}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(Number(form.quantity) + 1)}
+                        className="flex h-12 items-center justify-center text-slate-700 disabled:text-slate-300"
+                        disabled={Number(form.quantity) >= Number(selectedProduct.available_quantity || 1)}
+                        aria-label="Aumentar cantidad"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">add</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {sentMessage && (
+                  <p className="mt-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-100">
+                    {sentMessage}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="mt-5 w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-slate-950/20 transition hover:bg-black disabled:cursor-wait disabled:bg-slate-500"
+                >
+                  {sending ? "Enviando..." : "Enviar"}
+                </button>
+              </form>
             </div>
 
-            {sentMessage && (
-              <p className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ${sentMessage.startsWith("Listo") ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                {sentMessage}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={sending}
-              className="mt-5 w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white disabled:cursor-wait disabled:bg-slate-400"
-            >
-              {sending ? "Enviando..." : "Enviar"}
-            </button>
-          </form>
+            <div className={`transition-all duration-500 ${orderStage === "thanks" ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none absolute inset-0 opacity-0 translate-y-2"}`}>
+              <div className="flex h-full min-h-[390px] flex-col items-center justify-center px-4 text-center text-white">
+                <p className="max-w-sm font-serif text-2xl leading-snug tracking-wide sm:text-3xl">
+                  Gracias por tu compra. En breve algun miembro del equipo de Compratelo con Pao se contactara contigo.
+                </p>
+                <button
+                  type="button"
+                  onClick={closeOrder}
+                  className="mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-slate-600 text-white shadow-lg shadow-slate-950/20 transition hover:bg-black"
+                  aria-label="Cerrar"
+                >
+                  <span className="material-symbols-outlined text-[22px]">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

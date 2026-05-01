@@ -313,6 +313,7 @@ class PublicStockCatalogProductSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     available_quantity = serializers.IntegerField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    discount_uses_global = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = StockCatalogProduct
@@ -325,6 +326,7 @@ class PublicStockCatalogProductSerializer(serializers.ModelSerializer):
             'charged_price',
             'available_quantity',
             'created_at',
+            'discount_uses_global',
         ]
 
 
