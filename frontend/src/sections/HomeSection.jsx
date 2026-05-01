@@ -312,7 +312,7 @@ const HomeSection = V.memo(function HomeSection() {
         }),
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
+          ? 'col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full max-h-[calc(100vh-7rem)] overflow-hidden flex flex-col'
           : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
         children: [
           c.jsxs('h3', {
@@ -320,7 +320,7 @@ const HomeSection = V.memo(function HomeSection() {
             children: ['Peticiones (', requests.length, ')'],
           }),
           c.jsx('div', {
-            className: isDesktopLayout ? 'space-y-2 pr-1 flex-1 min-h-0 overflow-y-auto ios-scroll' : 'space-y-2 pr-1 max-h-[200px] overflow-y-auto ios-scroll',
+            className: isDesktopLayout ? 'space-y-2 pr-1 flex-1 min-h-0 overflow-y-auto overscroll-contain ios-scroll' : 'space-y-2 pr-1 max-h-[200px] overflow-y-auto overscroll-contain ios-scroll',
             children: sortedRequests.length === 0
               ? c.jsx('p', { className: 'text-xs text-gray-400 py-3 text-center', children: 'Sin peticiones activas.' })
               : sortedRequests.map((request) =>
