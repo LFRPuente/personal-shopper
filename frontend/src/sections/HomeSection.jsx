@@ -287,9 +287,7 @@ const HomeSection = V.memo(function HomeSection() {
     children: [
       isDesktopLayout &&
         c.jsx('div', {
-          className: activeMission
-            ? 'col-start-1 col-span-3 row-start-2 flex items-center justify-center select-none'
-            : 'col-start-1 row-start-2 flex items-center justify-center select-none',
+          className: 'col-start-1 row-start-2 flex items-center justify-center select-none',
           children: c.jsx('button', {
             type: 'button',
             onMouseDown: startHomeDesktopResize('row'),
@@ -989,7 +987,7 @@ const HomeSection = V.memo(function HomeSection() {
       activeMission &&
         c.jsxs('div', {
           className: isDesktopLayout
-            ? 'col-start-3 row-start-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
+            ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
             : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
           children: [
             c.jsxs('div', {
