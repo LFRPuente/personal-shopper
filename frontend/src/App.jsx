@@ -29,6 +29,7 @@ const ImageSourceDialog = V.lazy(() => import('./components/ImageSourceDialog.js
 const InputDialog = V.lazy(() => import('./components/InputDialog.jsx'));
 const PaymentModal = V.lazy(() => import('./components/PaymentModal.jsx'));
 const ProductModal = V.lazy(() => import('./components/ProductModal.jsx'));
+const PublicStockCatalog = V.lazy(() => import('./components/PublicStockCatalog.jsx'));
 const MissionStartModal = V.lazy(() => import('./components/MissionStartModal.jsx'));
 const CreateClientModal = V.lazy(() => import('./components/CreateClientModal.jsx'));
 const EditClientModal = V.lazy(() => import('./components/EditClientModal.jsx'));
@@ -39,6 +40,7 @@ const MissionsSection = V.lazy(() => import('./sections/MissionsSection.jsx'));
 const ProfileSection = V.lazy(() => import('./sections/ProfileSection.jsx'));
 const ReviewConversationModal = V.lazy(() => import('./components/ReviewConversationModal.jsx'));
 const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'));
+const StockCatalogSection = V.lazy(() => import('./sections/StockCatalogSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
 
@@ -49,6 +51,7 @@ const APP_SECTION_PATHS = {
   SHIPMENTS: "/shipments",
   EXPENSES: "/expenses",
   REPORTS: "/reports",
+  STOCK_CATALOG: "/stock",
   CALCULATOR: "/calculator",
   PROFILE: "/profile",
 };
@@ -163,6 +166,9 @@ function getAppRouteFromPath(pathname) {
   if (parts[0] === "share") {
     return { section: "HOME", homeClientSlug: null, isPublicShare: !0 };
   }
+  if (parts[0] === "catalogo-stock" || parts[0] === "stock-catalog") {
+    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1, isPublicStockCatalog: !0 };
+  }
   if (!parts.length) {
     return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
   }
@@ -188,6 +194,9 @@ function getAppRouteFromPath(pathname) {
   }
   if (parts[0] === "reports") {
     return { section: "REPORTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "stock") {
+    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1 };
   }
   if (parts[0] === "calculator") {
     return { section: "CALCULATOR", homeClientSlug: null, isPublicShare: !1 };
@@ -315,6 +324,7 @@ function nh() {
     publicShareInfo = V.useMemo(() => getPublicShareInfoFromPath(), []),
     publicClientShareToken = publicShareInfo.token,
     publicShareType = publicShareInfo.type,
+    isPublicStockCatalog = !!initialAppRoute.isPublicStockCatalog,
     publicFocusShipmentIdFromSearch = V.useMemo(
       () => getPublicShareFocusShipmentIdFromSearch(),
       [],
@@ -8449,6 +8459,14 @@ function nh() {
           ],
         }),
       });
+  if (isPublicStockCatalog)
+    return c.jsx(V.Suspense, {
+      fallback: c.jsx("div", {
+        className: "min-h-[100dvh] bg-[#f7f3ed] px-6 py-12 text-center text-sm font-bold text-slate-500",
+        children: "Cargando catalogo...",
+      }),
+      children: c.jsx(PublicStockCatalog, {}),
+    });
   if (publicClientShareToken)
     return c.jsxs("div", {
       className:
@@ -9676,11 +9694,13 @@ function nh() {
                           ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ExpensesSection, {}) })
                           : nl === "REPORTS" && canUseWebBothSections
                             ? c.jsx(ReportsSection, {})
-                            : nl === "CALCULATOR"
-                              ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
-                              : nl === "PROFILE"
-                                ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
-                                : null,
+                            : nl === "STOCK_CATALOG" && isDesktopLayout
+                              ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(StockCatalogSection, {}) })
+                              : nl === "CALCULATOR"
+                                ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(CalculatorSection, {}) })
+                                : nl === "PROFILE"
+                                  ? c.jsx(V.Suspense, { fallback: lazySectionFallback, children: c.jsx(ProfileSection, {}) })
+                                  : null,
             }, nl),
           }),
           c.jsx("div", {
@@ -10407,6 +10427,16 @@ function nh() {
               children: c.jsx("span", {
                 className: "material-symbols-outlined text-[22px]",
                 children: "analytics",
+              }),
+            }),
+            isDesktopLayout &&
+            c.jsx("button", {
+              onClick: () => navigateSection("STOCK_CATALOG"),
+              title: "Catalogo de Stock",
+              className: `ui-nav-item mx-auto w-12 h-12 rounded-2xl transition-colors flex items-center justify-center ${nl === "STOCK_CATALOG" ? "ui-nav-item-active bg-primary/10 text-primary" : "text-text-sub dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"}`,
+              children: c.jsx("span", {
+                className: "material-symbols-outlined text-[22px]",
+                children: "inventory_2",
               }),
             }),
             c.jsx("button", {

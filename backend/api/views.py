@@ -44,6 +44,8 @@ from .models import (
     ShipmentEvidence,
     ShipmentShareLink,
     Expense,
+    StockCatalogProduct,
+    StockCatalogOrder,
 )
 from .serializers import (
     ClientSerializer,
@@ -67,6 +69,8 @@ from .serializers import (
     ShipmentShareLinkSerializer,
     PublicClientReceiptSerializer,
     ExpenseSerializer,
+    StockCatalogProductSerializer,
+    PublicStockCatalogProductSerializer,
 )
 import random
 from datetime import date, timedelta
@@ -596,6 +600,48 @@ def _format_waha_error_body(response_text, status_code=None):
     if len(text) > 500:
         return f'{text[:500].strip()}...'
     return text
+
+
+def _send_waha_text_with_profile(profile, chat_id, text):
+    api_url = str(profile.waha_api_url or '').strip()
+    api_key = str(profile.waha_api_key or '').strip()
+    session = str(profile.waha_session or '').strip()
+    if not api_url or not session:
+        raise ValueError('Configura WAHA API URL y session antes de enviar.')
+    if not api_url.lower().startswith(('http://', 'https://')):
+        raise ValueError('La URL de WAHA no es valida.')
+    payload = {
+        'session': session,
+        'chatId': chat_id,
+        'text': text,
+    }
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'personal-shopper/1.0 (+https://ps.servidorfs.com)',
+    }
+    if api_key:
+        headers['X-Api-Key'] = api_key
+    outbound_request = urllib_request.Request(
+        api_url,
+        data=json.dumps(payload).encode('utf-8'),
+        headers=headers,
+        method='POST',
+    )
+    with urllib_request.urlopen(outbound_request, timeout=20) as response:
+        response_text = response.read().decode('utf-8', errors='replace')
+        response_payload = None
+        if response_text:
+            try:
+                response_payload = json.loads(response_text)
+            except json.JSONDecodeError:
+                response_payload = response_text
+        return {
+            'ok': True,
+            'chat_id': chat_id,
+            'status_code': response.status,
+            'response': response_payload,
+        }
 
 
 @api_view(['POST'])
@@ -1898,6 +1944,154 @@ class ProductItemViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
         deactivate_empty_client_share_links(client_id, mission_id)
         broadcast_update('products', action='deleted', object_id=product_id)
+
+
+class StockCatalogProductViewSet(viewsets.ModelViewSet):
+    queryset = StockCatalogProduct.objects.prefetch_related('orders').select_related('store', 'payer')
+    serializer_class = StockCatalogProductSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['is_active']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        show_inactive = str(self.request.query_params.get('include_inactive') or '').lower() in {'1', 'true', 'yes'}
+        if not show_inactive:
+            queryset = queryset.filter(is_active=True)
+        return queryset
+
+    def perform_create(self, serializer):
+        product = serializer.save(created_by=self.request.user)
+        broadcast_update('stock_catalog', action='created', object_id=product.id)
+
+    def perform_update(self, serializer):
+        product = serializer.save()
+        broadcast_update('stock_catalog', action='updated', object_id=product.id)
+
+    def perform_destroy(self, instance):
+        product_id = instance.id
+        super().perform_destroy(instance)
+        broadcast_update('stock_catalog', action='deleted', object_id=product_id)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_stock_catalog_view(request):
+    products = StockCatalogProduct.objects.filter(
+        is_active=True,
+        stock_quantity__gt=F('sold_quantity'),
+    ).order_by('-updated_at', '-id')
+    serializer = PublicStockCatalogProductSerializer(products, many=True)
+    return Response({'products': serializer.data})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def public_stock_catalog_order(request):
+    product_id = request.data.get('product')
+    customer_name = str(request.data.get('customer_name') or '').strip()
+    customer_phone = normalize_digits(request.data.get('customer_phone'))
+    try:
+        quantity = int(request.data.get('quantity') or 1)
+    except (TypeError, ValueError):
+        quantity = 1
+    if not customer_name:
+        return Response({'error': 'Captura tu nombre.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(customer_phone) < 10:
+        return Response({'error': 'Captura un telefono valido.'}, status=status.HTTP_400_BAD_REQUEST)
+    if quantity < 1:
+        return Response({'error': 'Selecciona una cantidad valida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    recipient = (
+        User.objects.filter(username__iexact='clau').select_related('userprofile').first()
+        or User.objects.filter(userprofile__display_name__iexact='clau').select_related('userprofile').first()
+        or User.objects.filter(username__icontains='clau').select_related('userprofile').first()
+        or User.objects.filter(userprofile__display_name__icontains='clau').select_related('userprofile').first()
+    )
+    sender_profile = None
+    if recipient:
+        try:
+            candidate_profile = recipient.userprofile
+        except Exception:
+            candidate_profile = None
+        if candidate_profile and candidate_profile.waha_api_url and candidate_profile.waha_session:
+            sender_profile = candidate_profile
+    if sender_profile is None:
+        sender_profile = UserProfile.objects.filter(
+            waha_api_url__gt='',
+            waha_session__gt='',
+        ).select_related('user').first()
+
+    if not recipient or not sender_profile:
+        return Response(
+            {'error': 'No se encontro usuario Clau o configuracion WAHA.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    try:
+        recipient_profile = recipient.userprofile
+        phone = normalize_digits(recipient_profile.phone)
+        country_code = normalize_digits(recipient_profile.phone_country_code or '52') or '52'
+        suffix = str(sender_profile.waha_chat_id_suffix or '@c.us').strip() or '@c.us'
+        chat_digits = phone if country_code and phone.startswith(country_code) else f'{country_code}{phone}'
+        if not phone:
+            raise ValueError('Clau no tiene telefono configurado.')
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    try:
+        with transaction.atomic():
+            product = get_object_or_404(
+                StockCatalogProduct.objects.select_for_update(),
+                id=product_id,
+                is_active=True,
+            )
+            if product.available_quantity < quantity:
+                return Response(
+                    {'error': 'Ya no hay suficiente stock disponible para esa cantidad.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            message = (
+                'Nueva solicitud del Catalogo de Stock\n\n'
+                f'Cliente: {customer_name}\n'
+                f'Telefono: {customer_phone}\n'
+                f'Producto: {product.name}\n'
+                f'Cantidad: {quantity}'
+            )
+            _send_waha_text_with_profile(sender_profile, f'{chat_digits}{suffix}', message)
+            product.sold_quantity = int(product.sold_quantity or 0) + quantity
+            product.save(update_fields=['sold_quantity', 'updated_at'])
+            order = StockCatalogOrder.objects.create(
+                product=product,
+                customer_name=customer_name,
+                customer_phone=customer_phone,
+                quantity=quantity,
+                status='WAHA_SENT',
+                waha_detail='Mensaje enviado a Clau.',
+            )
+    except urllib_error.HTTPError as exc:
+        response_text = exc.read().decode('utf-8', errors='replace')
+        return Response(
+            {'error': _format_waha_error_body(response_text, exc.code)},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except urllib_error.URLError as exc:
+        return Response(
+            {'error': f'No se pudo conectar con WAHA: {exc.reason}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except Exception as exc:
+        return Response(
+            {'error': f'No se pudo enviar el mensaje: {exc}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    broadcast_update('stock_catalog', action='ordered', object_id=product.id)
+    return Response({
+        'ok': True,
+        'order_id': order.id,
+        'waha_sent': True,
+        'message': 'Solicitud enviada.',
+    })
 
 class ReceiptViewSet(viewsets.ModelViewSet):
     """

@@ -10,6 +10,7 @@ from .views import (
     ShipmentViewSet,
     ShoppingPaymentViewSet,
     ExpenseViewSet,
+    StockCatalogProductViewSet,
     ProductReviewViewSet,
     ReviewAlternativeViewSet,
     scan_receipt,
@@ -27,6 +28,8 @@ from .views import (
     public_client_build_shipment_view,
     create_shipment_share_link,
     public_shipment_share_view,
+    public_stock_catalog_view,
+    public_stock_catalog_order,
 )
 
 router = DefaultRouter()
@@ -40,6 +43,7 @@ router.register(r'requests', RequestViewSet, basename='request')
 router.register(r'payments', ShoppingPaymentViewSet, basename='payment')
 router.register(r'shipments', ShipmentViewSet, basename='shipment')
 router.register(r'expenses', ExpenseViewSet, basename='expense')
+router.register(r'stock-products', StockCatalogProductViewSet, basename='stock-product')
 # <-------- seccion 7: rutas de revisiones AV <-> PS
 router.register(r'reviews', ProductReviewViewSet, basename='review')
 router.register(r'review-alternatives', ReviewAlternativeViewSet, basename='review-alternative')
@@ -66,6 +70,8 @@ urlpatterns = [
     path('public/client-share/<str:token>/build-shipment/', public_client_build_shipment_view, name='public-client-build-shipment'),
     path('shipment-share-links/', create_shipment_share_link, name='create-shipment-share-link'),
     path('public/shipment-share/<str:token>/', public_shipment_share_view, name='public-shipment-share-view'),
+    path('public/stock-catalog/', public_stock_catalog_view, name='public-stock-catalog'),
+    path('public/stock-catalog/order/', public_stock_catalog_order, name='public-stock-catalog-order'),
     path('', include(router.urls)),
     path('scan-receipt/', scan_receipt, name='scan-receipt'),
 ]

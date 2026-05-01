@@ -22,6 +22,8 @@ from .models import (
     ShipmentEvidence,
     ShipmentShareLink,
     Expense,
+    StockCatalogProduct,
+    StockCatalogOrder,
 )
 
 class RelativeImageField(serializers.ImageField):
@@ -279,6 +281,49 @@ class ProductItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductItem
         fields = '__all__'
+
+
+class StockCatalogOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StockCatalogOrder
+        fields = [
+            'id',
+            'customer_name',
+            'customer_phone',
+            'quantity',
+            'status',
+            'waha_detail',
+            'created_at',
+        ]
+
+
+class StockCatalogProductSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+    available_quantity = serializers.IntegerField(read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True, default=None)
+    payer_username = serializers.CharField(source='payer.username', read_only=True, default=None)
+    orders = StockCatalogOrderSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StockCatalogProduct
+        fields = '__all__'
+
+
+class PublicStockCatalogProductSerializer(serializers.ModelSerializer):
+    image = RelativeImageField(required=False, allow_null=True)
+    available_quantity = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = StockCatalogProduct
+        fields = [
+            'id',
+            'name',
+            'description',
+            'tags',
+            'image',
+            'charged_price',
+            'available_quantity',
+        ]
 
 
 class ShipmentProductSummarySerializer(serializers.ModelSerializer):

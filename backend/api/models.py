@@ -184,6 +184,66 @@ class ProductItem(models.Model):
     def __str__(self):
         return f"{self.name} - {self.client.name}"
 
+
+class StockCatalogProduct(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default='')
+    tags = models.TextField(blank=True, default='')
+    image = models.ImageField(upload_to='stock_catalog/', null=True, blank=True)
+    real_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    charged_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    apply_discount = models.BooleanField(default=True)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    discount_uses_global = models.BooleanField(default=True)
+    stock_quantity = models.PositiveIntegerField(default=0)
+    sold_quantity = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='stock_catalog_products')
+    payer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_catalog_payments_assigned',
+    )
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='stock_catalog_products_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', '-id']
+
+    @property
+    def available_quantity(self):
+        return max(0, int(self.stock_quantity or 0) - int(self.sold_quantity or 0))
+
+    def __str__(self):
+        return self.name
+
+
+class StockCatalogOrder(models.Model):
+    product = models.ForeignKey(StockCatalogProduct, on_delete=models.CASCADE, related_name='orders')
+    customer_name = models.CharField(max_length=255)
+    customer_phone = models.CharField(max_length=30)
+    quantity = models.PositiveIntegerField(default=1)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('REQUESTED', 'Solicitado'),
+            ('WAHA_SENT', 'WAHA enviado'),
+            ('WAHA_FAILED', 'WAHA fallido'),
+        ],
+        default='REQUESTED',
+    )
+    waha_detail = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f"{self.customer_name} - {self.product.name} x{self.quantity}"
+
 class Mission(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     shopper = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='missions')
