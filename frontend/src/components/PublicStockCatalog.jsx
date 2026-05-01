@@ -47,6 +47,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
   const [sending, setSending] = V.useState(false);
   const [sentMessage, setSentMessage] = V.useState("");
   const [orderStage, setOrderStage] = V.useState("form");
+  const [validationTouched, setValidationTouched] = V.useState(false);
 
   const loadCatalog = V.useCallback(async () => {
     setLoading(true);
@@ -71,6 +72,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setForm({ customer_name: "", customer_phone: "", quantity: 1 });
     setSentMessage("");
     setOrderStage("form");
+    setValidationTouched(false);
   };
 
   const closeOrder = V.useCallback(() => {
@@ -78,6 +80,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setSending(false);
     setSentMessage("");
     setOrderStage("form");
+    setValidationTouched(false);
   }, []);
 
   V.useEffect(() => {
@@ -96,9 +99,22 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setForm((value) => ({ ...value, quantity }));
   };
 
+  const phoneDigits = String(form.customer_phone || "").replace(/\D/g, "");
+  const hasValidName = String(form.customer_name || "").trim().length > 0;
+  const hasValidPhone = phoneDigits.length === 10 && phoneDigits === String(form.customer_phone || "");
+  const canSubmitOrder = Boolean(selectedProduct) && hasValidName && hasValidPhone && !sending;
+  const phoneError = validationTouched && String(form.customer_phone || "").trim().length > 0 && !hasValidPhone
+    ? "El telefono debe tener 10 digitos juntos, sin espacios."
+    : "";
+
   const submitOrder = async (event) => {
     event.preventDefault();
     if (!selectedProduct) return;
+    setValidationTouched(true);
+    if (!hasValidName || !hasValidPhone) {
+      setSentMessage("El telefono debe tener 10 digitos juntos, sin espacios.");
+      return;
+    }
     setSending(true);
     setSentMessage("");
     try {
@@ -219,7 +235,11 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                     <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">NOMBRE</label>
                     <input
                       value={form.customer_name}
-                      onChange={(event) => setForm((value) => ({ ...value, customer_name: event.target.value }))}
+                      onChange={(event) => {
+                        setValidationTouched(true);
+                        setSentMessage("");
+                        setForm((value) => ({ ...value, customer_name: event.target.value }));
+                      }}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-300"
                       autoComplete="name"
                       required
@@ -229,12 +249,20 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                     <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">TELEFONO</label>
                     <input
                       value={form.customer_phone}
-                      onChange={(event) => setForm((value) => ({ ...value, customer_phone: event.target.value }))}
+                      onChange={(event) => {
+                        setValidationTouched(true);
+                        setSentMessage("");
+                        setForm((value) => ({ ...value, customer_phone: event.target.value }));
+                      }}
                       inputMode="tel"
+                      maxLength={10}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-300"
                       autoComplete="tel"
                       required
                     />
+                    {phoneError && (
+                      <p className="mt-1 text-xs font-semibold text-rose-600">{phoneError}</p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Cantidad</label>
@@ -272,7 +300,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
 
                 <button
                   type="submit"
-                  disabled={sending}
+                  disabled={!canSubmitOrder}
                   className="mt-4 w-full rounded-xl bg-slate-600 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-slate-950/20 transition hover:bg-black disabled:cursor-wait disabled:bg-slate-500"
                 >
                   {sending ? "Enviando..." : "Enviar"}
