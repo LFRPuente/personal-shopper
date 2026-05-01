@@ -197,7 +197,7 @@ const StockProductModal = V.memo(function StockProductModal({
         onClick={onClose}
       >
         <div
-          className="w-full max-w-4xl rounded-t-3xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark sm:rounded-3xl"
+          className="w-full max-w-4xl rounded-2xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -214,7 +214,7 @@ const StockProductModal = V.memo(function StockProductModal({
                   onClick={() => setImagePreviewOpen(true)}
                   title="Ver imagen"
                   aria-label="Ver imagen del producto"
-                  className="h-10 w-10 overflow-hidden rounded-full border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
+                  className="h-10 w-10 overflow-hidden rounded-lg border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
                 >
                   <img src={imagePreviewUrl} className="h-full w-full object-cover" />
                 </button>
@@ -222,7 +222,7 @@ const StockProductModal = V.memo(function StockProductModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -314,7 +314,7 @@ const StockProductModal = V.memo(function StockProductModal({
             </button>
           </div>
 
-          <div className="rounded-2xl border border-border-light p-3 dark:border-border-dark">
+          <div className="rounded-xl border border-border-light p-3 dark:border-border-dark">
             <label className="mb-2 block text-sm font-bold text-text-main dark:text-white">Modo de calculo</label>
             <div className="grid grid-cols-2 rounded-xl border border-border-light bg-slate-50 p-1 dark:border-border-dark dark:bg-slate-900">
               <button type="button" onClick={() => applyCalcModeChange("FACTOR")} className={`rounded-lg py-2 text-xs font-black ${calcMode === "FACTOR" ? "bg-primary text-white" : "text-text-sub"}`}>Factor</button>
@@ -322,7 +322,7 @@ const StockProductModal = V.memo(function StockProductModal({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border-light p-3 dark:border-border-dark">
+          <div className="rounded-xl border border-border-light p-3 dark:border-border-dark">
             {calcMode === "FACTOR" ? (
               <>
                 <label className="mb-2 block text-sm font-bold text-text-main dark:text-white">Factor</label>
@@ -337,7 +337,7 @@ const StockProductModal = V.memo(function StockProductModal({
             )}
           </div>
 
-          <div className="md:col-span-2 grid gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-800 dark:bg-amber-950/20 md:grid-cols-[1fr_150px]">
+          <div className="md:col-span-2 grid gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-800 dark:bg-amber-950/20 md:grid-cols-[1fr_150px]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-amber-900 dark:text-amber-100">Aplicar descuento</p>
@@ -368,8 +368,8 @@ const StockProductModal = V.memo(function StockProductModal({
           </div>
 
           <div className="md:col-span-2 flex justify-end gap-2 border-t border-border-light pt-4 dark:border-border-dark">
-            <button type="button" onClick={onClose} className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100">Cancelar</button>
-            <button type="submit" disabled={saving} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-white hover:bg-primary-dark disabled:cursor-wait disabled:opacity-70">
+            <button type="button" onClick={onClose} className="rounded-lg bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100">Cancelar</button>
+            <button type="submit" disabled={saving} className="rounded-lg bg-primary px-5 py-2.5 text-sm font-black text-white hover:bg-primary-dark disabled:cursor-wait disabled:opacity-70">
               {saving ? "Guardando..." : "Guardar"}
             </button>
           </div>
@@ -390,7 +390,7 @@ const StockProductModal = V.memo(function StockProductModal({
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
-            <img src={imagePreviewUrl} className="max-h-[92vh] max-w-[95vw] rounded-2xl bg-black object-contain shadow-2xl" />
+            <img src={imagePreviewUrl} className="max-h-[92vh] max-w-[95vw] rounded-xl bg-black object-contain shadow-2xl" />
           </div>
         </div>
       )}

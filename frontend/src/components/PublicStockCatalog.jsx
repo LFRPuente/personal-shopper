@@ -153,7 +153,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                 const available = Number(product.available_quantity || 0);
                 const isOffer = product.discount_uses_global !== false;
                 return (
-                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-lg bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
+                  <article key={`public-stock-${product.id}`} className="group overflow-hidden rounded-md bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
                     <button
                       type="button"
                       onClick={() => product.image && setPreviewImage(resolveMediaUrl(product.image))}
@@ -173,7 +173,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                             OFERTA
                           </span>
                         )}
-                        <span className="rounded-md bg-black/55 px-3 py-1.5 text-xl font-black text-white backdrop-blur-md sm:text-2xl">
+                        <span className="rounded-sm bg-black/55 px-3 py-1.5 text-xl font-black text-white backdrop-blur-md sm:text-2xl">
                           ${money(product.charged_price)}
                         </span>
                       </div>
@@ -201,38 +201,44 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
 
       {selectedProduct && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:items-center">
-          <div className="relative w-full max-w-md min-h-[430px] overflow-hidden rounded-[28px] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 p-5 shadow-2xl">
+          <div className="relative w-full max-w-md min-h-[340px] overflow-hidden rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-black/5">
             <div className={`transition-all duration-500 ${orderStage === "form" ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none absolute inset-0 opacity-0 translate-y-2"}`}>
-              <form onSubmit={submitOrder} className="text-white">
+              <form onSubmit={submitOrder} className="text-slate-950">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Apartar producto</p>
-                    <h3 className="mt-1 truncate text-xl font-black uppercase tracking-tight text-white">{String(selectedProduct.name || "").toUpperCase()}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Apartar producto</p>
+                    <h3 className="mt-1 truncate text-xl font-black uppercase tracking-tight text-slate-950">{String(selectedProduct.name || "").toUpperCase()}</h3>
                   </div>
-                  <button type="button" onClick={closeOrder} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-white hover:bg-black">
+                  <button type="button" onClick={closeOrder} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-900 hover:bg-slate-200">
                     <span className="material-symbols-outlined text-[19px]">close</span>
                   </button>
                 </div>
 
-                <div className="mt-5 space-y-3">
-                  <input
-                    value={form.customer_name}
-                    onChange={(event) => setForm((value) => ({ ...value, customer_name: event.target.value }))}
-                    placeholder="Tu nombre"
-                    className="w-full rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-400"
-                    required
-                  />
-                  <input
-                    value={form.customer_phone}
-                    onChange={(event) => setForm((value) => ({ ...value, customer_phone: event.target.value }))}
-                    placeholder="Telefono"
-                    inputMode="tel"
-                    className="w-full rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-400"
-                    required
-                  />
+                <div className="mt-4 space-y-3">
                   <div>
-                    <label className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-white/60">Cantidad</label>
-                    <div className="grid grid-cols-[48px_1fr_48px] overflow-hidden rounded-2xl border border-white/10 bg-white/95">
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">NOMBRE</label>
+                    <input
+                      value={form.customer_name}
+                      onChange={(event) => setForm((value) => ({ ...value, customer_name: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-300"
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">TELEFONO</label>
+                    <input
+                      value={form.customer_phone}
+                      onChange={(event) => setForm((value) => ({ ...value, customer_phone: event.target.value }))}
+                      inputMode="tel"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-slate-300"
+                      autoComplete="tel"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Cantidad</label>
+                    <div className="grid grid-cols-[48px_1fr_48px] overflow-hidden rounded-xl border border-slate-200 bg-white">
                       <button
                         type="button"
                         onClick={() => updateQuantity(Number(form.quantity) - 1)}
@@ -259,7 +265,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                 </div>
 
                 {sentMessage && (
-                  <p className="mt-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-100">
+                  <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                     {sentMessage}
                   </p>
                 )}
@@ -267,7 +273,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                 <button
                   type="submit"
                   disabled={sending}
-                  className="mt-5 w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-slate-950/20 transition hover:bg-black disabled:cursor-wait disabled:bg-slate-500"
+                  className="mt-4 w-full rounded-xl bg-slate-600 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-slate-950/20 transition hover:bg-black disabled:cursor-wait disabled:bg-slate-500"
                 >
                   {sending ? "Enviando..." : "Enviar"}
                 </button>
@@ -275,14 +281,14 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
             </div>
 
             <div className={`transition-all duration-500 ${orderStage === "thanks" ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none absolute inset-0 opacity-0 translate-y-2"}`}>
-              <div className="flex h-full min-h-[390px] flex-col items-center justify-center px-4 text-center text-white">
+              <div className="flex h-full min-h-[300px] flex-col items-center justify-center px-4 text-center text-slate-950">
                 <p className="max-w-sm font-serif text-2xl leading-snug tracking-wide sm:text-3xl">
                   Gracias por tu compra. En breve algun miembro del equipo de Compratelo con Pao se contactara contigo.
                 </p>
                 <button
                   type="button"
                   onClick={closeOrder}
-                  className="mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-slate-600 text-white shadow-lg shadow-slate-950/20 transition hover:bg-black"
+                  className="mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-600 text-white shadow-lg shadow-slate-950/20 transition hover:bg-black"
                   aria-label="Cerrar"
                 >
                   <span className="material-symbols-outlined text-[22px]">close</span>
@@ -304,7 +310,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
-            <img src={previewImage} className="max-h-[92vh] max-w-[95vw] rounded-2xl bg-black object-contain shadow-2xl" />
+            <img src={previewImage} className="max-h-[92vh] max-w-[95vw] rounded-xl bg-black object-contain shadow-2xl" />
           </div>
         </div>
       )}

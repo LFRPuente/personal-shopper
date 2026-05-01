@@ -447,7 +447,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border-light bg-surface-light p-4 shadow-card dark:border-border-dark dark:bg-surface-dark">
+      <div className="rounded-2xl border border-border-light bg-surface-light p-4 shadow-card dark:border-border-dark dark:bg-surface-dark">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-text-main dark:text-white">Productos cargados</h2>
@@ -473,7 +473,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             <p className="mt-2 text-sm font-bold">Aun no hay productos en stock.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-border-light dark:border-border-dark">
+          <div className="overflow-hidden rounded-xl border border-border-light dark:border-border-dark">
             {products.map((product) => {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
@@ -481,7 +481,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               const newSalesCount = getSalesBadgeCount(product);
               return (
                 <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_285px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
-                  <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                  <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
                     ) : (
@@ -504,7 +504,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       onChange={(event) => updateProductLocalStock(product, event.target.value)}
                       onBlur={(event) => saveProductLocalStock(product, event.target.value)}
                       onKeyDown={handleInlineNumberKeyDown}
-                      className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-sm font-black outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
+                      className="mt-1 w-full rounded-md border border-border-light bg-white px-2 py-1 text-sm font-black outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
                     />
                     <p className="mt-1 text-[10px] font-bold text-text-sub">Disp. {available}</p>
                   </div>
@@ -517,7 +517,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       onChange={(event) => updateProductLocalValue(product.id, { real_price: event.target.value })}
                       onBlur={(event) => patchProduct(product, { real_price: event.target.value || "0" })}
                       onKeyDown={handleInlineNumberKeyDown}
-                      className="mt-1 w-full rounded-lg border border-sky-200 bg-sky-50/80 px-2 py-1 text-sm font-black text-sky-900 outline-none focus:ring-2 focus:ring-sky-300 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100"
+                      className="mt-1 w-full rounded-md border border-sky-200 bg-sky-50/80 px-2 py-1 text-sm font-black text-sky-900 outline-none focus:ring-2 focus:ring-sky-300 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100"
                     />
                   </div>
                   <div>
@@ -529,7 +529,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       onChange={(event) => updateProductLocalValue(product.id, { charged_price: event.target.value })}
                       onBlur={(event) => patchProduct(product, { charged_price: event.target.value || "0" })}
                       onKeyDown={handleInlineNumberKeyDown}
-                      className="mt-1 w-full rounded-lg border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-sm font-black text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-100"
+                      className="mt-1 w-full rounded-md border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-sm font-black text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-100"
                     />
                   </div>
                   <div>
@@ -537,7 +537,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     <select
                       value={product.payer ? String(product.payer) : ""}
                       onChange={(event) => updateProductLocalPayer(product, event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
+                      className="mt-1 w-full rounded-md border border-border-light bg-white px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
                     >
                       <option value="">Sin asignar</option>
                       {(users || []).map((user) => (
@@ -548,30 +548,30 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     </select>
                   </div>
                   <div className="flex items-center justify-end gap-2">
-                    <button type="button" onClick={() => toggleOffer(product)} role="switch" aria-checked={isOffer} className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition ${isOffer ? "border-rose-500 bg-rose-500 text-white" : "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"}`}>
+                    <button type="button" onClick={() => toggleOffer(product)} role="switch" aria-checked={isOffer} className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition ${isOffer ? "border-rose-500 bg-rose-500 text-white" : "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"}`}>
                       <span className={`block h-3.5 w-3.5 rounded-full bg-white transition ${isOffer ? "translate-x-0" : ""}`} />
                       Oferta
                     </button>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`rounded-md px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
                       Vendido {sold}
                     </span>
                     {sold > 0 && (
                       <button type="button" onClick={() => openSalesModal(product)} title="Ver compradores" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
                         <span className="material-symbols-outlined text-[18px]">group</span>
                         {newSalesCount > 0 && (
-                          <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg ring-2 ring-white dark:bg-white dark:text-slate-950 dark:ring-slate-900">
+                        <span className="absolute -right-2 -top-2 min-w-5 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg ring-2 ring-white dark:bg-white dark:text-slate-950 dark:ring-slate-900">
                             {newSalesCount}
                           </span>
                         )}
                       </button>
                     )}
-                    <button type="button" onClick={() => openEditModal(product)} title="Editar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50">
+                    <button type="button" onClick={() => openEditModal(product)} title="Editar producto" className="flex h-9 w-9 items-center justify-center rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
-                    <button type="button" onClick={() => togglePublicVisibility(product)} title={product.is_active === false ? "Mostrar en pagina web" : "Ocultar de pagina web"} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <button type="button" onClick={() => togglePublicVisibility(product)} title={product.is_active === false ? "Mostrar en pagina web" : "Ocultar de pagina web"} className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                       <span className="material-symbols-outlined text-[18px]">{product.is_active === false ? "visibility" : "visibility_off"}</span>
                     </button>
-                    <button type="button" onClick={() => deleteProduct(product)} title="Eliminar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">
+                    <button type="button" onClick={() => deleteProduct(product)} title="Eliminar producto" className="flex h-9 w-9 items-center justify-center rounded-md border border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
