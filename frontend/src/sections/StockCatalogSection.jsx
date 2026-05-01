@@ -113,7 +113,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       real_price: product.real_price || "",
       charged_price: product.charged_price || "",
       stock_quantity: String(product.stock_quantity ?? 0),
-      auto_calc: true,
+      auto_calc: false,
       apply_discount: product.apply_discount !== false,
       discount_percentage: product.discount_percentage || "0",
       discount_uses_global: false,
@@ -265,6 +265,30 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     );
   };
 
+  const updateProductLocalStock = (product, value) => {
+    const stockQuantity = parseInt(value, 10);
+    const nextStockQuantity = Number.isFinite(stockQuantity) ? stockQuantity : 0;
+    updateProductLocalValue(product.id, {
+      stock_quantity: value,
+      available_quantity: Math.max(0, nextStockQuantity - Number(product.sold_quantity || 0)),
+    });
+  };
+
+  const saveProductLocalStock = (product, value) => {
+    const stockQuantity = parseInt(value, 10);
+    const nextStockQuantity = Math.max(0, Number.isFinite(stockQuantity) ? stockQuantity : 0);
+    updateProductLocalValue(product.id, {
+      stock_quantity: nextStockQuantity,
+      available_quantity: Math.max(0, nextStockQuantity - Number(product.sold_quantity || 0)),
+    });
+    patchProduct(product, { stock_quantity: nextStockQuantity });
+  };
+
+  const updateProductLocalPayer = (product, value) => {
+    updateProductLocalValue(product.id, { payer: value || null });
+    patchProduct(product, { payer: value || null });
+  };
+
   const handleInlineNumberKeyDown = (event) => {
     if (event.key === "Enter") event.currentTarget.blur();
   };
@@ -411,8 +435,8 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       min={sold}
                       step="1"
                       value={product.stock_quantity ?? 0}
-                      onChange={(event) => updateProductLocalValue(product.id, { stock_quantity: event.target.value })}
-                      onBlur={(event) => patchProduct(product, { stock_quantity: parseInt(event.target.value, 10) || 0 })}
+                      onChange={(event) => updateProductLocalStock(product, event.target.value)}
+                      onBlur={(event) => saveProductLocalStock(product, event.target.value)}
                       onKeyDown={handleInlineNumberKeyDown}
                       className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-sm font-black outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
                     />
@@ -446,7 +470,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     <p className="text-[10px] font-black uppercase text-text-sub">Quien compro</p>
                     <select
                       value={product.payer ? String(product.payer) : ""}
-                      onChange={(event) => patchProduct(product, { payer: event.target.value || null })}
+                      onChange={(event) => updateProductLocalPayer(product, event.target.value)}
                       className="mt-1 w-full rounded-lg border border-border-light bg-white px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-slate-900"
                     >
                       <option value="">Sin asignar</option>
