@@ -9344,6 +9344,7 @@ function nh() {
     applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
     notifySuccess, notifyError, notifyInfo,
     confirmAction,
+    openImageSourcePicker,
     // MissionsSection dependencies
     missions: Al,
     activeMission: w,

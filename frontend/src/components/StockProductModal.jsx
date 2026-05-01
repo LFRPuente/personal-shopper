@@ -77,7 +77,7 @@ const StockProductModal = V.memo(function StockProductModal({
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
+      className="fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
       onClick={onClose}
     >
       <div
@@ -91,13 +91,26 @@ const StockProductModal = V.memo(function StockProductModal({
               {isEditing ? "Editar producto" : "Agregar producto"}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {imagePreviewUrl && (
+              <button
+                type="button"
+                onClick={onPickImage}
+                title="Cambiar imagen"
+                aria-label="Cambiar imagen del producto"
+                className="h-10 w-10 overflow-hidden rounded-full border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
+              >
+                <img src={imagePreviewUrl} className="h-full w-full object-cover" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={onSubmit} className="grid max-h-[78vh] grid-cols-1 gap-4 overflow-y-auto pr-1 ios-scroll md:grid-cols-2">
@@ -157,12 +170,6 @@ const StockProductModal = V.memo(function StockProductModal({
               {imagePreviewUrl ? "Cambiar imagen" : "Seleccionar imagen"}
             </button>
           </div>
-
-          {imagePreviewUrl && (
-            <div className="md:col-span-2">
-              <img src={imagePreviewUrl} className="h-40 w-full rounded-2xl border border-border-light object-cover dark:border-border-dark" />
-            </div>
-          )}
 
           <div className="rounded-2xl border border-border-light p-3 dark:border-border-dark">
             <label className="mb-2 block text-sm font-bold text-text-main dark:text-white">Modo de calculo</label>

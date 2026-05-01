@@ -32,9 +32,9 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     applyCalcTaxesChange,
     applyCalcCommissionChange,
     applyCalcExchangeRateChange,
+    openImageSourcePicker,
   } = useApp();
 
-  const fileInputRef = V.useRef(null);
   const apiFetchRef = V.useRef(apiFetch);
   const notifyErrorRef = V.useRef(notifyError);
   const [products, setProducts] = V.useState([]);
@@ -75,12 +75,31 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     [imagePreviewUrl],
   );
 
+  const setSelectedImageFile = (file) => {
+    if (!file) return;
+    if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleStockImageSelection = (event) => {
+    const file = event && event.target && event.target.files && event.target.files[0];
+    if (!file) return;
+    setSelectedImageFile(file);
+    setModalOpen(true);
+  };
+
   const openCreateModal = () => {
     setEditingProduct(null);
     setForm(createEmptyStockProductForm());
     setImageFile(null);
     setImagePreviewUrl("");
-    setModalOpen(true);
+    openImageSourcePicker(handleStockImageSelection, {
+      title: "Agregar producto de stock",
+      description: "Elige una imagen del producto desde tu dispositivo o pegala desde el portapapeles.",
+    });
   };
 
   const openEditModal = (product) => {
@@ -109,7 +128,11 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     setImagePreviewUrl("");
   };
 
-  const pickImage = () => fileInputRef.current && fileInputRef.current.click();
+  const pickImage = () =>
+    openImageSourcePicker(handleStockImageSelection, {
+      title: "Cambiar imagen de stock",
+      description: "Elige una nueva imagen del producto desde tu dispositivo o pegala desde el portapapeles.",
+    });
 
   const submitProduct = async (event) => {
     event.preventDefault();
@@ -147,7 +170,13 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       closeModal();
     } catch (error) {
       console.error("Failed saving stock product", error);
-      notifyError(getErrorMessage(error, "No se pudo guardar el producto."));
+      if (Number(error && error.status) === 404) {
+        await loadProducts();
+        closeModal();
+        notifyError("Ese producto ya no existe en stock. Se actualizo el listado.");
+      } else {
+        notifyError(getErrorMessage(error, "No se pudo guardar el producto."));
+      }
     } finally {
       setSaving(false);
     }
@@ -162,7 +191,12 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
     } catch (error) {
       console.error("Failed toggling stock product", error);
-      notifyError(getErrorMessage(error, "No se pudo actualizar el producto."));
+      if (Number(error && error.status) === 404) {
+        await loadProducts();
+        notifyError("Ese producto ya no existe en stock. Se actualizo el listado.");
+      } else {
+        notifyError(getErrorMessage(error, "No se pudo actualizar el producto."));
+      }
     }
   };
 
@@ -176,23 +210,6 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
 
   return (
     <div className="min-h-[calc(100dvh-9rem)] space-y-5">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files && event.target.files[0];
-          event.target.value = "";
-          if (!file) return;
-          if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(imagePreviewUrl);
-          }
-          setImageFile(file);
-          setImagePreviewUrl(URL.createObjectURL(file));
-        }}
-      />
-
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary">Vista web</p>
