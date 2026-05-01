@@ -59,11 +59,20 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setSentMessage("");
   };
 
-  const closeOrder = () => {
+  const closeOrder = V.useCallback(() => {
     setSelectedProduct(null);
     setSending(false);
     setSentMessage("");
-  };
+  }, []);
+
+  V.useEffect(() => {
+    if (!selectedProduct || typeof document === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeOrder();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedProduct, closeOrder]);
 
   const updateQuantity = (nextQuantity) => {
     if (!selectedProduct) return;
@@ -100,12 +109,12 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f3ed] text-slate-950">
-      <section className="relative overflow-hidden px-4 py-4 sm:px-7 lg:px-12">
-        <div className="absolute inset-x-0 top-0 h-[220px] bg-[radial-gradient(circle_at_22%_10%,rgba(168,85,247,0.20),transparent_30%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
+      <section className="relative overflow-hidden px-4 py-2 sm:px-7 lg:px-12">
+        <div className="absolute inset-x-0 top-0 h-[150px] bg-[radial-gradient(circle_at_22%_6%,rgba(168,85,247,0.20),transparent_30%),linear-gradient(135deg,#111827,#35205f_56%,#7c3aed)]" />
         <div className="relative mx-auto max-w-7xl">
-          <div className="flex min-h-[155px] flex-col justify-end pb-5 text-white">
-            <p className="text-sm font-black uppercase tracking-[0.20em] text-white/80">Compratelo con Pao</p>
-            <h1 className="mt-1 max-w-4xl text-4xl font-black tracking-normal sm:text-5xl lg:text-6xl">
+          <div className="flex min-h-[105px] flex-col justify-start pt-1 pb-3 text-white">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/85">Compratelo con PAO</p>
+            <h1 className="mt-0.5 max-w-4xl text-3xl font-black tracking-normal sm:text-4xl lg:text-5xl">
               Catalogo de Stock
             </h1>
           </div>
@@ -142,8 +151,11 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                           <span className="material-symbols-outlined text-5xl">image</span>
                         </div>
                       )}
-                      <div className="absolute right-2 top-2">
-                        <span className="rounded-full bg-slate-950/86 px-3 py-1.5 text-base font-black text-white shadow-lg backdrop-blur">
+                      <div className="absolute right-2 top-1.5">
+                        <span
+                          className="text-2xl font-black text-white sm:text-3xl"
+                          style={{ WebkitTextStroke: "1.25px #0f172a", textShadow: "0 2px 6px rgba(15,23,42,0.55)" }}
+                        >
                           ${money(product.charged_price)}
                         </span>
                       </div>
@@ -154,7 +166,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
                         type="button"
                         onClick={() => openOrder(product)}
                         disabled={available < 1}
-                        className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        className="mt-0.5 w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-violet-600/24 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                       >
                         YO
                       </button>

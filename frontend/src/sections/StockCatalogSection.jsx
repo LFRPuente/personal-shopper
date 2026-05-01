@@ -1,6 +1,7 @@
 import { V, getUserOptionLabel, resolveMediaUrl } from "../utils.js";
 import { useApp } from "../AppContext.jsx";
 import StockProductModal, { createEmptyStockProductForm } from "../components/StockProductModal.jsx";
+import StockSalesModal from "../components/StockSalesModal.jsx";
 
 const getErrorMessage = (error, fallback = "No se pudo completar la accion.") =>
   String(
@@ -47,6 +48,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   const [form, setForm] = V.useState(createEmptyStockProductForm);
   const [imageFile, setImageFile] = V.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = V.useState("");
+  const [salesProduct, setSalesProduct] = V.useState(null);
 
   apiFetchRef.current = apiFetch;
   notifyErrorRef.current = notifyError;
@@ -384,9 +386,6 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-text-main dark:text-white">Productos cargados</h2>
-            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-primary hover:underline">
-              Abrir pagina publica
-            </a>
           </div>
           <button
             type="button"
@@ -414,7 +413,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
               return (
-                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_200px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
+                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_245px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
                   <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
@@ -485,6 +484,11 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     <span className={`rounded-full px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
                       Vendido {sold}
                     </span>
+                    {sold > 0 && (
+                      <button type="button" onClick={() => setSalesProduct(product)} title="Ver compradores" className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
+                        <span className="material-symbols-outlined text-[18px]">group</span>
+                      </button>
+                    )}
                     <button type="button" onClick={() => openEditModal(product)} title="Editar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
@@ -525,6 +529,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         applyCalcCommissionChange={applyCalcCommissionChange}
         applyCalcExchangeRateChange={applyCalcExchangeRateChange}
       />
+      <StockSalesModal product={salesProduct} onClose={() => setSalesProduct(null)} />
     </div>
   );
 });
