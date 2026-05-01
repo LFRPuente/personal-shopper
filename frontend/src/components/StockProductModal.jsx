@@ -1,4 +1,5 @@
 import { V } from "../utils.js";
+import { createPortal } from "react-dom";
 
 const emptyForm = {
   name: "",
@@ -42,7 +43,7 @@ const StockProductModal = V.memo(function StockProductModal({
   applyCalcCommissionChange,
   applyCalcExchangeRateChange,
 }) {
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const updateForm = (patch) => setForm((value) => ({ ...value, ...patch }));
   const effectiveDiscount = form.discount_uses_global ? calcDiscount : form.discount_percentage;
@@ -75,7 +76,7 @@ const StockProductModal = V.memo(function StockProductModal({
     });
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
       onClick={onClose}
@@ -240,7 +241,8 @@ const StockProductModal = V.memo(function StockProductModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 });
 

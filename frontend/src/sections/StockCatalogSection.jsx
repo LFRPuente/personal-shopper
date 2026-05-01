@@ -19,6 +19,7 @@ const toAmount = (value) => {
 const StockCatalogSection = V.memo(function StockCatalogSection() {
   const {
     apiFetch,
+    confirmAction,
     notifySuccess,
     notifyError,
     calcMode,
@@ -182,13 +183,19 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     }
   };
 
-  const toggleActive = async (product) => {
+  const togglePublicVisibility = async (product) => {
+    const shouldShow = product.is_active === false;
+    if (shouldShow && Number(product.available_quantity || 0) <= 0) {
+      notifyError("No se puede mostrar en la pagina web porque el stock disponible es 0.");
+      return;
+    }
     try {
       const saved = await apiFetch(`/stock-products/${product.id}/`, {
         method: "PATCH",
-        body: JSON.stringify({ is_active: product.is_active === false }),
+        body: JSON.stringify({ is_active: shouldShow }),
       });
       setProducts((values) => values.map((item) => (Number(item.id) === Number(product.id) ? saved : item)));
+      notifySuccess(shouldShow ? "Producto visible en la pagina web." : "Producto oculto de la pagina web.");
     } catch (error) {
       console.error("Failed toggling stock product", error);
       if (Number(error && error.status) === 404) {
@@ -196,6 +203,34 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         notifyError("Ese producto ya no existe en stock. Se actualizo el listado.");
       } else {
         notifyError(getErrorMessage(error, "No se pudo actualizar el producto."));
+      }
+    }
+  };
+
+  const deleteProduct = async (product) => {
+    if (!product || !product.id) return;
+    const confirmed =
+      typeof confirmAction === "function"
+        ? await confirmAction({
+            title: "Eliminar producto",
+            message: `Se eliminara "${product.name || "este producto"}" del catalogo de stock.`,
+            confirmLabel: "Eliminar",
+            cancelLabel: "Cancelar",
+            tone: "danger",
+          })
+        : window.confirm("Eliminar este producto?");
+    if (!confirmed) return;
+    try {
+      await apiFetch(`/stock-products/${product.id}/`, { method: "DELETE" });
+      setProducts((values) => values.filter((item) => Number(item.id) !== Number(product.id)));
+      notifySuccess("Producto eliminado.");
+    } catch (error) {
+      console.error("Failed deleting stock product", error);
+      if (Number(error && error.status) === 404) {
+        await loadProducts();
+        notifyError("Ese producto ya no existe en stock. Se actualizo el listado.");
+      } else {
+        notifyError(getErrorMessage(error, "No se pudo eliminar el producto."));
       }
     }
   };
@@ -270,7 +305,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
               return (
-                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_120px_140px_140px_150px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
+                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_120px_140px_140px_200px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
                   <div className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
@@ -300,11 +335,14 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                     <span className={`rounded-full px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
                       Vendido {sold}
                     </span>
-                    <button type="button" onClick={() => openEditModal(product)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50">
+                    <button type="button" onClick={() => openEditModal(product)} title="Editar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
-                    <button type="button" onClick={() => toggleActive(product)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <button type="button" onClick={() => togglePublicVisibility(product)} title={product.is_active === false ? "Mostrar en pagina web" : "Ocultar de pagina web"} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                       <span className="material-symbols-outlined text-[18px]">{product.is_active === false ? "visibility" : "visibility_off"}</span>
+                    </button>
+                    <button type="button" onClick={() => deleteProduct(product)} title="Eliminar producto" className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
                 </div>
