@@ -1955,6 +1955,8 @@ class StockCatalogProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        if self.action in {'retrieve', 'update', 'partial_update', 'destroy'}:
+            return queryset
         show_inactive = str(self.request.query_params.get('include_inactive') or '').lower() in {'1', 'true', 'yes'}
         if not show_inactive:
             queryset = queryset.filter(is_active=True)

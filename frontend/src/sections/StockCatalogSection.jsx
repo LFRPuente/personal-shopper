@@ -242,6 +242,27 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     typeof window !== "undefined"
       ? `${window.location.origin}/catalogo-stock`
       : "/catalogo-stock";
+  const copyPublicUrl = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(publicUrl);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = publicUrl;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      notifySuccess("Link copiado al portapapeles.");
+    } catch (error) {
+      console.error("Failed copying stock catalog link", error);
+      notifyError("No se pudo copiar el link.");
+    }
+  };
 
   return (
     <div className="min-h-[calc(100dvh-9rem)] space-y-5">
@@ -284,9 +305,14 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               Abrir pagina publica
             </a>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-            {publicUrl}
-          </span>
+          <button
+            type="button"
+            onClick={copyPublicUrl}
+            className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+          >
+            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+            Copiar link
+          </button>
         </div>
 
         {loading ? (
