@@ -35,6 +35,10 @@ const StockSalesModal = V.memo(function StockSalesModal({ product, onClose }) {
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Ventas de stock</p>
             <h3 className="truncate text-xl font-black text-text-main dark:text-white">{product.name}</h3>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-700 dark:bg-rose-500/15 dark:text-rose-200">
+              <span className="uppercase tracking-[0.14em]">Vendidos</span>
+              <span>{Number(product.sold_quantity || 0)}</span>
+            </div>
           </div>
           <button type="button" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800">
             <span className="material-symbols-outlined text-[20px]">close</span>

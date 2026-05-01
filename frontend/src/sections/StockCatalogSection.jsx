@@ -552,9 +552,6 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       <span className={`block h-3.5 w-3.5 rounded-full bg-white transition ${isOffer ? "translate-x-0" : ""}`} />
                       Oferta
                     </button>
-                    <span className={`rounded-md px-2 py-1 text-[10px] font-black ${sold > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
-                      Vendido {sold}
-                    </span>
                     {sold > 0 && (
                       <button type="button" onClick={() => openSalesModal(product)} title="Ver compradores" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
                         <span className="material-symbols-outlined text-[18px]">group</span>
