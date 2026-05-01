@@ -144,7 +144,7 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
         <div className="absolute inset-x-0 top-0 h-[150px] bg-[radial-gradient(circle_at_22%_6%,rgba(255,255,255,0.08),transparent_30%),linear-gradient(135deg,#050505,#1f1f1f_52%,#525252)]" />
         <div className="relative mx-auto max-w-7xl">
           <div className="flex min-h-[92px] flex-col justify-start pt-0.5 pb-2 text-white">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/80">Compratelo con PAO</p>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/80">Compratelo con Pao</p>
             <h1 className="mt-0.5 max-w-4xl text-3xl font-black leading-[0.94] tracking-normal sm:text-4xl lg:text-5xl">
               Catalogo de Stock
             </h1>

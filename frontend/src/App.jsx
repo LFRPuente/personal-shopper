@@ -9174,7 +9174,7 @@ function nh() {
             }),
             c.jsx("h1", {
               className: "text-3xl md:text-4xl font-black mb-2",
-              children: "Personal Shopper",
+              children: "Compratelo con Pao",
             }),
             c.jsx("p", {
               className: "text-gray-500",
@@ -9647,8 +9647,8 @@ function nh() {
                       className:
                         "text-xs text-text-sub dark:text-slate-400 font-medium truncate",
                       children:
-                        X === "PS"
-                          ? "Personal Shopper (Tienda)"
+                      X === "PS"
+                          ? "Compratelo con Pao (Tienda)"
                           : "Agente de Ventas (Oficina)",
                     }),
                   ],
