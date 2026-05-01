@@ -35,6 +35,8 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   } = useApp();
 
   const fileInputRef = V.useRef(null);
+  const apiFetchRef = V.useRef(apiFetch);
+  const notifyErrorRef = V.useRef(notifyError);
   const [products, setProducts] = V.useState([]);
   const [loading, setLoading] = V.useState(true);
   const [saving, setSaving] = V.useState(false);
@@ -44,18 +46,21 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   const [imageFile, setImageFile] = V.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = V.useState("");
 
+  apiFetchRef.current = apiFetch;
+  notifyErrorRef.current = notifyError;
+
   const loadProducts = V.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch("/stock-products/?include_inactive=1");
+      const data = await apiFetchRef.current("/stock-products/?include_inactive=1");
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed loading stock catalog", error);
-      notifyError(getErrorMessage(error, "No se pudo cargar el catalogo de stock."));
+      notifyErrorRef.current(getErrorMessage(error, "No se pudo cargar el catalogo de stock."));
     } finally {
       setLoading(false);
     }
-  }, [apiFetch, notifyError]);
+  }, []);
 
   V.useEffect(() => {
     loadProducts();
