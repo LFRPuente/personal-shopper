@@ -78,6 +78,6 @@ networks:
   default:
     ipam:
       config:
-        - subnet: 172.16.120.0/24
+        - subnet: ${STACK_SUBNET:-172.16.120.0/24}
   npm_default:
     external: true
