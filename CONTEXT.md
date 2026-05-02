@@ -91,6 +91,15 @@ The frontend refactor is already in production and is the current base state.
 
 The source of truth is the local Windows repo. The Mac Mini is the deploy target.
 
+For a parallel `dev` stack, keep the same compose file and change only the environment values per stack:
+
+- `COMPOSE_PROJECT_NAME` or `docker compose -p` to isolate containers, networks, and volumes
+- `NPM_UPSTREAM_HOST` to the stack-specific upstream alias, for example `dev-frontend`
+- `FRONTEND_BIND_PORT` to a different host port if you want direct host access
+- `DJANGO_ALLOWED_HOSTS` to include the matching domain
+- `DJANGO_CSRF_TRUSTED_ORIGINS` to include the matching `https://` domain
+- `PUBLIC_SHARE_BASE_URL` to the matching public base URL
+
 1. Make code changes locally in:
    - `C:\Users\luis_\OneDrive\Desktop\personal-shopper`
 2. Validate locally before pushing:

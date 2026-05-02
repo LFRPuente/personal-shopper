@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+SOURCE_PROJECT="${SOURCE_COMPOSE_PROJECT:-personal-shopper}"
+TARGET_PROJECT="${TARGET_COMPOSE_PROJECT:-personal-shopper-dev}"
+SOURCE_DB_NAME="${SOURCE_POSTGRES_DB:-personal_shopper}"
+SOURCE_DB_USER="${SOURCE_POSTGRES_USER:-personal_shopper}"
+TARGET_DB_NAME="${TARGET_POSTGRES_DB:-personal_shopper_dev}"
+TARGET_DB_USER="${TARGET_POSTGRES_USER:-personal_shopper_dev}"
+TMP_FILE="${TMP_FILE:-/tmp/personal-shopper-dev-sync.dump}"
+
+if [ "${CONFIRM_SYNC:-}" != "yes" ]; then
+  echo "This will overwrite the dev database with a fresh copy of production."
+  echo "Re-run with CONFIRM_SYNC=yes if you really want to continue."
+  exit 1
+fi
+
+cd "$ROOT_DIR"
+
+docker compose -p "$SOURCE_PROJECT" exec -T postgres pg_dump \
+  -U "$SOURCE_DB_USER" \
+  -d "$SOURCE_DB_NAME" \
+  --clean \
+  --if-exists \
+  --no-owner \
+  --no-privileges \
+  > "$TMP_FILE"
+
+docker compose -p "$TARGET_PROJECT" exec -T postgres psql \
+  -U "$TARGET_DB_USER" \
+  -d "$TARGET_DB_NAME" \
+  < "$TMP_FILE"
+
+rm -f "$TMP_FILE"

@@ -61,12 +61,12 @@ services:
     depends_on:
       - backend
     ports:
-      - "192.168.3.100:18173:80"
+      - "${FRONTEND_BIND_IP:-192.168.3.100}:${FRONTEND_BIND_PORT:-18173}:80"
     networks:
       default:
       npm_default:
         aliases:
-          - ps-frontend
+          - ${NPM_UPSTREAM_HOST:-ps-frontend}
 
 volumes:
   personal_shopper_postgres_data:
