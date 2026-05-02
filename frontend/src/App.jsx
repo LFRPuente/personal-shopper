@@ -21,6 +21,7 @@ import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
 import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
+import { useShipmentsDomain } from './hooks/useShipmentsDomain.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
@@ -376,39 +377,6 @@ function nh() {
     [publicShipmentInfoOpen, setPublicShipmentInfoOpen] = V.useState(!1),
     [publicShipmentHistoryExpanded, setPublicShipmentHistoryExpanded] = V.useState(!1),
     [requests, setRequests] = V.useState([]),
-    [shipments, setShipments] = V.useState([]),
-    [shipmentSearch, setShipmentSearch] = V.useState(""),
-    [shipmentEvidenceUploadingId, setShipmentEvidenceUploadingId] = V.useState(null),
-    [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null),
-    [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null),
-    [openShipmentEvidenceMenuId, setOpenShipmentEvidenceMenuId] = V.useState(null),
-    [shipmentDetailLoadingIds, setShipmentDetailLoadingIds] = V.useState([]),
-    [expandedShipmentIds, setExpandedShipmentIds] = V.useState([]),
-    [shipmentSaving, setShipmentSaving] = V.useState(!1),
-    [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1),
-    [shipmentClientPickerOpen, setShipmentClientPickerOpen] = V.useState(!1),
-    [shipmentClientSearch, setShipmentClientSearch] = V.useState(""),
-    [shipmentProductPickerOpen, setShipmentProductPickerOpen] = V.useState(!1),
-    [shipmentProductSearch, setShipmentProductSearch] = V.useState(""),
-    [shipmentProductRenderLimit, setShipmentProductRenderLimit] = V.useState(24),
-    [shipmentForm, setShipmentForm] = V.useState({
-      id: null,
-      client: "",
-      carrier: "",
-      tracking_number: "",
-      guide_price: "",
-      client_price: "",
-      includes_insurance: !1,
-      insurance_price: "",
-      insurance_sale_price: "",
-      package_length: "",
-      package_width: "",
-      package_height: "",
-      package_weight: "",
-      shipping_address: "",
-      product_ids: [],
-      initial_product_ids: [],
-    }),
     [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
     [paymentSaving, setPaymentSaving] = V.useState(!1),
     [paymentProductSearch, setPaymentProductSearch] = V.useState(""),
@@ -541,14 +509,101 @@ function nh() {
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
     openShoppingTabsRef = V.useRef([]),
-    shipmentsLoadedRef = V.useRef(!1),
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
     requestsLoadedRef = V.useRef(!1),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
+    queueCoreRefreshActionRef = V.useRef(() => {}),
+    queueSelectedClientRefreshActionRef = V.useRef(() => {}),
+    refreshCoreDataActionRef = V.useRef(() => {}),
+    refreshSelectedClientActionRef = V.useRef(() => {}),
     shoppingCalcPersistTimerRef = V.useRef(null),
+    shipmentsDomain = useShipmentsDomain({
+      accessToken: C,
+      apiFetch: I,
+      clients: Kl,
+      shoppings: Al,
+      notifyInfo,
+      notifySuccess,
+      notifyError,
+      confirmAction,
+      openInputDialog,
+      openImageSourcePicker,
+      setPublicExpandedShipmentId,
+      publicClientShareToken,
+      reloadPublicShareData: (...args) => reloadPublicShareData(...args),
+      queueCoreRefreshRef: queueCoreRefreshActionRef,
+      queueSelectedClientRefreshRef: queueSelectedClientRefreshActionRef,
+      refreshCoreDataRef: refreshCoreDataActionRef,
+      refreshSelectedClientRef: refreshSelectedClientActionRef,
+      currentTabRef,
+      productStatusUpdatingId,
+      setProductStatusUpdatingId,
+    }),
+    shipments = shipmentsDomain.shipments,
+    setShipments = shipmentsDomain.setShipments,
+    shipmentSearch = shipmentsDomain.shipmentSearch,
+    setShipmentSearch = shipmentsDomain.setShipmentSearch,
+    shipmentEvidenceUploadingId = shipmentsDomain.shipmentEvidenceUploadingId,
+    shipmentEvidenceDeletingId = shipmentsDomain.shipmentEvidenceDeletingId,
+    shipmentEvidenceReplacingId = shipmentsDomain.shipmentEvidenceReplacingId,
+    openShipmentEvidenceMenuId = shipmentsDomain.openShipmentEvidenceMenuId,
+    setOpenShipmentEvidenceMenuId = shipmentsDomain.setOpenShipmentEvidenceMenuId,
+    shipmentDetailLoadingIds = shipmentsDomain.shipmentDetailLoadingIds,
+    expandedShipmentIds = shipmentsDomain.expandedShipmentIds,
+    setExpandedShipmentIds = shipmentsDomain.setExpandedShipmentIds,
+    shipmentSaving = shipmentsDomain.shipmentSaving,
+    shipmentModalOpen = shipmentsDomain.shipmentModalOpen,
+    setShipmentModalOpen = shipmentsDomain.setShipmentModalOpen,
+    shipmentClientPickerOpen = shipmentsDomain.shipmentClientPickerOpen,
+    setShipmentClientPickerOpen = shipmentsDomain.setShipmentClientPickerOpen,
+    shipmentClientSearch = shipmentsDomain.shipmentClientSearch,
+    setShipmentClientSearch = shipmentsDomain.setShipmentClientSearch,
+    shipmentProductPickerOpen = shipmentsDomain.shipmentProductPickerOpen,
+    setShipmentProductPickerOpen = shipmentsDomain.setShipmentProductPickerOpen,
+    shipmentProductSearch = shipmentsDomain.shipmentProductSearch,
+    setShipmentProductSearch = shipmentsDomain.setShipmentProductSearch,
+    setShipmentProductRenderLimit = shipmentsDomain.setShipmentProductRenderLimit,
+    shipmentForm = shipmentsDomain.shipmentForm,
+    setShipmentForm = shipmentsDomain.setShipmentForm,
+    shipmentsLoadedRef = shipmentsDomain.shipmentsLoadedRef,
+    loadShipmentsData = shipmentsDomain.loadShipmentsData,
+    resetShipmentsDomain = shipmentsDomain.resetShipmentsDomain,
+    getShipmentEvidenceKind = shipmentsDomain.getShipmentEvidenceKind,
+    getShipmentPurchasePriceAmount = shipmentsDomain.getShipmentPurchasePriceAmount,
+    getShipmentSalePriceAmount = shipmentsDomain.getShipmentSalePriceAmount,
+    getPublicShipmentSalePriceSummary = shipmentsDomain.getPublicShipmentSalePriceSummary,
+    upsertShipmentListItem = shipmentsDomain.upsertShipmentListItem,
+    shipmentHasHydratedDetail = shipmentsDomain.shipmentHasHydratedDetail,
+    mergeShipmentSummariesWithHydrated = shipmentsDomain.mergeShipmentSummariesWithHydrated,
+    fetchShipmentDetail = shipmentsDomain.fetchShipmentDetail,
+    getShipmentClientProducts = shipmentsDomain.getShipmentClientProducts,
+    getShipmentProductPickerState = shipmentsDomain.getShipmentProductPickerState,
+    getClientShipmentAddressOptions = shipmentsDomain.getClientShipmentAddressOptions,
+    getShipmentFormState = shipmentsDomain.getShipmentFormState,
+    isShipmentExpanded = shipmentsDomain.isShipmentExpanded,
+    toggleExpandedShipment = shipmentsDomain.toggleExpandedShipment,
+    resetExpandedShipmentForm = shipmentsDomain.resetExpandedShipmentForm,
+    openShipmentEditor = shipmentsDomain.openShipmentEditor,
+    updateShipmentForm = shipmentsDomain.updateShipmentForm,
+    selectShipmentClient = shipmentsDomain.selectShipmentClient,
+    toggleShipmentProductSelection = shipmentsDomain.toggleShipmentProductSelection,
+    saveShipmentEditor = shipmentsDomain.saveShipmentEditor,
+    openShipmentAssignmentPicker = shipmentsDomain.openShipmentAssignmentPicker,
+    deleteShipment = shipmentsDomain.deleteShipment,
+    openShipmentEvidencePicker = shipmentsDomain.openShipmentEvidencePicker,
+    openShipmentEvidenceReplacePicker = shipmentsDomain.openShipmentEvidenceReplacePicker,
+    deleteShipmentEvidence = shipmentsDomain.deleteShipmentEvidence,
+    setShipmentProductStatusQuick = shipmentsDomain.setShipmentProductStatusQuick,
+    shipmentModalClient = shipmentsDomain.shipmentModalClient,
+    filteredShipmentClients = shipmentsDomain.filteredShipmentClients,
+    shipmentHiddenProductsMessage = shipmentsDomain.shipmentHiddenProductsMessage,
+    shipmentModalFilteredProducts = shipmentsDomain.shipmentModalFilteredProducts,
+    shipmentVisibleProductCards = shipmentsDomain.shipmentVisibleProductCards,
+    shipmentHasMoreProductCards = shipmentsDomain.shipmentHasMoreProductCards,
+    shipmentSelectedProducts = shipmentsDomain.shipmentSelectedProducts,
     Ti = async () => {
       try {
         const o = await I("/auth/me/");
@@ -573,18 +628,6 @@ function nh() {
         Dl(resolveSelectedShopping(A || [], activeMissionIdRef.current));
       } catch (o) {
         console.error("Failed loading data", o);
-      }
-    },
-    loadShipmentsData = async (o = !1) => {
-      if (!C || (shipmentsLoadedRef.current && !o)) return [];
-      try {
-        const N = await I("/shipments/");
-        setShipments((A) => mergeShipmentSummariesWithHydrated(A, N || []));
-        shipmentsLoadedRef.current = !0;
-        return N || [];
-      } catch (N) {
-        console.error("Failed loading shipments", N);
-        return [];
       }
     },
     loadStoreData = async (o = !1) => {
@@ -809,6 +852,17 @@ function nh() {
     sectionSwitchTimerRef = V.useRef(null),
     sectionSettleTimerRef = V.useRef(null);
   V.useEffect(() => {
+    queueCoreRefreshActionRef.current = queueCoreRefresh;
+    queueSelectedClientRefreshActionRef.current = queueSelectedClientRefresh;
+    refreshCoreDataActionRef.current = refreshCoreData;
+    refreshSelectedClientActionRef.current = refreshSelectedClient;
+  }, [
+    queueCoreRefresh,
+    queueSelectedClientRefresh,
+    refreshCoreData,
+    refreshSelectedClient,
+  ]);
+  V.useEffect(() => {
     const normalized = themeMode === "DARK" ? "DARK" : "LIGHT";
     localStorage.setItem("theme_mode", normalized);
     document.documentElement.classList.toggle("dark", normalized === "DARK");
@@ -922,11 +976,10 @@ function nh() {
   V.useEffect(() => {
     if (!C) {
       setSeenReviewItemMap({});
-      shipmentsLoadedRef.current = !1;
+      resetShipmentsDomain();
       storesLoadedRef.current = !1;
       carrierRecommendationsLoadedRef.current = !1;
       requestsLoadedRef.current = !1;
-      setShipments([]);
       setStores([]);
       setStoreRecommendations([]);
       setShippingCarrierRecommendations([]);
@@ -1181,32 +1234,6 @@ function nh() {
       document.removeEventListener("keydown", closeMenuOnEscape);
     };
   }, [openProductMenuId, openProductInfoId, openProductStatusId]);
-  V.useEffect(() => {
-    if (openShipmentEvidenceMenuId === null) return;
-    const closeShipmentEvidenceMenuOnOutsideClick = (o) => {
-      const N = o.target;
-      if (
-        N &&
-        N.closest &&
-        N.closest("[data-shipment-evidence-menu]")
-      )
-        return;
-      setOpenShipmentEvidenceMenuId(null);
-    };
-    const closeShipmentEvidenceMenuOnEscape = (o) => {
-      o.key === "Escape" && setOpenShipmentEvidenceMenuId(null);
-    };
-    document.addEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
-    document.addEventListener("keydown", closeShipmentEvidenceMenuOnEscape);
-    return () => {
-      document.removeEventListener("click", closeShipmentEvidenceMenuOnOutsideClick);
-      document.removeEventListener("keydown", closeShipmentEvidenceMenuOnEscape);
-    };
-  }, [openShipmentEvidenceMenuId]);
-  V.useEffect(() => {
-    if (!shipmentProductPickerOpen) return;
-    setShipmentProductRenderLimit(24);
-  }, [shipmentProductPickerOpen, shipmentForm.client, shipmentProductSearch]);
   V.useEffect(() => {
     if (!C) {
       setRequests([]);
@@ -1952,18 +1979,6 @@ function nh() {
         reader.readAsDataURL(file);
       });
     },
-    getShipmentEvidenceKind = (o = null) => {
-      const N = String((o && o.media_type) || "").toUpperCase();
-      if (N === "VIDEO" || N === "IMAGE") return N;
-      const A = String((o && o.file) || "").toLowerCase();
-      return /\.(mp4|mov|m4v|webm|ogg)$/i.test(A) ? "VIDEO" : "IMAGE";
-    },
-    prepareShipmentEvidenceFile = async (o) => {
-      if (!o) return null;
-      return String(o.type || "").toLowerCase().startsWith("image/")
-        ? compressImage(o).catch(() => o)
-        : o;
-    },
     Xl = async (o, selectedProduct = he) => {
       const targetProduct = selectedProduct || he;
       if (!targetProduct) return;
@@ -2231,25 +2246,6 @@ function nh() {
           Qt());
       } catch (A) {
         console.error("Failed updating product status", A);
-      }
-    },
-    setShipmentProductStatusQuick = async (o, N) => {
-      if (!o || !N || productStatusUpdatingId === o) return;
-      setProductStatusUpdatingId(o);
-      try {
-        await I(`/products/${o}/`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: N }),
-        });
-        await refreshCoreData();
-        await refreshSelectedClient();
-        publicClientShareToken && (await reloadPublicShareData());
-        notifySuccess("Status del producto actualizado.");
-      } catch (A) {
-        console.error("Failed updating shipment product status", A);
-        notifyError((A && A.message) || "No se pudo cambiar el status del producto.");
-      } finally {
-        setProductStatusUpdatingId(null);
       }
     },
     setGalleryProductStatus = async (o, N = null, A) => {
@@ -3101,706 +3097,6 @@ function nh() {
       document.body.style.userSelect = "none";
       document.body.style.cursor = o === "column" ? "col-resize" : "row-resize";
     },
-    getShipmentClientProducts = (o = null) => {
-      const N = Kl.find((A) => Number(A.id) === Number(o || 0));
-      if (!N) return [];
-      return ((N && N.products) || []).map((A) => ({
-        ...A,
-        client_name: N.name,
-        shipping_address:
-          A.shipping_address || N.shipping_address || "",
-      }));
-    },
-    getShipmentProductPickerState = (o = null, N = null, A = null) => {
-      const vl = Array.isArray(A) ? A : getShipmentClientProducts(o);
-      const El = new Map(
-        (Al || []).map((qa) => [
-          Number(qa.id),
-          String(qa.status || "").toUpperCase(),
-        ]),
-      );
-      const Se = Number(N || 0);
-      const ea = {
-        totalEligible: 0,
-        totalHidden: 0,
-        hiddenByStatus: 0,
-        hiddenByOpenShopping: 0,
-        hiddenByOtherShipment: 0,
-      };
-      const gl = [];
-      for (const qa of vl) {
-        const yo = String(qa.status || "").toUpperCase();
-        if (!["ANNOTATED", "BOUGHT", "SHIPPED"].includes(yo)) {
-          ea.hiddenByStatus += 1;
-          continue;
-        }
-        const el = Number(qa.shopping || qa.mission || qa.mission_id || 0);
-        if (el && El.get(el) !== "COMPLETED") {
-          ea.hiddenByOpenShopping += 1;
-          continue;
-        }
-        const tn = Number((((qa || {}).shipment || {}).id) || 0);
-        if (tn && tn !== Se) {
-          ea.hiddenByOtherShipment += 1;
-          continue;
-        }
-        gl.push(qa);
-      }
-      ea.totalEligible = gl.length;
-      ea.totalHidden =
-        ea.hiddenByStatus +
-        ea.hiddenByOpenShopping +
-        ea.hiddenByOtherShipment;
-      return {
-        products: gl.sort((qa, yo) => {
-          const el = String(
-            qa.shopping_name || qa.mission_name || qa.store_name || "",
-          ).localeCompare(
-            String(
-              yo.shopping_name || yo.mission_name || yo.store_name || "",
-            ),
-          );
-          if (el !== 0) return el;
-          return String(qa.name || "").localeCompare(String(yo.name || ""));
-        }),
-        hiddenSummary: ea,
-      };
-    },
-    formatShipmentHiddenProductsMessage = (o = null) => {
-      if (!o || !o.totalHidden) return "";
-      const N = [];
-      o.hiddenByOpenShopping &&
-        N.push(`${o.hiddenByOpenShopping} por shopping abierta`);
-      o.hiddenByOtherShipment &&
-        N.push(`${o.hiddenByOtherShipment} en otro envio`);
-      o.hiddenByStatus &&
-        N.push(`${o.hiddenByStatus} por status no elegible`);
-      return N.length ? `Ocultos: ${N.join(", ")}.` : "";
-    },
-    getClientShipmentAddressOptions = (o = "") => {
-      const N = Kl.find((A) => String(A.id) === String(o || ""));
-      if (!N) return [];
-      const A = [];
-      const vl = new Set();
-      const El = (Se) => {
-        const qa = String(Se || "").trim();
-        if (!qa) return;
-        const yo = qa.toLowerCase();
-        if (vl.has(yo)) return;
-        vl.add(yo);
-        A.push(qa);
-      };
-      El(N.shipping_address);
-      (Array.isArray(N.shipping_addresses) ? N.shipping_addresses : []).forEach(El);
-      return A;
-    },
-    getShipmentFormState = (o = null, N = null) => {
-      const A = String((N && N.client) || (o && o.client) || "");
-      const Se =
-        (o && (o.products_detail || o.products)) || (N && N.id ? [N] : []);
-      const vl =
-          o && o.guide_price !== null && typeof o.guide_price != "undefined"
-            ? String(o.guide_price)
-            : o && o.client_price !== null && typeof o.client_price != "undefined"
-              ? String(o.client_price)
-              : "",
-        El =
-          o && o.client_price !== null && typeof o.client_price != "undefined"
-            ? String(o.client_price)
-            : o && o.guide_price !== null && typeof o.guide_price != "undefined"
-              ? String(o.guide_price)
-              : "";
-      return {
-        id: (o && o.id) || null,
-        client: A,
-        carrier: String((o && o.carrier) || "").trim(),
-        status: normalizeShipmentStatusValue((o && o.status) || "PENDING"),
-        tracking_number: (o && o.tracking_number) || "",
-        guide_price: vl,
-        client_price: El,
-        includes_insurance: !!(o && o.includes_insurance),
-        insurance_price:
-          o && o.insurance_price !== null && typeof o.insurance_price != "undefined"
-            ? String(o.insurance_price)
-            : "",
-        insurance_sale_price:
-          o && o.insurance_sale_price !== null &&
-          typeof o.insurance_sale_price != "undefined"
-            ? String(o.insurance_sale_price)
-            : "",
-        package_length:
-          o && o.package_length !== null && typeof o.package_length != "undefined"
-            ? String(o.package_length)
-            : "",
-        package_width:
-          o && o.package_width !== null && typeof o.package_width != "undefined"
-            ? String(o.package_width)
-            : "",
-        package_height:
-          o && o.package_height !== null && typeof o.package_height != "undefined"
-            ? String(o.package_height)
-            : "",
-        package_weight:
-          o && o.package_weight !== null && typeof o.package_weight != "undefined"
-            ? String(o.package_weight)
-            : "",
-        shipping_address:
-          (o && o.shipping_address) ||
-          getClientShipmentAddressOptions(A)[0] ||
-          ((N && (N.shipping_address || "")) || ""),
-        product_ids: Se.map((qa) =>
-            Number(typeof qa == "object" ? qa.id : qa),
-          ),
-        initial_product_ids: Se.map((qa) =>
-            Number(typeof qa == "object" ? qa.id : qa),
-          ),
-      };
-    },
-    loadShipmentForm = (o = null, N = null) => {
-      setShipmentForm(getShipmentFormState(o, N));
-      setShipmentClientPickerOpen(!1);
-      setShipmentClientSearch("");
-      setShipmentProductSearch("");
-      setShipmentProductPickerOpen(!1);
-    },
-    isShipmentExpanded = (o) =>
-      (expandedShipmentIds || []).includes(Number((o && o.id) || o || 0)),
-    toggleExpandedShipment = (o) => {
-      if (!o) return;
-      const N = Number(o.id);
-      if (isShipmentExpanded(N)) {
-        setExpandedShipmentIds((A) =>
-          (A || []).filter((vl) => Number(vl) !== N),
-        );
-        return;
-      }
-      setExpandedShipmentIds((A) => [...new Set([...(A || []), N])]);
-      if (shipmentHasHydratedDetail(o)) {
-        loadShipmentForm(o);
-        return;
-      }
-      setShipmentForm((A) => ({
-        ...A,
-        id: N,
-        client: String((o && o.client) || ""),
-        carrier: String((o && o.carrier) || "").trim(),
-        status: normalizeShipmentStatusValue((o && o.status) || "PENDING"),
-        tracking_number: (o && o.tracking_number) || "",
-        guide_price:
-          o && o.guide_price !== null && typeof o.guide_price != "undefined"
-            ? String(o.guide_price)
-            : "",
-        client_price:
-          o && o.client_price !== null && typeof o.client_price != "undefined"
-            ? String(o.client_price)
-            : "",
-        includes_insurance: !!(o && o.includes_insurance),
-        insurance_price:
-          o && o.insurance_price !== null && typeof o.insurance_price != "undefined"
-            ? String(o.insurance_price)
-            : "",
-        insurance_sale_price:
-          o && o.insurance_sale_price !== null &&
-          typeof o.insurance_sale_price != "undefined"
-            ? String(o.insurance_sale_price)
-            : "",
-        package_length:
-          o && o.package_length !== null && typeof o.package_length != "undefined"
-            ? String(o.package_length)
-            : "",
-        package_width:
-          o && o.package_width !== null && typeof o.package_width != "undefined"
-            ? String(o.package_width)
-            : "",
-        package_height:
-          o && o.package_height !== null && typeof o.package_height != "undefined"
-            ? String(o.package_height)
-            : "",
-        package_weight:
-          o && o.package_weight !== null && typeof o.package_weight != "undefined"
-            ? String(o.package_weight)
-            : "",
-        shipping_address: (o && o.shipping_address) || "",
-        product_ids: [],
-        initial_product_ids: [],
-      }));
-      fetchShipmentDetail(N).then((A) => {
-        A && loadShipmentForm(A);
-      });
-    },
-    resetExpandedShipmentForm = (o) => {
-      if (!o) return;
-      loadShipmentForm(o);
-    },
-    openShipmentEditor = (o = null, N = null) => {
-      if (!Kl.length) {
-        notifyInfo("Necesitas al menos un cliente para crear envios.");
-        return;
-      }
-      loadShipmentForm(o, N);
-      setShipmentModalOpen(!0);
-    },
-    updateShipmentForm = (o, N) => {
-      setShipmentForm((A) => {
-        const vl = { ...A, [o]: N };
-        if (o === "client" && String(A.client || "") !== String(N || "")) {
-          const El = getClientShipmentAddressOptions(N);
-          vl.product_ids = [];
-          vl.shipping_address = El[0] || "";
-        }
-        return vl;
-      });
-    },
-    selectShipmentClient = (o) => {
-      updateShipmentForm("client", String(o || ""));
-      setShipmentClientPickerOpen(!1);
-      setShipmentClientSearch("");
-    },
-    toggleShipmentProductSelection = (o) => {
-      if (!o) return;
-      setShipmentForm((N) => {
-        const A = Number(o.id);
-        const vl = (N.product_ids || []).includes(A)
-          ? (N.product_ids || []).filter((El) => Number(El) !== A)
-          : [...(N.product_ids || []), A];
-        return { ...N, product_ids: vl };
-      });
-    },
-    saveShipmentEditor = async () => {
-      const o = Kl.find(
-        (A) => String(A.id) === String(shipmentForm.client || ""),
-      );
-      const N = String(shipmentForm.carrier || "").trim();
-      const A =
-        String(shipmentForm.guide_price || "").trim() === ""
-          ? null
-          : String(shipmentForm.guide_price || "").trim();
-      const vl =
-        String(shipmentForm.client_price || "").trim() === ""
-          ? null
-          : String(shipmentForm.client_price || "").trim();
-      const insurancePriceValue =
-        String(shipmentForm.insurance_price || "").trim() === ""
-          ? null
-          : String(shipmentForm.insurance_price || "").trim();
-      const insuranceSalePriceValue =
-        String(shipmentForm.insurance_sale_price || "").trim() === ""
-          ? null
-          : String(shipmentForm.insurance_sale_price || "").trim();
-      const packageLengthValue =
-        String(shipmentForm.package_length || "").trim() === ""
-          ? null
-          : String(shipmentForm.package_length || "").trim();
-      const packageWidthValue =
-        String(shipmentForm.package_width || "").trim() === ""
-          ? null
-          : String(shipmentForm.package_width || "").trim();
-      const packageHeightValue =
-        String(shipmentForm.package_height || "").trim() === ""
-          ? null
-          : String(shipmentForm.package_height || "").trim();
-      const packageWeightValue =
-        String(shipmentForm.package_weight || "").trim() === ""
-          ? null
-          : String(shipmentForm.package_weight || "").trim();
-      if (!o) {
-        notifyInfo("Selecciona un cliente.");
-        return;
-      }
-      if (!(shipmentForm.product_ids || []).length) {
-        notifyInfo("Selecciona al menos un producto.");
-        return;
-      }
-      const qa = getShipmentProductPickerState(o.id, shipmentForm.id);
-      const shipmentProductsById = new Map(
-        qa.products.map((El) => [Number(El.id), El]),
-      );
-      const invalidShipmentSelection = (shipmentForm.product_ids || []).some(
-        (El) => !shipmentProductsById.has(Number(El)),
-      );
-      if (invalidShipmentSelection) {
-        notifyInfo(
-          "Solo puedes enviar productos de shoppings cerradas y que no pertenezcan a otro envio. Quita los demas productos para guardar.",
-        );
-        return;
-      }
-      const sameShipmentProductSelection =
-        [...(shipmentForm.product_ids || [])]
-          .map((El) => Number(El))
-          .sort((El, Se) => El - Se)
-          .join(",") ===
-        [...(shipmentForm.initial_product_ids || [])]
-          .map((El) => Number(El))
-          .sort((El, Se) => El - Se)
-          .join(",");
-      setShipmentSaving(!0);
-      try {
-        const El = await I(
-          shipmentForm.id ? `/shipments/${shipmentForm.id}/` : "/shipments/",
-          {
-            method: shipmentForm.id ? "PATCH" : "POST",
-            body: JSON.stringify({
-              client: o.id,
-              carrier: N,
-              status: normalizeShipmentStatusValue(shipmentForm.status || "PENDING"),
-              tracking_number: String(
-                shipmentForm.tracking_number || "",
-              ).trim(),
-              guide_price: A,
-              client_price: vl,
-              includes_insurance: !!shipmentForm.includes_insurance,
-              insurance_price: insurancePriceValue,
-              insurance_sale_price: insuranceSalePriceValue,
-              package_length: packageLengthValue,
-              package_width: packageWidthValue,
-              package_height: packageHeightValue,
-              package_weight: packageWeightValue,
-              shipping_address: String(
-                shipmentForm.shipping_address || "",
-              ).trim(),
-            }),
-          },
-        );
-        const Se = sameShipmentProductSelection
-          ? El
-          : await I(`/shipments/${El.id}/set-products/`, {
-              method: "POST",
-              body: JSON.stringify({
-                products: (shipmentForm.product_ids || []).map((vl) => Number(vl)),
-              }),
-            });
-        const ea = Se || El;
-        setShipmentModalOpen(!1);
-        setShipmentProductPickerOpen(!1);
-        setPublicExpandedShipmentId(Number(El.id));
-        setExpandedShipmentIds((gl) => [
-          ...new Set([...(gl || []), Number(El.id)]),
-        ]);
-        upsertShipmentListItem(ea);
-        setShipmentForm(getShipmentFormState(ea));
-        notifySuccess(shipmentForm.id ? "Envio actualizado." : "Envio creado.");
-        queueCoreRefresh(260);
-        queueSelectedClientRefresh(320);
-        publicClientShareToken &&
-          reloadPublicShareData().catch((gl) => {
-            console.error("Failed refreshing public share after saving shipment", gl);
-          });
-      } catch (El) {
-        console.error("Failed saving shipment", El);
-        notifyError((El && El.message) || "No se pudo guardar el envio.");
-      } finally {
-        setShipmentSaving(!1);
-      }
-    },
-    openShipmentAssignmentPicker = async (o) => {
-      if (!o) return;
-      const N = shipments.filter(
-        (A) =>
-          Number(A.client) === Number(o.client) &&
-          Number(A.id) !== Number(o.shipment && o.shipment.id),
-      );
-      if (!N.length) {
-        openShipmentEditor(null, o);
-        return;
-      }
-      const A = await openInputDialog({
-        title: "Asignar envio",
-        confirmLabel: "Continuar",
-        cancelLabel: "Cancelar",
-        fields: [
-          {
-            name: "shipment_id",
-            label: "Envio",
-            type: "select",
-            value: "__new__",
-            options: [
-              { value: "__new__", label: "Crear envio nuevo" },
-              ...N.map((vl) => ({
-                value: String(vl.id),
-                label: `${vl.carrier || "Paqueteria"}${vl.tracking_number ? ` • ${vl.tracking_number}` : ""}`,
-              })),
-            ],
-          },
-        ],
-      });
-      if (!A) return;
-      if (A.shipment_id === "__new__") {
-        openShipmentEditor(null, o);
-        return;
-      }
-      try {
-        const vl = N.find((El) => String(El.id) === String(A.shipment_id));
-        if (!vl) throw new Error("Envio no encontrado.");
-        await I(`/shipments/${vl.id}/assign-product/`, {
-          method: "POST",
-          body: JSON.stringify({
-            product: o.id,
-          }),
-        });
-        queueCoreRefresh(120);
-        queueSelectedClientRefresh(180);
-        notifySuccess("Envio asignado.");
-      } catch (vl) {
-        console.error("Failed assigning existing shipment", vl);
-        notifyError((vl && vl.message) || "No se pudo asignar el envio.");
-      }
-    },
-    deleteShipment = async (o) => {
-      if (!o || !o.id) return;
-      const N = await confirmAction({
-        title: "Eliminar envio",
-        message: "Este envio se desvinculara del producto.",
-        confirmLabel: "Eliminar",
-        cancelLabel: "Cancelar",
-        tone: "danger",
-      });
-      if (!N) return;
-      try {
-        await I(`/shipments/${o.id}/`, { method: "DELETE" });
-        setShipments((A) => (A || []).filter((vl) => Number(vl.id) !== Number(o.id)));
-        setExpandedShipmentIds((A) =>
-          (A || []).filter((vl) => Number(vl) !== Number(o.id)),
-        );
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
-        notifySuccess("Envio eliminado.");
-      } catch (A) {
-        console.error("Failed deleting shipment", A);
-        notifyError((A && A.message) || "No se pudo eliminar el envio.");
-      }
-    },
-    openShipmentEvidencePicker = (o) => {
-      if (!o || !o.id) return;
-      openImageSourcePicker(
-        (N) => {
-          const A = N && N.target && N.target.files;
-          A && A.length > 0 && uploadShipmentEvidence(o, A);
-        },
-        {
-          title: "Agregar evidencia",
-          eyebrow: "Evidencia del envio",
-          description:
-            "Elige si quieres tomar la evidencia del dispositivo o pegar una imagen desde el portapapeles.",
-          multiple: !0,
-          accept: "image/*,video/*",
-          deviceDescription:
-            "Abre tu galeria o archivos y selecciona imagenes o videos para este envio.",
-          clipboardLabel: "Pegar desde portapapeles",
-          clipboardDescription:
-            "Pega una imagen que ya copiaste para agregarla rapido a la evidencia del envio.",
-        },
-      );
-    },
-    uploadShipmentEvidence = async (o, N) => {
-      if (!o || !o.id || !N || !N.length) return;
-      setShipmentEvidenceUploadingId(o.id);
-      setOpenShipmentEvidenceMenuId(null);
-      try {
-        const A = new FormData();
-        for (const vl of Array.from(N)) {
-          const El = await prepareShipmentEvidenceFile(vl);
-          El && A.append("files", El);
-        }
-        const uploadedEvidenceResult = await I(`/shipments/${o.id}/upload-evidence/`, {
-          method: "POST",
-          body: A,
-        });
-        uploadedEvidenceResult && uploadedEvidenceResult.shipment &&
-          upsertShipmentListItem(uploadedEvidenceResult.shipment);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
-        publicClientShareToken && (await reloadPublicShareData());
-        notifySuccess("Evidencia agregada.");
-      } catch (A) {
-        console.error("Failed uploading shipment evidence", A);
-        notifyError((A && A.message) || "No se pudo subir la evidencia.");
-      } finally {
-        setShipmentEvidenceUploadingId(null);
-      }
-    },
-    openShipmentEvidenceReplacePicker = (o, N) => {
-      if (!o || !o.id || !N || !N.id) return;
-      setOpenShipmentEvidenceMenuId(null);
-      openImageSourcePicker(
-        (A) => {
-          const vl = A && A.target && A.target.files;
-          vl && vl.length > 0 && replaceShipmentEvidence(o, N, vl[0]);
-        },
-        {
-          title: "Cambiar evidencia",
-          eyebrow: "Evidencia del envio",
-          description:
-            "Elige si quieres reemplazar la evidencia desde el dispositivo o pegar una imagen desde el portapapeles.",
-          multiple: !1,
-          accept: "image/*,video/*",
-          deviceDescription:
-            "Abre tu galeria o archivos y selecciona una imagen o video nuevo para esta evidencia.",
-          clipboardLabel: "Pegar desde portapapeles",
-          clipboardDescription:
-            "Pega una imagen copiada para reemplazar la evidencia actual.",
-        },
-      );
-    },
-    replaceShipmentEvidence = async (o, N, A) => {
-      if (!o || !o.id || !N || !N.id || !A) return;
-      setShipmentEvidenceReplacingId(N.id);
-      try {
-        const vl = new FormData(),
-          El = await prepareShipmentEvidenceFile(A);
-        if (!El) {
-          notifyError("No se pudo preparar el archivo de evidencia.");
-          return;
-        }
-        vl.append("file", El);
-        const replacedEvidenceResult = await I(`/shipments/${o.id}/evidence/${N.id}/replace/`, {
-          method: "POST",
-          body: vl,
-        });
-        replacedEvidenceResult && replacedEvidenceResult.shipment &&
-          upsertShipmentListItem(replacedEvidenceResult.shipment);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
-        publicClientShareToken && (await reloadPublicShareData());
-        notifySuccess("Evidencia actualizada.");
-      } catch (vl) {
-        console.error("Failed replacing shipment evidence", vl);
-        notifyError((vl && vl.message) || "No se pudo cambiar la evidencia.");
-      } finally {
-        setShipmentEvidenceReplacingId(null);
-      }
-    },
-    deleteShipmentEvidence = async (o, N) => {
-      if (!o || !o.id || !N) return;
-      const A = await confirmAction({
-        title: "Eliminar evidencia",
-        message: "Este archivo ya no se mostrara al cliente.",
-        confirmLabel: "Eliminar",
-        cancelLabel: "Cancelar",
-        tone: "danger",
-      });
-      if (!A) return;
-      setOpenShipmentEvidenceMenuId(null);
-      setShipmentEvidenceDeletingId(N);
-      try {
-        const deletedEvidenceResult = await I(`/shipments/${o.id}/evidence/${N}/`, {
-          method: "DELETE",
-        });
-        deletedEvidenceResult && deletedEvidenceResult.id &&
-          upsertShipmentListItem(deletedEvidenceResult);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
-        publicClientShareToken && (await reloadPublicShareData());
-        notifySuccess("Evidencia eliminada.");
-      } catch (vl) {
-        console.error("Failed deleting shipment evidence", vl);
-        notifyError((vl && vl.message) || "No se pudo eliminar la evidencia.");
-      } finally {
-        setShipmentEvidenceDeletingId(null);
-      }
-    },
-    shipmentModalClient = Kl.find(
-      (o) => String(o.id) === String(shipmentForm.client || ""),
-    ),
-    shipmentClientOptions = V.useMemo(
-      () =>
-        (Kl || []).map((o) => ({
-          id: o.id,
-          name: o.name,
-        })),
-      [Kl],
-    ),
-    filteredShipmentClients = V.useMemo(() => {
-      const o = String(shipmentClientSearch || "").trim().toLowerCase();
-      return shipmentClientOptions.filter((N) =>
-        !o || String(N.name || "").toLowerCase().includes(o),
-      );
-    }, [shipmentClientOptions, shipmentClientSearch]),
-    shipmentModalClientProducts = V.useMemo(
-      () => getShipmentClientProducts(shipmentForm.client),
-      [Kl, shipmentForm.client],
-    ),
-    shipmentModalProductState = V.useMemo(
-      () =>
-        shipmentProductPickerOpen
-          ? getShipmentProductPickerState(
-              shipmentForm.client,
-              shipmentForm.id,
-              shipmentModalClientProducts,
-            )
-          : {
-              products: [],
-              hiddenSummary: {
-                totalEligible: 0,
-                totalHidden: 0,
-                hiddenByStatus: 0,
-                hiddenByOpenShopping: 0,
-                hiddenByOtherShipment: 0,
-              },
-            },
-      [
-        shipmentProductPickerOpen,
-        shipmentForm.client,
-        shipmentForm.id,
-        shipmentModalClientProducts,
-        Al,
-      ],
-    ),
-    shipmentModalProducts = shipmentModalProductState.products,
-    shipmentHiddenProductsMessage = V.useMemo(
-      () =>
-        formatShipmentHiddenProductsMessage(
-          shipmentModalProductState.hiddenSummary,
-        ),
-      [shipmentModalProductState],
-    ),
-    shipmentModalFilteredProducts = V.useMemo(
-      () =>
-        shipmentModalProducts.filter((o) => {
-          const N = String(shipmentProductSearch || "").trim().toLowerCase();
-          if (!N) return !0;
-          return [
-            o.name,
-            o.shopping_name || o.mission_name,
-            o.store_name,
-            o.client_name,
-            o.status,
-          ]
-            .filter(Boolean)
-            .some((A) => String(A).toLowerCase().includes(N));
-        }),
-      [shipmentModalProducts, shipmentProductSearch],
-    ),
-    shipmentVisibleProductCards = V.useMemo(
-      () =>
-        shipmentModalFilteredProducts.slice(
-          0,
-          shipmentProductRenderLimit,
-        ),
-      [shipmentModalFilteredProducts, shipmentProductRenderLimit],
-    ),
-    shipmentHasMoreProductCards =
-      shipmentModalFilteredProducts.length > shipmentVisibleProductCards.length,
-    shipmentSelectedProducts = V.useMemo(() => {
-      const o = new Map();
-      shipmentModalClientProducts.forEach((N) => {
-        o.set(Number(N.id), N);
-      });
-      const N = shipments.find(
-        (A) => Number(A.id) === Number(shipmentForm.id || 0),
-      );
-      ((N && (N.products_detail || [])) || []).forEach((A) => {
-        const vl = Number(A.id);
-        o.has(vl) || o.set(vl, A);
-      });
-      return (shipmentForm.product_ids || [])
-        .map((A) => o.get(Number(A)))
-        .filter(Boolean);
-    }, [
-      shipmentModalClientProducts,
-      shipments,
-      shipmentForm.id,
-      shipmentForm.product_ids,
-    ]),
     paymentLocalToNumber = (o, N = 0) => {
       const A = parseFloat(o);
       return Number.isFinite(A) ? A : N;
@@ -5380,107 +4676,6 @@ function nh() {
     },
     hasValue = (o) => o !== null && typeof o !== "undefined" && o !== "",
     formatAmount = (o) => MODULE_AMOUNT_FORMAT.format(toNumber(o, 0)),
-    hasShipmentTrackingReady = (o) =>
-      !!String((o && o.carrier) || "").trim() &&
-      !!String((o && o.tracking_number) || "").trim(),
-    getShipmentPurchasePriceAmount = (o) => {
-      const N =
-        o &&
-        o.guide_price !== null &&
-        typeof o.guide_price != "undefined" &&
-        String(o.guide_price).trim() !== ""
-          ? o.guide_price
-          : o &&
-              o.client_price !== null &&
-              typeof o.client_price != "undefined" &&
-              String(o.client_price).trim() !== ""
-            ? o.client_price
-            : 0;
-      return toNumber(N, 0);
-    },
-    getShipmentSalePriceAmount = (o) => {
-      const N =
-        o &&
-        o.client_price !== null &&
-        typeof o.client_price != "undefined" &&
-        String(o.client_price).trim() !== ""
-          ? o.client_price
-          : o &&
-              o.guide_price !== null &&
-              typeof o.guide_price != "undefined" &&
-              String(o.guide_price).trim() !== ""
-            ? o.guide_price
-            : 0;
-      return toNumber(N, 0);
-    },
-    getShipmentSalePriceSummary = (o) => {
-      const N = getShipmentSalePriceAmount(o);
-      return N <= 0 ? "Costo de envio gratis" : `Costo: $${formatAmount(N)}`;
-    },
-    getPublicShipmentSalePriceSummary = (o) => {
-      if (!hasShipmentTrackingReady(o)) return "";
-      return getShipmentSalePriceSummary(o);
-    },
-    upsertShipmentListItem = (o) => {
-      if (!o || !o.id) return;
-      setShipments((N) => {
-        const A = Array.isArray(N) ? N : [];
-        const vl = A.findIndex((El) => Number(El.id) === Number(o.id));
-        if (vl === -1) return [o, ...A];
-        const El = [...A];
-        El[vl] = { ...El[vl], ...o };
-        return El;
-      });
-    },
-    shipmentHasHydratedDetail = (o = null) =>
-      !!(
-        o &&
-        Array.isArray(o.products_detail) &&
-        Array.isArray(o.evidence) &&
-        Array.isArray(o.client_shipping_addresses)
-      ),
-    mergeShipmentSummariesWithHydrated = (o = [], N = []) => {
-      const A = new Map(
-        (Array.isArray(o) ? o : [])
-          .filter((vl) => shipmentHasHydratedDetail(vl))
-          .map((vl) => [Number(vl.id), vl]),
-      );
-      return (Array.isArray(N) ? N : []).map((vl) => {
-        const El = A.get(Number(vl && vl.id));
-        if (!El) return vl;
-        return {
-          ...El,
-          ...vl,
-          products_detail: El.products_detail,
-          evidence: El.evidence,
-          client_shipping_addresses: El.client_shipping_addresses,
-        };
-      });
-    },
-    fetchShipmentDetail = async (o, N = {}) => {
-      const A = Number((o && o.id) || o || 0);
-      if (!Number.isFinite(A) || A <= 0) return null;
-      const vl =
-        shipments.find((El) => Number(El && El.id) === A) ||
-        (o && typeof o === "object" ? o : null);
-      if (!N.force && shipmentHasHydratedDetail(vl)) return vl;
-      setShipmentDetailLoadingIds((El) =>
-        El.includes(A) ? El : [...El, A],
-      );
-      try {
-        const El = await I(`/shipments/${A}/`);
-        El && El.id && upsertShipmentListItem(El);
-        return El || null;
-      } catch (El) {
-        console.error("Failed loading shipment detail", El);
-        notifyError("No se pudo cargar el detalle del envio.");
-        return null;
-      } finally {
-        setShipmentDetailLoadingIds((El) =>
-          El.filter((Se) => Number(Se) !== A),
-        );
-      }
-    },
     getHomeVisibleProducts = (o) =>
       (o.products || []).filter(
         (N) =>
