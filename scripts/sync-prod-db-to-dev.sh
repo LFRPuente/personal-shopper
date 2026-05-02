@@ -9,6 +9,11 @@ SOURCE_DB_USER="${SOURCE_POSTGRES_USER:-personal_shopper}"
 TARGET_DB_NAME="${TARGET_POSTGRES_DB:-personal_shopper_dev}"
 TARGET_DB_USER="${TARGET_POSTGRES_USER:-personal_shopper_dev}"
 TMP_FILE="${TMP_FILE:-/tmp/personal-shopper-dev-sync.dump}"
+DOCKER_BIN="${DOCKER_BIN:-/usr/local/bin/docker}"
+
+if [ ! -x "$DOCKER_BIN" ]; then
+  DOCKER_BIN="$(command -v docker || true)"
+fi
 
 if [ "${CONFIRM_SYNC:-}" != "yes" ]; then
   echo "This will overwrite the dev database with a fresh copy of production."
@@ -16,9 +21,15 @@ if [ "${CONFIRM_SYNC:-}" != "yes" ]; then
   exit 1
 fi
 
+if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
+  echo "Docker binary not found."
+  echo "Set DOCKER_BIN or ensure docker is installed."
+  exit 1
+fi
+
 cd "$ROOT_DIR"
 
-docker compose -p "$SOURCE_PROJECT" exec -T postgres pg_dump \
+"$DOCKER_BIN" compose -p "$SOURCE_PROJECT" exec -T postgres pg_dump \
   -U "$SOURCE_DB_USER" \
   -d "$SOURCE_DB_NAME" \
   --clean \
@@ -27,7 +38,7 @@ docker compose -p "$SOURCE_PROJECT" exec -T postgres pg_dump \
   --no-privileges \
   > "$TMP_FILE"
 
-docker compose -p "$TARGET_PROJECT" exec -T postgres psql \
+"$DOCKER_BIN" compose -p "$TARGET_PROJECT" exec -T postgres psql \
   -U "$TARGET_DB_USER" \
   -d "$TARGET_DB_NAME" \
   < "$TMP_FILE"
