@@ -338,6 +338,84 @@ export const getPublicShareFocusShipmentIdFromSearch = () => {
   }
 };
 
+export const APP_SECTION_PATHS = {
+  HOME: "/home",
+  MISSIONS: "/shoppings",
+  CLIENTS: "/clients",
+  SHIPMENTS: "/shipments",
+  EXPENSES: "/expenses",
+  REPORTS: "/reports",
+  STOCK_CATALOG: "/stock",
+  CALCULATOR: "/calculator",
+  PROFILE: "/profile",
+};
+
+export function slugifyRouteToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getAppRouteFromPath(pathname) {
+  const parts = String(pathname || "/")
+    .split("?")[0]
+    .split("#")[0]
+    .split("/")
+    .filter(Boolean);
+  if (parts[0] === "share") {
+    return { section: "HOME", homeClientSlug: null, isPublicShare: !0 };
+  }
+  if (parts[0] === "catalogo-stock" || parts[0] === "stock-catalog") {
+    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1, isPublicStockCatalog: !0 };
+  }
+  if (!parts.length) {
+    return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "home") {
+    return {
+      section: "HOME",
+      homeClientSlug:
+        parts[1] === "clients" && parts[2] ? decodeURIComponent(parts[2]) : null,
+      isPublicShare: !1,
+    };
+  }
+  if (parts[0] === "shoppings" || parts[0] === "missions") {
+    return { section: "MISSIONS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "clients") {
+    return { section: "CLIENTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "shipments") {
+    return { section: "SHIPMENTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "expenses") {
+    return { section: "EXPENSES", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "reports") {
+    return { section: "REPORTS", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "stock") {
+    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "calculator") {
+    return { section: "CALCULATOR", homeClientSlug: null, isPublicShare: !1 };
+  }
+  if (parts[0] === "profile") {
+    return { section: "PROFILE", homeClientSlug: null, isPublicShare: !1 };
+  }
+  return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
+}
+
+export function buildAppPath(section, options = {}) {
+  if (section === "HOME" && options.homeClientSlug) {
+    return `/home/clients/${encodeURIComponent(options.homeClientSlug)}`;
+  }
+  return APP_SECTION_PATHS[section] || APP_SECTION_PATHS.HOME;
+}
+
 export const MODULE_NUMBER_FORMAT = new Intl.NumberFormat("es-MX");
 export const MODULE_AMOUNT_FORMAT = new Intl.NumberFormat("es-MX", {
   minimumFractionDigits: 2,

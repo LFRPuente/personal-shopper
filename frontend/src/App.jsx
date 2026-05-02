@@ -13,9 +13,13 @@ import {
   normalizeShipmentStatusValue, getShipmentStatusLabel, getShipmentTrackingUrl,
   SHIPMENT_CARRIER_OPTIONS, canEditShipmentBox,
   getPublicShareInfoFromPath, getPublicShareFocusShipmentIdFromSearch,
+  getAppRouteFromPath, buildAppPath, slugifyRouteToken,
   MODULE_NUMBER_FORMAT, MODULE_AMOUNT_FORMAT,
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
+import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
+import { useImageSource } from './hooks/useImageSource.js';
+import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
@@ -43,18 +47,6 @@ const ShipmentsSection = V.lazy(() => import('./sections/ShipmentsSection.jsx'))
 const StockCatalogSection = V.lazy(() => import('./sections/StockCatalogSection.jsx'));
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
-
-const APP_SECTION_PATHS = {
-  HOME: "/home",
-  MISSIONS: "/shoppings",
-  CLIENTS: "/clients",
-  SHIPMENTS: "/shipments",
-  EXPENSES: "/expenses",
-  REPORTS: "/reports",
-  STOCK_CATALOG: "/stock",
-  CALCULATOR: "/calculator",
-  PROFILE: "/profile",
-};
 
 const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
 const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
@@ -148,72 +140,6 @@ class OverlayErrorBoundary extends V.Component {
   }
 }
 
-function slugifyRouteToken(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function getAppRouteFromPath(pathname) {
-  const parts = String(pathname || "/")
-    .split("?")[0]
-    .split("#")[0]
-    .split("/")
-    .filter(Boolean);
-  if (parts[0] === "share") {
-    return { section: "HOME", homeClientSlug: null, isPublicShare: !0 };
-  }
-  if (parts[0] === "catalogo-stock" || parts[0] === "stock-catalog") {
-    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1, isPublicStockCatalog: !0 };
-  }
-  if (!parts.length) {
-    return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "home") {
-    return {
-      section: "HOME",
-      homeClientSlug:
-        parts[1] === "clients" && parts[2] ? decodeURIComponent(parts[2]) : null,
-      isPublicShare: !1,
-    };
-  }
-  if (parts[0] === "shoppings" || parts[0] === "missions") {
-    return { section: "MISSIONS", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "clients") {
-    return { section: "CLIENTS", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "shipments") {
-    return { section: "SHIPMENTS", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "expenses") {
-    return { section: "EXPENSES", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "reports") {
-    return { section: "REPORTS", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "stock") {
-    return { section: "STOCK_CATALOG", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "calculator") {
-    return { section: "CALCULATOR", homeClientSlug: null, isPublicShare: !1 };
-  }
-  if (parts[0] === "profile") {
-    return { section: "PROFILE", homeClientSlug: null, isPublicShare: !1 };
-  }
-  return { section: "HOME", homeClientSlug: null, isPublicShare: !1 };
-}
-
-function buildAppPath(section, options = {}) {
-  if (section === "HOME" && options.homeClientSlug) {
-    return `/home/clients/${encodeURIComponent(options.homeClientSlug)}`;
-  }
-  return APP_SECTION_PATHS[section] || APP_SECTION_PATHS.HOME;
-}
-
 async function copyTextToClipboard(value, promptLabel = "Copia este texto:") {
   const text = String(value || "");
   if (!text) return "empty";
@@ -277,40 +203,6 @@ async function copyTextToClipboard(value, promptLabel = "Copia este texto:") {
   }
   if (clipboardError) throw clipboardError;
   throw new Error("No se pudo copiar automaticamente.");
-}
-
-function stripHtmlText(value) {
-  return String(value || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getReadableServerMessage(value, fallback = "No se pudo completar la solicitud.") {
-  const raw = String(value || "").trim();
-  if (!raw) return fallback;
-  if (/<!doctype html/i.test(raw) || /<html[\s>]/i.test(raw)) {
-    const titleMatch = raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const title = stripHtmlText(titleMatch ? titleMatch[1] : "");
-    if (/bad gateway|502/i.test(title) || /bad gateway|502/i.test(raw)) {
-      return "El servidor respondio 502 Bad Gateway. Revisa que la URL de WAHA este activa y que no sea la URL de PS.";
-    }
-    return title
-      ? `El servidor regreso HTML en lugar de JSON: ${title}`
-      : "El servidor regreso una pagina HTML en lugar de JSON.";
-  }
-  return raw.length > 400 ? `${raw.slice(0, 400).trim()}...` : raw;
-}
-
-function getApiErrorMessage(error, fallback = "No se pudo completar la solicitud.") {
-  const payload = error && error.payload;
-  return getReadableServerMessage(
-    (payload && (payload.error || payload.detail || payload.message)) ||
-      (error && error.message),
-    fallback,
-  );
 }
 
 function nh() {
@@ -560,11 +452,6 @@ function nh() {
     [editingRequestImageFile, setEditingRequestImageFile] = V.useState(null),
     [editingRequestImagePreview, setEditingRequestImagePreview] = V.useState(""),
     [editingRequestSaving, setEditingRequestSaving] = V.useState(!1),
-    [toasts, setToasts] = V.useState([]),
-    [confirmDialog, setConfirmDialog] = V.useState(null),
-    [inputDialog, setInputDialog] = V.useState(null),
-    [imageSourceDialog, setImageSourceDialog] = V.useState(null),
-    [imageSourceInfoOpen, setImageSourceInfoOpen] = V.useState(null),
     [openProductMenuId, setOpenProductMenuId] = V.useState(null),
     [openProductInfoId, setOpenProductInfoId] = V.useState(null),
     [openProductStatusId, setOpenProductStatusId] = V.useState(null),
@@ -607,6 +494,44 @@ function nh() {
     [altUploadTargetStatus, setAltUploadTargetStatus] = V.useState(""),
     [altUploadDescription, setAltUploadDescription] = V.useState(""),
     [altUploadFiles, setAltUploadFiles] = V.useState([]),
+    handleUnauthorized = V.useCallback(() => {
+      localStorage.removeItem("access_token");
+      jl(null);
+      b(null);
+      setLayoutMode("MOBILE");
+    }, []),
+    apiClient = useApiClient(C, handleUnauthorized),
+    I = apiClient.apiFetch,
+    publicApiFetch = apiClient.publicApiFetch,
+    toastDialogState = useToastsAndDialogs(),
+    toasts = toastDialogState.toasts,
+    confirmDialog = toastDialogState.confirmDialog,
+    inputDialog = toastDialogState.inputDialog,
+    dismissToast = toastDialogState.dismissToast,
+    notifySuccess = toastDialogState.notifySuccess,
+    notifyError = toastDialogState.notifyError,
+    notifyInfo = toastDialogState.notifyInfo,
+    confirmAction = toastDialogState.confirmAction,
+    closeConfirmDialog = toastDialogState.closeConfirmDialog,
+    openInputDialog = toastDialogState.openInputDialog,
+    updateInputDialogField = toastDialogState.updateInputDialogField,
+    closeInputDialog = toastDialogState.closeInputDialog,
+    submitInputDialog = toastDialogState.submitInputDialog,
+    imageSourceState = useImageSource({
+      notifyInfo,
+      notifyError,
+      notifySuccess,
+      setCopiedImageItemId,
+    }),
+    imageSourceDialog = imageSourceState.imageSourceDialog,
+    imageSourceInfoOpen = imageSourceState.imageSourceInfoOpen,
+    setImageSourceInfoOpen = imageSourceState.setImageSourceInfoOpen,
+    openImageSourcePicker = imageSourceState.openImageSourcePicker,
+    closeImageSourceDialog = imageSourceState.closeImageSourceDialog,
+    pickImageFromDevice = imageSourceState.pickImageFromDevice,
+    pickImageFromClipboard = imageSourceState.pickImageFromClipboard,
+    copyProductImageToClipboard = imageSourceState.copyProductImageToClipboard,
+    copyImageUrlToClipboard = imageSourceState.copyImageUrlToClipboard,
     // <-------- seccion 8: refs para websocket y reconexion
     wsRef = V.useRef(null),
     wsReconnectTimerRef = V.useRef(null),
@@ -632,66 +557,7 @@ function nh() {
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
-    toastTimeoutsRef = V.useRef(new Map()),
-    toastIdRef = V.useRef(0),
     shoppingCalcPersistTimerRef = V.useRef(null),
-    I = async (o, N = {}) => {
-      const A = { "Content-Type": "application/json" };
-      (C && (A.Authorization = `Bearer ${C}`),
-        N.body instanceof FormData && delete A["Content-Type"]);
-      const vl = await fetch(`${Zs}${o}`, { ...N, headers: A });
-      if (vl.status === 204) return null;
-      let El = null;
-      const Se = vl.headers.get("content-type") || "";
-      if (Se.includes("application/json")) {
-        try {
-          El = await vl.json();
-        } catch {
-          El = null;
-        }
-      } else {
-        const ea = await vl.text();
-        El = ea ? { detail: getReadableServerMessage(ea) } : null;
-      }
-      if (vl.status === 401) {
-        iu();
-        throw new Error((El && (El.detail || El.message)) || "Unauthorized");
-      }
-      if (!vl.ok) {
-        const ea = new Error(
-          (El && (El.detail || El.message)) || `HTTP ${vl.status}`,
-        );
-        (ea.status = vl.status, ea.payload = El);
-        throw ea;
-      }
-      return El;
-    },
-    publicApiFetch = async (o, N = {}) => {
-      const A = { "Content-Type": "application/json" };
-      N.body instanceof FormData && delete A["Content-Type"];
-      const vl = await fetch(`${Zs}${o}`, { ...N, headers: A });
-      if (vl.status === 204) return null;
-      let El = null;
-      const Se = vl.headers.get("content-type") || "";
-      if (Se.includes("application/json")) {
-        try {
-          El = await vl.json();
-        } catch {
-          El = null;
-        }
-      } else {
-        const ea = await vl.text();
-        El = ea ? { detail: getReadableServerMessage(ea) } : null;
-      }
-      if (!vl.ok) {
-        const ea = new Error(
-          (El && (El.detail || El.message)) || `HTTP ${vl.status}`,
-        );
-        (ea.status = vl.status, ea.payload = El);
-        throw ea;
-      }
-      return El;
-    },
     Ti = async () => {
       try {
         const o = await I("/auth/me/");
@@ -868,105 +734,6 @@ function nh() {
     reloadMissionRequests = async () => {
       const N = await I("/requests/");
       return (setRequests(N || []), N || []);
-    };
-  const dismissToast = (o) => {
-      const N = toastTimeoutsRef.current.get(o);
-      N && clearTimeout(N);
-      toastTimeoutsRef.current.delete(o);
-      setToasts((A) => A.filter((vl) => vl.id !== o));
-    },
-    pushToast = (o, N = "info") => {
-      const A = String(o || "").trim();
-      if (!A) return;
-      const vl = `${Date.now()}-${toastIdRef.current++}`;
-      setToasts((El) => [...El, { id: vl, message: A, tone: N }].slice(-4));
-      const El = window.setTimeout(() => dismissToast(vl), 3200);
-      toastTimeoutsRef.current.set(vl, El);
-    },
-    notifySuccess = (o) => pushToast(o, "success"),
-    notifyError = (o) => pushToast(o, "error"),
-    notifyInfo = (o) => pushToast(o, "info"),
-    confirmAction = ({
-      title = "Confirmar accion",
-      message = "",
-      confirmLabel = "Continuar",
-      cancelLabel = "Cancelar",
-      tone = "danger",
-    }) =>
-      new Promise((o) => {
-        setConfirmDialog({
-          title,
-          message,
-          confirmLabel,
-          cancelLabel,
-          tone,
-          resolve: o,
-        });
-      }),
-    closeConfirmDialog = (o) => {
-      confirmDialog && confirmDialog.resolve && confirmDialog.resolve(!!o);
-      setConfirmDialog(null);
-    },
-    openInputDialog = ({
-      title = "Captura",
-      message = "",
-      confirmLabel = "Guardar",
-      cancelLabel = "Cancelar",
-      fields = [],
-    }) =>
-      new Promise((o) => {
-        setInputDialog({
-          title,
-          message,
-          confirmLabel,
-          cancelLabel,
-          fields: fields.map((N) => ({
-            ...N,
-            value:
-              typeof N.value !== "undefined"
-                ? N.value
-                : N.type === "select"
-                  ? (((N.options || [])[0] || {}).value ?? "")
-                  : "",
-          })),
-          resolve: o,
-        });
-      }),
-    updateInputDialogField = (o, N) => {
-      setInputDialog((A) =>
-        A
-          ? {
-            ...A,
-            fields: A.fields.map((vl) =>
-              vl.name === o ? { ...vl, value: N } : vl,
-            ),
-          }
-          : A,
-      );
-    },
-    closeInputDialog = (o = null) => {
-      inputDialog && inputDialog.resolve && inputDialog.resolve(o);
-      setInputDialog(null);
-    },
-    submitInputDialog = () => {
-      if (!inputDialog) return;
-      const o = inputDialog.fields.find((N) => {
-        if (!N.required) return !1;
-        return !String(N.value || "").trim();
-      });
-      if (o) {
-        notifyInfo(
-          o.requiredMessage ||
-          `Completa ${String(o.label || o.name || "este campo").toLowerCase()}.`,
-        );
-        return;
-      }
-      closeInputDialog(
-        inputDialog.fields.reduce(
-          (N, A) => ({ ...N, [A.name]: A.value }),
-          {},
-        ),
-      );
     },
     activeOverlayKey = confirmDialog
       ? "confirm"
@@ -1405,8 +1172,6 @@ function nh() {
   }, [C, nl]);
   V.useEffect(
     () => () => {
-      toastTimeoutsRef.current.forEach((o) => clearTimeout(o));
-      toastTimeoutsRef.current.clear();
       overlayDismissTimerRef.current &&
         clearTimeout(overlayDismissTimerRef.current);
       sectionSwitchTimerRef.current &&
@@ -2102,14 +1867,7 @@ function nh() {
       T(N.message);
     }
   },
-    iu = () => {
-      (
-        localStorage.removeItem("access_token"),
-        jl(null),
-        b(null),
-        setLayoutMode("MOBILE")
-      );
-    },
+    iu = handleUnauthorized,
     buildClientPayload = ({
       name = "",
       status = "Pending",
@@ -2522,119 +2280,6 @@ function nh() {
       `${o}${closingOverlayKey === N ? " ui-backdrop-out" : ""}`,
     overlaySheetClass = (o, N) =>
       `${o}${closingOverlayKey === N ? " ui-sheet-out" : ""}`,
-    // <-------- seccion 8: selector de imagen robusto y unificado para dispositivo/portapapeles
-    dispatchImageSelection = (o, N = []) => {
-      const A = Array.isArray(N) ? N.filter(Boolean) : [];
-      A.length > 0 &&
-        o &&
-        o({ target: { files: A, value: "" } });
-    },
-    openDeviceImagePicker = (o, N = {}) => {
-      const A = !!N.multiple,
-        vl = String(N.accept || "image/*").trim() || "image/*";
-      try {
-        const El = document.createElement("input");
-        (El.type = "file",
-          El.accept = vl,
-          El.multiple = A,
-          El.style.position = "fixed",
-          El.style.left = "-9999px",
-          El.style.top = "-9999px",
-          El.onchange = () => {
-            const Se = Array.from(El.files || []);
-            if (Se.length > 0) {
-              // Use a stable File[] copy before removing the temporary input.
-              dispatchImageSelection(o, Se);
-            }
-            El.remove();
-          },
-          document.body.appendChild(El),
-          El.click());
-      } catch (El) {
-        (console.error("Failed opening image picker", El),
-          notifyError("No se pudo abrir el selector de imagen."));
-      }
-    },
-    openImageSourcePicker = (o, N = {}) => {
-      const A = N.title || "Seleccionar imagen",
-        vl = !!N.multiple;
-      setImageSourceInfoOpen(null);
-      setImageSourceDialog({
-        title: A,
-        description:
-          N.description ||
-          "Elige si quieres tomar la imagen del dispositivo o del portapapeles.",
-        multiple: vl,
-        accept: String(N.accept || "image/*").trim() || "image/*",
-        eyebrow: N.eyebrow || "Fuente de imagen",
-        deviceLabel: N.deviceLabel || "Elegir del dispositivo",
-        deviceDescription:
-          N.deviceDescription ||
-          (vl
-            ? "Abre tu galeria o archivos y selecciona una o varias imagenes."
-            : "Abre tu galeria o archivos y selecciona una imagen."),
-        clipboardLabel: N.clipboardLabel || "Usar portapapeles",
-        clipboardDescription:
-          N.clipboardDescription ||
-          "Pega la imagen que ya copiaste y usala al instante sin buscar archivos.",
-        onSelect: o,
-      });
-    },
-    readClipboardImages = async (o = {}) => {
-      if (
-        !navigator.clipboard ||
-        typeof navigator.clipboard.read != "function"
-      )
-        throw new Error("Clipboard image read is not supported in this browser.");
-      const N = !!o.multiple,
-        A = await navigator.clipboard.read(),
-        vl = [];
-      for (const El of A) {
-        for (const Se of El.types || []) {
-          if (!String(Se || "").startsWith("image/")) continue;
-          const ea = await El.getType(Se),
-            gl = Se.split("/")[1] || "png";
-          vl.push(
-            new File([ea], `clipboard-image-${Date.now()}-${vl.length + 1}.${gl}`, {
-              type: Se,
-              lastModified: Date.now(),
-            }),
-          );
-          if (!N) return vl;
-        }
-      }
-      return vl;
-    },
-    closeImageSourceDialog = () => {
-      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
-    },
-    pickImageFromDevice = () => {
-      const o = imageSourceDialog;
-      if (!o || !o.onSelect) return;
-      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
-      openDeviceImagePicker(o.onSelect, {
-        multiple: o.multiple,
-        accept: o.accept,
-      });
-    },
-    pickImageFromClipboard = async () => {
-      const o = imageSourceDialog;
-      if (!o || !o.onSelect) return;
-      (setImageSourceDialog(null), setImageSourceInfoOpen(null));
-      try {
-        const N = await readClipboardImages({ multiple: o.multiple });
-        if (!N.length) {
-          notifyInfo("No se encontró ninguna imagen en el portapapeles.");
-          return;
-        }
-        dispatchImageSelection(o.onSelect, N);
-      } catch (N) {
-        (console.error("Failed reading clipboard image", N),
-          notifyError(
-            "No se pudo leer una imagen del portapapeles. Verifica permisos o copia una imagen primero.",
-          ));
-      }
-    },
     su = () => {
       if (receiptUploading) return;
       openImageSourcePicker(ru, { title: "Subir ticket" });
@@ -3347,137 +2992,6 @@ function nh() {
           setStoreSearch(""));
       } catch (N) {
         console.error("Failed to create store", N);
-      }
-    },
-    // <-------- seccion 8: convertir imagen a PNG para mejorar compatibilidad de copiado
-    convertBlobToPng = async (o) => {
-      if (!o) throw new Error("Invalid image blob");
-      if (o.type === "image/png") return o;
-      const N = URL.createObjectURL(o);
-      try {
-        const A = await new Promise((vl, El) => {
-          const Se = new Image();
-          (Se.onload = () => vl(Se),
-            Se.onerror = () => El(new Error("Could not decode image")),
-            Se.src = N);
-        });
-        const vl = document.createElement("canvas"),
-          El = Math.max(1, A.naturalWidth || A.width || 1),
-          Se = Math.max(1, A.naturalHeight || A.height || 1);
-        (vl.width = El, vl.height = Se);
-        const ea = vl.getContext("2d");
-        if (!ea) throw new Error("Canvas context unavailable");
-        ea.drawImage(A, 0, 0, El, Se);
-        return await new Promise((gl, ae) => {
-          vl.toBlob(
-            (oi) => (oi ? gl(oi) : ae(new Error("PNG conversion failed"))),
-            "image/png",
-          );
-        });
-      } finally {
-        URL.revokeObjectURL(N);
-      }
-    },
-    copyProductImageToClipboard = async (o, N) => {
-      if (!N) return;
-      const A = resolveMediaUrl(N);
-      try {
-        const vl = await fetch(A);
-        if (!vl.ok) throw new Error(`HTTP ${vl.status}`);
-        const El = await vl.blob(),
-          Se =
-            El.type && El.type.startsWith("image/") ? El.type : "image/png";
-        if (
-          navigator.clipboard &&
-          navigator.clipboard.write &&
-          typeof ClipboardItem !== "undefined"
-        ) {
-          const ea = [];
-          try {
-            const gl = await convertBlobToPng(El);
-            ea.push({ type: "image/png", blob: gl });
-          } catch {}
-          Se !== "image/png" && ea.push({ type: Se, blob: El });
-          Se === "image/png" && ea.push({ type: Se, blob: El });
-          let gl = !1;
-          for (const ae of ea) {
-            try {
-              await navigator.clipboard.write([
-                new ClipboardItem({ [ae.type]: ae.blob }),
-              ]);
-              gl = !0;
-              break;
-            } catch {}
-          }
-          if (!gl) throw new Error("Clipboard image API not supported");
-        } else {
-          throw new Error("Clipboard image API not supported");
-        }
-        (setCopiedImageItemId(o),
-          setTimeout(() => setCopiedImageItemId(null), 2000));
-      } catch (vl) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(A);
-            (setCopiedImageItemId(o),
-              setTimeout(() => setCopiedImageItemId(null), 2000),
-              notifyInfo(
-                "Tu navegador no permite copiar imagen directa. Se copio el enlace de la imagen.",
-              ));
-            return;
-          }
-        } catch {}
-        (console.error("Failed to copy image", vl),
-          notifyError("No se pudo copiar la imagen. Intenta en Chrome o Edge."));
-      }
-    },
-    copyImageUrlToClipboard = async (o, N = "Imagen copiada.") => {
-      if (!o) return;
-      try {
-        const A = await fetch(o);
-        if (!A.ok) throw new Error(`HTTP ${A.status}`);
-        const vl = await A.blob(),
-          El =
-            vl.type && vl.type.startsWith("image/") ? vl.type : "image/png";
-        if (
-          navigator.clipboard &&
-          navigator.clipboard.write &&
-          typeof ClipboardItem != "undefined"
-        ) {
-          const Se = [];
-          try {
-            const ea = await convertBlobToPng(vl);
-            Se.push({ type: "image/png", blob: ea });
-          } catch {}
-          El !== "image/png" && Se.push({ type: El, blob: vl });
-          El === "image/png" && Se.push({ type: El, blob: vl });
-          let ea = !1;
-          for (const gl of Se) {
-            try {
-              await navigator.clipboard.write([
-                new ClipboardItem({ [gl.type]: gl.blob }),
-              ]);
-              ea = !0;
-              break;
-            } catch {}
-          }
-          if (!ea) throw new Error("Clipboard image API not supported");
-          notifySuccess(N);
-          return;
-        }
-        throw new Error("Clipboard image API not supported");
-      } catch (A) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(o);
-            notifyInfo(
-              "Tu navegador no permite copiar imagen directa. Se copio el enlace de la imagen.",
-            );
-            return;
-          }
-        } catch {}
-        (console.error("Failed to copy image url", A),
-          notifyError("No se pudo copiar la imagen. Intenta en Chrome o Edge."));
       }
     },
     getFullscreenImageUrl = (o) =>
