@@ -1,10 +1,10 @@
 import {
-  V, c, IS_FIREFOX, ENABLE_REALTIME_UPDATES, scheduleIdleTask,
+  V, c, IS_FIREFOX, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
   HOME_DESKTOP_LAYOUT_DEFAULTS, normalizeHomeDesktopLayout,
   DEFAULT_PRODUCT_FORM, createEmptyProductForm, getDraftProductFlowState, normalizeProductModalStatus,
   DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE,
-  Zs, WS_UPDATES_URL, BACKEND_ORIGIN, isPdfMediaUrl, resolveMediaUrl, revokeBlobUrl,
+  Zs, BACKEND_ORIGIN, isPdfMediaUrl, resolveMediaUrl, revokeBlobUrl,
   toFormUserId, toFormShoppingId, getUserOptionLabel,
   normalizeClientCountryCode, normalizeClientPhoneDigits,
   sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
@@ -20,6 +20,7 @@ import { AppProvider } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
+import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
@@ -532,10 +533,6 @@ function nh() {
     pickImageFromClipboard = imageSourceState.pickImageFromClipboard,
     copyProductImageToClipboard = imageSourceState.copyProductImageToClipboard,
     copyImageUrlToClipboard = imageSourceState.copyImageUrlToClipboard,
-    // <-------- seccion 8: refs para websocket y reconexion
-    wsRef = V.useRef(null),
-    wsReconnectTimerRef = V.useRef(null),
-    wsStoppedRef = V.useRef(!1),
     reviewConversationScrollRef = V.useRef(null),
     reviewConversationStateRef = V.useRef(""),
     reviewConversationSendCooldownTimerRef = V.useRef(null),
@@ -548,12 +545,6 @@ function nh() {
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
     requestsLoadedRef = V.useRef(!1),
-    coreRefreshTimerRef = V.useRef(null),
-    coreRefreshPendingRef = V.useRef(!1),
-    coreRefreshInFlightRef = V.useRef(!1),
-    selectedClientRefreshTimerRef = V.useRef(null),
-    selectedClientRefreshPendingRef = V.useRef(!1),
-    selectedClientRefreshInFlightRef = V.useRef(!1),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
@@ -674,61 +665,26 @@ function nh() {
         console.error("Failed refreshing selected client", N);
       }
     },
-    runQueuedCoreRefresh = async () => {
-      if (coreRefreshInFlightRef.current) {
-        coreRefreshPendingRef.current = !0;
-        return;
-      }
-      coreRefreshInFlightRef.current = !0;
-      try {
-        await refreshCoreData();
-      } finally {
-        coreRefreshInFlightRef.current = !1;
-        if (coreRefreshPendingRef.current) {
-          coreRefreshPendingRef.current = !1;
-          queueCoreRefresh(600);
-        }
-      }
-    },
-    queueCoreRefresh = (o = 500) => {
-      coreRefreshPendingRef.current = !0;
-      coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
-      coreRefreshTimerRef.current = setTimeout(() => {
-        coreRefreshTimerRef.current = null;
-        coreRefreshPendingRef.current = !1;
-        runQueuedCoreRefresh().catch((N) => {
-          console.error("Failed queued core refresh", N);
-        });
-      }, o);
-    },
-    runQueuedSelectedClientRefresh = async () => {
-      if (selectedClientRefreshInFlightRef.current) {
-        selectedClientRefreshPendingRef.current = !0;
-        return;
-      }
-      selectedClientRefreshInFlightRef.current = !0;
-      try {
-        await refreshSelectedClient();
-      } finally {
-        selectedClientRefreshInFlightRef.current = !1;
-        if (selectedClientRefreshPendingRef.current) {
-          selectedClientRefreshPendingRef.current = !1;
-          queueSelectedClientRefresh(220);
-        }
-      }
-    },
-    queueSelectedClientRefresh = (o = 400) => {
-      selectedClientRefreshPendingRef.current = !0;
-      selectedClientRefreshTimerRef.current &&
-        clearTimeout(selectedClientRefreshTimerRef.current);
-      selectedClientRefreshTimerRef.current = setTimeout(() => {
-        selectedClientRefreshTimerRef.current = null;
-        selectedClientRefreshPendingRef.current = !1;
-        runQueuedSelectedClientRefresh().catch((N) => {
-          console.error("Failed queued selected client refresh", N);
-        });
-      }, o);
-    },
+    realtimeUpdates = useRealtimeUpdates({
+      accessToken: C,
+      currentView: nl,
+      apiFetch: I,
+      refreshCoreData,
+      refreshSelectedClient,
+      selectedClientIdRef,
+      activeMissionIdRef,
+      openShoppingTabsRef,
+      setHomeNeedsAttention,
+      setRequests,
+      setProductReviews,
+      setMissionReviewAlerts,
+      setHomeUnreadSummary,
+      setShoppingUnreadSummaryMap,
+      setStores,
+      setStoreRecommendations,
+    }),
+    queueCoreRefresh = realtimeUpdates.queueCoreRefresh,
+    queueSelectedClientRefresh = realtimeUpdates.queueSelectedClientRefresh,
     // <-------- seccion 8: helper de recarga y update robusto para peticiones
     getMissionRequestDetailPath = (o) => `/requests/${o}/`,
     reloadMissionRequests = async () => {
@@ -852,14 +808,6 @@ function nh() {
     overlaySheetClass = overlayNavigation.overlaySheetClass,
     sectionSwitchTimerRef = V.useRef(null),
     sectionSettleTimerRef = V.useRef(null);
-  V.useEffect(
-    () => () => {
-      coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
-      selectedClientRefreshTimerRef.current &&
-        clearTimeout(selectedClientRefreshTimerRef.current);
-    },
-    [],
-  );
   V.useEffect(() => {
     const normalized = themeMode === "DARK" ? "DARK" : "LIGHT";
     localStorage.setItem("theme_mode", normalized);
@@ -1163,249 +1111,6 @@ function nh() {
     window.addEventListener("resize", o);
     return () => window.removeEventListener("resize", o);
   }, []);
-  // <-------- seccion 8: conexion websocket + reconexion automatica
-  V.useEffect(() => {
-    const isRealtimeView = (view) =>
-      view === "HOME" ||
-      view === "MISSIONS" ||
-      view === "CLIENTS" ||
-      view === "SHIPMENTS";
-    const currentView = currentTabRef.current;
-    if (!C) {
-      wsStoppedRef.current = !0;
-      wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
-      wsReconnectTimerRef.current = null;
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      return;
-    }
-    if (!ENABLE_REALTIME_UPDATES || !isRealtimeView(currentView)) {
-      wsStoppedRef.current = !0;
-      wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
-      wsReconnectTimerRef.current = null;
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      return;
-    }
-    wsStoppedRef.current = !1;
-    let reconnectAttempt = 0;
-    const refreshRequestsForMission = async () => {
-      try {
-        const N = await I("/requests/");
-        setRequests(N || []);
-      } catch (N) {
-        console.error("Failed loading shopping requests", N);
-      }
-    };
-    const refreshReviewsForCurrentContext = async () => {
-      const o = selectedClientIdRef.current,
-        N = activeMissionIdRef.current;
-      if (o) {
-        try {
-          const A = await I(`/reviews/?client=${o}`);
-          setProductReviews(A || []);
-        } catch (A) {
-          console.error("Failed loading product reviews", A);
-        }
-      }
-      if (N) {
-        try {
-          const A = await I(`/reviews/?shopping=${N}`);
-          setMissionReviewAlerts(
-            (A || []).filter(
-              (vl) =>
-                vl.status === "PENDING" || vl.status === "ALTERNATIVE_SENT",
-            ),
-          );
-        } catch (A) {
-          console.error("Failed loading shopping reviews", A);
-        }
-      } else {
-        setMissionReviewAlerts([]);
-      }
-    };
-    const refreshUnreadSummaryForActiveMission = async () => {
-      const o = activeMissionIdRef.current;
-      if (!o) {
-        setHomeUnreadSummary({});
-        return;
-      }
-      try {
-        const N = await I(`/reviews/unread-summary/?shopping=${o}`);
-        setHomeUnreadSummary(N || {});
-      } catch (N) {
-        console.error("Failed loading unread review summary", N);
-      }
-    };
-    const refreshUnreadSummaryForOpenShoppings = async () => {
-      const openShoppingTabs = openShoppingTabsRef.current || [];
-      if (!openShoppingTabs.length) {
-        setShoppingUnreadSummaryMap({});
-        return;
-      }
-      try {
-        const entries = await Promise.all(
-          openShoppingTabs.map(async (mission) => {
-            const missionId = Number(mission && mission.id) || 0;
-            if (!missionId) return [null, null];
-            try {
-              const summary = await I(`/reviews/unread-summary/?shopping=${missionId}`);
-              return [String(missionId), summary || {}];
-            } catch (error) {
-              console.error("Failed refreshing unread summary for shopping", missionId, error);
-              return [String(missionId), {}];
-            }
-          }),
-        );
-        setShoppingUnreadSummaryMap(
-          entries.reduce((acc, entry) => {
-            const [key, value] = entry || [];
-            if (!key) return acc;
-            acc[key] = value || {};
-            return acc;
-          }, {}),
-        );
-      } catch (error) {
-        console.error("Failed refreshing unread summaries for open shoppings", error);
-      }
-    };
-    const connect = () => {
-      if (wsStoppedRef.current) return;
-      const o = new WebSocket(
-        `${WS_UPDATES_URL}?token=${encodeURIComponent(C)}`,
-      );
-      wsRef.current = o;
-      o.onopen = () => {
-        reconnectAttempt = 0;
-      };
-      o.onmessage = async (N) => {
-        try {
-          const A = JSON.parse(N.data || "{}");
-          const vl = A.model,
-            El = String(A.action || "changed").toLowerCase(),
-            currentView = currentTabRef.current,
-            Se = () => {
-              if (currentTabRef.current !== "HOME") setHomeNeedsAttention(!0);
-            };
-          if (!isRealtimeView(currentView)) {
-            return;
-          }
-          if (
-            (vl === "clients" || vl === "requests" || vl === "reviews") &&
-            El === "created"
-          ) {
-            Se();
-          }
-          if (vl === "clients" || vl === "shoppings") {
-            if (
-              currentView === "HOME" ||
-              currentView === "MISSIONS" ||
-              currentView === "CLIENTS" ||
-              currentView === "SHIPMENTS"
-            ) {
-              queueCoreRefresh();
-              queueSelectedClientRefresh();
-            }
-            return;
-          }
-          if (vl === "shipments") {
-            if (currentView === "SHIPMENTS") {
-              queueCoreRefresh();
-            }
-            return;
-          }
-          if (vl === "products" || vl === "receipts") {
-            if (
-              currentView === "HOME" ||
-              currentView === "MISSIONS" ||
-              currentView === "CLIENTS" ||
-              currentView === "SHIPMENTS"
-            ) {
-              queueCoreRefresh();
-              queueSelectedClientRefresh();
-              refreshReviewsForCurrentContext().catch((ea) => {
-                console.error("Failed refreshing reviews after product update", ea);
-              });
-            }
-            refreshUnreadSummaryForActiveMission().catch((ea) => {
-              console.error("Failed refreshing unread summary", ea);
-            });
-            refreshUnreadSummaryForOpenShoppings().catch((ea) => {
-              console.error("Failed refreshing unread summaries for open shoppings", ea);
-            });
-            return;
-          }
-          if (vl === "requests") {
-            if (currentView === "HOME" || currentView === "MISSIONS") {
-              await refreshRequestsForMission();
-            }
-            return;
-          }
-          if (vl === "reviews") {
-            if (
-              currentView === "HOME" ||
-              currentView === "MISSIONS" ||
-              currentView === "CLIENTS" ||
-              currentView === "SHIPMENTS"
-            ) {
-              queueCoreRefresh();
-              queueSelectedClientRefresh();
-            }
-            if (currentView === "HOME" || currentView === "MISSIONS" || currentView === "CLIENTS") {
-              refreshReviewsForCurrentContext().catch((ea) => {
-                console.error("Failed refreshing reviews", ea);
-              });
-            }
-            refreshUnreadSummaryForActiveMission().catch((ea) => {
-              console.error("Failed refreshing unread summary", ea);
-            });
-            refreshUnreadSummaryForOpenShoppings().catch((ea) => {
-              console.error("Failed refreshing unread summaries for open shoppings", ea);
-            });
-            return;
-          }
-          if (vl === "stores") {
-            if (currentView === "HOME" || currentView === "MISSIONS") {
-              const [ea, gl] = await Promise.all([
-                I("/stores/"),
-                I("/store-recommendations/"),
-              ]);
-              setStores(ea || []);
-              setStoreRecommendations(gl || []);
-            }
-            return;
-          }
-        } catch (A) {
-          console.error("Failed processing websocket message", A);
-        }
-      };
-      o.onerror = () => {
-        try {
-          o.close();
-        } catch {}
-      };
-      o.onclose = () => {
-        if (wsStoppedRef.current) return;
-        reconnectAttempt += 1;
-        const N = Math.min(5000, 1000 * reconnectAttempt);
-        wsReconnectTimerRef.current = setTimeout(connect, N);
-      };
-    };
-    connect();
-    return () => {
-      wsStoppedRef.current = !0;
-      wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
-      wsReconnectTimerRef.current = null;
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [C, nl]);
   V.useEffect(() => {
     localStorage.setItem("calc_mode", calcMode);
   }, [calcMode]);
