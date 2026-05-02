@@ -6,9 +6,8 @@ import {
   DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE,
   Zs, BACKEND_ORIGIN, isPdfMediaUrl, resolveMediaUrl, revokeBlobUrl,
   toFormUserId, toFormShoppingId, getUserOptionLabel,
-  normalizeClientCountryCode, normalizeClientPhoneDigits,
   sanitizeClientCountryCodeInput, sanitizeClientPhoneInput,
-  normalizeClientShippingAddresses, getClientPhoneDisplay, getClientWahaChatId,
+  getClientPhoneDisplay, getClientWahaChatId,
   getUserPhoneDisplay, getUserWahaChatId,
   normalizeShipmentStatusValue, getShipmentStatusLabel, getShipmentTrackingUrl,
   SHIPMENT_CARRIER_OPTIONS, canEditShipmentBox,
@@ -18,6 +17,7 @@ import {
 } from './utils.js';
 import { AppProvider } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
+import { useClientsDomain } from './hooks/useClientsDomain.js';
 import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
 import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
@@ -51,8 +51,6 @@ const StockCatalogSection = V.lazy(() => import('./sections/StockCatalogSection.
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
 
-const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
-const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
 const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
 const MAX_OPEN_SHOPPINGS = 3;
 
@@ -251,30 +249,9 @@ function nh() {
     [Al, zl] = V.useState([]),
     [w, Dl] = V.useState(null),
     [Kl, _l] = V.useState([]),
-    [W, et] = V.useState(null),
-    [Il, k] = V.useState(!1),
     [Pl, at] = V.useState(!1),
     [me, ut] = V.useState(!1),
-    [Vl, Yt] = V.useState(""),
-    [Nt, it] = V.useState(""),
-    [clientPhoneCountryCode, setClientPhoneCountryCode] = V.useState("+521"),
-    [p, z] = V.useState(""),
-    [q, sl] = V.useState(""),
-    [rl, d] = V.useState(""),
-    [clientShippingAddresses, setClientShippingAddresses] = V.useState([]),
     [j, _] = V.useState(""),
-    [O, Y] = V.useState(null),
-    [K, tl] = V.useState(!1),
-    [ml, hl] = V.useState({
-      name: "",
-      tags: "",
-      status: "",
-      phone_country_code: "+52",
-      phone: "",
-      email: "",
-      shipping_address: "",
-      shipping_addresses: [],
-    }),
     [kt, Kt] = V.useState(null),
     [va, we] = V.useState(null),
     [ct, ke] = V.useState([]),
@@ -299,18 +276,6 @@ function nh() {
     [Sa, uu] = V.useState(""),
     [Ei, ge] = V.useState(null),
     [wl, jt] = V.useState("REVIEW"),
-    [clientGalleryTabOrder, setClientGalleryTabOrder] = V.useState(
-      HOME_CLIENT_GALLERY_TAB_ORDER,
-    ),
-    [clientGalleryMissionScopeId, setClientGalleryMissionScopeId] = V.useState(
-      null,
-    ),
-    [clientGalleryMissionScopeMeta, setClientGalleryMissionScopeMeta] = V.useState(
-      null,
-    ),
-    [clientGalleryAllowsShoppingChoice, setClientGalleryAllowsShoppingChoice] = V.useState(
-      !1,
-    ),
     [calcMode, setCalcMode] = V.useState(
       localStorage.getItem("calc_mode") || "FACTOR",
     ),
@@ -509,6 +474,71 @@ function nh() {
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
     openShoppingTabsRef = V.useRef([]),
+    setClosingOverlayKeyActionRef = V.useRef(() => {}),
+    clientsDomain = useClientsDomain({
+      apiFetch: I,
+      clients: Kl,
+      setClients: _l,
+      publicShareType,
+      pendingHomeClientRouteRef,
+      setFullscreenImage,
+      setClosingOverlayKey: (value) => setClosingOverlayKeyActionRef.current(value),
+      setProductGalleryTab: jt,
+      notifyInfo,
+      notifySuccess,
+      notifyError,
+      confirmAction,
+      copyTextToClipboard,
+      setCopiedClientShareLinks,
+    }),
+    W = clientsDomain.selectedClient,
+    et = clientsDomain.setSelectedClient,
+    Il = clientsDomain.createClientOpen,
+    k = clientsDomain.setCreateClientOpen,
+    Vl = clientsDomain.newClientName,
+    Yt = clientsDomain.setNewClientName,
+    Nt = clientsDomain.newClientTags,
+    it = clientsDomain.setNewClientTags,
+    clientPhoneCountryCode = clientsDomain.clientPhoneCountryCode,
+    setClientPhoneCountryCode = clientsDomain.setClientPhoneCountryCode,
+    p = clientsDomain.clientPhone,
+    z = clientsDomain.setClientPhone,
+    q = clientsDomain.clientEmail,
+    sl = clientsDomain.setClientEmail,
+    rl = clientsDomain.clientShippingAddress,
+    d = clientsDomain.setClientShippingAddress,
+    clientShippingAddresses = clientsDomain.clientShippingAddresses,
+    setClientShippingAddresses = clientsDomain.setClientShippingAddresses,
+    O = clientsDomain.editingClient,
+    Y = clientsDomain.setEditingClient,
+    K = clientsDomain.editClientOpen,
+    tl = clientsDomain.setEditClientOpen,
+    ml = clientsDomain.editClientForm,
+    hl = clientsDomain.setEditClientForm,
+    clientGalleryTabOrder = clientsDomain.clientGalleryTabOrder,
+    setClientGalleryTabOrder = clientsDomain.setClientGalleryTabOrder,
+    clientGalleryMissionScopeId = clientsDomain.clientGalleryMissionScopeId,
+    setClientGalleryMissionScopeId = clientsDomain.setClientGalleryMissionScopeId,
+    clientGalleryMissionScopeMeta = clientsDomain.clientGalleryMissionScopeMeta,
+    setClientGalleryMissionScopeMeta = clientsDomain.setClientGalleryMissionScopeMeta,
+    clientGalleryAllowsShoppingChoice = clientsDomain.clientGalleryAllowsShoppingChoice,
+    setClientGalleryAllowsShoppingChoice = clientsDomain.setClientGalleryAllowsShoppingChoice,
+    buildClientPayload = clientsDomain.buildClientPayload,
+    openCreateClientModal = clientsDomain.openCreateClientModal,
+    openEditClientModal = clientsDomain.openEditClientModal,
+    Na = clientsDomain.createClient,
+    ja = clientsDomain.updateClient,
+    Ea = clientsDomain.deleteClient,
+    Jt = clientsDomain.toggleClientStatus,
+    Qt = clientsDomain.refreshSelectedClient,
+    Ta = clientsDomain.openClientFullGallery,
+    openMissionClientView = clientsDomain.openMissionClientView,
+    openClientSectionGallery = clientsDomain.openClientSectionGallery,
+    openClientShoppingGallery = clientsDomain.openClientShoppingGallery,
+    Aa = clientsDomain.closeSelectedClient,
+    generateClientHistoryShareLink = clientsDomain.generateClientHistoryShareLink,
+    copyClientMissionShareLink = clientsDomain.copyClientMissionShareLink,
+    copyClientShipmentHistoryLink = clientsDomain.copyClientShipmentHistoryLink,
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
     requestsLoadedRef = V.useRef(!1),
@@ -852,6 +882,7 @@ function nh() {
     sectionSwitchTimerRef = V.useRef(null),
     sectionSettleTimerRef = V.useRef(null);
   V.useEffect(() => {
+    setClosingOverlayKeyActionRef.current = setClosingOverlayKey;
     queueCoreRefreshActionRef.current = queueCoreRefresh;
     queueSelectedClientRefreshActionRef.current = queueSelectedClientRefresh;
     refreshCoreDataActionRef.current = refreshCoreData;
@@ -861,6 +892,7 @@ function nh() {
     queueSelectedClientRefresh,
     refreshCoreData,
     refreshSelectedClient,
+    setClosingOverlayKey,
   ]);
   V.useEffect(() => {
     const normalized = themeMode === "DARK" ? "DARK" : "LIGHT";
@@ -1484,137 +1516,6 @@ function nh() {
     }
   },
     iu = handleUnauthorized,
-    buildClientPayload = ({
-      name = "",
-      status = "Pending",
-      tags = "",
-      phone_country_code = "+521",
-      phone = "",
-      email = "",
-      shipping_address = "",
-      shipping_addresses = [],
-    }) => ({
-      name: String(name || "").trim(),
-      status,
-      tags: String(tags || "").trim(),
-      phone_country_code: normalizeClientCountryCode(phone_country_code),
-      phone: normalizeClientPhoneDigits(phone),
-      email: String(email || "").trim(),
-      shipping_address: String(shipping_address || "").trim(),
-      shipping_addresses: normalizeClientShippingAddresses(
-        shipping_addresses,
-        shipping_address,
-      ),
-    }),
-    openCreateClientModal = () => {
-      Yt("");
-      it("");
-      setClientPhoneCountryCode("+521");
-      z("");
-      sl("");
-      d("");
-      setClientShippingAddresses([]);
-      k(!0);
-    },
-    openEditClientModal = (o) => {
-      if (!o) return;
-      Y(o);
-      hl({
-        name: o.name,
-        tags: o.tags || "",
-        status: o.status,
-        phone_country_code: o.phone_country_code || "+52",
-        phone: o.phone || "",
-        email: o.email || "",
-        shipping_address: o.shipping_address || "",
-        shipping_addresses: Array.isArray(o.shipping_addresses)
-          ? o.shipping_addresses
-          : [],
-      });
-      tl(!0);
-    },
-    Na = async (o) => {
-      if ((o.preventDefault(), !!Vl))
-        try {
-          const A = buildClientPayload({
-            name: Vl,
-            status: "Pending",
-            tags: Nt,
-            phone_country_code: clientPhoneCountryCode,
-            phone: p,
-            email: q,
-            shipping_address: rl,
-            shipping_addresses: clientShippingAddresses,
-          });
-          if (A.phone && A.phone.length !== 10) {
-            notifyInfo("El telefono debe tener exactamente 10 numeros.");
-            return;
-          }
-          const N = await I("/clients/", {
-            method: "POST",
-            body: JSON.stringify(A),
-          });
-          (_l([...Kl, N]),
-            Yt(""),
-            it(""),
-            setClientPhoneCountryCode("+521"),
-            z(""),
-            sl(""),
-            d(""),
-            setClientShippingAddresses([]),
-            k(!1));
-        } catch (N) {
-          notifyError((N && N.message) || "Error creating client");
-        }
-    },
-    ja = async (o) => {
-      if ((o.preventDefault(), !!ml.name))
-        try {
-          const Nl = buildClientPayload(ml);
-          if (Nl.phone && Nl.phone.length !== 10) {
-            notifyInfo("El telefono debe tener exactamente 10 numeros.");
-            return;
-          }
-          const N = await I(`/clients/${O.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify(Nl),
-          });
-          (_l(Kl.map((A) => (A.id === O.id ? N : A))), tl(!1), Y(null));
-        } catch (N) {
-          notifyError((N && N.message) || "Error updating client");
-        }
-    },
-    Ea = async (o) => {
-      if (
-        !(await confirmAction({
-          title: "Eliminar cliente",
-          message:
-            "Se eliminará el cliente y todos sus productos vinculados.",
-          confirmLabel: "Eliminar",
-          tone: "danger",
-        }))
-      )
-        return;
-      try {
-        (await I(`/clients/${o}/`, { method: "DELETE" }),
-          _l(Kl.filter((N) => N.id !== o)),
-          W && W.id === o && et(null));
-      } catch {
-        notifyError("Error deleting client");
-      }
-    },
-    Jt = async (o) => {
-      const N = String(o.status || "").toLowerCase() === "active" ? "Pending" : "Active";
-      try {
-        const A = await I(`/clients/${o.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: N }),
-        });
-        _l(Kl.map((vl) => (vl.id === o.id ? A : vl)));
-      } catch (A) {
-        console.error(A);
-      }
-    },
     openMissionStart = () => {
       const parseSafe = (N, A = 0) => {
         const vl = parseFloat(N);
@@ -1810,70 +1711,11 @@ function nh() {
           notifyError("Error renaming shopping");
         }
     },
-    Qt = async () => {
-      if (W)
-        try {
-          const o = await I(`/clients/${W.id}/`);
-          (et(o), _l(Kl.map((N) => (N.id === o.id ? o : N))));
-        } catch { }
-    },
-    Ta = (o, N = null) => {
-      (setClientGalleryMissionScopeId(N),
-        setClientGalleryMissionScopeMeta(null),
-        setClientGalleryAllowsShoppingChoice(
-          N === null || typeof N === "undefined" || String(N).trim() === "",
-        ),
-        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER),
-        et(o),
-        jt("REVIEW"));
-    },
-    openMissionClientView = (o, N = null) => {
-      (setClientGalleryMissionScopeId(N),
-        setClientGalleryMissionScopeMeta(null),
-        setClientGalleryAllowsShoppingChoice(!1),
-        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
-        et(o),
-        jt("ANNOTATED"));
-    },
-    openClientSectionGallery = (o) => {
-      (setClientGalleryMissionScopeId(null),
-        setClientGalleryMissionScopeMeta(null),
-        setClientGalleryAllowsShoppingChoice(!0),
-        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
-        et(o),
-        jt("ANNOTATED"));
-    },
     syncBrowserRoute = (o, N = {}, A = !0) => {
       if (typeof window === "undefined" || publicShareType) return;
       const vl = buildAppPath(o, N);
       if (window.location.pathname === vl) return;
       window.history[A ? "replaceState" : "pushState"]({}, "", vl);
-    },
-    openClientShoppingGallery = (o, N = null) => {
-      const A =
-        N && typeof N == "object"
-          ? Number(N.id || N.key || N.shopping || N.mission || 0)
-          : Number(N || 0);
-      (setClientGalleryMissionScopeId(A || null),
-        setClientGalleryMissionScopeMeta(N && typeof N == "object" ? N : null),
-        setClientGalleryAllowsShoppingChoice(!1),
-        setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER),
-        et(o),
-        jt("ANNOTATED"));
-    },
-    Aa = () => {
-      (et(null),
-        setFullscreenImage(null),
-        setClientGalleryAllowsShoppingChoice(!1),
-        setClientGalleryMissionScopeMeta(null),
-        setClientGalleryMissionScopeId(null),
-        setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER),
-        setClosingOverlayKey(""),
-        pendingHomeClientRouteRef.current = null,
-        typeof window !== "undefined" &&
-          !publicShareType &&
-          window.location.pathname !== "/home/" &&
-          window.history.replaceState({}, "", "/home/"));
     },
     navigateSection = (o) => {
       if (o === nl) return;
@@ -2889,67 +2731,6 @@ function nh() {
         await navigator.clipboard.writeText(Nn);
       } catch (Ta) {
         console.error("Failed to copy clients shopping breakdown", Ta);
-      }
-    },
-    generateClientHistoryShareLink = async (o) => {
-      if (!o) throw new Error("Cliente invalido.");
-      const N = await I("/client-share-links/", {
-        method: "POST",
-        body: JSON.stringify({
-          client: o.id,
-        }),
-      });
-      if (!N || !N.share_url) throw new Error("No se pudo generar el enlace.");
-      return N;
-    },
-    copyClientMissionShareLink = async (o, N) => {
-      if (!N) return;
-      try {
-        const A = await generateClientHistoryShareLink(N);
-        const copyMode = await copyTextToClipboard(
-          A.share_url,
-          "Copia el link del cliente:",
-        );
-        const vl = `client-history-${N.id}`;
-        if (copyMode !== "manual") {
-          setCopiedClientShareLinks((El) =>
-            El.includes(vl) ? El : [...El, vl],
-          );
-        }
-        copyMode === "manual"
-          ? notifyInfo("El navegador bloqueo la copia directa. Copia el link desde la ventana.")
-          : notifySuccess("Link copiado.");
-      } catch (A) {
-        console.error("Failed to copy client shopping share link", A);
-        notifyError(
-          (A && A.message) || "No se pudo generar el link del cliente.",
-        );
-      }
-    },
-    copyClientShipmentHistoryLink = async (o) => {
-      if (!o || !o.id || !o.client) return;
-      try {
-        const N = await generateClientHistoryShareLink({ id: o.client }),
-          A = new URL(N.share_url, window.location.origin);
-        A.searchParams.set("focus_shipment_id", String(o.id));
-        const vl = await copyTextToClipboard(
-          A.toString(),
-          "Copia el link del cliente:",
-        );
-        const El = `shipment-client-history-share-${o.id}`;
-        if (vl !== "manual") {
-          setCopiedClientShareLinks((Se) =>
-            Se.includes(El) ? Se : [...Se, El],
-          );
-        }
-        vl === "manual"
-          ? notifyInfo("El navegador bloqueo la copia directa. Copia el link desde la ventana.")
-          : notifySuccess("Link copiado.");
-      } catch (N) {
-        console.error("Failed to copy client shipment history link", N);
-        notifyError(
-          (N && N.message) || "No se pudo generar el link del cliente.",
-        );
       }
     },
     copyShipmentShareLink = async (o) => {
@@ -8086,7 +7867,8 @@ function nh() {
           sanitizeClientCountryCodeInput,
           sanitizeClientPhoneInput,
         }),
-      }),      me &&
+      }),
+      me &&
       c.jsx(V.Suspense, {
         fallback: null,
         children: c.jsx(ProductModal, {
@@ -8276,7 +8058,8 @@ function nh() {
             o.id,
           ),
         ),
-      }),      imageSourceDialog &&
+      }),
+      imageSourceDialog &&
       c.jsx(V.Suspense, {
         fallback: null,
         children: c.jsx(ImageSourceDialog, {
@@ -8496,7 +8279,8 @@ function nh() {
           setShipmentProductPickerOpen,
           formatAmount,
         }),
-      }),      reviewConversationEntry &&
+      }),
+      reviewConversationEntry &&
       c.jsx(V.Suspense, {
         fallback: null,
         children: c.jsx(ReviewConversationModal, {
