@@ -19,6 +19,7 @@ import {
 import { AppProvider } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useImageSource } from './hooks/useImageSource.js';
+import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
@@ -283,7 +284,6 @@ function nh() {
     [productPriceAutoInfoOpen, setProductPriceAutoInfoOpen] = V.useState(!1),
     [productPriceAutoSync, setProductPriceAutoSync] = V.useState(!0),
     [productPriceSyncSource, setProductPriceSyncSource] = V.useState("real"),
-    [closingOverlayKey, setClosingOverlayKey] = V.useState(""),
     [Je, We] = V.useState(null),
     [ji, sn] = V.useState(!1),
     [Ol, $e] = V.useState({
@@ -735,51 +735,123 @@ function nh() {
       const N = await I("/requests/");
       return (setRequests(N || []), N || []);
     },
-    activeOverlayKey = confirmDialog
-      ? "confirm"
-      : imageSourceDialog
-        ? "image-source"
-      : inputDialog
-        ? "input"
-        : clientPaymentModalOpen
-          ? "client-payment-modal"
-        : paymentModalOpen
-          ? "payment-modal"
-        : shipmentProductPickerOpen
-          ? "shipment-product-picker"
-        : fullscreenImage
-          ? "fullscreen-image"
-        : shipmentModalOpen
-            ? "shipment-modal"
-          : reviewConversationEntry
-            ? "review-conversation"
-            : Pl
-              ? "group-ticket"
-              : ji && Je
-                ? "edit-ticket"
-                : me && he
-                  ? "edit-product"
-                  : K
-                    ? "edit-client"
-                    : W
-                      ? "client-home"
-                    : Il
-                      ? "add-client"
-                      : missionSummaryOpen
-                        ? "shopping-summary"
-                        : showMissionStartModal
-                          ? "shopping-start"
-                          : "",
-    overlayHistorySkipRef = V.useRef(!1),
-    closingOverlayKeyRef = V.useRef(""),
-    overlayDismissTimerRef = V.useRef(null),
+    overlayNavigation = useOverlayNavigation({
+      overlays: [
+        { key: "confirm", open: confirmDialog },
+        { key: "image-source", open: imageSourceDialog },
+        { key: "input", open: inputDialog },
+        { key: "client-payment-modal", open: clientPaymentModalOpen },
+        { key: "payment-modal", open: paymentModalOpen },
+        { key: "shipment-product-picker", open: shipmentProductPickerOpen },
+        { key: "fullscreen-image", open: fullscreenImage },
+        { key: "shipment-modal", open: shipmentModalOpen },
+        { key: "review-conversation", open: reviewConversationEntry },
+        { key: "group-ticket", open: Pl },
+        { key: "edit-ticket", open: ji && Je },
+        { key: "edit-product", open: me && he },
+        { key: "edit-client", open: K },
+        { key: "client-home", open: W },
+        { key: "add-client", open: Il },
+        { key: "shopping-summary", open: missionSummaryOpen },
+        { key: "shopping-start", open: showMissionStartModal },
+      ],
+      closeActiveOverlay: () => {
+        if (confirmDialog) {
+          closeConfirmDialog(!1);
+          return;
+        }
+        if (imageSourceDialog) {
+          closeImageSourceDialog();
+          return;
+        }
+        if (inputDialog) {
+          closeInputDialog(null);
+          return;
+        }
+        if (clientPaymentModalOpen) {
+          setClientPaymentModalOpen(!1);
+          setClientPaymentAmountManual(!1);
+          setClientPaymentSaving(!1);
+          setClientPaymentEntryEditingId(null);
+          setClientPaymentEntryDraftAmount("");
+          setClientPaymentEntrySavingId(null);
+          setClientPaymentForm({
+            client: "",
+            amount: "",
+          });
+          return;
+        }
+        if (paymentModalOpen) {
+          setPaymentModalOpen(!1);
+          setPaymentAmountManual(!1);
+          setPaymentProductSearch("");
+          setPaymentEntryEditingId(null);
+          setPaymentEntryDraftAmount("");
+          setPaymentEntrySavingId(null);
+          return;
+        }
+        if (shipmentProductPickerOpen) {
+          setShipmentProductPickerOpen(!1);
+          return;
+        }
+        if (fullscreenImage) {
+          setFullscreenImage(null);
+          return;
+        }
+        if (shipmentModalOpen) {
+          setShipmentModalOpen(!1);
+          setShipmentProductPickerOpen(!1);
+          return;
+        }
+        if (reviewConversationEntry) {
+          setReviewConversationEntry(null);
+          setReviewConversationWahaEnabled(!1);
+          setReviewConversationRecipientIds([]);
+          closeAlternativeUploadModal();
+          return;
+        }
+        if (Pl) {
+          at(!1);
+          we(null);
+          Kt(null);
+          return;
+        }
+        if (ji && Je) {
+          sn(!1);
+          We(null);
+          return;
+        }
+        if (me && he) {
+          closeProductModal();
+          return;
+        }
+        if (K) {
+          tl(!1);
+          Y(null);
+          return;
+        }
+        if (W) {
+          Aa();
+          return;
+        }
+        if (Il) {
+          k(!1);
+          return;
+        }
+        if (missionSummaryOpen) {
+          setMissionSummaryOpen(!1);
+          return;
+        }
+        showMissionStartModal && setShowMissionStartModal(!1);
+      },
+    }),
+    closingOverlayKey = overlayNavigation.closingOverlayKey,
+    setClosingOverlayKey = overlayNavigation.setClosingOverlayKey,
+    dismissActiveOverlayRef = overlayNavigation.dismissActiveOverlayRef,
+    overlayBackdropClass = overlayNavigation.overlayBackdropClass,
+    overlaySheetClass = overlayNavigation.overlaySheetClass,
     sectionSwitchTimerRef = V.useRef(null),
-    sectionSettleTimerRef = V.useRef(null),
-    activeOverlayKeyRef = V.useRef(""),
-    dismissActiveOverlayRef = V.useRef(() => {});
-  V.useEffect(() => {
-    closingOverlayKeyRef.current = closingOverlayKey;
-  }, [closingOverlayKey]);
+    sectionSettleTimerRef = V.useRef(null);
   V.useEffect(
     () => () => {
       coreRefreshTimerRef.current && clearTimeout(coreRefreshTimerRef.current);
@@ -788,192 +860,6 @@ function nh() {
     },
     [],
   );
-  V.useEffect(() => {
-    activeOverlayKeyRef.current = activeOverlayKey;
-    const o = () => {
-      setClosingOverlayKey("");
-      if (confirmDialog) {
-        closeConfirmDialog(!1);
-        return;
-      }
-      if (imageSourceDialog) {
-        closeImageSourceDialog();
-        return;
-      }
-      if (inputDialog) {
-        closeInputDialog(null);
-        return;
-      }
-      if (clientPaymentModalOpen) {
-        setClientPaymentModalOpen(!1);
-        setClientPaymentAmountManual(!1);
-        setClientPaymentSaving(!1);
-        setClientPaymentEntryEditingId(null);
-        setClientPaymentEntryDraftAmount("");
-        setClientPaymentEntrySavingId(null);
-        setClientPaymentForm({
-          client: "",
-          amount: "",
-        });
-        return;
-      }
-      if (paymentModalOpen) {
-        setPaymentModalOpen(!1);
-        setPaymentAmountManual(!1);
-        setPaymentProductSearch("");
-        setPaymentEntryEditingId(null);
-        setPaymentEntryDraftAmount("");
-        setPaymentEntrySavingId(null);
-        return;
-      }
-      if (shipmentProductPickerOpen) {
-        setShipmentProductPickerOpen(!1);
-        return;
-      }
-      if (fullscreenImage) {
-        setFullscreenImage(null);
-        return;
-      }
-      if (shipmentModalOpen) {
-        setShipmentModalOpen(!1);
-        setShipmentProductPickerOpen(!1);
-        return;
-      }
-      if (reviewConversationEntry) {
-        setReviewConversationEntry(null);
-        setReviewConversationWahaEnabled(!1);
-        setReviewConversationRecipientIds([]);
-        closeAlternativeUploadModal();
-        return;
-      }
-      if (Pl) {
-        at(!1);
-        we(null);
-        Kt(null);
-        return;
-      }
-      if (ji && Je) {
-        sn(!1);
-        We(null);
-        return;
-      }
-      if (me && he) {
-        closeProductModal();
-        return;
-      }
-      if (K) {
-        tl(!1);
-        Y(null);
-        return;
-      }
-      if (W) {
-        Aa();
-        return;
-      }
-      if (Il) {
-        k(!1);
-        return;
-      }
-      if (missionSummaryOpen) {
-        setMissionSummaryOpen(!1);
-        return;
-      }
-      showMissionStartModal && setShowMissionStartModal(!1);
-    };
-    dismissActiveOverlayRef.current = (N = !1, A = !1) => {
-      const vl = activeOverlayKeyRef.current;
-      if (!vl) return;
-      if (vl === "client-home") {
-        if (A) {
-          overlayDismissTimerRef.current &&
-            clearTimeout(overlayDismissTimerRef.current);
-          overlayDismissTimerRef.current = null;
-          Aa();
-          return;
-        }
-        if (closingOverlayKeyRef.current === vl) return;
-        setClosingOverlayKey(vl);
-        overlayDismissTimerRef.current &&
-          clearTimeout(overlayDismissTimerRef.current);
-        overlayDismissTimerRef.current = setTimeout(() => {
-          overlayDismissTimerRef.current = null;
-          Aa();
-        }, 170);
-        return;
-      }
-      !N &&
-        window.history.state &&
-        window.history.state.__ps_overlay &&
-        ((overlayHistorySkipRef.current = !0), window.history.back());
-      if (A) {
-        overlayDismissTimerRef.current &&
-          clearTimeout(overlayDismissTimerRef.current);
-        overlayDismissTimerRef.current = null;
-        o();
-        return;
-      }
-      if (closingOverlayKeyRef.current === vl) return;
-      setClosingOverlayKey(vl);
-      overlayDismissTimerRef.current &&
-        clearTimeout(overlayDismissTimerRef.current);
-      overlayDismissTimerRef.current = setTimeout(() => {
-        overlayDismissTimerRef.current = null;
-        o();
-      }, 170);
-    };
-  }, [
-    activeOverlayKey,
-    closingOverlayKey,
-    confirmDialog,
-    imageSourceDialog,
-    inputDialog,
-    paymentModalOpen,
-    shipmentProductPickerOpen,
-    shipmentModalOpen,
-    fullscreenImage,
-    reviewConversationEntry,
-    Pl,
-    ji,
-    Je,
-    me,
-    he,
-    newProductUploading,
-    K,
-    W,
-    Il,
-    missionSummaryOpen,
-    showMissionStartModal,
-    st,
-  ]);
-  V.useEffect(() => {
-    if (!activeOverlayKey) return;
-    const o = window.history.state || {};
-    o.__ps_overlay === activeOverlayKey ||
-      window.history.pushState({ ...o, __ps_overlay: activeOverlayKey }, "");
-  }, [activeOverlayKey]);
-  V.useEffect(() => {
-    const o = () => {
-      if (overlayHistorySkipRef.current) {
-        overlayHistorySkipRef.current = !1;
-        return;
-      }
-      activeOverlayKeyRef.current && dismissActiveOverlayRef.current(!0);
-    };
-    window.addEventListener("popstate", o);
-    return () => window.removeEventListener("popstate", o);
-  }, []);
-  V.useEffect(() => {
-    const o = (N) => {
-      const A = String(N.key || "");
-      if (A !== "Escape" && A !== "Esc" && N.keyCode !== 27) return;
-      if (!activeOverlayKeyRef.current) return;
-      N.preventDefault();
-      N.stopPropagation();
-      dismissActiveOverlayRef.current(!0);
-    };
-    document.addEventListener("keydown", o, !0);
-    return () => document.removeEventListener("keydown", o, !0);
-  }, []);
   V.useEffect(() => {
     const normalized = themeMode === "DARK" ? "DARK" : "LIGHT";
     localStorage.setItem("theme_mode", normalized);
@@ -1172,8 +1058,6 @@ function nh() {
   }, [C, nl]);
   V.useEffect(
     () => () => {
-      overlayDismissTimerRef.current &&
-        clearTimeout(overlayDismissTimerRef.current);
       sectionSwitchTimerRef.current &&
         clearTimeout(sectionSwitchTimerRef.current);
       sectionSettleTimerRef.current &&
@@ -2276,10 +2160,6 @@ function nh() {
         }, 220);
       }, 110);
     },
-    overlayBackdropClass = (o, N) =>
-      `${o}${closingOverlayKey === N ? " ui-backdrop-out" : ""}`,
-    overlaySheetClass = (o, N) =>
-      `${o}${closingOverlayKey === N ? " ui-sheet-out" : ""}`,
     su = () => {
       if (receiptUploading) return;
       openImageSourcePicker(ru, { title: "Subir ticket" });
