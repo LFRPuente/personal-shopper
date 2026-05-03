@@ -7,6 +7,7 @@ const LayoutProfileContext = V.createContext(null);
 const ShipmentsContext = V.createContext(null);
 const ShoppingsContext = V.createContext(null);
 const ClientsContext = V.createContext(null);
+const HomeContext = V.createContext(null);
 
 export const AppProvider = AppContext.Provider;
 export const AppServicesProvider = AppServicesContext.Provider;
@@ -15,6 +16,7 @@ export const LayoutProfileProvider = LayoutProfileContext.Provider;
 export const ShipmentsProvider = ShipmentsContext.Provider;
 export const ShoppingsProvider = ShoppingsContext.Provider;
 export const ClientsProvider = ClientsContext.Provider;
+export const HomeProvider = HomeContext.Provider;
 
 export const useApp = () => {
   const ctx = V.useContext(AppContext);
@@ -55,6 +57,12 @@ export const useShoppingsContext = () => {
 export const useClientsContext = () => {
   const ctx = V.useContext(ClientsContext);
   if (!ctx) throw new Error("useClientsContext must be used within ClientsProvider");
+  return ctx;
+};
+
+export const useHomeContext = () => {
+  const ctx = V.useContext(HomeContext);
+  if (!ctx) throw new Error("useHomeContext must be used within HomeProvider");
   return ctx;
 };
 

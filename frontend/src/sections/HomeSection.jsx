@@ -1,5 +1,5 @@
 import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useHomeContext } from '../AppContext.jsx';
 import ShoppingClientAssignmentModal from './HomeShoppingClientAssignmentModal.jsx';
 
 export const HOME_SECTION_REQUIRED_CONTEXT = [
@@ -191,7 +191,7 @@ const HomeSection = V.memo(function HomeSection() {
     filteredEditingRequestClients,
     getClientNameById,
     getRelativeTime,
-  } = useApp();
+  } = useHomeContext();
 
   const openShoppingCount = Array.isArray(shoppingTabs) ? shoppingTabs.length : 0;
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
