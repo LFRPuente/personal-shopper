@@ -20,6 +20,7 @@ import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useClientsDomain } from './hooks/useClientsDomain.js';
 import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
+import { usePaymentsDomain } from './hooks/usePaymentsDomain.js';
 import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
 import { useShipmentsDomain } from './hooks/useShipmentsDomain.js';
 import { useShoppingsDomain } from './hooks/useShoppingsDomain.js';
@@ -336,36 +337,6 @@ function nh() {
     [publicBuildingShipment, setPublicBuildingShipment] = V.useState(!1),
     [publicShipmentInfoOpen, setPublicShipmentInfoOpen] = V.useState(!1),
     [publicShipmentHistoryExpanded, setPublicShipmentHistoryExpanded] = V.useState(!1),
-    [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
-    [paymentSaving, setPaymentSaving] = V.useState(!1),
-    [paymentProductSearch, setPaymentProductSearch] = V.useState(""),
-    [paymentAmountManual, setPaymentAmountManual] = V.useState(!1),
-    [paymentForm, setPaymentForm] = V.useState({
-      id: null,
-      client: "",
-      shopping: "",
-      amount: "",
-      product_ids: [],
-    }),
-    [paymentEntryEditingId, setPaymentEntryEditingId] = V.useState(null),
-    [paymentEntryDraftAmount, setPaymentEntryDraftAmount] = V.useState(""),
-    [paymentEntrySavingId, setPaymentEntrySavingId] = V.useState(null),
-    [clientPaymentModalOpen, setClientPaymentModalOpen] = V.useState(!1),
-    [clientPaymentSaving, setClientPaymentSaving] = V.useState(!1),
-    [clientPaymentAmountManual, setClientPaymentAmountManual] = V.useState(!1),
-    [clientPaymentForm, setClientPaymentForm] = V.useState({
-      client: "",
-      amount: "",
-    }),
-    [clientPaymentEntryEditingId, setClientPaymentEntryEditingId] = V.useState(
-      null,
-    ),
-    [clientPaymentEntryDraftAmount, setClientPaymentEntryDraftAmount] = V.useState(
-      "",
-    ),
-    [clientPaymentEntrySavingId, setClientPaymentEntrySavingId] = V.useState(
-      null,
-    ),
     [newRequestText, setNewRequestText] = V.useState(""),
     [newRequestClientId, setNewRequestClientId] = V.useState(""),
     [newRequestClientPickerOpen, setNewRequestClientPickerOpen] = V.useState(!1),
@@ -524,6 +495,7 @@ function nh() {
     queueSelectedClientRefreshActionRef = V.useRef(() => {}),
     refreshCoreDataActionRef = V.useRef(() => {}),
     refreshSelectedClientActionRef = V.useRef(() => {}),
+    paymentDomainRef = V.useRef({}),
     shoppingCalcPersistTimerRef = V.useRef(null),
     shoppingsDomain = useShoppingsDomain({
       accessToken: C,
@@ -597,6 +569,59 @@ function nh() {
     mn = shoppingsDomain.deleteMission,
     Fe = shoppingsDomain.saveEditedMission,
     openMissionTicketPicker = shoppingsDomain.openMissionTicketPicker,
+    paymentsDomain = usePaymentsDomain({
+      apiFetch: I,
+      clients: Kl,
+      shoppings: Al,
+      paymentDomainRef,
+      refreshCoreDataRef: refreshCoreDataActionRef,
+      refreshSelectedClientRef: refreshSelectedClientActionRef,
+      notifyInfo,
+      notifySuccess,
+      notifyError,
+      confirmAction,
+    }),
+    paymentModalOpen = paymentsDomain.paymentModalOpen,
+    setPaymentModalOpen = paymentsDomain.setPaymentModalOpen,
+    paymentSaving = paymentsDomain.paymentSaving,
+    paymentProductSearch = paymentsDomain.paymentProductSearch,
+    setPaymentProductSearch = paymentsDomain.setPaymentProductSearch,
+    paymentAmountManual = paymentsDomain.paymentAmountManual,
+    setPaymentAmountManual = paymentsDomain.setPaymentAmountManual,
+    paymentForm = paymentsDomain.paymentForm,
+    setPaymentForm = paymentsDomain.setPaymentForm,
+    paymentEntryEditingId = paymentsDomain.paymentEntryEditingId,
+    setPaymentEntryEditingId = paymentsDomain.setPaymentEntryEditingId,
+    paymentEntryDraftAmount = paymentsDomain.paymentEntryDraftAmount,
+    setPaymentEntryDraftAmount = paymentsDomain.setPaymentEntryDraftAmount,
+    paymentEntrySavingId = paymentsDomain.paymentEntrySavingId,
+    clientPaymentModalOpen = paymentsDomain.clientPaymentModalOpen,
+    setClientPaymentModalOpen = paymentsDomain.setClientPaymentModalOpen,
+    clientPaymentSaving = paymentsDomain.clientPaymentSaving,
+    clientPaymentAmountManual = paymentsDomain.clientPaymentAmountManual,
+    setClientPaymentAmountManual = paymentsDomain.setClientPaymentAmountManual,
+    clientPaymentForm = paymentsDomain.clientPaymentForm,
+    setClientPaymentForm = paymentsDomain.setClientPaymentForm,
+    clientPaymentEntryEditingId = paymentsDomain.clientPaymentEntryEditingId,
+    clientPaymentEntryDraftAmount = paymentsDomain.clientPaymentEntryDraftAmount,
+    setClientPaymentEntryDraftAmount = paymentsDomain.setClientPaymentEntryDraftAmount,
+    clientPaymentEntrySavingId = paymentsDomain.clientPaymentEntrySavingId,
+    closePaymentModal = paymentsDomain.closePaymentModal,
+    closeClientPaymentModal = paymentsDomain.closeClientPaymentModal,
+    openPaymentModal = paymentsDomain.openPaymentModal,
+    openClientPaymentModal = paymentsDomain.openClientPaymentModal,
+    togglePaymentProductSelection = paymentsDomain.togglePaymentProductSelection,
+    startEditingPaymentEntry = paymentsDomain.startEditingPaymentEntry,
+    cancelEditingPaymentEntry = paymentsDomain.cancelEditingPaymentEntry,
+    savePaymentEntry = paymentsDomain.savePaymentEntry,
+    deletePaymentEntry = paymentsDomain.deletePaymentEntry,
+    savePayment = paymentsDomain.savePayment,
+    saveClientPayment = paymentsDomain.saveClientPayment,
+    startEditingClientPaymentEntry = paymentsDomain.startEditingClientPaymentEntry,
+    cancelEditingClientPaymentEntry = paymentsDomain.cancelEditingClientPaymentEntry,
+    saveClientPaymentHistoryRow = paymentsDomain.saveClientPaymentHistoryRow,
+    deleteClientPaymentHistoryRow = paymentsDomain.deleteClientPaymentHistoryRow,
+    deletePayment = paymentsDomain.deletePayment,
     shipmentsDomain = useShipmentsDomain({
       accessToken: C,
       apiFetch: I,
@@ -827,25 +852,11 @@ function nh() {
           return;
         }
         if (clientPaymentModalOpen) {
-          setClientPaymentModalOpen(!1);
-          setClientPaymentAmountManual(!1);
-          setClientPaymentSaving(!1);
-          setClientPaymentEntryEditingId(null);
-          setClientPaymentEntryDraftAmount("");
-          setClientPaymentEntrySavingId(null);
-          setClientPaymentForm({
-            client: "",
-            amount: "",
-          });
+          closeClientPaymentModal();
           return;
         }
         if (paymentModalOpen) {
-          setPaymentModalOpen(!1);
-          setPaymentAmountManual(!1);
-          setPaymentProductSearch("");
-          setPaymentEntryEditingId(null);
-          setPaymentEntryDraftAmount("");
-          setPaymentEntrySavingId(null);
+          closePaymentModal();
           return;
         }
         if (shipmentProductPickerOpen) {
@@ -2818,448 +2829,6 @@ function nh() {
       ? Math.max(paymentSelectedProductsTotal - paymentCurrentAmountValue, 0)
       : paymentSelectedProductsTotal,
     paymentFormBalance = paymentSelectedProductsTotal - paymentPreviewAmountValue,
-    getDefaultPaymentProductIds = (o, N) =>
-      paymentLocalShoppingProducts(o, N)
-        .filter((A) => !paymentLocalShoppingPayments(o, N).some((vl) =>
-          paymentLocalRecordProducts(vl).some((El) => Number(El.id) === Number(A.id)),
-        ))
-        .map((A) => Number(A.id)),
-    openPaymentModal = (o, N = null, A = null) => {
-      const vl = Number(
-        (A && (A.shopping || A.mission)) ||
-        (N && N.id) ||
-        (N || (w && w.id) || 0),
-      );
-      if (!o || !vl) {
-        notifyInfo("Selecciona cliente y shopping.");
-        return;
-      }
-      const El = paymentLocalShoppingPayments(o, vl),
-        Se = A || El[0] || null,
-        ea = Se
-          ? paymentLocalRecordProducts(Se).map((gl) => Number(gl.id))
-          : [],
-        gl = paymentLocalShoppingProducts(o, vl, ea),
-        ae = gl.map((oi) => Number(oi.id)),
-        oi = paymentLocalProductsTotal(gl, paymentLocalShoppingDiscount(vl)),
-        Pi = oi > 0 ? oi.toFixed(2) : "",
-        bi = paymentLocalFormatAmountField(Se && Se.amount),
-        xa = bi !== "" && bi !== Pi;
-      Se
-        ? (setPaymentForm({
-          id: (Se && Se.id) || null,
-          client: String(o.id),
-          shopping: String(vl),
-          amount: "",
-          product_ids: ae,
-        }),
-          setPaymentAmountManual(!0))
-        : (setPaymentForm({
-          id: null,
-          client: String(o.id),
-          shopping: String(vl),
-          amount: xa ? bi : (bi || Pi),
-          product_ids: ae,
-        }),
-          setPaymentAmountManual(xa));
-      setPaymentProductSearch("");
-      setPaymentEntryEditingId(null);
-      setPaymentEntryDraftAmount("");
-      setPaymentEntrySavingId(null);
-      setPaymentModalOpen(!0);
-    },
-    openClientPaymentModal = (o) => {
-      if (!o) return;
-      const N = getClientPaymentGlobalDebtAmount(o);
-      setClientPaymentForm({
-        client: String(o.id),
-        amount: N > 0 ? N.toFixed(2) : "",
-      });
-      setClientPaymentAmountManual(!1);
-      setClientPaymentModalOpen(!0);
-    },
-    togglePaymentProductSelection = (o) => {
-      if (!o) return;
-      if (paymentReservedProductIds.has(Number(o.id))) return;
-      setPaymentForm((N) => {
-        const A = Number(o.id);
-        const vl = (N.product_ids || []).includes(A)
-          ? (N.product_ids || []).filter((El) => Number(El) !== A)
-          : [...(N.product_ids || []), A];
-        return { ...N, product_ids: vl };
-      });
-    },
-    startEditingPaymentEntry = (o) => {
-      if (!o) return;
-      setPaymentEntryEditingId(String(o.id));
-      setPaymentEntryDraftAmount(paymentLocalFormatAmountField(o.amount));
-    },
-    cancelEditingPaymentEntry = () => {
-      setPaymentEntryEditingId(null);
-      setPaymentEntryDraftAmount("");
-    },
-    saveNegativeClientBatchEntry = async (o, N, A) => {
-      const vl = String((N && N.group_token) || "").trim(),
-        El = (N && N.grouped_entries) || [],
-        Se = El.find((ea) => ea && ea.payment_id && ea.id) || null;
-      if (!o || !vl) return !1;
-      for (const ea of El)
-        ea &&
-          ea.payment_id &&
-          ea.id &&
-          (!Se ||
-            String(ea.payment_id) !== String(Se.payment_id) ||
-            String(ea.id) !== String(Se.id)) &&
-          (await I(`/payments/${ea.payment_id}/entries/${ea.id}/`, {
-            method: "DELETE",
-          }));
-      if (Se) {
-        await I(`/payments/${Se.payment_id}/entries/${Se.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            amount: A.toFixed(2),
-          }),
-        });
-        return !0;
-      }
-      const ea = getClientPaymentBalanceAdjustmentTarget(o),
-        gl = Number(ea && ea.key);
-      if (!gl) {
-        notifyInfo("No hay shopping donde registrar la deuda inicial.");
-        return !1;
-      }
-      const ae = getClientShoppingPayments(o, gl)[0] || null;
-      await I(ae ? `/payments/${ae.id}/` : "/payments/", {
-        method: ae ? "PATCH" : "POST",
-        body: JSON.stringify({
-          client: o.id,
-          shopping: gl,
-          amount: ((ae ? getPaymentRecordAmount(ae) : 0) + A).toFixed(2),
-          entry_kind: "CLIENT_BATCH",
-          entry_group_token: vl,
-        }),
-      });
-      return !0;
-    },
-    savePaymentEntry = async (o) => {
-      const N = paymentModalClient || clientPaymentModalClient,
-        A = String(paymentEntryDraftAmount || "").trim();
-      if (!N || !o) return;
-      if (A === "" || !Number.isFinite(parseFloat(A))) {
-        notifyInfo("Captura un monto valido para el abono.");
-        return;
-      }
-      const vl = paymentLocalToNumber(A, Number.NaN);
-      if (!Number.isFinite(vl)) {
-        notifyInfo("Captura un monto valido para el abono.");
-        return;
-      }
-      setPaymentEntrySavingId(String(o.id));
-      try {
-        if (
-          String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
-          String((o && o.group_token) || "").trim()
-        ) {
-          if (vl < 0) {
-            if (!(await saveNegativeClientBatchEntry(N, o, vl))) return;
-          } else {
-            const El = getClientBatchEditPlan(N, o, vl),
-            Se = ((o && o.grouped_entries) || []).reduce((ea, gl) => {
-              const ae = Number(gl && gl.shopping_id);
-              return (
-                Number.isFinite(ae) &&
-                  (ea.has(ae) || ea.set(ae, []), ea.get(ae).push(gl)),
-                ea
-              );
-            }, new Map());
-          for (const ea of El) {
-            const gl = Number(ea && ea.key),
-              ae = Math.max(toNumber(ea && ea.desiredAmount, 0), 0),
-              qa = Se.get(gl) || [],
-              oi = qa[0] || null,
-              Pi = qa.slice(1);
-            for (const pa of Pi)
-              await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
-                method: "DELETE",
-              });
-            if (oi) {
-              if (ae > 0)
-                await I(`/payments/${oi.payment_id}/entries/${oi.id}/`, {
-                  method: "PATCH",
-                  body: JSON.stringify({
-                    amount: ae.toFixed(2),
-                  }),
-                });
-              else
-                await I(`/payments/${oi.payment_id}/entries/${oi.id}/`, {
-                  method: "DELETE",
-                });
-            } else if (ae > 0) {
-              const pa = getClientShoppingPayments(N, gl)[0] || null,
-                mi = getClientPaymentTargetProductIds(N, gl);
-              await I(pa ? `/payments/${pa.id}/` : "/payments/", {
-                method: pa ? "PATCH" : "POST",
-                body: JSON.stringify({
-                  client: N.id,
-                  shopping: gl,
-                  amount: (
-                    (pa ? getPaymentRecordAmount(pa) : 0) + ae
-                  ).toFixed(2),
-                  products: mi,
-                  entry_kind: "CLIENT_BATCH",
-                  entry_group_token: o.group_token,
-                }),
-              });
-            }
-          }
-          }
-        } else {
-          const El = o.payment_id || paymentForm.id;
-          if (!El || !o.id) {
-            notifyError("No se pudo identificar el abono.");
-            return;
-          }
-          await I(`/payments/${El}/entries/${o.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              amount: vl.toFixed(2),
-            }),
-          });
-        }
-        setPaymentForm((El) => ({
-          ...El,
-          amount: "",
-        }));
-        setPaymentAmountManual(!0);
-        setPaymentEntryEditingId(null);
-        setPaymentEntryDraftAmount("");
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Abono actualizado.");
-      } catch (El) {
-        console.error("Failed updating payment entry", El);
-        notifyError((El && El.message) || "No se pudo actualizar el abono.");
-      } finally {
-        setPaymentEntrySavingId(null);
-      }
-    },
-    deletePaymentEntry = async (o) => {
-      if (!o) return;
-      const N =
-        String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
-        String((o && o.group_token) || "").trim();
-      if (
-        !(await confirmAction({
-          title: N ? "Eliminar abono general" : "Eliminar abono",
-          message: N
-            ? "Se eliminara este abono general y todas sus asignaciones por shopping."
-            : "Se eliminara este abono del historial y se recalculara el total del pago.",
-          confirmLabel: "Eliminar",
-          tone: "danger",
-        }))
-      )
-        return;
-      setPaymentEntrySavingId(String(o.id));
-      try {
-        const A = N
-          ? (o.grouped_entries || []).map((vl) => ({
-            payment_id: vl.payment_id,
-            id: vl.id,
-          }))
-          : [{ payment_id: o.payment_id || paymentForm.id, id: o.id }];
-        for (const vl of A)
-          vl &&
-            vl.payment_id &&
-            vl.id &&
-            (await I(`/payments/${vl.payment_id}/entries/${vl.id}/`, {
-              method: "DELETE",
-            }));
-        String(paymentEntryEditingId || "") === String(o.id) &&
-          (setPaymentEntryEditingId(null), setPaymentEntryDraftAmount(""));
-        setPaymentForm((vl) => ({
-          ...vl,
-          amount: "",
-        }));
-        setPaymentAmountManual(!0);
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Abono eliminado.");
-      } catch (A) {
-        console.error("Failed deleting payment entry", A);
-        notifyError((A && A.message) || "No se pudo eliminar el abono.");
-      } finally {
-        setPaymentEntrySavingId(null);
-      }
-    },
-    savePayment = async () => {
-      const o = Kl.find((A) => String(A.id) === String(paymentForm.client || ""));
-      const N = Al.find((A) => String(A.id) === String(paymentForm.shopping || ""));
-      const A = String(paymentForm.amount || "").trim();
-      const vl =
-        A === ""
-          ? 0
-          : paymentLocalToNumber(A, Number.NaN);
-      if (!o || !N) {
-        notifyInfo("Selecciona cliente y shopping.");
-        return;
-      }
-      if ((!paymentForm.id && A === "") || !Number.isFinite(vl)) {
-        notifyInfo("Captura un monto valido.");
-        return;
-      }
-      setPaymentSaving(!0);
-      try {
-        const El = paymentForm.id
-          ? paymentCurrentAmountValue + vl
-          : vl;
-        await I(
-          paymentForm.id ? `/payments/${paymentForm.id}/` : "/payments/",
-          {
-            method: paymentForm.id ? "PATCH" : "POST",
-            body: JSON.stringify({
-              client: o.id,
-              shopping: N.id,
-              amount: El.toFixed(2),
-              products: (paymentForm.product_ids || []).map((vl) => Number(vl)),
-            }),
-          },
-        );
-        setPaymentModalOpen(!1);
-        setPaymentAmountManual(!1);
-        setPaymentProductSearch("");
-        setPaymentEntryEditingId(null);
-        setPaymentEntryDraftAmount("");
-        setPaymentEntrySavingId(null);
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess(
-          paymentForm.id
-            ? vl > 0
-              ? "Abono guardado."
-              : "Pago actualizado."
-            : "Pago guardado.",
-        );
-      } catch (vl) {
-        console.error("Failed saving payment", vl);
-        notifyError((vl && vl.message) || "No se pudo guardar el pago.");
-      } finally {
-        setPaymentSaving(!1);
-      }
-    },
-    saveClientPayment = async () => {
-      const o = clientPaymentModalClient,
-        N = paymentLocalToNumber(clientPaymentForm.amount, Number.NaN);
-      if (!o) {
-        notifyInfo("Selecciona un cliente valido.");
-        return;
-      }
-      if (!Number.isFinite(N) || N === 0) {
-        notifyInfo("Captura un monto valido distinto de cero.");
-        return;
-      }
-      const saveClientPaymentBalanceAdjustment = async (A, vl, El) => {
-        const Se = getClientPaymentBalanceAdjustmentTarget(o),
-          ea = Number(Se && Se.key);
-        if (!ea) {
-          notifyInfo("No hay shopping donde registrar el saldo inicial.");
-          return !1;
-        }
-        setClientPaymentSaving(!0);
-        try {
-          const gl = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-            ae = getClientShoppingPayments(o, ea)[0] || null;
-          await I(ae ? `/payments/${ae.id}/` : "/payments/", {
-            method: ae ? "PATCH" : "POST",
-            body: JSON.stringify({
-              client: o.id,
-              shopping: ea,
-              amount: ((ae ? getPaymentRecordAmount(ae) : 0) + A).toFixed(2),
-              entry_kind: "CLIENT_BATCH",
-              entry_group_token: gl,
-            }),
-          });
-          setClientPaymentModalOpen(!1);
-          setClientPaymentAmountManual(!1);
-          setClientPaymentForm({
-            client: "",
-            amount: "",
-          });
-          await refreshCoreData();
-          await refreshSelectedClient();
-          notifySuccess(vl);
-          return !0;
-        } catch (gl) {
-          console.error(El, gl);
-          notifyError((gl && gl.message) || "No se pudo guardar el saldo inicial.");
-          return !1;
-        } finally {
-          setClientPaymentSaving(!1);
-        }
-      };
-      if (N < 0) {
-        await saveClientPaymentBalanceAdjustment(
-          N,
-          "Deuda inicial guardada.",
-          "Failed saving client debt adjustment",
-        );
-        return;
-      }
-      const A = getClientPaymentPlan(o, N).filter(
-        (vl) => paymentLocalToNumber(vl && vl.appliedAmount, 0) > 0,
-      );
-      if (A.some((vl) => vl && vl.isCreditAdjustment) || A.length === 0) {
-        await saveClientPaymentBalanceAdjustment(
-          N,
-          "Saldo a favor guardado.",
-          "Failed saving client credit adjustment",
-        );
-        return;
-      }
-      setClientPaymentSaving(!0);
-      try {
-        const vl = `client-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-        for (const El of A) {
-          const Se = Number(El && El.key),
-            ea = getClientShoppingPayments(o, Se)[0] || null,
-            gl = ea ? getPaymentRecordAmount(ea) : 0,
-            ae = getClientPaymentTargetProductIds(o, Se);
-          await I(ea ? `/payments/${ea.id}/` : "/payments/", {
-            method: ea ? "PATCH" : "POST",
-            body: JSON.stringify({
-              client: o.id,
-              shopping: Se,
-              amount: (gl + paymentLocalToNumber(El.appliedAmount, 0)).toFixed(2),
-              products: ae,
-              entry_kind: "CLIENT_BATCH",
-              entry_group_token: vl,
-            }),
-          });
-        }
-        setClientPaymentModalOpen(!1);
-        setClientPaymentAmountManual(!1);
-        setClientPaymentForm({
-          client: "",
-          amount: "",
-        });
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Pago guardado.");
-      } catch (vl) {
-        console.error("Failed saving client payment", vl);
-        notifyError((vl && vl.message) || "No se pudo guardar el pago.");
-      } finally {
-        setClientPaymentSaving(!1);
-      }
-    },
-    startEditingClientPaymentEntry = (o) => {
-      if (!o) return;
-      setClientPaymentEntryEditingId(String(o.id));
-      setClientPaymentEntryDraftAmount(paymentLocalFormatAmountField(o.amount));
-    },
-    cancelEditingClientPaymentEntry = () => {
-      setClientPaymentEntryEditingId(null);
-      setClientPaymentEntryDraftAmount("");
-    },
     getClientBatchEditPlan = (o, N, A = 0) => {
       if (!o || !N) return [];
       const vl = ((N && N.grouped_entries) || []).reduce((El, Se) => {
@@ -3302,165 +2871,6 @@ function nh() {
           (El[0].desiredAmount = toNumber(El[0].desiredAmount, 0) + Se),
         El
       );
-    },
-    saveClientPaymentHistoryRow = async (o) => {
-      const N = clientPaymentModalClient,
-        A = String(clientPaymentEntryDraftAmount || "").trim();
-      if (!N || !o) return;
-      if (A === "" || !Number.isFinite(parseFloat(A))) {
-        notifyInfo("Captura un monto valido para el abono.");
-        return;
-      }
-      const vl = paymentLocalToNumber(A, Number.NaN);
-      if (!Number.isFinite(vl)) {
-        notifyInfo("Captura un monto valido para el abono.");
-        return;
-      }
-      setClientPaymentEntrySavingId(String(o.id));
-      try {
-        if (
-          String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
-          String((o && o.group_token) || "").trim()
-        ) {
-          if (vl < 0) {
-            if (!(await saveNegativeClientBatchEntry(N, o, vl))) return;
-          } else {
-            const El = getClientBatchEditPlan(N, o, vl),
-            Se = ((o && o.grouped_entries) || []).reduce((ae, qa) => {
-              const oi = Number(qa && qa.shopping_id);
-              return (
-                Number.isFinite(oi) &&
-                  (ae.has(oi) || ae.set(oi, []), ae.get(oi).push(qa)),
-                ae
-              );
-            }, new Map());
-          for (const ae of El) {
-            const qa = Number(ae && ae.key),
-              oi = Math.max(toNumber(ae && ae.desiredAmount, 0), 0),
-              Pi = Se.get(qa) || [],
-              pa = Pi[0] || null,
-              mi = Pi.slice(1);
-            for (const Ri of mi)
-              await I(`/payments/${Ri.payment_id}/entries/${Ri.id}/`, {
-                method: "DELETE",
-              });
-            if (pa) {
-              if (oi > 0)
-                await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
-                  method: "PATCH",
-                  body: JSON.stringify({
-                    amount: oi.toFixed(2),
-                  }),
-                });
-              else
-                await I(`/payments/${pa.payment_id}/entries/${pa.id}/`, {
-                  method: "DELETE",
-                });
-            } else if (oi > 0) {
-              const Ri = getClientShoppingPayments(N, qa)[0] || null,
-                bi = getClientPaymentTargetProductIds(N, qa);
-              await I(Ri ? `/payments/${Ri.id}/` : "/payments/", {
-                method: Ri ? "PATCH" : "POST",
-                body: JSON.stringify({
-                  client: N.id,
-                  shopping: qa,
-                  amount: (
-                    (Ri ? getPaymentRecordAmount(Ri) : 0) + oi
-                  ).toFixed(2),
-                  products: bi,
-                  entry_kind: "CLIENT_BATCH",
-                  entry_group_token: o.group_token,
-                }),
-              });
-            }
-          }
-          }
-        } else {
-          if (!o.payment_id || !o.id) {
-            notifyError("No se pudo identificar el abono.");
-            return;
-          }
-          await I(`/payments/${o.payment_id}/entries/${o.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              amount: vl.toFixed(2),
-            }),
-          });
-        }
-        setClientPaymentEntryEditingId(null);
-        setClientPaymentEntryDraftAmount("");
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Abono actualizado.");
-      } catch (El) {
-        console.error("Failed updating client payment history row", El);
-        notifyError((El && El.message) || "No se pudo actualizar el abono.");
-      } finally {
-        setClientPaymentEntrySavingId(null);
-      }
-    },
-    deleteClientPaymentHistoryRow = async (o) => {
-      if (!o) return;
-      const N =
-        String((o && o.entry_kind) || "").toUpperCase() === "CLIENT_BATCH" &&
-        String((o && o.group_token) || "").trim();
-      if (
-        !(await confirmAction({
-          title: N ? "Eliminar abono general" : "Eliminar abono",
-          message: N
-            ? "Se eliminara este abono general y todas sus asignaciones por shopping."
-            : "Se eliminara este abono del historial.",
-          confirmLabel: "Eliminar",
-          tone: "danger",
-        }))
-      )
-        return;
-      setClientPaymentEntrySavingId(String(o.id));
-      try {
-        const A = N
-          ? (o.grouped_entries || []).map((vl) => ({
-            payment_id: vl.payment_id,
-            id: vl.id,
-          }))
-          : [{ payment_id: o.payment_id, id: o.id }];
-        for (const vl of A)
-          vl &&
-            vl.payment_id &&
-            vl.id &&
-            (await I(`/payments/${vl.payment_id}/entries/${vl.id}/`, {
-              method: "DELETE",
-            }));
-        String(clientPaymentEntryEditingId || "") === String(o.id) &&
-          (setClientPaymentEntryEditingId(null), setClientPaymentEntryDraftAmount(""));
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Abono eliminado.");
-      } catch (A) {
-        console.error("Failed deleting client payment history row", A);
-        notifyError((A && A.message) || "No se pudo eliminar el abono.");
-      } finally {
-        setClientPaymentEntrySavingId(null);
-      }
-    },
-    deletePayment = async (o) => {
-      if (!o || !o.id) return;
-      const N = await confirmAction({
-        title: "Eliminar pago",
-        message: "Este pago se quitara del historial del cliente.",
-        confirmLabel: "Eliminar",
-        cancelLabel: "Cancelar",
-        tone: "danger",
-      });
-      if (!N) return;
-      try {
-        await I(`/payments/${o.id}/`, { method: "DELETE" });
-        await refreshCoreData();
-        await refreshSelectedClient();
-        notifySuccess("Pago eliminado.");
-      } catch (A) {
-        console.error("Failed deleting payment", A);
-        notifyError((A && A.message) || "No se pudo eliminar el pago.");
-      }
     },
     exportMissionCsv = (o) => {
       const N = (ae) => `"${String(ae ?? "").replaceAll('"', '""')}"`,
@@ -4723,6 +4133,28 @@ function nh() {
     paymentHistoryRows = paymentModalClient
       ? getClientPaymentHistoryRows(paymentModalClient)
       : [],
+    paymentDomainSnapshot = (paymentDomainRef.current = {
+      activeShopping: w,
+      paymentLocalToNumber,
+      paymentLocalFormatAmountField,
+      paymentLocalShoppingDiscount,
+      paymentLocalShoppingProducts,
+      paymentLocalProductsTotal,
+      paymentLocalRecordProducts,
+      paymentLocalShoppingPayments,
+      paymentReservedProductIds,
+      paymentModalClient,
+      paymentCurrentAmountValue,
+      clientPaymentModalClient,
+      getClientPaymentGlobalDebtAmount,
+      getClientPaymentBalanceAdjustmentTarget,
+      getClientShoppingPayments,
+      getPaymentRecordAmount,
+      getClientPaymentTargetProductIds,
+      getClientPaymentPlan,
+      getClientBatchEditPlan,
+      toNumber,
+    }),
     parseVisualTag = (o) => {
       const N = String(o || "").trim();
       if (!N) return null;
