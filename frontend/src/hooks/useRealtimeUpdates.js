@@ -246,7 +246,12 @@ export function useRealtimeUpdates({
       );
       wsRef.current = socket;
       socket.onopen = () => {
+        const shouldCatchUp = reconnectAttempt > 0;
         reconnectAttempt = 0;
+        if (shouldCatchUp && isRealtimeView(currentViewRef.current)) {
+          queueCoreRefresh(0);
+          queueSelectedClientRefresh(120);
+        }
       };
       socket.onmessage = async (event) => {
         try {
@@ -264,7 +269,7 @@ export function useRealtimeUpdates({
           ) {
             markHomeNeedsAttention();
           }
-          if (model === "clients" || model === "shoppings") {
+          if (model === "clients" || model === "shoppings" || model === "missions") {
             if (
               view === "HOME" ||
               view === "MISSIONS" ||
