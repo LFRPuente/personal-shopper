@@ -20,6 +20,7 @@ import {
   LayoutProfileProvider,
   ShipmentsProvider,
   ShoppingsProvider,
+  ClientsProvider,
 } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useClientsDomain } from './hooks/useClientsDomain.js';
@@ -6848,6 +6849,52 @@ function nh() {
     shoppingClientAssignmentSavingId,
     toggleShoppingClientAssignment,
   ]);
+  const clientsContextValue = V.useMemo(() => ({
+    clients: Kl,
+    clientSearch: j,
+    selectedClientId: W ? W.id : null,
+    currentShopping: w,
+    isDesktopLayout,
+    getHomeVisibleProducts,
+    getHomeClientTotals,
+    getClientShoppingHistoryEntries,
+    copyClientMissionShareLink,
+    copyMissionBreakdown,
+    copiedMissionClients,
+    openClientShoppingGallery,
+    openClientPaymentModal,
+    openPaymentModal,
+    deletePayment,
+    onOpenClientCreate: openCreateClientModal,
+    onEditClient: openEditClientModal,
+    onToggleClientStatus: Jt,
+    onOpenClientGallery: openClientSectionGallery,
+    getClientPhoneDisplay,
+    formatAmount,
+    user: J,
+  }), [
+    Kl,
+    j,
+    W,
+    w,
+    isDesktopLayout,
+    getHomeVisibleProducts,
+    getHomeClientTotals,
+    getClientShoppingHistoryEntries,
+    copyClientMissionShareLink,
+    copyMissionBreakdown,
+    copiedMissionClients,
+    openClientShoppingGallery,
+    openClientPaymentModal,
+    openPaymentModal,
+    deletePayment,
+    openCreateClientModal,
+    openEditClientModal,
+    Jt,
+    openClientSectionGallery,
+    formatAmount,
+    J,
+  ]);
   const appContextValue = V.useMemo(() => ({
     apiFetch: I,
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
@@ -7093,7 +7140,9 @@ function nh() {
           value: shipmentsContextValue,
           children: c.jsx(ShoppingsProvider, {
             value: shoppingsContextValue,
-            children: c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
+            children: c.jsx(ClientsProvider, {
+              value: clientsContextValue,
+              children: c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
       : "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
@@ -8004,6 +8053,7 @@ function nh() {
       }),
     ],
   })}),
+            }),
           }),
         }),
       }),

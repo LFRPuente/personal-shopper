@@ -1,5 +1,5 @@
 import { V, c, MODULE_AMOUNT_FORMAT, getClientPhoneDisplay } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useClientsContext } from '../AppContext.jsx';
 
 export const CLIENTS_SECTION_REQUIRED_CONTEXT = [
   'clients',
@@ -140,7 +140,7 @@ const getProductStatusSummary = (products = []) => {
 };
 
 const ClientsSection = V.memo(function ClientsSection(props = {}) {
-  const app = useApp();
+  const app = useClientsContext();
   const ctx = { ...DEFAULT_CONTEXT, ...(app || {}), ...props };
   const {
     clients,
