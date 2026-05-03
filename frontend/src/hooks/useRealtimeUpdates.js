@@ -1,4 +1,4 @@
-import { V, ENABLE_REALTIME_UPDATES, WS_UPDATES_URL } from "../utils.js";
+import { V, WS_UPDATES_URL } from "../utils.js";
 
 const REALTIME_HEARTBEAT_MS = 10000;
 const REALTIME_CATCHUP_MS = 12000;
@@ -147,7 +147,7 @@ export function useRealtimeUpdates({
       closeSocket();
       return undefined;
     }
-    if (!ENABLE_REALTIME_UPDATES || !isRealtimeView(currentView)) {
+    if (!isRealtimeView(currentView)) {
       closeSocket();
       return undefined;
     }

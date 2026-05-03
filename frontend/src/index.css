@@ -516,11 +516,6 @@
   will-change: auto;
 }
 
-.browser-firefox .review-pending,
-.browser-firefox .review-item-alert {
-  animation: none !important;
-}
-
 .browser-firefox .ui-card-quiet {
   transition: box-shadow 0.22s ease;
 }
