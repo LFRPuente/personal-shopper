@@ -1409,6 +1409,25 @@ function nh() {
     },
     [],
   );
+  V.useEffect(
+    () => () => {
+      reviewConversationSendCooldownTimerRef.current &&
+        clearTimeout(reviewConversationSendCooldownTimerRef.current);
+    },
+    [],
+  );
+  V.useEffect(
+    () => () => {
+      const resizeState = homeDesktopResizeRef.current;
+      if (!resizeState) return;
+      document.removeEventListener("mousemove", resizeState.handleMove);
+      document.removeEventListener("mouseup", resizeState.handleUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      homeDesktopResizeRef.current = null;
+    },
+    [],
+  );
   const getShoppingCalcPayload = (o = w, N = {}) => {
       const A = (vl, El, Se) =>
         Object.prototype.hasOwnProperty.call(N, vl)

@@ -100,6 +100,22 @@ export function useImageSource({
 }) {
   const [imageSourceDialog, setImageSourceDialog] = V.useState(null);
   const [imageSourceInfoOpen, setImageSourceInfoOpen] = V.useState(null);
+  const copiedImageTimerRef = V.useRef(null);
+
+  const scheduleCopiedImageReset = V.useCallback(() => {
+    copiedImageTimerRef.current && clearTimeout(copiedImageTimerRef.current);
+    copiedImageTimerRef.current = setTimeout(() => {
+      copiedImageTimerRef.current = null;
+      setCopiedImageItemId(null);
+    }, 2000);
+  }, [setCopiedImageItemId]);
+
+  V.useEffect(
+    () => () => {
+      copiedImageTimerRef.current && clearTimeout(copiedImageTimerRef.current);
+    },
+    [],
+  );
 
   const openDeviceImagePicker = V.useCallback(
     (onSelect, options = {}) => {
@@ -107,6 +123,16 @@ export function useImageSource({
       const accept = String(options.accept || "image/*").trim() || "image/*";
       try {
         const input = document.createElement("input");
+        let cleanedUp = false;
+        const cleanupInput = () => {
+          if (cleanedUp) return;
+          cleanedUp = true;
+          window.removeEventListener("focus", handleWindowFocus);
+          input.remove();
+        };
+        const handleWindowFocus = () => {
+          setTimeout(cleanupInput, 0);
+        };
         input.type = "file";
         input.accept = accept;
         input.multiple = multiple;
@@ -116,9 +142,11 @@ export function useImageSource({
         input.onchange = () => {
           const files = Array.from(input.files || []);
           if (files.length > 0) dispatchImageSelection(onSelect, files);
-          input.remove();
+          cleanupInput();
         };
+        input.oncancel = cleanupInput;
         document.body.appendChild(input);
+        window.addEventListener("focus", handleWindowFocus);
         input.click();
       } catch (error) {
         console.error("Failed opening image picker", error);
@@ -199,13 +227,13 @@ export function useImageSource({
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         await writeImageBlobToClipboard(await response.blob());
         setCopiedImageItemId(itemId);
-        setTimeout(() => setCopiedImageItemId(null), 2000);
+        scheduleCopiedImageReset();
       } catch (error) {
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(resolvedUrl);
             setCopiedImageItemId(itemId);
-            setTimeout(() => setCopiedImageItemId(null), 2000);
+            scheduleCopiedImageReset();
             notifyInfo(
               "Tu navegador no permite copiar imagen directa. Se copio el enlace de la imagen.",
             );
@@ -216,7 +244,7 @@ export function useImageSource({
         notifyError("No se pudo copiar la imagen. Intenta en Chrome o Edge.");
       }
     },
-    [notifyError, notifyInfo, setCopiedImageItemId],
+    [notifyError, notifyInfo, scheduleCopiedImageReset, setCopiedImageItemId],
   );
 
   const copyImageUrlToClipboard = V.useCallback(

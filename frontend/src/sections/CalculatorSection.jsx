@@ -11,6 +11,14 @@ const CalculatorSection = V.memo(function CalculatorSection() {
 
   const [calcPrice, setCalcPrice] = V.useState("");
   const [calcCopied, setCalcCopied] = V.useState(!1);
+  const calcCopiedTimerRef = V.useRef(null);
+
+  V.useEffect(
+    () => () => {
+      calcCopiedTimerRef.current && clearTimeout(calcCopiedTimerRef.current);
+    },
+    [],
+  );
 
   const o = parseFloat(calcPrice),
     N = Number.isFinite(o),
@@ -30,7 +38,11 @@ const CalculatorSection = V.memo(function CalculatorSection() {
     try {
       await navigator.clipboard.writeText(val.toFixed(2));
       setCalcCopied(!0);
-      setTimeout(() => setCalcCopied(!1), 1200);
+      calcCopiedTimerRef.current && clearTimeout(calcCopiedTimerRef.current);
+      calcCopiedTimerRef.current = setTimeout(() => {
+        calcCopiedTimerRef.current = null;
+        setCalcCopied(!1);
+      }, 1200);
     } catch (err) {
       console.error("Failed to copy calculator result", err);
     }
