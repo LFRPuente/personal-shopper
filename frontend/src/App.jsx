@@ -5063,22 +5063,31 @@ function nh() {
           publicSelectedShipment.tracking_number,
         )
       : "",
-    publicShipmentProductIds = publicClientShareData
-      ? new Set(
-          (publicClientShareData.shipments || []).flatMap((o) =>
-            (o.products_detail || []).map((N) => Number(N.id)),
-          ),
-        )
-      : new Set(),
-    publicPendingShipmentProducts = publicClientShareData
-      ? (publicClientShareData.products || []).filter(
-          (o) =>
-            o.status === "ANNOTATED" &&
-            !publicShipmentProductIds.has(Number(o.id)),
-        )
-      : [],
-    publicPendingShipmentSelectionSet = new Set(
-      publicPendingShipmentSelection.map((o) => Number(o)),
+    publicShipmentProductIds = V.useMemo(
+      () =>
+        publicClientShareData
+          ? new Set(
+              (publicClientShareData.shipments || []).flatMap((o) =>
+                (o.products_detail || []).map((N) => Number(N.id)),
+              ),
+            )
+          : new Set(),
+      [publicClientShareData],
+    ),
+    publicPendingShipmentProducts = V.useMemo(
+      () =>
+        publicClientShareData
+          ? (publicClientShareData.products || []).filter(
+              (o) =>
+                o.status === "ANNOTATED" &&
+                !publicShipmentProductIds.has(Number(o.id)),
+            )
+          : [],
+      [publicClientShareData, publicShipmentProductIds],
+    ),
+    publicPendingShipmentSelectionSet = V.useMemo(
+      () => new Set(publicPendingShipmentSelection.map((o) => Number(o))),
+      [publicPendingShipmentSelection],
     ),
     publicClientBalanceTotal = publicClientShareData
       ? toNumber(publicClientShareData.client_balance, 0)
@@ -5239,9 +5248,12 @@ function nh() {
     const o = new Set(
       publicPendingShipmentProducts.map((N) => Number(N.id)),
     );
-    setPublicPendingShipmentSelection((N) =>
-      N.filter((A) => o.has(Number(A))),
-    );
+    setPublicPendingShipmentSelection((N) => {
+      const A = N.filter((vl) => o.has(Number(vl)));
+      return A.length === N.length && A.every((vl, El) => vl === N[El])
+        ? N
+        : A;
+    });
   }, [publicPendingShipmentProducts]);
   V.useEffect(() => {
     if (!reviewConversationEntry) return;
