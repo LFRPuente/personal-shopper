@@ -31,6 +31,7 @@ import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
 import { useShipmentsDomain } from './hooks/useShipmentsDomain.js';
 import { useShoppingsDomain } from './hooks/useShoppingsDomain.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
+import { prepareCompressedImageFile } from './imageCompression.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
@@ -3099,7 +3100,8 @@ function nh() {
       Nl.append("status", "PENDING");
       const Se = String(newRequestClientId || W && W.id || "").trim();
       Se && Nl.append("client", Se);
-      newRequestImageFile && Nl.append("image", newRequestImageFile);
+      newRequestImageFile &&
+        Nl.append("image", await prepareCompressedImageFile(newRequestImageFile));
       try {
         const N = await I("/requests/", {
           method: "POST",
@@ -3167,7 +3169,8 @@ function nh() {
       A.append("note", N);
       A.append("status", "MODIFIED");
       A.append("client", editingRequestClientId ? String(editingRequestClientId) : "");
-      editingRequestImageFile && A.append("image", editingRequestImageFile);
+      editingRequestImageFile &&
+        A.append("image", await prepareCompressedImageFile(editingRequestImageFile));
       setEditingRequestSaving(!0);
       try {
         const vl = await I(getMissionRequestDetailPath(o.id), {
@@ -4409,7 +4412,9 @@ function nh() {
           previousState !== targetState &&
           gl.append("from_status", previousState);
         targetState && gl.append("to_status", targetState);
-        (El || []).forEach((ae) => gl.append("files", ae));
+        for (const ae of El || []) {
+          gl.append("files", await prepareCompressedImageFile(ae));
+        }
         await I(`/reviews/${ea.id}/send-message/`, {
           method: "POST",
           body: gl,

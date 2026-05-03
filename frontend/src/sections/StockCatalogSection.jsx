@@ -4,6 +4,7 @@ import {
   useCalculatorContext,
   useLayoutProfileContext,
 } from "../AppContext.jsx";
+import { prepareCompressedImageFile } from "../imageCompression.js";
 import StockProductModal, { createEmptyStockProductForm } from "../components/StockProductModal.jsx";
 import StockSalesModal from "../components/StockSalesModal.jsx";
 
@@ -211,7 +212,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
       payload.append("discount_percentage", String(form.discount_percentage || "0"));
       payload.append("is_active", form.is_active ? "true" : "false");
       payload.append("payer", String(form.payer || ""));
-      if (imageFile) payload.append("image", imageFile);
+      if (imageFile) payload.append("image", await prepareCompressedImageFile(imageFile));
       const url = editingProduct ? `/stock-products/${editingProduct.id}/` : "/stock-products/";
       const saved = await apiFetch(url, {
         method: editingProduct ? "PATCH" : "POST",
@@ -352,7 +353,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         const file = event && event.target && event.target.files && event.target.files[0];
         if (!file) return;
         const payload = new FormData();
-        payload.append("image", file);
+        payload.append("image", await prepareCompressedImageFile(file));
         try {
           const saved = await apiFetch(`/stock-products/${product.id}/`, {
             method: "PATCH",
