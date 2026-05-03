@@ -17,6 +17,7 @@ import {
   AppProvider,
   AppServicesProvider,
   CalculatorProvider,
+  LayoutProfileProvider,
 } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useClientsDomain } from './hooks/useClientsDomain.js';
@@ -6659,6 +6660,44 @@ function nh() {
     applyCalcCommissionChange,
     applyCalcExchangeRateChange,
   ]);
+  const layoutProfileContextValue = V.useMemo(() => ({
+    user: J,
+    isDesktopLayout,
+    layoutMode,
+    saveLayoutMode,
+    themeMode,
+    saveThemeMode,
+    defaultBreakdownTemplate,
+    persistDefaultBreakdownTemplate,
+    profileSettingsForm,
+    setProfileSettingsForm,
+    profileSettingsSaving,
+    saveProfileSettings,
+    handleLogout: iu,
+    refreshUsers,
+    users,
+    createUserRecord,
+    saveUserRecord,
+    deleteUserRecord,
+  }), [
+    J,
+    isDesktopLayout,
+    layoutMode,
+    saveLayoutMode,
+    themeMode,
+    saveThemeMode,
+    defaultBreakdownTemplate,
+    persistDefaultBreakdownTemplate,
+    profileSettingsForm,
+    profileSettingsSaving,
+    saveProfileSettings,
+    iu,
+    refreshUsers,
+    users,
+    createUserRecord,
+    saveUserRecord,
+    deleteUserRecord,
+  ]);
   const appContextValue = V.useMemo(() => ({
     apiFetch: I,
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
@@ -6898,7 +6937,9 @@ function nh() {
     value: appServicesContextValue,
     children: c.jsx(CalculatorProvider, {
       value: calculatorContextValue,
-      children: c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
+      children: c.jsx(LayoutProfileProvider, {
+        value: layoutProfileContextValue,
+        children: c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
       : "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
@@ -7809,6 +7850,7 @@ function nh() {
       }),
     ],
   })}),
+      }),
     }),
   });
 }

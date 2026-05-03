@@ -1,5 +1,5 @@
 import { V, c, sanitizeClientCountryCodeInput } from "../utils.js";
-import { useApp } from "../AppContext.jsx";
+import { useLayoutProfileContext } from "../AppContext.jsx";
 import UserManagementModal from "../components/UserManagementModal.jsx";
 
 const DEFAULT_BREAKDOWN_TEMPLATE =
@@ -25,7 +25,7 @@ const ProfileSection = V.memo(function ProfileSection() {
     createUserRecord,
     saveUserRecord,
     deleteUserRecord,
-  } = useApp();
+  } = useLayoutProfileContext();
 
   const J = user;
   const profile = (J && J.profile) || {};
