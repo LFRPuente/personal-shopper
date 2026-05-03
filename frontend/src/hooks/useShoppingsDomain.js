@@ -1,7 +1,12 @@
-import { V, toFormUserId, toNumber } from '../utils.js';
+import { V, toFormUserId } from '../utils.js';
 
 const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
 const MAX_OPEN_SHOPPINGS = 3;
+
+const toNumber = (value, fallback = 0) => {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 export const getMissionStoreLabel = (mission) =>
   mission ? mission.store_name || mission.name || `Tienda #${mission.id}` : "";
