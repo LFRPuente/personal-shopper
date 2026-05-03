@@ -22,6 +22,7 @@ import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
 import { useRealtimeUpdates } from './hooks/useRealtimeUpdates.js';
 import { useShipmentsDomain } from './hooks/useShipmentsDomain.js';
+import { useShoppingsDomain } from './hooks/useShoppingsDomain.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
@@ -51,7 +52,6 @@ const StockCatalogSection = V.lazy(() => import('./sections/StockCatalogSection.
 const ShipmentModal = V.lazy(() => import('./components/ShipmentModal.jsx'));
 const ExpensesSection = V.lazy(() => import('./sections/ExpensesSection.jsx'));
 
-const OPEN_SHOPPING_STATUSES = new Set(["ACTIVE", "PAUSED"]);
 const MAX_OPEN_SHOPPINGS = 3;
 
 class SectionErrorBoundary extends V.Component {
@@ -246,8 +246,6 @@ function nh() {
     ),
     [nl, Ll] = V.useState(initialAppRoute.section),
     [sectionTransitionStage, setSectionTransitionStage] = V.useState("idle"),
-    [Al, zl] = V.useState([]),
-    [w, Dl] = V.useState(null),
     [Kl, _l] = V.useState([]),
     [Pl, at] = V.useState(!1),
     [me, ut] = V.useState(!1),
@@ -271,9 +269,6 @@ function nh() {
       tax_percentage: "8.00",
       shipping_paid: !1,
     }),
-    [fn, rn] = V.useState(null),
-    [pa, dn] = V.useState(null),
-    [Sa, uu] = V.useState(""),
     [Ei, ge] = V.useState(null),
     [wl, jt] = V.useState("REVIEW"),
     [calcMode, setCalcMode] = V.useState(
@@ -341,7 +336,6 @@ function nh() {
     [publicBuildingShipment, setPublicBuildingShipment] = V.useState(!1),
     [publicShipmentInfoOpen, setPublicShipmentInfoOpen] = V.useState(!1),
     [publicShipmentHistoryExpanded, setPublicShipmentHistoryExpanded] = V.useState(!1),
-    [requests, setRequests] = V.useState([]),
     [paymentModalOpen, setPaymentModalOpen] = V.useState(!1),
     [paymentSaving, setPaymentSaving] = V.useState(!1),
     [paymentProductSearch, setPaymentProductSearch] = V.useState(""),
@@ -393,29 +387,11 @@ function nh() {
     [reviewConversationWahaEnabled, setReviewConversationWahaEnabled] = V.useState(!1),
     [reviewConversationRecipientIds, setReviewConversationRecipientIds] = V.useState([]),
     [reviewConversationSendCooling, setReviewConversationSendCooling] = V.useState(!1),
-    [openHistoryMissionByClient, setOpenHistoryMissionByClient] = V.useState({}),
-    [showMissionStartModal, setShowMissionStartModal] = V.useState(!1),
-    [missionStartForm, setMissionStartForm] = V.useState({
-      name: "",
-      store_name: "",
-      payer: "",
-      tax_percentage: "8",
-      calc_mode: "FACTOR",
-      factor_value: "1.5",
-      commission_percentage: "10",
-      exchange_rate: "17.5",
-      discount_percentage: "0",
-    }),
-    [missionSummaryOpen, setMissionSummaryOpen] = V.useState(!1),
-    [missionSummaryStatusFilter, setMissionSummaryStatusFilter] = V.useState("ALL"),
     [homeClientSearch, setHomeClientSearch] = V.useState(""),
-    [missionSearch, setMissionSearch] = V.useState(""),
     [homeUnreadSummary, setHomeUnreadSummary] = V.useState({}),
     [shoppingUnreadSummaryMap, setShoppingUnreadSummaryMap] = V.useState({}),
     [seenReviewItemMap, setSeenReviewItemMap] = V.useState({}),
     [homeNeedsAttention, setHomeNeedsAttention] = V.useState(!1),
-    [missionTicketUploading, setMissionTicketUploading] = V.useState(!1),
-    [shoppingClientAssignmentSavingId, setShoppingClientAssignmentSavingId] = V.useState(null),
     [receiptUploading, setReceiptUploading] = V.useState(!1),
     [newProductUploading, setNewProductUploading] = V.useState(!1),
     [productImageUploadingId, setProductImageUploadingId] = V.useState(null),
@@ -541,7 +517,6 @@ function nh() {
     copyClientShipmentHistoryLink = clientsDomain.copyClientShipmentHistoryLink,
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
-    requestsLoadedRef = V.useRef(!1),
     homeDesktopGridRef = V.useRef(null),
     homeDesktopLayoutRef = V.useRef(normalizeHomeDesktopLayout(null)),
     homeDesktopResizeRef = V.useRef(null),
@@ -550,6 +525,78 @@ function nh() {
     refreshCoreDataActionRef = V.useRef(() => {}),
     refreshSelectedClientActionRef = V.useRef(() => {}),
     shoppingCalcPersistTimerRef = V.useRef(null),
+    shoppingsDomain = useShoppingsDomain({
+      accessToken: C,
+      apiFetch: I,
+      activeMissionIdRef,
+      setClients: _l,
+      currentUser: J,
+      stores,
+      setStores,
+      setStoreRecommendations,
+      notifyInfo,
+      notifySuccess,
+      notifyError,
+      confirmAction,
+      openImageSourcePicker,
+      refreshCoreDataRef: refreshCoreDataActionRef,
+      refreshSelectedClientRef: refreshSelectedClientActionRef,
+      selectedClient: W,
+      calcMode,
+      calcFactor,
+      calcTaxes,
+      calcDiscount,
+      calcCommission,
+      calcExchangeRate,
+      setCalcMode,
+      setCalcFactor,
+      setCalcTaxes,
+      setCalcDiscount,
+      setCalcCommission,
+      setCalcExchangeRate,
+    }),
+    Al = shoppingsDomain.shoppings,
+    zl = shoppingsDomain.setShoppings,
+    w = shoppingsDomain.activeShopping,
+    Dl = shoppingsDomain.setActiveShopping,
+    fn = shoppingsDomain.expandedMissionId,
+    rn = shoppingsDomain.setExpandedMissionId,
+    pa = shoppingsDomain.editingMissionId,
+    dn = shoppingsDomain.setEditingMissionId,
+    Sa = shoppingsDomain.editingMissionName,
+    uu = shoppingsDomain.setEditingMissionName,
+    requests = shoppingsDomain.requests,
+    setRequests = shoppingsDomain.setRequests,
+    openHistoryMissionByClient = shoppingsDomain.openHistoryMissionByClient,
+    setOpenHistoryMissionByClient = shoppingsDomain.setOpenHistoryMissionByClient,
+    showMissionStartModal = shoppingsDomain.showMissionStartModal,
+    setShowMissionStartModal = shoppingsDomain.setShowMissionStartModal,
+    missionStartForm = shoppingsDomain.missionStartForm,
+    setMissionStartForm = shoppingsDomain.setMissionStartForm,
+    missionSummaryOpen = shoppingsDomain.missionSummaryOpen,
+    setMissionSummaryOpen = shoppingsDomain.setMissionSummaryOpen,
+    missionSummaryStatusFilter = shoppingsDomain.missionSummaryStatusFilter,
+    setMissionSummaryStatusFilter = shoppingsDomain.setMissionSummaryStatusFilter,
+    missionSearch = shoppingsDomain.missionSearch,
+    setMissionSearch = shoppingsDomain.setMissionSearch,
+    missionTicketUploading = shoppingsDomain.missionTicketUploading,
+    shoppingClientAssignmentSavingId = shoppingsDomain.shoppingClientAssignmentSavingId,
+    loadRequestsData = shoppingsDomain.loadRequestsData,
+    getMissionRequestDetailPath = shoppingsDomain.getMissionRequestDetailPath,
+    reloadMissionRequests = shoppingsDomain.reloadMissionRequests,
+    resetShoppingsDomain = shoppingsDomain.resetShoppingsDomain,
+    getMissionStoreLabel = shoppingsDomain.getMissionStoreLabel,
+    getOpenShoppingMissions = shoppingsDomain.getOpenShoppingMissions,
+    resolveSelectedShopping = shoppingsDomain.resolveSelectedShopping,
+    openMissionStart = shoppingsDomain.openMissionStart,
+    ye = shoppingsDomain.createShopping,
+    be = shoppingsDomain.pauseMission,
+    cu = shoppingsDomain.resumeMission,
+    toggleShoppingClientAssignment = shoppingsDomain.toggleShoppingClientAssignment,
+    on = shoppingsDomain.endMission,
+    mn = shoppingsDomain.deleteMission,
+    Fe = shoppingsDomain.saveEditedMission,
+    openMissionTicketPicker = shoppingsDomain.openMissionTicketPicker,
     shipmentsDomain = useShipmentsDomain({
       accessToken: C,
       apiFetch: I,
@@ -684,18 +731,6 @@ function nh() {
         console.error("Failed loading carrier recommendations", N);
       }
     },
-    loadRequestsData = async (o = !1) => {
-      if (!C || (requestsLoadedRef.current && !o)) return [];
-      try {
-        const N = await I("/requests/");
-        setRequests(N || []);
-        requestsLoadedRef.current = !0;
-        return N || [];
-      } catch (N) {
-        console.error("Failed loading requests", N);
-        return [];
-      }
-    },
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
@@ -758,12 +793,6 @@ function nh() {
     }),
     queueCoreRefresh = realtimeUpdates.queueCoreRefresh,
     queueSelectedClientRefresh = realtimeUpdates.queueSelectedClientRefresh,
-    // <-------- seccion 8: helper de recarga y update robusto para peticiones
-    getMissionRequestDetailPath = (o) => `/requests/${o}/`,
-    reloadMissionRequests = async () => {
-      const N = await I("/requests/");
-      return (setRequests(N || []), N || []);
-    },
     overlayNavigation = useOverlayNavigation({
       overlays: [
         { key: "confirm", open: confirmDialog },
@@ -1009,13 +1038,12 @@ function nh() {
     if (!C) {
       setSeenReviewItemMap({});
       resetShipmentsDomain();
+      resetShoppingsDomain();
       storesLoadedRef.current = !1;
       carrierRecommendationsLoadedRef.current = !1;
-      requestsLoadedRef.current = !1;
       setStores([]);
       setStoreRecommendations([]);
       setShippingCarrierRecommendations([]);
-      setRequests([]);
       return;
     }
     let cancelled = !1;
@@ -1516,201 +1544,6 @@ function nh() {
     }
   },
     iu = handleUnauthorized,
-    openMissionStart = () => {
-      const parseSafe = (N, A = 0) => {
-        const vl = parseFloat(N);
-        return Number.isFinite(vl) ? vl : A;
-      };
-      const N = (w && getMissionStoreLabel(w)) || "";
-      setMissionStartForm({
-        name: N,
-        store_name: N,
-        payer: toFormUserId((w && w.payer) || (J && J.id)),
-        tax_percentage: String(parseSafe(w && w.tax_percentage, calcTaxes)),
-        calc_mode: String((w && w.calc_mode) || calcMode || "FACTOR").toUpperCase(),
-        factor_value: String(parseSafe(w && w.factor_value, calcFactor)),
-        commission_percentage: String(
-          parseSafe(w && w.commission_percentage, calcCommission),
-        ),
-        exchange_rate: String(parseSafe(w && w.exchange_rate, calcExchangeRate)),
-        discount_percentage: String(
-          parseSafe(w && w.discount_percentage, calcDiscount),
-        ),
-      });
-      setShowMissionStartModal(!0);
-    },
-    ye = async (o = missionStartForm) => {
-      const openShoppingCount = getOpenShoppingMissions(Al).length;
-      if (openShoppingCount >= MAX_OPEN_SHOPPINGS) {
-        notifyInfo(
-          `Ya hay ${MAX_OPEN_SHOPPINGS} shoppings activos/pausados. Cierra uno para crear otro.`,
-        );
-        return;
-      }
-      const N = String(o.store_name || o.name || "").trim();
-      if (!N) {
-        notifyInfo("Selecciona o escribe la tienda para iniciar el shopping.");
-        return;
-      }
-      const yl = parseInt(o.payer, 10);
-      if (!Number.isInteger(yl) || yl <= 0) {
-        notifyInfo("Selecciona quien pagara el shopping.");
-        return;
-      }
-      const A = String(o.calc_mode || "FACTOR").toUpperCase() === "PERCENTAGE"
-        ? "PERCENTAGE"
-        : "FACTOR";
-      try {
-        let vl = findStoreByName(N);
-        if (!vl) {
-          vl = await I("/stores/", {
-            method: "POST",
-            body: JSON.stringify({ name: N }),
-          });
-          setStores((Se) =>
-            [...Se, vl].sort((ea, gl) => ea.name.localeCompare(gl.name)),
-          );
-        }
-        let El = null;
-        try {
-          El = await I("/shoppings/", {
-            method: "POST",
-            body: JSON.stringify({
-              name: N,
-              store: vl && vl.id ? vl.id : null,
-              payer: yl,
-              calc_mode: A,
-              tax_percentage: toNumber(o.tax_percentage, 8).toFixed(2),
-              factor_value: toNumber(o.factor_value, 1.5).toFixed(4),
-              commission_percentage: toNumber(o.commission_percentage, 10).toFixed(2),
-              exchange_rate: toNumber(o.exchange_rate, 17.5).toFixed(4),
-              discount_percentage: toNumber(o.discount_percentage, 0).toFixed(2),
-            }),
-          });
-        } catch {
-          El = await I("/shoppings/", {
-            method: "POST",
-            body: JSON.stringify({
-              name: N,
-              store: vl && vl.id ? vl.id : null,
-              payer: yl,
-            }),
-          });
-        }
-        const Se = await I("/store-recommendations/");
-        (setShowMissionStartModal(!1),
-          zl([...Al, El]),
-          Dl(El),
-          setStoreRecommendations(Se || []),
-          setCalcMode(A),
-          setCalcTaxes(toNumber(o.tax_percentage, 8)),
-          setCalcFactor(toNumber(o.factor_value, 1.5)),
-          setCalcCommission(toNumber(o.commission_percentage, 10)),
-          setCalcExchangeRate(toNumber(o.exchange_rate, 17.5)),
-          setCalcDiscount(toNumber(o.discount_percentage, 0)));
-      } catch (vl) {
-        console.error("Failed creating shopping", vl);
-        notifyError(`No se pudo iniciar la misión. ${vl.message || ""}`.trim());
-      }
-    },
-    be = async () => {
-      if (w)
-        try {
-          const o = await I(`/shoppings/${w.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: "PAUSED" }),
-          });
-          (zl(Al.map((N) => (N.id === w.id ? o : N))), Dl(o));
-        } catch { }
-    },
-    cu = async () => {
-      if (w)
-        try {
-          const o = await I(`/shoppings/${w.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: "ACTIVE" }),
-          });
-          (zl(Al.map((N) => (N.id === w.id ? o : N))), Dl(o));
-        } catch { }
-    },
-    toggleShoppingClientAssignment = async (mission, client) => {
-      const missionId = Number(mission && mission.id);
-      const clientId = Number(client && client.id);
-      if (!missionId || !clientId) return;
-      const currentClientIds = Array.isArray(mission && mission.clients)
-        ? mission.clients
-            .map((value) => Number(value && typeof value === "object" ? value.id : value))
-            .filter((value) => Number.isFinite(value) && value > 0)
-        : [];
-      const nextClientIds = currentClientIds.includes(clientId)
-        ? currentClientIds.filter((value) => value !== clientId)
-        : [...currentClientIds, clientId];
-      setShoppingClientAssignmentSavingId(`${missionId}-${clientId}`);
-      try {
-        const updatedMission = await I(`/shoppings/${missionId}/`, {
-          method: "PATCH",
-          body: JSON.stringify({ clients: nextClientIds }),
-        });
-        zl((items) => items.map((item) => (Number(item.id) === missionId ? updatedMission : item)));
-        if (w && Number(w.id) === missionId) {
-          Dl(updatedMission);
-        }
-      } catch (error) {
-        console.error("Failed updating shopping client assignment", error);
-        notifyError("No se pudo actualizar los clientes de este shopping.");
-      } finally {
-        setShoppingClientAssignmentSavingId(null);
-      }
-    },
-    on = async () => {
-      if (w)
-        try {
-          const o = await I(`/shoppings/${w.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: "COMPLETED" }),
-          });
-          const N = await I("/clients/");
-          const remainingOpenShoppings = getOpenShoppingMissions(
-            Al.map((Se) => (Se.id === w.id ? o : Se)),
-          );
-          (_l(N || []), zl(Al.map((A) => (A.id === w.id ? o : A))), Dl(remainingOpenShoppings[0] || null));
-        } catch { }
-    },
-    mn = async (o) => {
-      if (
-        !(await confirmAction({
-          title: "Eliminar misión",
-          message: "¿Eliminar esta misión y su historial?",
-          confirmLabel: "Eliminar",
-          tone: "danger",
-        }))
-      )
-        return;
-      try {
-        await I(`/shoppings/${o}/`, { method: "DELETE" });
-        const remainingMissions = Al.filter((Se) => Se.id !== o);
-        const remainingOpenShoppings = getOpenShoppingMissions(remainingMissions);
-        zl(remainingMissions);
-        w && w.id === o && Dl(remainingOpenShoppings[0] || null);
-        fn === o && rn(null);
-      } catch {
-        notifyError("Error deleting shopping");
-      }
-    },
-    Fe = async (o) => {
-      if (Sa.trim())
-        try {
-          const N = await I(`/shoppings/${o}/`, {
-            method: "PATCH",
-            body: JSON.stringify({ name: Sa }),
-          });
-          (zl(Al.map((A) => (A.id === o ? N : A))),
-            w && w.id === o && Dl(N),
-            dn(null));
-        } catch {
-          notifyError("Error renaming shopping");
-        }
-    },
     syncBrowserRoute = (o, N = {}, A = !0) => {
       if (typeof window === "undefined" || publicShareType) return;
       const vl = buildAppPath(o, N);
@@ -1738,43 +1571,9 @@ function nh() {
       if (receiptUploading) return;
       openImageSourcePicker(ru, { title: "Subir ticket" });
     },
-    openMissionTicketPicker = (o = null) => {
-      const N = o && o.id ? o : w;
-      if (!N || missionTicketUploading) return;
-      openImageSourcePicker((A) => uploadMissionTicket(A, N), {
-        title: "Subir ticket de shopping",
-        description: "Elige una imagen o PDF del ticket de shopping.",
-        accept: "image/*,application/pdf",
-        deviceDescription: "Abre tu galeria o archivos y selecciona una imagen o PDF.",
-      });
-    },
     fu = () => {
       if (newProductUploading) return;
       openImageSourcePicker(lt, { title: "Agregar producto" });
-    },
-    uploadMissionTicket = async (o, N = null) => {
-      const A = N && N.id ? N : w;
-      if (!A) return;
-      const files = o.target.files;
-      if (!files || files.length === 0) return;
-      const vl = new FormData();
-      vl.append("image", files[0]);
-      setMissionTicketUploading(!0);
-      try {
-        await I(`/shoppings/${A.id}/upload-ticket/`, {
-          method: "POST",
-          body: vl,
-        });
-        await refreshCoreData();
-        W && (await Qt());
-        notifySuccess("Ticket de misión cargado y vinculado.");
-      } catch (vl) {
-        console.error("Shopping ticket upload failed", vl);
-        notifyError("No se pudo subir el ticket de misión.");
-      } finally {
-        setMissionTicketUploading(!1);
-        o.target.value = "";
-      }
     },
     Xt = (o) => {
       if (productImageUploadingId) return;
@@ -3706,33 +3505,6 @@ function nh() {
       const Se = Math.floor(El / 24);
       return `hace ${Se} d`;
     },
-    getMissionStoreLabel = (o) =>
-      o ? o.store_name || o.name || `Tienda #${o.id}` : "",
-    getOpenShoppingMissions = (list = Al) =>
-      (Array.isArray(list) ? list : [])
-        .filter((mission) =>
-          OPEN_SHOPPING_STATUSES.has(
-            String((mission && mission.status) || "").toUpperCase(),
-          ),
-        )
-        .sort((a, b) => {
-          const aTime = new Date((a && a.start_time) || 0).getTime();
-          const bTime = new Date((b && b.start_time) || 0).getTime();
-          if (aTime !== bTime) return bTime - aTime;
-          return Number(b && b.id ? b.id : 0) - Number(a && a.id ? a.id : 0);
-        }),
-    resolveSelectedShopping = (list = Al, preferredId = null) => {
-      const openMissions = getOpenShoppingMissions(list);
-      const selectedId =
-        Number.isFinite(Number(preferredId)) && Number(preferredId) > 0
-          ? Number(preferredId)
-          : Number(w && w.id) || Number(activeMissionIdRef.current || 0) || 0;
-      if (selectedId > 0) {
-        const match = openMissions.find((mission) => Number(mission.id) === selectedId);
-        if (match) return match;
-      }
-      return openMissions[0] || null;
-    },
     normalizeSearchText = (o) =>
       String(o || "")
         .toLowerCase()
@@ -3830,11 +3602,6 @@ function nh() {
         String(A.name || "").toLowerCase().includes(o),
       ).slice(0, 8);
     })(),
-    findStoreByName = (o) =>
-      stores.find(
-        (N) =>
-          N.name.toLowerCase().trim() === String(o || "").toLowerCase().trim(),
-      ) || null,
     removeStoreRecommendation = async (o, N = "") => {
       try {
         await I(`/store-recommendations/${o}/`, { method: "DELETE" });
