@@ -13,7 +13,11 @@ import {
   getAppRouteFromPath, buildAppPath, slugifyRouteToken,
   MODULE_NUMBER_FORMAT, MODULE_AMOUNT_FORMAT,
 } from './utils.js';
-import { AppProvider } from './AppContext.jsx';
+import {
+  AppProvider,
+  AppServicesProvider,
+  CalculatorProvider,
+} from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useClientsDomain } from './hooks/useClientsDomain.js';
 import { useImageSource } from './hooks/useImageSource.js';
@@ -6611,6 +6615,50 @@ function nh() {
   // Missions section extracted to sections/MissionsSection.jsx
   // Profile section extracted to sections/ProfileSection.jsx
   // Shipments section extracted to sections/ShipmentsSection.jsx
+  const appServicesContextValue = V.useMemo(() => ({
+    apiFetch: I,
+    notifySuccess,
+    notifyError,
+    notifyInfo,
+    confirmAction,
+    openImageSourcePicker,
+    formatAmount,
+  }), [
+    I,
+    notifySuccess,
+    notifyError,
+    notifyInfo,
+    confirmAction,
+    openImageSourcePicker,
+    formatAmount,
+  ]);
+  const calculatorContextValue = V.useMemo(() => ({
+    calcMode,
+    calcFactor,
+    calcTaxes,
+    calcDiscount,
+    calcCommission,
+    calcExchangeRate,
+    applyCalcModeChange,
+    applyCalcFactorChange,
+    applyCalcDiscountChange,
+    applyCalcTaxesChange,
+    applyCalcCommissionChange,
+    applyCalcExchangeRateChange,
+  }), [
+    calcMode,
+    calcFactor,
+    calcTaxes,
+    calcDiscount,
+    calcCommission,
+    calcExchangeRate,
+    applyCalcModeChange,
+    applyCalcFactorChange,
+    applyCalcDiscountChange,
+    applyCalcTaxesChange,
+    applyCalcCommissionChange,
+    applyCalcExchangeRateChange,
+  ]);
   const appContextValue = V.useMemo(() => ({
     apiFetch: I,
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
@@ -6846,7 +6894,11 @@ function nh() {
   });
   if (!C || !J) return authScreen;
   const canUseWebBothSections = isDesktopLayout && J && J.profile && J.profile.role === "BOTH";
-  return c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
+  return c.jsx(AppServicesProvider, {
+    value: appServicesContextValue,
+    children: c.jsx(CalculatorProvider, {
+      value: calculatorContextValue,
+      children: c.jsx(AppProvider, { value: appContextValue, children: c.jsxs("div", {
     className: isDesktopLayout
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
       : "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
@@ -7756,7 +7808,9 @@ function nh() {
         }),
       }),
     ],
-  })});
+  })}),
+    }),
+  });
 }
 
 export default nh;

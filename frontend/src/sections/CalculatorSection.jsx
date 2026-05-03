@@ -1,14 +1,13 @@
 import { V } from '../utils.js';
 import { MODULE_AMOUNT_FORMAT } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useCalculatorContext } from '../AppContext.jsx';
 
 const CalculatorSection = V.memo(function CalculatorSection() {
   const {
     calcMode, calcFactor, calcTaxes, calcDiscount, calcCommission, calcExchangeRate,
     applyCalcModeChange, applyCalcFactorChange, applyCalcDiscountChange,
     applyCalcTaxesChange, applyCalcCommissionChange, applyCalcExchangeRateChange,
-    notifySuccess,
-  } = useApp();
+  } = useCalculatorContext();
 
   const [calcPrice, setCalcPrice] = V.useState("");
   const [calcCopied, setCalcCopied] = V.useState(!1);
