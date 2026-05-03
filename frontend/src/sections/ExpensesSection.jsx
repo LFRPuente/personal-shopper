@@ -1,5 +1,5 @@
 import { V, c, NATIVE_DROPDOWN_OPTION_STYLE } from '../utils.js';
-import { useApp, useAppServices } from '../AppContext.jsx';
+import { useAppServices, useLayoutProfileContext } from '../AppContext.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const monthBounds = (month) => [`${month}-01`, new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10)];
@@ -10,7 +10,7 @@ const padMonth = (value) => String(value).padStart(2, '0');
 const currentMonthKey = () => `${currentYear()}-${padMonth(currentMonthNumber())}`;
 
 const ExpensesSection = V.memo(function ExpensesSection() {
-  const { isDesktopLayout } = useApp();
+  const { isDesktopLayout } = useLayoutProfileContext();
   const { apiFetch, confirmAction, notifySuccess, notifyError, formatAmount } = useAppServices();
   const apiFetchRef = V.useRef(apiFetch);
   const nowYear = currentYear();

@@ -1,5 +1,10 @@
 import { V, c } from '../utils.js';
-import { useApp, useAppServices } from '../AppContext.jsx';
+import {
+  useAppServices,
+  useLayoutProfileContext,
+  useShipmentsContext,
+  useShoppingsContext,
+} from '../AppContext.jsx';
 import { downloadGeneralCsv } from '../reportWorkbook.js';
 
 const dateOnly = (date) => date.toISOString().slice(0, 10);
@@ -9,7 +14,9 @@ const monthStart = () => {
 };
 
 const ReportsSection = V.memo(function ReportsSection() {
-  const { missions, shipments, users, isDesktopLayout } = useApp();
+  const { missions } = useShoppingsContext();
+  const { shipments } = useShipmentsContext();
+  const { users, isDesktopLayout } = useLayoutProfileContext();
   const { apiFetch, notifySuccess, notifyInfo, notifyError } = useAppServices();
   const [startDate, setStartDate] = V.useState(monthStart());
   const [endDate, setEndDate] = V.useState(dateOnly(new Date()));
