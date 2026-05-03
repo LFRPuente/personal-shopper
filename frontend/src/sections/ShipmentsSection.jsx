@@ -9,7 +9,7 @@ import {
   getShipmentTrackingUrl,
   resolveMediaUrl,
 } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useShipmentsContext } from '../AppContext.jsx';
 
 export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'shipments',
@@ -927,7 +927,7 @@ function ShipmentExpandedPanel(props) {
 }
 
 const ShipmentsSection = V.memo(function ShipmentsSection() {
-  const ctx = useApp() || DEFAULT_CONTEXT;
+  const ctx = useShipmentsContext() || DEFAULT_CONTEXT;
   const {
     shipments,
     shipmentSearch,
