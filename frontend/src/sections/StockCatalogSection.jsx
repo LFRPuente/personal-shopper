@@ -1,5 +1,9 @@
 import { V, getUserOptionLabel, resolveMediaUrl } from "../utils.js";
-import { useApp } from "../AppContext.jsx";
+import {
+  useAppServices,
+  useCalculatorContext,
+  useLayoutProfileContext,
+} from "../AppContext.jsx";
 import StockProductModal, { createEmptyStockProductForm } from "../components/StockProductModal.jsx";
 import StockSalesModal from "../components/StockSalesModal.jsx";
 
@@ -35,6 +39,9 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     confirmAction,
     notifySuccess,
     notifyError,
+    openImageSourcePicker,
+  } = useAppServices();
+  const {
     calcMode,
     calcFactor,
     calcTaxes,
@@ -46,9 +53,10 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     applyCalcTaxesChange,
     applyCalcCommissionChange,
     applyCalcExchangeRateChange,
-    openImageSourcePicker,
+  } = useCalculatorContext();
+  const {
     users,
-  } = useApp();
+  } = useLayoutProfileContext();
 
   const apiFetchRef = V.useRef(apiFetch);
   const notifyErrorRef = V.useRef(notifyError);
