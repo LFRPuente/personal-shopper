@@ -237,6 +237,44 @@ class ClientSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
+class ShipmentNestedSummarySerializer(serializers.ModelSerializer):
+    shopping = serializers.PrimaryKeyRelatedField(source='mission', read_only=True)
+    shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+    mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        client = getattr(instance, 'client', None)
+        data['shipping_address'] = (
+            (getattr(instance, 'shipping_address', '') or '')
+            or (getattr(client, 'shipping_address', '') or '')
+            if client is not None
+            else (getattr(instance, 'shipping_address', '') or '')
+        )
+        return data
+
+    class Meta:
+        model = Shipment
+        fields = [
+            'id',
+            'client',
+            'shopping',
+            'shopping_name',
+            'mission_name',
+            'carrier',
+            'tracking_number',
+            'guide_price',
+            'client_price',
+            'includes_insurance',
+            'insurance_price',
+            'insurance_sale_price',
+            'shipping_address',
+            'status',
+            'created_at',
+            'updated_at',
+        ]
+
+
 class ProductItemSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.name', read_only=True, default='')
@@ -281,6 +319,63 @@ class ProductItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductItem
         fields = '__all__'
+
+
+class ProductItemNestedSerializer(ProductItemSerializer):
+    def get_shipment(self, obj):
+        shipment = None
+        try:
+            shipment = getattr(obj, 'shipment', None)
+        except Exception:
+            shipment = None
+        if shipment:
+            return ShipmentNestedSummarySerializer(shipment, context=self.context).data
+        related_shipments = getattr(obj, 'shipments', None)
+        if related_shipments is None:
+            return None
+        active_shipment = related_shipments.order_by('-updated_at', '-id').first()
+        if not active_shipment:
+            return None
+        return ShipmentNestedSummarySerializer(active_shipment, context=self.context).data
+
+
+class ClientListSerializer(serializers.ModelSerializer):
+    products = serializers.SerializerMethodField()
+    payments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Client
+        fields = [
+            'id',
+            'name',
+            'status',
+            'tags',
+            'phone_country_code',
+            'phone',
+            'email',
+            'shipping_address',
+            'shipping_addresses',
+            'added_by',
+            'created_at',
+            'products',
+            'payments',
+        ]
+
+    def get_products(self, obj):
+        serializer = ProductItemNestedSerializer(
+            obj.products.all(), many=True, context=self.context
+        )
+        return serializer.data
+
+    def get_payments(self, obj):
+        serializer = ShoppingPaymentSerializer(
+            obj.payments.all(), many=True, context=self.context
+        )
+        return serializer.data
+
+
+class ClientDetailSerializer(ClientSerializer):
+    pass
 
 
 class StockCatalogOrderSerializer(serializers.ModelSerializer):
@@ -559,6 +654,14 @@ class MissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mission
         fields = '__all__'
+
+
+class MissionListSerializer(MissionSerializer):
+    products = ProductItemNestedSerializer(many=True, read_only=True)
+
+
+class MissionDetailSerializer(MissionSerializer):
+    pass
 
 
 class RequestSerializer(serializers.ModelSerializer):

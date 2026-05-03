@@ -50,9 +50,13 @@ from .models import (
 )
 from .serializers import (
     ClientSerializer,
+    ClientListSerializer,
+    ClientDetailSerializer,
     ProductItemSerializer,
     ReceiptSerializer,
     MissionSerializer,
+    MissionListSerializer,
+    MissionDetailSerializer,
     UserSerializer,
     StoreSerializer,
     StoreRecommendationSerializer,
@@ -1343,6 +1347,13 @@ class MissionViewSet(viewsets.ModelViewSet):
     serializer_class = MissionSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return MissionListSerializer
+        if self.action == 'retrieve':
+            return MissionDetailSerializer
+        return MissionSerializer
+
     def get_queryset(self):
         return Mission.objects.select_related('store', 'payer').prefetch_related(
             'clients',
@@ -1884,6 +1895,13 @@ class ClientViewSet(viewsets.ModelViewSet):
     """
     serializer_class = ClientSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ClientListSerializer
+        if self.action == 'retrieve':
+            return ClientDetailSerializer
+        return ClientSerializer
 
     def get_queryset(self):
         base_queryset = Client.objects.prefetch_related(
