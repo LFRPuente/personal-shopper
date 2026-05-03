@@ -1157,6 +1157,15 @@ function nh() {
     openShoppingTabsRef.current = getOpenShoppingMissions(Al);
   }, [Al]);
   V.useEffect(() => {
+    if (!Array.isArray(Al)) return;
+    const selected = resolveSelectedShopping(Al, activeMissionIdRef.current);
+    const selectedId = Number((selected && selected.id) || 0);
+    const activeId = Number((w && w.id) || 0);
+    if (selectedId !== activeId || (selected && selected !== w)) {
+      Dl(selected || null);
+    }
+  }, [Al, w, Dl, resolveSelectedShopping]);
+  V.useEffect(() => {
     if (publicShareType || typeof window === "undefined") return;
     const o = () => {
       const N = getAppRouteFromPath(window.location.pathname);
