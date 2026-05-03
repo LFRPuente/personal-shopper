@@ -440,6 +440,8 @@ function nh() {
     }),
     W = clientsDomain.selectedClient,
     et = clientsDomain.setSelectedClient,
+    hydrateClientDetail = clientsDomain.hydrateClientDetail,
+    clientDetailLoadingId = clientsDomain.clientDetailLoadingId,
     Il = clientsDomain.createClientOpen,
     k = clientsDomain.setCreateClientOpen,
     Vl = clientsDomain.newClientName,
@@ -1170,8 +1172,10 @@ function nh() {
       const vl = slugifyRouteToken(A.name || A.username || A.id);
       return vl === o || String(A.id) === String(o);
     });
-    N && (!W || Number(W.id) !== Number(N.id)) && et(N);
-  }, [C, publicShareType, nl, Kl, W]);
+      N &&
+        (!W || Number(W.id) !== Number(N.id) || !Array.isArray(W.receipts)) &&
+        hydrateClientDetail(N);
+  }, [C, publicShareType, nl, Kl, W, hydrateClientDetail]);
   V.useEffect(() => {
     if (!C || publicShareType || typeof window === "undefined") return;
     const o =

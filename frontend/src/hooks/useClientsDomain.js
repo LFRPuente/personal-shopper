@@ -54,6 +54,51 @@ export function useClientsDomain({
   const [clientGalleryMissionScopeMeta, setClientGalleryMissionScopeMeta] = V.useState(null);
   const [clientGalleryAllowsShoppingChoice, setClientGalleryAllowsShoppingChoice] =
     V.useState(!1);
+  const [clientDetailLoadingId, setClientDetailLoadingId] = V.useState(null);
+  const clientDetailRequestRef = V.useRef(0);
+
+  const mergeClientIntoList = V.useCallback(
+    (client) => {
+      if (!client || !client.id) return;
+      setClients((items) =>
+        (items || []).map((item) => (item.id === client.id ? client : item)),
+      );
+    },
+    [setClients],
+  );
+
+  const hasClientDetail = V.useCallback(
+    (client) => !!client && Array.isArray(client.receipts),
+    [],
+  );
+
+  const hydrateClientDetail = V.useCallback(
+    async (client, { force = !1, select = !0 } = {}) => {
+      if (!client || !client.id) return null;
+      if (select) setSelectedClient(client);
+      if (!force && hasClientDetail(client)) return client;
+      const requestId = clientDetailRequestRef.current + 1;
+      clientDetailRequestRef.current = requestId;
+      setClientDetailLoadingId(client.id);
+      try {
+        const detailedClient = await apiFetch(`/clients/${client.id}/`);
+        mergeClientIntoList(detailedClient);
+        if (select && clientDetailRequestRef.current === requestId) {
+          setSelectedClient(detailedClient);
+        }
+        return detailedClient;
+      } catch (error) {
+        console.error("Failed hydrating client detail", error);
+        notifyError("No se pudo cargar el detalle completo del cliente.");
+        return null;
+      } finally {
+        if (clientDetailRequestRef.current === requestId) {
+          setClientDetailLoadingId(null);
+        }
+      }
+    },
+    [apiFetch, hasClientDetail, mergeClientIntoList, notifyError],
+  );
 
   const buildClientPayload = V.useCallback(
     ({
@@ -177,7 +222,7 @@ export function useClientsDomain({
           method: "PATCH",
           body: JSON.stringify(payload),
         });
-        setClients(clients.map((item) => (item.id === editingClient.id ? client : item)));
+        mergeClientIntoList(client);
         setEditClientOpen(!1);
         setEditingClient(null);
       } catch (error) {
@@ -187,12 +232,11 @@ export function useClientsDomain({
     [
       apiFetch,
       buildClientPayload,
-      clients,
       editClientForm,
       editingClient,
+      mergeClientIntoList,
       notifyError,
       notifyInfo,
-      setClients,
     ],
   );
 
@@ -227,12 +271,12 @@ export function useClientsDomain({
           method: "PATCH",
           body: JSON.stringify({ status }),
         });
-        setClients(clients.map((item) => (item.id === client.id ? updatedClient : item)));
+        mergeClientIntoList(updatedClient);
       } catch (error) {
         console.error(error);
       }
     },
-    [apiFetch, clients, setClients],
+    [apiFetch, mergeClientIntoList],
   );
 
   const refreshSelectedClient = V.useCallback(async () => {
@@ -240,9 +284,9 @@ export function useClientsDomain({
     try {
       const client = await apiFetch(`/clients/${selectedClient.id}/`);
       setSelectedClient(client);
-      setClients(clients.map((item) => (item.id === client.id ? client : item)));
+      mergeClientIntoList(client);
     } catch {}
-  }, [apiFetch, clients, selectedClient, setClients]);
+  }, [apiFetch, mergeClientIntoList, selectedClient]);
 
   const openClientFullGallery = V.useCallback(
     (client, missionScopeId = null) => {
@@ -254,10 +298,10 @@ export function useClientsDomain({
           String(missionScopeId).trim() === "",
       );
       setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER);
-      setSelectedClient(client);
+      hydrateClientDetail(client);
       setProductGalleryTab("REVIEW");
     },
-    [setProductGalleryTab],
+    [hydrateClientDetail, setProductGalleryTab],
   );
 
   const openMissionClientView = V.useCallback(
@@ -266,10 +310,10 @@ export function useClientsDomain({
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!1);
       setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER);
-      setSelectedClient(client);
+      hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [setProductGalleryTab],
+    [hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientSectionGallery = V.useCallback(
@@ -278,10 +322,10 @@ export function useClientsDomain({
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!0);
       setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER);
-      setSelectedClient(client);
+      hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [setProductGalleryTab],
+    [hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientShoppingGallery = V.useCallback(
@@ -296,10 +340,10 @@ export function useClientsDomain({
       );
       setClientGalleryAllowsShoppingChoice(!1);
       setClientGalleryTabOrder(STANDARD_CLIENT_GALLERY_TAB_ORDER);
-      setSelectedClient(client);
+      hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [setProductGalleryTab],
+    [hydrateClientDetail, setProductGalleryTab],
   );
 
   const closeSelectedClient = V.useCallback(() => {
@@ -413,6 +457,8 @@ export function useClientsDomain({
   return {
     selectedClient,
     setSelectedClient,
+    clientDetailLoadingId,
+    hydrateClientDetail,
     createClientOpen,
     setCreateClientOpen,
     newClientName,
