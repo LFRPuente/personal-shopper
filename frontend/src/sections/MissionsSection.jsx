@@ -1,5 +1,5 @@
 import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useShoppingsContext } from '../AppContext.jsx';
 
 const getMissionStatusClassName = (status) =>
   status === 'ACTIVE'
@@ -89,7 +89,7 @@ const MissionsSection = V.memo(function MissionsSection() {
     exportMissionCsv,
     openMissionTicketPicker,
     missionTicketUploading,
-  } = useApp();
+  } = useShoppingsContext();
 
   const filteredMissions = V.useMemo(() => {
     const tokens = getSearchTokens(missionSearch);

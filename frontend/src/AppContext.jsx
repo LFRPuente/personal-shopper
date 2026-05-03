@@ -5,12 +5,14 @@ const AppServicesContext = V.createContext(null);
 const CalculatorContext = V.createContext(null);
 const LayoutProfileContext = V.createContext(null);
 const ShipmentsContext = V.createContext(null);
+const ShoppingsContext = V.createContext(null);
 
 export const AppProvider = AppContext.Provider;
 export const AppServicesProvider = AppServicesContext.Provider;
 export const CalculatorProvider = CalculatorContext.Provider;
 export const LayoutProfileProvider = LayoutProfileContext.Provider;
 export const ShipmentsProvider = ShipmentsContext.Provider;
+export const ShoppingsProvider = ShoppingsContext.Provider;
 
 export const useApp = () => {
   const ctx = V.useContext(AppContext);
@@ -39,6 +41,12 @@ export const useLayoutProfileContext = () => {
 export const useShipmentsContext = () => {
   const ctx = V.useContext(ShipmentsContext);
   if (!ctx) throw new Error("useShipmentsContext must be used within ShipmentsProvider");
+  return ctx;
+};
+
+export const useShoppingsContext = () => {
+  const ctx = V.useContext(ShoppingsContext);
+  if (!ctx) throw new Error("useShoppingsContext must be used within ShoppingsProvider");
   return ctx;
 };
 

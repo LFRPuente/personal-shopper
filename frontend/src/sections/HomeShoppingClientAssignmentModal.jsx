@@ -1,5 +1,5 @@
 import { V, c } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useShoppingsContext } from '../AppContext.jsx';
 
 const getShoppingClientIds = (mission) => {
   const ids = new Set(
@@ -35,7 +35,7 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
     shoppingClientAssignmentSavingId,
     toggleShoppingClientAssignment,
     getMissionStoreLabel,
-  } = useApp();
+  } = useShoppingsContext();
   const [search, setSearch] = V.useState('');
 
   V.useEffect(() => {
