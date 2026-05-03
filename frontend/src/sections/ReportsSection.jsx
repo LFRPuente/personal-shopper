@@ -1,5 +1,5 @@
 import { V, c } from '../utils.js';
-import { useApp } from '../AppContext.jsx';
+import { useApp, useAppServices } from '../AppContext.jsx';
 import { downloadGeneralCsv } from '../reportWorkbook.js';
 
 const dateOnly = (date) => date.toISOString().slice(0, 10);
@@ -9,7 +9,8 @@ const monthStart = () => {
 };
 
 const ReportsSection = V.memo(function ReportsSection() {
-  const { apiFetch, missions, shipments, users, isDesktopLayout, notifySuccess, notifyInfo, notifyError } = useApp();
+  const { missions, shipments, users, isDesktopLayout } = useApp();
+  const { apiFetch, notifySuccess, notifyInfo, notifyError } = useAppServices();
   const [startDate, setStartDate] = V.useState(monthStart());
   const [endDate, setEndDate] = V.useState(dateOnly(new Date()));
   const [generating, setGenerating] = V.useState(false);
