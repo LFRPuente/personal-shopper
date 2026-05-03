@@ -7,7 +7,7 @@ export const c = { jsx, jsxs, Fragment };
 export const IS_FIREFOX =
   typeof navigator != "undefined" &&
   /firefox/i.test(String(navigator.userAgent || ""));
-export const ENABLE_REALTIME_UPDATES = !IS_FIREFOX;
+export const ENABLE_REALTIME_UPDATES = true;
 
 export const scheduleIdleTask = (task, timeout = 250) => {
   if (typeof window != "undefined" && typeof window.requestIdleCallback == "function") {
