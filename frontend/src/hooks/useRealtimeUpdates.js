@@ -42,6 +42,7 @@ export function useRealtimeUpdates({
   const wsReconnectTimerRef = V.useRef(null);
   const wsHeartbeatTimerRef = V.useRef(null);
   const realtimeCatchupTimerRef = V.useRef(null);
+  const realtimeCatchupInFlightRef = V.useRef(!1);
   const wsStoppedRef = V.useRef(!1);
   const coreRefreshTimerRef = V.useRef(null);
   const coreRefreshPendingRef = V.useRef(!1);
@@ -413,16 +414,78 @@ export function useRealtimeUpdates({
       return undefined;
     }
     realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
-    realtimeCatchupTimerRef.current = setInterval(() => {
+    realtimeCatchupTimerRef.current = setInterval(async () => {
       if (!isRealtimeView(currentViewRef.current)) return;
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      queueCoreRefresh(0);
+      if (realtimeCatchupInFlightRef.current) return;
+      realtimeCatchupInFlightRef.current = !0;
+      try {
+        queueCoreRefresh(0);
+        const missionId = Number(activeMissionIdRef.current || 0);
+        if (missionId > 0) {
+          const [summary, reviews] = await Promise.all([
+            apiFetchRef.current(`/reviews/unread-summary/?shopping=${missionId}`),
+            apiFetchRef.current(`/reviews/?shopping=${missionId}`),
+          ]);
+          setHomeUnreadSummary(summary || {});
+          setMissionReviewAlerts(
+            (reviews || []).filter(
+              (entry) =>
+                entry.status === "PENDING" || entry.status === "ALTERNATIVE_SENT",
+            ),
+          );
+        } else {
+          setHomeUnreadSummary({});
+          setMissionReviewAlerts([]);
+        }
+        const openShoppingTabs = openShoppingTabsRef.current || [];
+        if (openShoppingTabs.length) {
+          const entries = await Promise.all(
+            openShoppingTabs.map(async (mission) => {
+              const tabMissionId = Number(mission && mission.id) || 0;
+              if (!tabMissionId) return [null, null];
+              try {
+                const summary = await apiFetchRef.current(
+                  `/reviews/unread-summary/?shopping=${tabMissionId}`,
+                );
+                return [String(tabMissionId), summary || {}];
+              } catch {
+                return [String(tabMissionId), {}];
+              }
+            }),
+          );
+          setShoppingUnreadSummaryMap(
+            entries.reduce((acc, entry) => {
+              const [key, value] = entry || [];
+              if (key) acc[key] = value || {};
+              return acc;
+            }, {}),
+          );
+        } else {
+          setShoppingUnreadSummaryMap({});
+        }
+      } catch (error) {
+        console.error("Failed realtime catchup refresh", error);
+      } finally {
+        realtimeCatchupInFlightRef.current = !1;
+      }
     }, REALTIME_CATCHUP_MS);
     return () => {
       realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
       realtimeCatchupTimerRef.current = null;
     };
-  }, [accessToken, currentView, currentViewRef, queueCoreRefresh]);
+  }, [
+    accessToken,
+    currentView,
+    activeMissionIdRef,
+    apiFetchRef,
+    currentViewRef,
+    openShoppingTabsRef,
+    queueCoreRefresh,
+    setHomeUnreadSummary,
+    setMissionReviewAlerts,
+    setShoppingUnreadSummaryMap,
+  ]);
 
   return {
     queueCoreRefresh,
