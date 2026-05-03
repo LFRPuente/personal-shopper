@@ -1,5 +1,8 @@
 import { V, ENABLE_REALTIME_UPDATES, WS_UPDATES_URL } from "../utils.js";
 
+const REALTIME_HEARTBEAT_MS = 10000;
+const REALTIME_CATCHUP_MS = 12000;
+
 function isRealtimeView(view) {
   return (
     view === "HOME" ||
@@ -37,6 +40,8 @@ export function useRealtimeUpdates({
 }) {
   const wsRef = V.useRef(null);
   const wsReconnectTimerRef = V.useRef(null);
+  const wsHeartbeatTimerRef = V.useRef(null);
+  const realtimeCatchupTimerRef = V.useRef(null);
   const wsStoppedRef = V.useRef(!1);
   const coreRefreshTimerRef = V.useRef(null);
   const coreRefreshPendingRef = V.useRef(!1);
@@ -129,6 +134,10 @@ export function useRealtimeUpdates({
       wsStoppedRef.current = !0;
       wsReconnectTimerRef.current && clearTimeout(wsReconnectTimerRef.current);
       wsReconnectTimerRef.current = null;
+      wsHeartbeatTimerRef.current && clearInterval(wsHeartbeatTimerRef.current);
+      wsHeartbeatTimerRef.current = null;
+      realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
+      realtimeCatchupTimerRef.current = null;
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -248,6 +257,13 @@ export function useRealtimeUpdates({
       socket.onopen = () => {
         const shouldCatchUp = reconnectAttempt > 0;
         reconnectAttempt = 0;
+        wsHeartbeatTimerRef.current && clearInterval(wsHeartbeatTimerRef.current);
+        wsHeartbeatTimerRef.current = setInterval(() => {
+          if (socket.readyState !== WebSocket.OPEN) return;
+          try {
+            socket.send(JSON.stringify({ type: "ping" }));
+          } catch {}
+        }, REALTIME_HEARTBEAT_MS);
         if (shouldCatchUp && isRealtimeView(currentViewRef.current)) {
           queueCoreRefresh(0);
           queueSelectedClientRefresh(120);
@@ -361,12 +377,21 @@ export function useRealtimeUpdates({
         } catch {}
       };
       socket.onclose = () => {
+        wsHeartbeatTimerRef.current && clearInterval(wsHeartbeatTimerRef.current);
+        wsHeartbeatTimerRef.current = null;
         if (wsStoppedRef.current) return;
         reconnectAttempt += 1;
         const delay = Math.min(5000, 1000 * reconnectAttempt);
         wsReconnectTimerRef.current = setTimeout(connect, delay);
       };
     };
+
+    realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
+    realtimeCatchupTimerRef.current = setInterval(() => {
+      if (!isRealtimeView(currentViewRef.current)) return;
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      queueCoreRefresh(0);
+    }, REALTIME_CATCHUP_MS);
 
     connect();
     return closeSocket;
