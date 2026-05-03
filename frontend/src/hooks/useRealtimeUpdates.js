@@ -136,8 +136,6 @@ export function useRealtimeUpdates({
       wsReconnectTimerRef.current = null;
       wsHeartbeatTimerRef.current && clearInterval(wsHeartbeatTimerRef.current);
       wsHeartbeatTimerRef.current = null;
-      realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
-      realtimeCatchupTimerRef.current = null;
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -386,13 +384,6 @@ export function useRealtimeUpdates({
       };
     };
 
-    realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
-    realtimeCatchupTimerRef.current = setInterval(() => {
-      if (!isRealtimeView(currentViewRef.current)) return;
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      queueCoreRefresh(0);
-    }, REALTIME_CATCHUP_MS);
-
     connect();
     return closeSocket;
   }, [
@@ -414,6 +405,24 @@ export function useRealtimeUpdates({
     setStores,
     setStoreRecommendations,
   ]);
+
+  V.useEffect(() => {
+    if (!accessToken || !isRealtimeView(currentView)) {
+      realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
+      realtimeCatchupTimerRef.current = null;
+      return undefined;
+    }
+    realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
+    realtimeCatchupTimerRef.current = setInterval(() => {
+      if (!isRealtimeView(currentViewRef.current)) return;
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      queueCoreRefresh(0);
+    }, REALTIME_CATCHUP_MS);
+    return () => {
+      realtimeCatchupTimerRef.current && clearInterval(realtimeCatchupTimerRef.current);
+      realtimeCatchupTimerRef.current = null;
+    };
+  }, [accessToken, currentView, currentViewRef, queueCoreRefresh]);
 
   return {
     queueCoreRefresh,
