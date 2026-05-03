@@ -5,6 +5,9 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const PAYMENT_PRODUCT_INITIAL_RENDER_LIMIT = 40;
+const PAYMENT_PRODUCT_RENDER_INCREMENT = 40;
+
 const PaymentModal = V.memo(function PaymentModal(props) {
   const {
     paymentForm,
@@ -47,6 +50,14 @@ const PaymentModal = V.memo(function PaymentModal(props) {
     overlaySheetClass,
   } = props;
 
+  const [paymentProductRenderLimit, setPaymentProductRenderLimit] = V.useState(
+    PAYMENT_PRODUCT_INITIAL_RENDER_LIMIT,
+  );
+
+  V.useEffect(() => {
+    setPaymentProductRenderLimit(PAYMENT_PRODUCT_INITIAL_RENDER_LIMIT);
+  }, [paymentProductSearch, paymentModalClient?.id, paymentModalShopping?.id]);
+
   if (!paymentModalClient || !paymentModalShopping) return null;
 
   const paymentSelectedSet = new Set((paymentForm.product_ids || []).map((value) => Number(value)));
@@ -60,6 +71,12 @@ const PaymentModal = V.memo(function PaymentModal(props) {
     Number.isFinite(paymentModalDiscountPercent) && paymentModalDiscountPercent > 0
       ? `${formatAmount(paymentModalDiscountPercent)}%`
       : "0%";
+  const paymentVisibleProducts = paymentFilteredProducts.slice(
+    0,
+    paymentProductRenderLimit,
+  );
+  const paymentHasMoreProducts =
+    paymentFilteredProducts.length > paymentVisibleProducts.length;
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -178,107 +195,122 @@ const PaymentModal = V.memo(function PaymentModal(props) {
                       "flex-1 min-h-[240px] rounded-2xl border border-dashed border-border-light dark:border-border-dark flex items-center justify-center text-sm text-text-sub bg-white/60 dark:bg-slate-900/40",
                     children: "No hay productos para este cliente con ese filtro.",
                   })
-                  : c.jsx("div", {
-                    className:
-                      "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3",
-                    children: paymentFilteredProducts.map((product) => {
-                      const productId = Number(product.id);
-                      const isSelected = paymentSelectedSet.has(productId);
-                      const isReserved =
-                        paymentReservedSet.has(productId) && !isSelected;
-                      const amount = getProductPaymentAmount(product);
-                      return c.jsxs(
-                        "button",
-                        {
-                          type: "button",
-                          onClick: () => togglePaymentProductSelection(product),
-                          disabled: isReserved,
-                          className:
-                            `relative overflow-hidden rounded-2xl border text-left ui-media-card ${isSelected ? "border-primary ring-2 ring-primary/30" : "border-border-light dark:border-border-dark"} ${isReserved ? "opacity-50 cursor-not-allowed" : ""} bg-surface-light dark:bg-surface-dark`,
-                          children: [
-                            product.image
-                              ? c.jsx("img", {
-                                src: resolveMediaUrl(product.image),
-                                className: "w-full aspect-[3/4] object-cover",
-                                loading: "lazy",
-                                decoding: "async",
-                              })
-                              : c.jsx("div", {
-                                className:
-                                  "w-full aspect-[3/4] bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400",
-                                children: c.jsx("span", {
-                                  className:
-                                    "material-symbols-outlined text-[24px]",
-                                  children: "image",
-                                }),
-                              }),
-                            Number.isFinite(amount) &&
-                              c.jsx("div", {
-                                className:
-                                  "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
-                                children: c.jsxs("span", {
-                                  className:
-                                    "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
-                                  children: ["$", formatAmount(amount)],
-                                }),
-                              }),
-                            c.jsx("div", {
+                  : c.jsxs(c.Fragment, {
+                    children: [
+                      c.jsx("div", {
+                        className:
+                          "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3",
+                        children: paymentVisibleProducts.map((product) => {
+                          const productId = Number(product.id);
+                          const isSelected = paymentSelectedSet.has(productId);
+                          const isReserved =
+                            paymentReservedSet.has(productId) && !isSelected;
+                          const amount = getProductPaymentAmount(product);
+                          return c.jsxs(
+                            "button",
+                            {
+                              type: "button",
+                              onClick: () => togglePaymentProductSelection(product),
+                              disabled: isReserved,
                               className:
-                                "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
-                              children: c.jsxs("div", {
-                                className: "space-y-0.5",
-                                children: [
-                                  c.jsx("p", {
+                                `relative overflow-hidden rounded-2xl border text-left ui-media-card ${isSelected ? "border-primary ring-2 ring-primary/30" : "border-border-light dark:border-border-dark"} ${isReserved ? "opacity-50 cursor-not-allowed" : ""} bg-surface-light dark:bg-surface-dark`,
+                              children: [
+                                product.image
+                                  ? c.jsx("img", {
+                                    src: resolveMediaUrl(product.image),
+                                    className: "w-full aspect-[3/4] object-cover",
+                                    loading: "lazy",
+                                    decoding: "async",
+                                  })
+                                  : c.jsx("div", {
                                     className:
-                                      "text-[11px] font-semibold text-white truncate",
-                                    children: product.name,
-                                  }),
-                                  c.jsx("p", {
-                                    className: "text-[10px] text-white/80 truncate",
-                                    children:
-                                      product.shopping_name ||
-                                      product.mission_name ||
-                                      product.store_name ||
-                                      "Sin shopping",
-                                  }),
-                                  (product.shopping_date || product.mission_date) &&
-                                    c.jsx("p", {
+                                      "w-full aspect-[3/4] bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400",
+                                    children: c.jsx("span", {
                                       className:
-                                        "text-[10px] text-white/70 truncate",
-                                      children: new Date(
-                                        product.shopping_date ||
-                                          product.mission_date,
-                                      ).toLocaleDateString(),
+                                        "material-symbols-outlined text-[24px]",
+                                      children: "image",
                                     }),
-                                ],
-                              }),
-                            }),
-                            c.jsx("div", {
-                              className:
-                                `absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center ${isSelected ? "bg-primary border-primary text-white" : "bg-white/85 border-white/90 text-slate-400"}`,
-                              children:
-                                isSelected &&
-                                c.jsx("span", {
+                                  }),
+                                Number.isFinite(amount) &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-1.5 z-20 flex justify-center pointer-events-none",
+                                    children: c.jsxs("span", {
+                                      className:
+                                        "inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md",
+                                      children: ["$", formatAmount(amount)],
+                                    }),
+                                  }),
+                                c.jsx("div", {
                                   className:
-                                    "material-symbols-outlined text-[15px]",
-                                  children: "check",
+                                    "absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent",
+                                  children: c.jsxs("div", {
+                                    className: "space-y-0.5",
+                                    children: [
+                                      c.jsx("p", {
+                                        className:
+                                          "text-[11px] font-semibold text-white truncate",
+                                        children: product.name,
+                                      }),
+                                      c.jsx("p", {
+                                        className: "text-[10px] text-white/80 truncate",
+                                        children:
+                                          product.shopping_name ||
+                                          product.mission_name ||
+                                          product.store_name ||
+                                          "Sin shopping",
+                                      }),
+                                      (product.shopping_date || product.mission_date) &&
+                                        c.jsx("p", {
+                                          className:
+                                            "text-[10px] text-white/70 truncate",
+                                          children: new Date(
+                                            product.shopping_date ||
+                                              product.mission_date,
+                                          ).toLocaleDateString(),
+                                        }),
+                                    ],
+                                  }),
                                 }),
-                            }),
-                            isReserved &&
-                              c.jsx("div", {
-                                className:
-                                  "absolute inset-0 bg-black/20 flex items-center justify-center",
-                                children: c.jsx("span", {
+                                c.jsx("div", {
                                   className:
-                                    "px-2 py-1 rounded-full bg-white/90 text-[10px] font-bold text-slate-700",
-                                  children: "Reservado",
+                                    `absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center ${isSelected ? "bg-primary border-primary text-white" : "bg-white/85 border-white/90 text-slate-400"}`,
+                                  children:
+                                    isSelected &&
+                                    c.jsx("span", {
+                                      className:
+                                        "material-symbols-outlined text-[15px]",
+                                      children: "check",
+                                    }),
                                 }),
-                              }),
-                          ],
-                        },
-                        `payment-picker-${product.id}`,
-                      );
-                    }),
+                                isReserved &&
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-0 bg-black/20 flex items-center justify-center",
+                                    children: c.jsx("span", {
+                                      className:
+                                        "px-2 py-1 rounded-full bg-white/90 text-[10px] font-bold text-slate-700",
+                                      children: "Reservado",
+                                    }),
+                                  }),
+                              ],
+                            },
+                            `payment-picker-${product.id}`,
+                          );
+                        }),
+                      }),
+                      paymentHasMoreProducts &&
+                        c.jsx("button", {
+                          type: "button",
+                          onClick: () =>
+                            setPaymentProductRenderLimit((current) =>
+                              current + PAYMENT_PRODUCT_RENDER_INCREMENT,
+                            ),
+                          className:
+                            "w-full rounded-2xl border border-dashed border-violet-200 bg-white/70 px-3 py-2.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-900/60 dark:bg-slate-900/45 dark:text-violet-200 dark:hover:bg-violet-950/30",
+                          children: `Mostrar mas productos (${paymentVisibleProducts.length} de ${paymentFilteredProducts.length})`,
+                        }),
+                    ],
                   }),
               ],
             }),
