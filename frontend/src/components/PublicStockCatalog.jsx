@@ -259,10 +259,10 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
             <button
               type="button"
               onClick={closePreviewImage}
-              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow"
+              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow"
               aria-label="Cerrar imagen"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
             <img
               src={previewImage}

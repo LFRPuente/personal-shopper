@@ -85,6 +85,8 @@ const MissionsSection = V.memo(function MissionsSection() {
     parseVisualTag,
     getProductQuickFinalPrice,
     formatProductQuickFinalPrice,
+    getProductStoreAmount,
+    formatAmount,
     setFullscreenImage,
     exportMissionCsv,
     openMissionTicketPicker,
@@ -195,6 +197,19 @@ const MissionsSection = V.memo(function MissionsSection() {
                 );
               });
               const productStatusSummary = getShoppingProductStatusSummary(missionProducts);
+              const missionSaleTotal = visibleProducts.reduce((sum, product) => {
+                const value = getProductQuickFinalPrice(product);
+                return Number.isFinite(value) ? sum + value : sum;
+              }, 0);
+              const missionPurchaseTotal = visibleProducts.reduce((sum, product) => {
+                const value =
+                  typeof getProductStoreAmount === 'function'
+                    ? getProductStoreAmount(product)
+                    : Number.NaN;
+                return Number.isFinite(value) ? sum + value : sum;
+              }, 0);
+              const missionAmountFormatter =
+                typeof formatAmount === 'function' ? formatAmount : (value) => String(value || '0.00');
 
               return c.jsxs(
                 'div',
@@ -289,6 +304,51 @@ const MissionsSection = V.memo(function MissionsSection() {
                                           mission.payer_username || 'Sin dato',
                                         ],
                                       }),
+                                    c.jsxs('div', {
+                                      className: isDesktopLayout
+                                        ? 'mt-3 grid grid-cols-2 gap-2 max-w-md'
+                                        : 'mt-3 grid grid-cols-2 gap-2',
+                                      children: [
+                                        c.jsxs('div', {
+                                          className:
+                                            'rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 text-right dark:border-sky-800 dark:bg-sky-950/30',
+                                          children: [
+                                            c.jsx('p', {
+                                              className:
+                                                'text-[9px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-300',
+                                              children: 'Costo USD',
+                                            }),
+                                            c.jsxs('p', {
+                                              className:
+                                                'mt-1 text-lg font-black leading-none tracking-tight text-slate-900 dark:text-slate-100',
+                                              children: [
+                                                '$',
+                                                missionAmountFormatter(missionPurchaseTotal),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                        c.jsxs('div', {
+                                          className:
+                                            'rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right dark:border-emerald-800 dark:bg-emerald-950/30',
+                                          children: [
+                                            c.jsx('p', {
+                                              className:
+                                                'text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300',
+                                              children: 'Costo Venta',
+                                            }),
+                                            c.jsxs('p', {
+                                              className:
+                                                'mt-1 text-lg font-black leading-none tracking-tight text-emerald-900 dark:text-emerald-100',
+                                              children: [
+                                                '$',
+                                                missionAmountFormatter(missionSaleTotal),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                      ],
+                                    }),
                                   ],
                                 }),
                           }),
