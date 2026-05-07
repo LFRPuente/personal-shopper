@@ -305,22 +305,20 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         ],
                                       }),
                                     c.jsxs('div', {
-                                      className: isDesktopLayout
-                                        ? 'mt-3 grid grid-cols-2 gap-2 max-w-md'
-                                        : 'mt-3 grid grid-cols-2 gap-2',
+                                      className: 'mt-2 flex flex-wrap gap-1.5 sm:hidden',
                                       children: [
                                         c.jsxs('div', {
                                           className:
-                                            'rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 text-right dark:border-sky-800 dark:bg-sky-950/30',
+                                            'rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-right dark:border-sky-800 dark:bg-sky-950/30',
                                           children: [
                                             c.jsx('p', {
                                               className:
-                                                'text-[9px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-300',
+                                                'text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-300',
                                               children: 'Costo USD',
                                             }),
                                             c.jsxs('p', {
                                               className:
-                                                'mt-1 text-lg font-black leading-none tracking-tight text-slate-900 dark:text-slate-100',
+                                                'mt-0.5 text-[11px] font-black leading-none text-slate-900 dark:text-slate-100',
                                               children: [
                                                 '$',
                                                 missionAmountFormatter(missionPurchaseTotal),
@@ -330,16 +328,16 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         }),
                                         c.jsxs('div', {
                                           className:
-                                            'rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right dark:border-emerald-800 dark:bg-emerald-950/30',
+                                            'rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-right dark:border-emerald-800 dark:bg-emerald-950/30',
                                           children: [
                                             c.jsx('p', {
                                               className:
-                                                'text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300',
+                                                'text-[8px] font-black uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300',
                                               children: 'Costo Venta',
                                             }),
                                             c.jsxs('p', {
                                               className:
-                                                'mt-1 text-lg font-black leading-none tracking-tight text-emerald-900 dark:text-emerald-100',
+                                                'mt-0.5 text-[11px] font-black leading-none text-emerald-900 dark:text-emerald-100',
                                               children: [
                                                 '$',
                                                 missionAmountFormatter(missionSaleTotal),
@@ -353,8 +351,51 @@ const MissionsSection = V.memo(function MissionsSection() {
                                 }),
                           }),
                           c.jsxs('div', {
-                            className: 'flex items-center gap-2 ml-2',
+                            className: 'ml-3 flex shrink-0 items-center gap-2',
                             children: [
+                              c.jsxs('div', {
+                                className: 'hidden grid-cols-2 gap-1.5 sm:grid',
+                                children: [
+                                  c.jsxs('div', {
+                                    className:
+                                      'min-w-[86px] rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-right dark:border-sky-800 dark:bg-sky-950/30',
+                                    children: [
+                                      c.jsx('p', {
+                                        className:
+                                          'text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-300',
+                                        children: 'Costo USD',
+                                      }),
+                                      c.jsxs('p', {
+                                        className:
+                                          'mt-0.5 text-xs font-black leading-none text-slate-900 dark:text-slate-100',
+                                        children: [
+                                          '$',
+                                          missionAmountFormatter(missionPurchaseTotal),
+                                        ],
+                                      }),
+                                    ],
+                                  }),
+                                  c.jsxs('div', {
+                                    className:
+                                      'min-w-[92px] rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-right dark:border-emerald-800 dark:bg-emerald-950/30',
+                                    children: [
+                                      c.jsx('p', {
+                                        className:
+                                          'text-[8px] font-black uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300',
+                                        children: 'Costo Venta',
+                                      }),
+                                      c.jsxs('p', {
+                                        className:
+                                          'mt-0.5 text-xs font-black leading-none text-emerald-900 dark:text-emerald-100',
+                                        children: [
+                                          '$',
+                                          missionAmountFormatter(missionSaleTotal),
+                                        ],
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              }),
                               c.jsx('span', {
                                 className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${getMissionStatusClassName(
                                   mission.status,
