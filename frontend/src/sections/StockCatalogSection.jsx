@@ -664,20 +664,20 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             onClick={() => setPreviewImageUrl("")}
           >
             <div
-              className="relative flex max-h-[92vh] max-w-[96vw] items-center justify-center"
+              className="relative inline-block max-h-[92vh] max-w-[96vw]"
               onClick={(event) => event.stopPropagation()}
             >
               <button
                 type="button"
                 onClick={() => setPreviewImageUrl("")}
-                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow"
+                className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow"
                 aria-label="Cerrar imagen"
               >
-                <span className="material-symbols-outlined text-[18px]">close</span>
+                <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
               <img
                 src={previewImageUrl}
-                className="max-h-[92vh] max-w-[96vw] rounded-xl bg-black object-contain shadow-2xl"
+                className="block max-h-[92vh] max-w-[96vw] rounded-xl bg-black object-contain shadow-2xl"
                 alt=""
               />
             </div>
