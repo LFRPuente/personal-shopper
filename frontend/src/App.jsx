@@ -4791,6 +4791,30 @@ function nh() {
         ),
       [filteredMissionSummaryProducts, missionDiscountPercentage],
     ),
+    getShoppingMissionTotals = (o, N = []) => {
+      const A = Number((o && o.id) || 0),
+        vl = String((o && o.status) || "").toUpperCase();
+      if (w && Number(w.id) === A) {
+        return {
+          usd: missionPurchaseCostWithDiscount,
+          sale: missionTotalWithDiscount,
+        };
+      }
+      return (N || [])
+        .filter((El) => {
+          const Se = String((El && El.status) || "").toUpperCase();
+          return vl === "COMPLETED"
+            ? Se === "ANNOTATED" || Se === "BOUGHT" || Se === "SHIPPED"
+            : Se === "ANNOTATED";
+        })
+        .reduce(
+          (El, Se) => ({
+            usd: El.usd + getProductStoreAmount(Se),
+            sale: El.sale + getProductPaymentAmount(Se),
+          }),
+          { usd: 0, sale: 0 },
+        );
+    },
     homeClientMissionProductsMap = V.useMemo(() => {
       const o = {};
       activeMissionProducts.forEach((N) => {
@@ -6857,6 +6881,7 @@ function nh() {
     getProductQuickFinalPrice,
     formatProductQuickFinalPrice,
     getProductStoreAmount,
+    getShoppingMissionTotals,
     formatAmount,
     setFullscreenImage,
     exportMissionCsv,
@@ -6890,6 +6915,7 @@ function nh() {
     getProductQuickFinalPrice,
     formatProductQuickFinalPrice,
     getProductStoreAmount,
+    getShoppingMissionTotals,
     formatAmount,
     exportMissionCsv,
     openMissionTicketPicker,

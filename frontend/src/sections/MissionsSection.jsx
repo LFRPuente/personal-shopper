@@ -85,7 +85,7 @@ const MissionsSection = V.memo(function MissionsSection() {
     parseVisualTag,
     getProductQuickFinalPrice,
     formatProductQuickFinalPrice,
-    getProductStoreAmount,
+    getShoppingMissionTotals,
     formatAmount,
     setFullscreenImage,
     exportMissionCsv,
@@ -197,17 +197,12 @@ const MissionsSection = V.memo(function MissionsSection() {
                 );
               });
               const productStatusSummary = getShoppingProductStatusSummary(missionProducts);
-              const missionSaleTotal = visibleProducts.reduce((sum, product) => {
-                const value = getProductQuickFinalPrice(product);
-                return Number.isFinite(value) ? sum + value : sum;
-              }, 0);
-              const missionPurchaseTotal = visibleProducts.reduce((sum, product) => {
-                const value =
-                  typeof getProductStoreAmount === 'function'
-                    ? getProductStoreAmount(product)
-                    : Number.NaN;
-                return Number.isFinite(value) ? sum + value : sum;
-              }, 0);
+              const missionTotals =
+                typeof getShoppingMissionTotals === 'function'
+                  ? getShoppingMissionTotals(mission, missionProducts)
+                  : { usd: 0, sale: 0 };
+              const missionSaleTotal = Number(missionTotals && missionTotals.sale) || 0;
+              const missionPurchaseTotal = Number(missionTotals && missionTotals.usd) || 0;
               const missionAmountFormatter =
                 typeof formatAmount === 'function' ? formatAmount : (value) => String(value || '0.00');
 
