@@ -88,6 +88,10 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     setValidationTouched(false);
   }, []);
 
+  const closePreviewImage = V.useCallback(() => {
+    setPreviewImage(null);
+  }, []);
+
   const maintenanceMessage =
     catalogMessage ||
     "POR EL MOMENTO ESTAMOS TRABAJANDO PARA TI. ESPERA NUEVAS OFERTAS O CONTACTANOS A NUESTROS WHATSAPP";
@@ -100,6 +104,15 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [selectedProduct, closeOrder]);
+
+  V.useEffect(() => {
+    if (!previewImage || typeof document === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closePreviewImage();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [previewImage, closePreviewImage]);
 
   const updateQuantity = (nextQuantity) => {
     if (!selectedProduct) return;
@@ -233,6 +246,32 @@ const PublicStockCatalog = V.memo(function PublicStockCatalog() {
           )}
         </div>
       </section>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4"
+          onClick={closePreviewImage}
+        >
+          <div
+            className="relative flex max-h-[92vh] max-w-[96vw] items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closePreviewImage}
+              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow"
+              aria-label="Cerrar imagen"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <img
+              src={previewImage}
+              className="max-h-[92vh] max-w-[96vw] rounded-xl bg-black object-contain shadow-2xl"
+              alt=""
+            />
+          </div>
+        </div>
+      )}
 
       {selectedProduct && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:items-center">

@@ -1,4 +1,5 @@
 import { V, getUserOptionLabel, resolveMediaUrl } from "../utils.js";
+import { createPortal } from "react-dom";
 import {
   useAppServices,
   useCalculatorContext,
@@ -69,6 +70,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   const [form, setForm] = V.useState(createEmptyStockProductForm);
   const [imageFile, setImageFile] = V.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = V.useState("");
+  const [previewImageUrl, setPreviewImageUrl] = V.useState("");
   const [salesProduct, setSalesProduct] = V.useState(null);
   const [publicCatalogEnabled, setPublicCatalogEnabled] = V.useState(true);
   const [publicCatalogSaving, setPublicCatalogSaving] = V.useState(false);
@@ -121,6 +123,15 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem("stock_sales_seen_map", JSON.stringify(salesSeenMap || {}));
   }, [salesSeenMap]);
+
+  V.useEffect(() => {
+    if (!previewImageUrl || typeof document === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setPreviewImageUrl("");
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [previewImageUrl]);
 
   V.useEffect(
     () => () => {
@@ -347,30 +358,10 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     if (event.key === "Enter") event.currentTarget.blur();
   };
 
-  const pickProductImage = (product) =>
-    openImageSourcePicker(
-      async (event) => {
-        const file = event && event.target && event.target.files && event.target.files[0];
-        if (!file) return;
-        const payload = new FormData();
-        payload.append("image", await prepareCompressedImageFile(file));
-        try {
-          const saved = await apiFetch(`/stock-products/${product.id}/`, {
-            method: "PATCH",
-            body: payload,
-          });
-          setProducts((values) => sortProductsAsc(values.map((item) => (Number(item.id) === Number(product.id) ? saved : item))));
-          notifySuccess("Imagen actualizada.");
-        } catch (error) {
-          console.error("Failed updating stock product image", error);
-          notifyError(getErrorMessage(error, "No se pudo cambiar la imagen."));
-        }
-      },
-      {
-        title: "Cambiar imagen de stock",
-        description: "Elige una nueva imagen del producto desde tu dispositivo o pegala desde el portapapeles.",
-      },
-    );
+  const openProductImagePreview = (product) => {
+    if (!product || !product.image) return;
+    setPreviewImageUrl(resolveMediaUrl(product.image));
+  };
 
   const activeProductsCount = products.filter((product) => Number(product.available_quantity || 0) > 0).length;
   const availableTotal = products.reduce((sum, product) => sum + Number(product.available_quantity || 0), 0);
@@ -544,7 +535,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
               const newSalesCount = getSalesBadgeCount(product);
               return (
                 <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_285px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
-                  <button type="button" onClick={() => pickProductImage(product)} title="Cambiar imagen" className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                  <button type="button" onClick={() => openProductImagePreview(product)} title="Ver imagen" className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
                       <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
                     ) : (
@@ -666,6 +657,33 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         applyCalcExchangeRateChange={applyCalcExchangeRateChange}
       />
       <StockSalesModal product={salesProduct} onClose={() => setSalesProduct(null)} />
+      {previewImageUrl && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[140] flex items-center justify-center bg-black/85 p-4"
+            onClick={() => setPreviewImageUrl("")}
+          >
+            <div
+              className="relative flex max-h-[92vh] max-w-[96vw] items-center justify-center"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setPreviewImageUrl("")}
+                className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow"
+                aria-label="Cerrar imagen"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+              <img
+                src={previewImageUrl}
+                className="max-h-[92vh] max-w-[96vw] rounded-xl bg-black object-contain shadow-2xl"
+                alt=""
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

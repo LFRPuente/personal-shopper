@@ -906,8 +906,8 @@ const HomeSection = V.memo(function HomeSection() {
                     }),
                     c.jsxs('span', {
                       className: isDesktopLayout
-                        ? 'mt-1 block text-[9px] font-semibold text-slate-900 dark:text-white leading-none'
-                        : 'mt-1 block text-[10px] font-semibold text-slate-900 leading-none dark:text-white',
+                        ? 'mt-1 block text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight'
+                        : 'mt-1 block text-lg font-black text-slate-900 leading-none tracking-tight dark:text-white',
                       children: ['$', money(shoppingPurchaseDisplayTotal)],
                     }),
                     missionHasAnyDiscount &&
@@ -933,8 +933,8 @@ const HomeSection = V.memo(function HomeSection() {
                     }),
                     c.jsxs('span', {
                       className: isDesktopLayout
-                        ? 'mt-1 block text-[9px] font-semibold text-slate-900 dark:text-white leading-none'
-                        : 'mt-1 block text-[10px] font-semibold text-slate-900 leading-none dark:text-white',
+                        ? 'mt-1 block text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight'
+                        : 'mt-1 block text-lg font-black text-slate-900 leading-none tracking-tight dark:text-white',
                       children: ['$', money(missionTotalWithTaxes)],
                     }),
                     missionHasAnyDiscount &&

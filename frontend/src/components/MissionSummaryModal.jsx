@@ -90,7 +90,7 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
                   children: purchaseDisplayLabel,
                 }),
                 c.jsxs("p", {
-                  className: "text-sm font-bold text-slate-900 dark:text-slate-100",
+                  className: "text-2xl font-black leading-none tracking-tight text-slate-900 dark:text-slate-100",
                   children: ["$", formatAmount(purchaseDisplayTotal)],
                 }),
               ],
@@ -104,7 +104,7 @@ const MissionSummaryModal = V.memo(function MissionSummaryModal({
                   children: "VENTA MXN",
                 }),
                 c.jsxs("p", {
-                  className: "text-sm font-bold text-emerald-900 dark:text-emerald-100",
+                  className: "text-2xl font-black leading-none tracking-tight text-emerald-900 dark:text-emerald-100",
                   children: ["$", formatAmount(filteredMissionSummaryTotal)],
                 }),
               ],
