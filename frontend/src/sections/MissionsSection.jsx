@@ -86,6 +86,7 @@ const MissionsSection = V.memo(function MissionsSection() {
     getProductQuickFinalPrice,
     formatProductQuickFinalPrice,
     getShoppingMissionTotals,
+    getClientShoppingHistoryEntries,
     formatAmount,
     setFullscreenImage,
     exportMissionCsv,
@@ -565,6 +566,17 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         (product) => Number(product.shopping) === Number(mission.id),
                                       ),
                                     );
+                                    const shoppingHistoryEntry =
+                                      typeof getClientShoppingHistoryEntries === 'function'
+                                        ? (getClientShoppingHistoryEntries(client) || []).find(
+                                            (entry) => Number(entry && entry.key) === Number(mission.id),
+                                          ) || null
+                                        : null;
+                                    const shoppingBalance = Number(shoppingHistoryEntry && shoppingHistoryEntry.balance) || 0;
+                                    const shoppingSaleTotal = Number(shoppingHistoryEntry && shoppingHistoryEntry.productsTotal) || 0;
+                                    const showShoppingClientBalance = ['ACTIVE', 'PAUSED', 'COMPLETED'].includes(
+                                      String(mission.status || '').toUpperCase(),
+                                    );
                                     return c.jsxs(
                                       'div',
                                       {
@@ -594,6 +606,36 @@ const MissionsSection = V.memo(function MissionsSection() {
                                               }),
                                             ],
                                           }),
+                                          showShoppingClientBalance &&
+                                            c.jsxs('div', {
+                                              className:
+                                                'min-w-[96px] shrink-0 rounded-lg border border-blue-100 bg-white/90 px-2 py-1.5 shadow-[0_14px_26px_-24px_rgba(37,99,235,0.65)] dark:border-gray-700 dark:bg-gray-900 sm:min-w-[112px]',
+                                              children: [
+                                                c.jsxs('p', {
+                                                  className: `text-[9px] font-black uppercase tracking-[0.08em] ${
+                                                    shoppingBalance < -0.009
+                                                      ? 'text-emerald-700 dark:text-emerald-300'
+                                                      : shoppingBalance > 0.009
+                                                        ? 'text-rose-700 dark:text-rose-300'
+                                                        : 'text-slate-500 dark:text-slate-300'
+                                                  }`,
+                                                  children: [
+                                                    shoppingBalance < -0.009
+                                                      ? 'A favor'
+                                                      : shoppingBalance > 0.009
+                                                        ? 'Deuda'
+                                                        : 'Sin saldo',
+                                                    ': $',
+                                                    formatAmount(Math.abs(shoppingBalance)),
+                                                  ],
+                                                }),
+                                                c.jsxs('p', {
+                                                  className:
+                                                    'mt-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 dark:text-blue-300',
+                                                  children: ['Venta: $', formatAmount(shoppingSaleTotal)],
+                                                }),
+                                              ],
+                                            }),
                                           c.jsxs('div', {
                                             className:
                                               'flex items-center gap-1 shrink-0',

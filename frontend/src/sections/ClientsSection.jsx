@@ -169,6 +169,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
   const role = String(user?.profile?.role || ctx.role || '').toUpperCase();
   const canCreateClient = ['AV', 'PS', 'BOTH'].includes(role);
   const [search, setSearch] = V.useState(String(clientSearch || ''));
+  const [balanceFilter, setBalanceFilter] = V.useState('ALL');
   const [expandedClientId, setExpandedClientId] = V.useState(null);
   const [expandedHistoryByClient, setExpandedHistoryByClient] = V.useState({});
 
@@ -189,9 +190,32 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             .filter(Boolean)
             .join(' '),
         );
-        return tokens.every((token) => blob.includes(token));
+        if (!tokens.every((token) => blob.includes(token))) return false;
+        if (balanceFilter !== 'BALANCE') return true;
+        const balance = getClientShoppingHistoryEntries(client).reduce(
+          (sum, entry) => sum + Number(entry.balance || 0),
+          0,
+        );
+        return Math.abs(balance) > 0.009;
       })
       .sort((a, b) => {
+        if (balanceFilter === 'BALANCE') {
+          const getBalance = (client) =>
+            getClientShoppingHistoryEntries(client).reduce(
+              (sum, entry) => sum + Number(entry.balance || 0),
+              0,
+            );
+          const aBalance = getBalance(a);
+          const bBalance = getBalance(b);
+          const aHasBalance = Math.abs(aBalance) > 0.009;
+          const bHasBalance = Math.abs(bBalance) > 0.009;
+          if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
+          const aGroup = aBalance > 0 ? 0 : aBalance < 0 ? 1 : 2;
+          const bGroup = bBalance > 0 ? 0 : bBalance < 0 ? 1 : 2;
+          if (aGroup !== bGroup) return aGroup - bGroup;
+          if (aGroup === 0) return bBalance - aBalance;
+          if (aGroup === 1) return Math.abs(bBalance) - Math.abs(aBalance);
+        }
         const byName = String(a?.name || '').localeCompare(
           String(b?.name || ''),
           'es',
@@ -199,7 +223,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         );
         return byName || Number(a?.id || 0) - Number(b?.id || 0);
       });
-  }, [clients, search]);
+  }, [clients, search, balanceFilter, getClientShoppingHistoryEntries]);
 
   return c.jsxs('section', {
     className: isDesktopLayout ? 'space-y-6' : 'space-y-4',
@@ -227,14 +251,47 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             }),
         ],
       }),
-      c.jsx('input', {
-        type: 'text',
-        placeholder: 'Search by name or tags...',
-        value: search,
-        onChange: (event) => setSearch(event.target.value),
+      c.jsxs('div', {
         className: isDesktopLayout
-          ? 'w-full max-w-2xl pl-4 pr-4 py-3.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow'
-          : 'w-full pl-4 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+          ? 'flex w-full max-w-2xl items-center gap-2'
+          : 'flex w-full items-center gap-2',
+        children: [
+          c.jsx('input', {
+            type: 'text',
+            placeholder: 'Search by name or tags...',
+            value: search,
+            onChange: (event) => setSearch(event.target.value),
+            className: isDesktopLayout
+              ? 'min-w-0 flex-1 pl-4 pr-4 py-3.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow'
+              : 'min-w-0 flex-1 pl-4 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+          }),
+          c.jsxs('label', {
+            className:
+              'relative min-w-[148px] shrink-0 rounded-xl border border-primary/15 bg-primary/5 text-primary shadow-[0_14px_28px_-24px_rgba(124,58,237,0.55)] dark:border-violet-800 dark:bg-violet-950/25 dark:text-violet-200',
+            children: [
+              c.jsx('span', {
+                className:
+                  'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]',
+                children: balanceFilter === 'BALANCE' ? 'account_balance_wallet' : 'groups',
+              }),
+              c.jsx('select', {
+                value: balanceFilter,
+                onChange: (event) => setBalanceFilter(event.target.value),
+                className:
+                  'h-full w-full appearance-none bg-transparent py-3 pl-11 pr-9 text-[12px] font-black uppercase tracking-[0.08em] outline-none',
+                children: [
+                  c.jsx('option', { value: 'ALL', children: 'Todos' }),
+                  c.jsx('option', { value: 'BALANCE', children: 'Con saldo' }),
+                ],
+              }),
+              c.jsx('span', {
+                className:
+                  'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]',
+                children: 'expand_more',
+              }),
+            ],
+          }),
+        ],
       }),
       filteredClients.length === 0
         ? c.jsx('div', {
