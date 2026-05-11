@@ -12,13 +12,13 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
 
   return c.jsx("div", {
     className: overlayBackdropClass(
-      "fixed inset-0 z-[130] bg-black/85 flex items-center justify-center p-4 ui-backdrop",
+      "fixed inset-0 z-[130] bg-black/85 flex items-center justify-center p-3 sm:p-4 ui-backdrop",
       "fullscreen-image",
     ),
     onClick: () => dismissActiveOverlayRef.current(),
     children: c.jsxs("div", {
       className: overlaySheetClass(
-        "relative max-w-[95vw] max-h-[90vh] ui-sheet",
+        "relative flex max-h-[calc(100dvh-2rem)] max-w-[calc(100dvw-1.5rem)] flex-col items-center justify-center ui-sheet sm:max-w-[calc(100dvw-2rem)]",
         "fullscreen-image",
       ),
       onClick: (event) => event.stopPropagation(),
@@ -47,7 +47,7 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
         }),
         c.jsx("img", {
           src: getFullscreenImageUrl(fullscreenImage),
-          className: `max-w-[95vw] max-h-[90vh] object-contain rounded-xl bg-black ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
+          className: `block max-h-[calc(100dvh-5.5rem)] max-w-[calc(100dvw-1.5rem)] object-contain rounded-xl bg-black sm:max-w-[calc(100dvw-2rem)] ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
           onClick: () => handleFullscreenImageCopy(),
           onError: (event) => {
             event.currentTarget.style.display = "none";

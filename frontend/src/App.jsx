@@ -4995,6 +4995,23 @@ function nh() {
     selectedClientHomeScopeId = clientGalleryHasMissionScope
       ? Number(clientGalleryMissionScopeId || 0) || null
       : null,
+    selectedClientHomeScopeMission = V.useMemo(
+      () =>
+        selectedClientHomeScopeId
+          ? Al.find((o) => Number(o && o.id) === Number(selectedClientHomeScopeId)) || null
+          : null,
+      [Al, selectedClientHomeScopeId],
+    ),
+    selectedClientHomeBalanceSnapshot = V.useMemo(() => {
+      if (
+        !W ||
+        !selectedClientHomeScopeMission ||
+        String((selectedClientHomeScopeMission && selectedClientHomeScopeMission.status) || "").toUpperCase() !== "COMPLETED"
+      )
+        return null;
+      const snapshots = selectedClientHomeScopeMission.client_balance_snapshots || {};
+      return snapshots[String(W.id)] || snapshots[W.id] || null;
+    }, [W, selectedClientHomeScopeMission]),
     selectedClientHomeAnnotatedProducts = V.useMemo(
       () =>
         W
@@ -5023,12 +5040,24 @@ function nh() {
       [W, clientShoppingHistoryEntriesByClientId],
     ),
     selectedClientHomeGlobalBalance = V.useMemo(
-      () =>
-        selectedClientHomeHistoryEntries.reduce(
+      () => {
+        const rawSnapshotGlobalBalance =
+          selectedClientHomeBalanceSnapshot &&
+          selectedClientHomeBalanceSnapshot.global_balance;
+        const snapshotGlobalBalance = Number(rawSnapshotGlobalBalance);
+        if (
+          rawSnapshotGlobalBalance !== null &&
+          typeof rawSnapshotGlobalBalance !== "undefined" &&
+          String(rawSnapshotGlobalBalance).trim() !== "" &&
+          Number.isFinite(snapshotGlobalBalance)
+        )
+          return snapshotGlobalBalance;
+        return selectedClientHomeHistoryEntries.reduce(
           (o, N) => o + toNumber(N && N.balance, 0),
           0,
-        ),
-      [selectedClientHomeHistoryEntries],
+        );
+      },
+      [selectedClientHomeHistoryEntries, selectedClientHomeBalanceSnapshot],
     ),
     galleryProducts = V.useMemo(
       () => ((W && W.products) || []).filter((o) =>
@@ -5844,7 +5873,7 @@ function nh() {
               c.jsx("img", {
                 src: getFullscreenImageUrl(fullscreenImage),
                 className:
-                  "block max-w-none w-auto h-auto min-w-full sm:min-w-0 sm:max-w-[95vw] object-contain",
+                  "block max-h-[calc(100dvh-5.5rem)] max-w-[calc(100dvw-2rem)] object-contain",
                 onClick: (o) => o.stopPropagation(),
               }),
             ],

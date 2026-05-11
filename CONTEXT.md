@@ -91,6 +91,14 @@ The frontend refactor is already in production and is the current base state.
 
 The source of truth is the local Windows repo. The Mac Mini is the deploy target.
 
+## Environment naming
+
+- `ps` means production and points to `ps.servidorfs.com`
+- `dev` means test/staging and points to `dev.servidorfs.com`
+- `ps` is the only environment that should be treated as live production
+- `dev` must be used first for validation whenever possible
+- copying production data into `dev` is allowed only when explicitly requested
+
 For a parallel `dev` stack, keep the same compose file and change only the environment values per stack:
 
 - `COMPOSE_PROJECT_NAME` or `docker compose -p` to isolate containers, networks, and volumes
@@ -116,6 +124,19 @@ For a parallel `dev` stack, keep the same compose file and change only the envir
 9. Validate the stack, NPM reachability, the public domain, and the legacy services.
 
 Do not edit production code directly on the Mac Mini unless the user explicitly asks for that.
+
+## Simple deploy request
+
+When `dev` is ready and you want to promote it to production, ask for:
+
+- `deploy dev to ps`
+
+That means:
+
+- validate `dev` one last time
+- merge or sync the approved changes to the production branch or production commit
+- deploy only to `ps.servidorfs.com`
+- keep `dev` intact for future testing
 
 ## Repos, remotes, and paths
 

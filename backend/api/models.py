@@ -269,6 +269,7 @@ class Mission(models.Model):
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     ticket_image = models.ImageField(upload_to='mission_tickets/', null=True, blank=True)
     clients = models.ManyToManyField(Client, related_name='missions_history', blank=True)
+    client_balance_snapshots = models.JSONField(default=dict, blank=True)
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
 

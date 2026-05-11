@@ -2,6 +2,13 @@
 
 This repo can run a separate development stack alongside production.
 
+## Naming convention
+
+- `ps` means production
+- `dev` means test or staging
+- `ps.servidorfs.com` is production
+- `dev.servidorfs.com` is the safe test stack
+
 ## Purpose
 
 - `ps.servidorfs.com` stays as production
@@ -56,3 +63,11 @@ Defaults:
 - target DB: `personal_shopper_dev`
 
 If the database names differ, export `SOURCE_POSTGRES_DB`, `SOURCE_POSTGRES_USER`, `TARGET_POSTGRES_DB`, and `TARGET_POSTGRES_USER` before running the script.
+
+## How to request production deploy
+
+When `dev` is working correctly, you can ask:
+
+- `deploy dev to ps`
+
+That is the short phrase to promote the approved `dev` changes into production.

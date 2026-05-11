@@ -566,14 +566,46 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         (product) => Number(product.shopping) === Number(mission.id),
                                       ),
                                     );
-                                    const shoppingHistoryEntry =
+                                    const clientHistoryEntries =
                                       typeof getClientShoppingHistoryEntries === 'function'
-                                        ? (getClientShoppingHistoryEntries(client) || []).find(
-                                            (entry) => Number(entry && entry.key) === Number(mission.id),
-                                          ) || null
+                                        ? getClientShoppingHistoryEntries(client) || []
+                                        : [];
+                                    const shoppingHistoryEntry =
+                                      clientHistoryEntries.find(
+                                        (entry) => Number(entry && entry.key) === Number(mission.id),
+                                      ) || null;
+                                    const liveGlobalBalance = clientHistoryEntries.reduce(
+                                      (total, entry) => total + (Number(entry && entry.balance) || 0),
+                                      0,
+                                    );
+                                    const clientBalanceSnapshot =
+                                      String(mission.status || '').toUpperCase() === 'COMPLETED'
+                                        ? (mission.client_balance_snapshots || {})[String(client.id)] ||
+                                          (mission.client_balance_snapshots || {})[client.id] ||
+                                          null
                                         : null;
-                                    const shoppingBalance = Number(shoppingHistoryEntry && shoppingHistoryEntry.balance) || 0;
-                                    const shoppingSaleTotal = Number(shoppingHistoryEntry && shoppingHistoryEntry.productsTotal) || 0;
+                                    const rawSnapshotGlobalBalance =
+                                      clientBalanceSnapshot && clientBalanceSnapshot.global_balance;
+                                    const snapshotGlobalBalance = Number(rawSnapshotGlobalBalance);
+                                    const hasSnapshotGlobalBalance =
+                                      rawSnapshotGlobalBalance !== null &&
+                                      typeof rawSnapshotGlobalBalance !== 'undefined' &&
+                                      String(rawSnapshotGlobalBalance).trim() !== '' &&
+                                      Number.isFinite(snapshotGlobalBalance);
+                                    const shoppingBalance = hasSnapshotGlobalBalance
+                                      ? snapshotGlobalBalance
+                                      : liveGlobalBalance;
+                                    const rawSnapshotSaleTotal =
+                                      clientBalanceSnapshot && clientBalanceSnapshot.products_total;
+                                    const snapshotSaleTotal = Number(rawSnapshotSaleTotal);
+                                    const hasSnapshotSaleTotal =
+                                      rawSnapshotSaleTotal !== null &&
+                                      typeof rawSnapshotSaleTotal !== 'undefined' &&
+                                      String(rawSnapshotSaleTotal).trim() !== '' &&
+                                      Number.isFinite(snapshotSaleTotal);
+                                    const shoppingSaleTotal = hasSnapshotSaleTotal
+                                      ? snapshotSaleTotal
+                                      : Number(shoppingHistoryEntry && shoppingHistoryEntry.productsTotal) || 0;
                                     const showShoppingClientBalance = ['ACTIVE', 'PAUSED', 'COMPLETED'].includes(
                                       String(mission.status || '').toUpperCase(),
                                     );

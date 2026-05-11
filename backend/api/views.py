@@ -290,6 +290,88 @@ def calculate_client_share_balance_total(client):
     return round(balance_total, 2)
 
 
+def calculate_client_shopping_balance_snapshot(client, mission):
+    if not client or not mission:
+        return {
+            'products_total': 0,
+            'payment_amount': 0,
+            'balance': 0,
+            'global_balance': 0,
+        }
+
+    def get_effective_product_discount_percentage(product, discount_percentage=0):
+        if not product:
+            return 0
+        if getattr(product, 'apply_discount', True) is False:
+            return 0
+        product_discount = float(getattr(product, 'discount_percentage', 0) or 0)
+        uses_global = getattr(product, 'discount_uses_global', True) is not False
+        if uses_global and float(discount_percentage or 0) > 0:
+            return float(discount_percentage or 0)
+        return product_discount
+
+    def get_discounted_product_amount(product, discount_percentage=0):
+        if not product:
+            return 0
+        effective_discount = get_effective_product_discount_percentage(product, discount_percentage)
+        discount_multiplier = max(0, 1 - float(effective_discount or 0) / 100)
+        charged_price = product.charged_price
+        if charged_price is not None:
+            return float(charged_price) * discount_multiplier
+        real_price = product.real_price
+        return float(real_price or 0)
+
+    latest_payment = (
+        ShoppingPayment.objects.filter(client=client, mission=mission)
+        .prefetch_related('products')
+        .order_by('-updated_at', '-created_at', '-id')
+        .first()
+    )
+    selected_product_ids = set()
+    payment_amount = 0
+    if latest_payment is not None:
+        selected_product_ids = set(latest_payment.products.values_list('id', flat=True))
+        payment_amount = float(latest_payment.amount or 0)
+
+    discount_percentage = float(getattr(mission, 'discount_percentage', 0) or 0)
+    products_total = 0
+    products = ProductItem.objects.filter(client=client, mission=mission).exclude(
+        status__in=['IN_REVIEW', 'REJECTED'],
+    )
+    for product in products:
+        product_status = str(product.status or '').upper()
+        if product_status == 'ANNOTATED' or product.id in selected_product_ids:
+            products_total += get_discounted_product_amount(product, discount_percentage)
+
+    payment_amount = round(payment_amount, 2)
+    products_total = round(products_total, 2)
+    return {
+        'products_total': products_total,
+        'payment_amount': payment_amount,
+        'balance': round(products_total - payment_amount, 2),
+        'global_balance': calculate_client_share_balance_total(client),
+    }
+
+
+def build_mission_client_balance_snapshots(mission):
+    if not mission:
+        return {}
+    client_ids = set(mission.clients.values_list('id', flat=True))
+    client_ids.update(
+        ProductItem.objects.filter(mission=mission).values_list('client_id', flat=True)
+    )
+    client_ids.update(
+        ShoppingPayment.objects.filter(mission=mission).values_list('client_id', flat=True)
+    )
+    snapshots = {}
+    captured_at = timezone.now().isoformat()
+    for client in Client.objects.filter(id__in=[client_id for client_id in client_ids if client_id]):
+        snapshot = calculate_client_shopping_balance_snapshot(client, mission)
+        snapshot['captured_at'] = captured_at
+        snapshots[str(client.id)] = snapshot
+    return snapshots
+
+
 def deactivate_empty_client_share_links(client_id=None, mission_id=None):
     return
 
@@ -1389,9 +1471,15 @@ class MissionViewSet(viewsets.ModelViewSet):
         if store and mission.store_id != previous_store_id:
             touch_store_recommendation(self.request.user, store)
         if mission.status == 'COMPLETED':
+            update_fields = []
             if not mission.end_time:
                 mission.end_time = timezone.now()
-                mission.save(update_fields=['end_time'])
+                update_fields.append('end_time')
+            if previous_status != 'COMPLETED':
+                mission.client_balance_snapshots = build_mission_client_balance_snapshots(mission)
+                update_fields.append('client_balance_snapshots')
+            if update_fields:
+                mission.save(update_fields=update_fields)
             # Only release clients that are no longer linked to any open shopping.
             for client in mission.clients.all():
                 still_used_elsewhere = client.missions_history.filter(
