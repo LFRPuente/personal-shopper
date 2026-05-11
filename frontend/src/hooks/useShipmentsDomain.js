@@ -171,17 +171,31 @@ export function useShipmentsDomain({
     [],
   );
 
+  const normalizeShipmentProductsOrder = V.useCallback(
+    (products = []) => sortShipmentProductsByNewest(products),
+    [],
+  );
+
+  const normalizeShipmentProductDetailOrder = V.useCallback(
+    (shipment = null) =>
+      shipment && Array.isArray(shipment.products_detail)
+        ? { ...shipment, products_detail: normalizeShipmentProductsOrder(shipment.products_detail) }
+        : shipment,
+    [normalizeShipmentProductsOrder],
+  );
+
   const upsertShipmentListItem = V.useCallback((shipment) => {
     if (!shipment || !shipment.id) return;
+    const orderedShipment = normalizeShipmentProductDetailOrder(shipment);
     setShipments((items) => {
       const list = Array.isArray(items) ? items : [];
-      const index = list.findIndex((item) => Number(item.id) === Number(shipment.id));
-      if (index === -1) return [shipment, ...list];
+      const index = list.findIndex((item) => Number(item.id) === Number(orderedShipment.id));
+      if (index === -1) return [orderedShipment, ...list];
       const next = [...list];
-      next[index] = { ...next[index], ...shipment };
+      next[index] = normalizeShipmentProductDetailOrder({ ...next[index], ...orderedShipment });
       return next;
     });
-  }, []);
+  }, [normalizeShipmentProductDetailOrder]);
 
   const mergeShipmentSummariesWithHydrated = V.useCallback(
     (current = [], incoming = []) => {
@@ -192,17 +206,17 @@ export function useShipmentsDomain({
       );
       return (Array.isArray(incoming) ? incoming : []).map((item) => {
         const detail = hydrated.get(Number(item && item.id));
-        if (!detail) return item;
-        return {
+        if (!detail) return normalizeShipmentProductDetailOrder(item);
+        return normalizeShipmentProductDetailOrder({
           ...detail,
           ...item,
           products_detail: detail.products_detail,
           evidence: detail.evidence,
           client_shipping_addresses: detail.client_shipping_addresses,
-        };
+        });
       });
     },
-    [shipmentHasHydratedDetail],
+    [normalizeShipmentProductDetailOrder, shipmentHasHydratedDetail],
   );
 
   const loadShipmentsData = V.useCallback(
@@ -281,19 +295,11 @@ export function useShipmentsDomain({
         hiddenSummary.hiddenByOpenShopping +
         hiddenSummary.hiddenByOtherShipment;
       return {
-        products: eligible.sort((left, right) => {
-          const missionCompare = String(
-            left.shopping_name || left.mission_name || left.store_name || "",
-          ).localeCompare(
-            String(right.shopping_name || right.mission_name || right.store_name || ""),
-          );
-          if (missionCompare !== 0) return missionCompare;
-          return String(left.name || "").localeCompare(String(right.name || ""));
-        }),
+        products: normalizeShipmentProductsOrder(eligible),
         hiddenSummary,
       };
     },
-    [getShipmentClientProducts, shoppings],
+    [getShipmentClientProducts, normalizeShipmentProductsOrder, shoppings],
   );
 
   const formatShipmentHiddenProductsMessage = V.useCallback((summary = null) => {
@@ -332,9 +338,10 @@ export function useShipmentsDomain({
   const getShipmentFormState = V.useCallback(
     (shipment = null, product = null) => {
       const clientId = String((product && product.client) || (shipment && shipment.client) || "");
-      const products =
+      const products = normalizeShipmentProductsOrder(
         (shipment && (shipment.products_detail || shipment.products)) ||
-        (product && product.id ? [product] : []);
+          (product && product.id ? [product] : []),
+      );
       const guidePrice =
         shipment && shipment.guide_price !== null && typeof shipment.guide_price !== "undefined"
           ? String(shipment.guide_price)
@@ -402,7 +409,7 @@ export function useShipmentsDomain({
         ),
       };
     },
-    [getClientShipmentAddressOptions],
+    [getClientShipmentAddressOptions, normalizeShipmentProductsOrder],
   );
 
   const loadShipmentForm = V.useCallback(
@@ -1136,7 +1143,8 @@ export function useShipmentsDomain({
     });
     return (shipmentForm.product_ids || [])
       .map((productId) => productsById.get(Number(productId)))
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort(compareShipmentProductsByNewest);
   }, [
     shipmentForm.id,
     shipmentForm.product_ids,
@@ -1292,4 +1300,22 @@ function compressImage(file, maxWidth = 1600, quality = 0.82) {
     reader.onerror = () => reject(new Error("Could not read file"));
     reader.readAsDataURL(file);
   });
+}
+
+function getShipmentProductTime(product = null) {
+  for (const key of ["purchase_date", "created_at", "shopping_date", "mission_date", "updated_at"]) {
+    const time = new Date((product && product[key]) || 0).getTime();
+    if (Number.isFinite(time) && time > 0) return time;
+  }
+  return 0;
+}
+
+function compareShipmentProductsByNewest(left, right) {
+  const timeDiff = getShipmentProductTime(right) - getShipmentProductTime(left);
+  if (timeDiff) return timeDiff;
+  return Number((right && right.id) || 0) - Number((left && left.id) || 0);
+}
+
+function sortShipmentProductsByNewest(products = []) {
+  return [...(Array.isArray(products) ? products : [])].sort(compareShipmentProductsByNewest);
 }
