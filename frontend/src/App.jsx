@@ -32,6 +32,7 @@ import { useShipmentsDomain } from './hooks/useShipmentsDomain.js';
 import { useShoppingsDomain } from './hooks/useShoppingsDomain.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import { prepareCompressedImageFile } from './imageCompression.js';
+import { sortShipmentEvidenceByNewest } from './shipmentEvidence.js';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
@@ -6117,7 +6118,7 @@ function nh() {
                             }),
                             c.jsx("div", {
                               className: "grid grid-cols-2 gap-2",
-                              children: (publicSelectedShipment.evidence || []).map(
+                              children: sortShipmentEvidenceByNewest(publicSelectedShipment.evidence).map(
                                 (o) => {
                                   const N = getShipmentEvidenceKind(o);
                                   return c.jsx(
