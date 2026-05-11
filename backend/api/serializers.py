@@ -449,6 +449,8 @@ class ShipmentProductSummarySerializer(serializers.ModelSerializer):
             'payer',
             'payer_username',
             'status',
+            'created_at',
+            'purchase_date',
             'shopping_name',
             'shopping_date',
             'mission_name',
