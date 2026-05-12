@@ -882,6 +882,12 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
 class ClientMissionShareProductSerializer(serializers.ModelSerializer):
     image = RelativeImageField(required=False, allow_null=True)
     shipment = serializers.SerializerMethodField()
+    shopping_date = serializers.DateTimeField(
+        source='mission.start_time', read_only=True, default=None
+    )
+    mission_date = serializers.DateTimeField(
+        source='mission.start_time', read_only=True, default=None
+    )
     discount_percentage = serializers.DecimalField(
         source='mission.discount_percentage',
         max_digits=5,
@@ -918,6 +924,8 @@ class ClientMissionShareProductSerializer(serializers.ModelSerializer):
             'discount_percentage',
             'created_at',
             'purchase_date',
+            'shopping_date',
+            'mission_date',
             'shipment',
         ]
 

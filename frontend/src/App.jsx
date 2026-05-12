@@ -6304,7 +6304,7 @@ function nh() {
                                       "absolute left-0.5 top-0.5 right-0.5 z-10 pointer-events-none",
                                     children: c.jsx("div", {
                                       className:
-                                        "inline-flex max-w-full rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-semibold text-white backdrop-blur-sm",
+                                        "inline-flex max-w-full rounded-full bg-black/58 px-1.5 py-0.5 text-[8px] font-semibold text-white backdrop-blur-sm",
                                       children: c.jsx("span", {
                                         className: "truncate",
                                         children: o.name,
