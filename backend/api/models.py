@@ -299,6 +299,7 @@ class Request(models.Model):
     product = models.ForeignKey(ProductItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='requests')
     image = models.ImageField(upload_to='requests/', null=True, blank=True)
     note = models.TextField(blank=True, null=True)
+    is_priority = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

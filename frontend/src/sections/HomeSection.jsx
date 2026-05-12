@@ -1,6 +1,5 @@
 import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
 import { useHomeContext } from '../AppContext.jsx';
-import { getPriorityRequestIds, togglePriorityRequestId } from '../requestPriority.js';
 import ShoppingClientAssignmentModal from './HomeShoppingClientAssignmentModal.jsx';
 
 export const HOME_SECTION_REQUIRED_CONTEXT = [
@@ -198,7 +197,6 @@ const HomeSection = V.memo(function HomeSection() {
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
   const [showShoppingPurchaseWithTaxes, setShowShoppingPurchaseWithTaxes] = V.useState(false);
-  const [priorityRequestIds, setPriorityRequestIds] = V.useState(getPriorityRequestIds);
   const countUnreadSummaryProducts = (summary) => {
     if (!summary || typeof summary !== 'object') return 0;
     return Object.values(summary).reduce((total, clientSummary) => {
@@ -257,8 +255,8 @@ const HomeSection = V.memo(function HomeSection() {
   const sortedRequests = V.useMemo(
     () =>
       [...(Array.isArray(requests) ? requests : [])].sort((left, right) => {
-        const leftPriority = priorityRequestIds.has(String(left && left.id)) ? 0 : 1;
-        const rightPriority = priorityRequestIds.has(String(right && right.id)) ? 0 : 1;
+        const leftPriority = left && left.is_priority ? 0 : 1;
+        const rightPriority = right && right.is_priority ? 0 : 1;
         if (leftPriority !== rightPriority) return leftPriority - rightPriority;
 
         const leftStatus = String((left && left.status) || '').toUpperCase();
@@ -271,7 +269,7 @@ const HomeSection = V.memo(function HomeSection() {
         const rightTime = getRequestSortTimestamp(right);
         return leftTime - rightTime || Number(left.id || 0) - Number(right.id || 0);
       }),
-    [priorityRequestIds, requests],
+    [requests],
   );
 
   return c.jsxs('div', {
@@ -530,20 +528,22 @@ const HomeSection = V.memo(function HomeSection() {
                                       c.jsx('button', {
                                         type: 'button',
                                         onClick: () =>
-                                          setPriorityRequestIds(
-                                            togglePriorityRequestId(request.id),
+                                          updateMissionRequest(
+                                            request.id,
+                                            request.status,
+                                            { is_priority: !request.is_priority },
                                           ),
-                                        className: `flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${
-                                          priorityRequestIds.has(String(request.id))
-                                            ? 'border-yellow-400 bg-yellow-100 text-yellow-700 dark:border-yellow-500 dark:bg-yellow-900/40 dark:text-yellow-200'
-                                            : 'border-slate-300 bg-white/85 text-slate-500 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-800'
+                                        className: `flex h-6 w-6 shrink-0 items-center justify-center transition ${
+                                          request.is_priority
+                                            ? 'text-yellow-400 hover:text-yellow-500'
+                                            : 'text-slate-400 hover:text-yellow-400 dark:text-slate-500'
                                         }`,
-                                        title: priorityRequestIds.has(String(request.id))
+                                        title: request.is_priority
                                           ? 'Quitar prioridad'
                                           : 'Marcar prioridad',
                                         children: c.jsx('span', {
-                                          className: 'material-symbols-outlined text-[15px]',
-                                          style: priorityRequestIds.has(String(request.id))
+                                          className: 'material-symbols-outlined text-[19px]',
+                                          style: request.is_priority
                                             ? { fontVariationSettings: "'FILL' 1" }
                                             : void 0,
                                           children: 'star',
