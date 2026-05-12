@@ -107,6 +107,21 @@ const getRequestSortTimestamp = (request) => {
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
 
+const PriorityStarIcon = ({ active }) =>
+  c.jsx('svg', {
+    viewBox: '0 0 24 24',
+    className: `h-5 w-5 ${active ? 'text-yellow-400' : 'text-slate-400 dark:text-slate-500'}`,
+    'aria-hidden': 'true',
+    children: c.jsx('path', {
+      d: 'M12 3.7c.4 0 .8.23 1 .6l2.18 4.42 4.88.71c.9.13 1.25 1.23.6 1.86l-3.53 3.44.83 4.86c.15.9-.8 1.58-1.6 1.16L12 18.47l-4.36 2.29c-.8.42-1.75-.26-1.6-1.16l.83-4.86-3.53-3.44c-.65-.63-.3-1.73.6-1.86l4.88-.71L11 4.3c.2-.37.6-.6 1-.6Z',
+      fill: active ? 'currentColor' : 'none',
+      stroke: 'currentColor',
+      strokeWidth: active ? 1.2 : 1.8,
+      strokeLinejoin: 'round',
+      strokeLinecap: 'round',
+    }),
+  });
+
 const HomeSection = V.memo(function HomeSection() {
   const {
     isDesktopLayout,
@@ -197,6 +212,7 @@ const HomeSection = V.memo(function HomeSection() {
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
   const [showShoppingPurchaseWithTaxes, setShowShoppingPurchaseWithTaxes] = V.useState(false);
+  const [requestActionMenuId, setRequestActionMenuId] = V.useState(null);
   const countUnreadSummaryProducts = (summary) => {
     if (!summary || typeof summary !== 'object') return 0;
     return Object.values(summary).reduce((total, clientSummary) => {
@@ -543,12 +559,8 @@ const HomeSection = V.memo(function HomeSection() {
                                         title: request.is_priority
                                           ? 'Quitar prioridad'
                                           : 'Marcar prioridad',
-                                        children: c.jsx('span', {
-                                          className: 'material-symbols-outlined text-[19px]',
-                                          style: request.is_priority
-                                            ? { fontVariationSettings: "'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 24" }
-                                            : void 0,
-                                          children: request.is_priority ? 'star_rate' : 'star',
+                                        children: c.jsx(PriorityStarIcon, {
+                                          active: request.is_priority,
                                         }),
                                       }),
                                     ],
@@ -605,7 +617,7 @@ const HomeSection = V.memo(function HomeSection() {
                                 ],
                               }),
                               c.jsxs('div', {
-                                className: 'shrink-0 flex items-center gap-1',
+                                className: 'shrink-0 hidden items-center gap-1 sm:flex',
                                 children: [
                                   request.image &&
                                     c.jsx('button', {
@@ -680,6 +692,108 @@ const HomeSection = V.memo(function HomeSection() {
                                       children: 'delete_forever',
                                     }),
                                   }),
+                                ],
+                              }),
+                              c.jsxs('div', {
+                                className: 'relative shrink-0 sm:hidden',
+                                children: [
+                                  c.jsx('button', {
+                                    type: 'button',
+                                    onClick: () =>
+                                      setRequestActionMenuId(
+                                        requestActionMenuId === request.id ? null : request.id,
+                                      ),
+                                    className:
+                                      'flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white/85 text-slate-700 dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100',
+                                    title: 'Acciones',
+                                    children: c.jsx('span', {
+                                      className: 'material-symbols-outlined text-[16px]',
+                                      children: 'more_vert',
+                                    }),
+                                  }),
+                                  requestActionMenuId === request.id &&
+                                    c.jsxs('div', {
+                                      className:
+                                        'absolute right-0 top-9 z-40 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900',
+                                      children: [
+                                        request.image &&
+                                          c.jsxs('button', {
+                                            type: 'button',
+                                            onClick: () => {
+                                              setRequestActionMenuId(null);
+                                              setFullscreenImage({
+                                                url: resolveMediaUrl(request.image),
+                                                copyOnClick: !0,
+                                                copyMessage: 'Imagen copiada.',
+                                              });
+                                            },
+                                            className:
+                                              'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800',
+                                            children: [
+                                              c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'image' }),
+                                              'Abrir imagen',
+                                            ],
+                                          }),
+                                        c.jsxs('button', {
+                                          type: 'button',
+                                          onClick: () => {
+                                            setRequestActionMenuId(null);
+                                            updateMissionRequest(
+                                              request.id,
+                                              request.status === 'ACKNOWLEDGED' ? 'PENDING' : 'ACKNOWLEDGED',
+                                            );
+                                          },
+                                          className:
+                                            'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-950/35',
+                                          children: [
+                                            c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'check' }),
+                                            'Enviado',
+                                          ],
+                                        }),
+                                        c.jsxs('button', {
+                                          type: 'button',
+                                          onClick: () => {
+                                            setRequestActionMenuId(null);
+                                            updateMissionRequest(
+                                              request.id,
+                                              request.status === 'NO_STOCK' ? 'PENDING' : 'NO_STOCK',
+                                            );
+                                          },
+                                          className:
+                                            'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-semibold text-rose-700 hover:bg-rose-50 dark:text-rose-200 dark:hover:bg-rose-950/35',
+                                          children: [
+                                            c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'block' }),
+                                            'No existencia',
+                                          ],
+                                        }),
+                                        c.jsxs('button', {
+                                          type: 'button',
+                                          onClick: () => {
+                                            setRequestActionMenuId(null);
+                                            startRequestModify(request);
+                                          },
+                                          className:
+                                            'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-semibold text-amber-700 hover:bg-amber-50 dark:text-amber-200 dark:hover:bg-amber-950/35',
+                                          children: [
+                                            c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'edit' }),
+                                            'Modificar',
+                                          ],
+                                        }),
+                                        c.jsxs('button', {
+                                          type: 'button',
+                                          onClick: () => {
+                                            setRequestActionMenuId(null);
+                                            deleteMissionRequest(request.id);
+                                          },
+                                          className:
+                                            'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-semibold text-rose-700 hover:bg-rose-50 dark:text-rose-200 dark:hover:bg-rose-950/35',
+                                          children: [
+                                            c.jsx('span', { className: 'material-symbols-outlined text-[14px]', children: 'delete_forever' }),
+                                            'Eliminar',
+                                          ],
+                                        }),
+                                      ],
+                                    }),
                                 ],
                               }),
                             ],
