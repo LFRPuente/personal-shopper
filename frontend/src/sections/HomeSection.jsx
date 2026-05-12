@@ -338,7 +338,7 @@ const HomeSection = V.memo(function HomeSection() {
                             ? 'bg-amber-100/95 border-amber-500 border-l-amber-700 dark:bg-amber-950/60 dark:border-amber-700 dark:border-l-amber-500'
                             : request.status === 'DISCARDED'
                               ? 'bg-slate-100/95 border-slate-400 border-l-slate-600 dark:bg-slate-900 dark:border-slate-600 dark:border-l-slate-400'
-                              : 'bg-sky-50 border-sky-300 border-l-sky-500 dark:bg-slate-900/70 dark:border-slate-600 dark:border-l-sky-400'
+                              : 'bg-yellow-50 border-yellow-300 border-l-yellow-500 dark:bg-yellow-950/35 dark:border-yellow-700 dark:border-l-yellow-400'
                     }`,
                     children: [
                       editingRequestId === request.id
@@ -544,7 +544,7 @@ const HomeSection = V.memo(function HomeSection() {
                                         children: c.jsx('span', {
                                           className: 'material-symbols-outlined text-[19px]',
                                           style: request.is_priority
-                                            ? { fontVariationSettings: "'FILL' 1" }
+                                            ? { fontVariationSettings: "'FILL' 1, 'wght' 700" }
                                             : void 0,
                                           children: 'star',
                                         }),
@@ -564,7 +564,7 @@ const HomeSection = V.memo(function HomeSection() {
                                                 ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-900'
                                                 : request.status === 'DISCARDED'
                                                   ? 'bg-slate-600 text-white dark:bg-slate-400 dark:text-slate-900'
-                                                  : 'bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-900'
+                                                  : 'bg-yellow-500 text-yellow-950 dark:bg-yellow-400 dark:text-yellow-950'
                                         }`,
                                         children:
                                           request.status === 'ACKNOWLEDGED'
