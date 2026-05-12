@@ -3136,7 +3136,9 @@ function nh() {
       const vl = requests;
       setRequests((El) =>
         El.map((Se) =>
-          Se.id === o ? { ...Se, status: N, ...A, updated_at: new Date().toISOString() } : Se,
+          Se.id === o
+            ? { ...Se, status: N, ...A, updated_at: Object.keys(A).length === 1 && Object.prototype.hasOwnProperty.call(A, "is_priority") ? Se.updated_at : new Date().toISOString() }
+            : Se,
         ),
       );
       try {

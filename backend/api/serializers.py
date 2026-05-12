@@ -687,6 +687,18 @@ class RequestSerializer(serializers.ModelSerializer):
         except Exception:
             return 'AV'
 
+    def update(self, instance, validated_data):
+        priority_only = (
+            'is_priority' in validated_data
+            and set(validated_data).issubset({'is_priority', 'status'})
+            and validated_data.get('status', instance.status) == instance.status
+        )
+        if priority_only:
+            instance.is_priority = validated_data['is_priority']
+            instance.save(update_fields=['is_priority'])
+            return instance
+        return super().update(instance, validated_data)
+
     class Meta:
         model = Request
         fields = '__all__'
