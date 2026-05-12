@@ -1,5 +1,6 @@
 import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
 import { useHomeContext } from '../AppContext.jsx';
+import { getPriorityRequestIds, togglePriorityRequestId } from '../requestPriority.js';
 import ShoppingClientAssignmentModal from './HomeShoppingClientAssignmentModal.jsx';
 
 export const HOME_SECTION_REQUIRED_CONTEXT = [
@@ -197,6 +198,7 @@ const HomeSection = V.memo(function HomeSection() {
   const canCreateShopping = openShoppingCount < shoppingTabLimit;
   const [shoppingClientAssignmentModalOpen, setShoppingClientAssignmentModalOpen] = V.useState(false);
   const [showShoppingPurchaseWithTaxes, setShowShoppingPurchaseWithTaxes] = V.useState(false);
+  const [priorityRequestIds, setPriorityRequestIds] = V.useState(getPriorityRequestIds);
   const countUnreadSummaryProducts = (summary) => {
     if (!summary || typeof summary !== 'object') return 0;
     return Object.values(summary).reduce((total, clientSummary) => {
@@ -255,6 +257,10 @@ const HomeSection = V.memo(function HomeSection() {
   const sortedRequests = V.useMemo(
     () =>
       [...(Array.isArray(requests) ? requests : [])].sort((left, right) => {
+        const leftPriority = priorityRequestIds.has(String(left && left.id)) ? 0 : 1;
+        const rightPriority = priorityRequestIds.has(String(right && right.id)) ? 0 : 1;
+        if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+
         const leftStatus = String((left && left.status) || '').toUpperCase();
         const rightStatus = String((right && right.status) || '').toUpperCase();
         const leftOrder = REQUEST_STATUS_ORDER[leftStatus] ?? 5;
@@ -265,7 +271,7 @@ const HomeSection = V.memo(function HomeSection() {
         const rightTime = getRequestSortTimestamp(right);
         return leftTime - rightTime || Number(left.id || 0) - Number(right.id || 0);
       }),
-    [requests],
+    [priorityRequestIds, requests],
   );
 
   return c.jsxs('div', {
@@ -513,10 +519,37 @@ const HomeSection = V.memo(function HomeSection() {
                               c.jsxs('div', {
                                 className: 'min-w-0 flex-1',
                                 children: [
-                                  c.jsx('p', {
-                                    className:
-                                      'text-xs font-semibold truncate text-gray-900 dark:text-gray-100',
-                                    children: request.description,
+                                  c.jsxs('div', {
+                                    className: 'flex min-w-0 items-center gap-1.5',
+                                    children: [
+                                      c.jsx('p', {
+                                        className:
+                                          'min-w-0 flex-1 truncate text-xs font-semibold text-gray-900 dark:text-gray-100',
+                                        children: request.description,
+                                      }),
+                                      c.jsx('button', {
+                                        type: 'button',
+                                        onClick: () =>
+                                          setPriorityRequestIds(
+                                            togglePriorityRequestId(request.id),
+                                          ),
+                                        className: `flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${
+                                          priorityRequestIds.has(String(request.id))
+                                            ? 'border-yellow-400 bg-yellow-100 text-yellow-700 dark:border-yellow-500 dark:bg-yellow-900/40 dark:text-yellow-200'
+                                            : 'border-slate-300 bg-white/85 text-slate-500 hover:bg-white dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:bg-slate-800'
+                                        }`,
+                                        title: priorityRequestIds.has(String(request.id))
+                                          ? 'Quitar prioridad'
+                                          : 'Marcar prioridad',
+                                        children: c.jsx('span', {
+                                          className: 'material-symbols-outlined text-[15px]',
+                                          style: priorityRequestIds.has(String(request.id))
+                                            ? { fontVariationSettings: "'FILL' 1" }
+                                            : void 0,
+                                          children: 'star',
+                                        }),
+                                      }),
+                                    ],
                                   }),
                                   c.jsxs('div', {
                                     className: 'mt-1 flex items-center gap-1.5',
