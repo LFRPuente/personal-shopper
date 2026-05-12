@@ -6226,6 +6226,13 @@ function nh() {
                                                 ),
                                               ],
                                             }),
+                                            (o.shopping_date || o.mission_date) &&
+                                            c.jsx("p", {
+                                              className: "mt-0.5 text-[10px] font-semibold text-text-sub",
+                                              children: new Date(
+                                                o.shopping_date || o.mission_date,
+                                              ).toLocaleDateString(),
+                                            }),
                                           ],
                                         }),
                                       ],
@@ -6292,22 +6299,18 @@ function nh() {
                                     className:
                                       "absolute inset-0 bg-gradient-to-b from-black/18 via-transparent to-black/24 pointer-events-none",
                                   }),
+                                  (o.shopping_date || o.mission_date) &&
                                   c.jsx("div", {
                                     className:
-                                      "absolute top-0.5 left-0.5 right-0.5 z-10 pointer-events-none",
-                                    children: c.jsx("div", {
-                                      className:
-                                        "inline-flex max-w-full rounded-full bg-white/18 px-1.5 py-0.5 text-[8px] font-semibold text-white backdrop-blur-sm",
-                                      children: c.jsx("span", {
-                                        className: "truncate",
-                                        children: o.name,
-                                      }),
-                                    }),
+                                      "absolute left-0.5 top-0.5 z-10 max-w-[58%] truncate rounded-full bg-black/54 px-1.5 py-[2px] text-[8px] font-bold text-white backdrop-blur-sm pointer-events-none",
+                                    children: new Date(
+                                      o.shopping_date || o.mission_date,
+                                    ).toLocaleDateString(),
                                   }),
                                   Number.isFinite(getProductImagePrimaryPrice(o)) &&
                                   c.jsx("div", {
                                     className:
-                                      "absolute inset-x-0 bottom-0.5 z-10 flex justify-center pointer-events-none",
+                                      "absolute right-0.5 top-0.5 z-10 pointer-events-none",
                                     children: hasProductDiscountedFinalPrice(o)
                                       ? c.jsxs("div", {
                                         className:
@@ -6343,6 +6346,18 @@ function nh() {
                                           ),
                                         ],
                                       }),
+                                  }),
+                                  c.jsx("div", {
+                                    className:
+                                      "absolute inset-x-0 bottom-0.5 z-10 flex justify-center px-0.5 pointer-events-none",
+                                    children: c.jsx("div", {
+                                      className:
+                                        "inline-flex max-w-full rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-semibold text-white backdrop-blur-sm",
+                                      children: c.jsx("span", {
+                                        className: "truncate",
+                                        children: o.name,
+                                      }),
+                                    }),
                                   }),
                                 ],
                               },
