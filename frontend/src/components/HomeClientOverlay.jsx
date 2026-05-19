@@ -56,7 +56,7 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
             "absolute top-1.5 right-8 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600/90 text-white shadow-sm pointer-events-none",
           children: c.jsx("span", {
             className: "material-symbols-outlined text-[13px]",
-            children: "shopping_cart",
+            children: "local_shipping",
           }),
         }),
       c.jsxs("div", {

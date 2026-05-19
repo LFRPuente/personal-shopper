@@ -22,10 +22,12 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
     const handleKeyDown = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation && event.stopImmediatePropagation();
       onClose();
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, onClose]);
 
   if (!open) return null;
