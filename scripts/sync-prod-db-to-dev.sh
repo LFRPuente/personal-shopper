@@ -51,7 +51,7 @@ rm -f "$TMP_FILE"
   -v "${SOURCE_MEDIA_VOLUME}:/from:ro" \
   -v "${TARGET_MEDIA_VOLUME}:/to" \
   alpine:3.20 sh -eu -c '
-    find /to -mindepth 1 -exec rm -rf {} \;
+    find /to -mindepth 1 -maxdepth 1 -exec rm -rf {} +
     cd /from
     tar cf - . | tar xpf - -C /to
   '
