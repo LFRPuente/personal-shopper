@@ -49,7 +49,7 @@ docker compose -p personal-shopper-dev --env-file dev.env up -d --build
 
 ## Copy production data into dev
 
-Only do this when you want real test data in dev.
+Only do this when you want real test data and uploaded media in dev.
 
 ```sh
 CONFIRM_SYNC=yes ./scripts/sync-prod-db-to-dev.sh
@@ -61,8 +61,10 @@ Defaults:
 - target project: `personal-shopper-dev`
 - source DB: `personal_shopper`
 - target DB: `personal_shopper_dev`
+- source media volume: `personal-shopper_personal_shopper_media_data`
+- target media volume: `personal-shopper-dev_personal_shopper_media_data`
 
-If the database names differ, export `SOURCE_POSTGRES_DB`, `SOURCE_POSTGRES_USER`, `TARGET_POSTGRES_DB`, and `TARGET_POSTGRES_USER` before running the script.
+If the database names or media volume names differ, export `SOURCE_POSTGRES_DB`, `SOURCE_POSTGRES_USER`, `TARGET_POSTGRES_DB`, `TARGET_POSTGRES_USER`, `SOURCE_MEDIA_VOLUME`, and `TARGET_MEDIA_VOLUME` before running the script.
 
 ## How to request production deploy
 

@@ -8,6 +8,8 @@ SOURCE_DB_NAME="${SOURCE_POSTGRES_DB:-personal_shopper}"
 SOURCE_DB_USER="${SOURCE_POSTGRES_USER:-personal_shopper}"
 TARGET_DB_NAME="${TARGET_POSTGRES_DB:-personal_shopper_dev}"
 TARGET_DB_USER="${TARGET_POSTGRES_USER:-personal_shopper_dev}"
+SOURCE_MEDIA_VOLUME="${SOURCE_MEDIA_VOLUME:-${SOURCE_PROJECT}_personal_shopper_media_data}"
+TARGET_MEDIA_VOLUME="${TARGET_MEDIA_VOLUME:-${TARGET_PROJECT}_personal_shopper_media_data}"
 TMP_FILE="${TMP_FILE:-/tmp/personal-shopper-dev-sync.dump}"
 DOCKER_BIN="${DOCKER_BIN:-/usr/local/bin/docker}"
 
@@ -44,3 +46,12 @@ cd "$ROOT_DIR"
   < "$TMP_FILE"
 
 rm -f "$TMP_FILE"
+
+"$DOCKER_BIN" run --rm \
+  -v "${SOURCE_MEDIA_VOLUME}:/from:ro" \
+  -v "${TARGET_MEDIA_VOLUME}:/to" \
+  alpine:3.20 sh -eu -c '
+    find /to -mindepth 1 -exec rm -rf {} \;
+    cd /from
+    tar cf - . | tar xpf - -C /to
+  '
