@@ -43,12 +43,22 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
   const menuOpen = openProductMenuId === product.id;
   const infoOpen = openProductInfoId === product.id;
   const statusOpen = openProductStatusId === product.id;
+  const isShipped = String(product.status || "").toUpperCase() === "SHIPPED";
   const price = getProductImagePrimaryPrice(product);
 
   return c.jsxs("div", {
     className: `bg-surface-light dark:bg-surface-dark ${isDesktopLayout ? "rounded-2xl" : "rounded-lg"} overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ui-media-card ${unread ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
     children: [
       unread && c.jsx("span", { className: "absolute top-1.5 left-1.5 z-20 w-2.5 h-2.5 rounded-full bg-red-500 border border-white dark:border-slate-900" }),
+      isShipped &&
+        c.jsx("span", {
+          className:
+            "absolute top-1.5 right-8 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600/90 text-white shadow-sm pointer-events-none",
+          children: c.jsx("span", {
+            className: "material-symbols-outlined text-[13px]",
+            children: "shopping_cart",
+          }),
+        }),
       c.jsxs("div", {
         className: "absolute top-1.5 right-1.5 z-30",
         children: [

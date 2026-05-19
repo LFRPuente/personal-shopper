@@ -17,6 +17,17 @@ const ReviewNotifyModal = V.memo(function ReviewNotifyModal(props) {
     overlaySheetClass,
   } = props;
 
+  V.useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const selectedSet = new Set((selectedRecipientIds || []).map((value) => Number(value)));
