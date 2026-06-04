@@ -2763,7 +2763,7 @@ function nh() {
         (Se) =>
           Number(Se && Se.shopping) === Number(N) &&
           (
-            String((Se && Se.status) || "").toUpperCase() === "ANNOTATED" ||
+            ["ANNOTATED", "BOUGHT", "SHIPPED"].includes(String((Se && Se.status) || "").toUpperCase()) ||
             vl.has(Number(Se && Se.id))
           ),
       );

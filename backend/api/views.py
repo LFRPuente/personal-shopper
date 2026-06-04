@@ -189,6 +189,7 @@ def set_public_stock_catalog_state(enabled):
 
 
 PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
+PAYABLE_PRODUCT_STATUSES = {'ANNOTATED', 'BOUGHT', 'SHIPPED'}
 
 
 def calculate_client_credit_total(client):
@@ -283,7 +284,7 @@ def calculate_client_share_balance_total(client):
         products_total = 0
         for product in products_by_shopping.get(shopping_id, []):
             product_status = str(product.status or '').upper()
-            if product_status == 'ANNOTATED' or product.id in selected_product_ids:
+            if product_status in PAYABLE_PRODUCT_STATUSES or product.id in selected_product_ids:
                 products_total += get_discounted_product_amount(product, discount_percentage)
 
         balance_total += products_total - payment_amount
@@ -340,7 +341,7 @@ def calculate_client_shopping_balance_snapshot(client, mission):
     )
     for product in products:
         product_status = str(product.status or '').upper()
-        if product_status == 'ANNOTATED' or product.id in selected_product_ids:
+        if product_status in PAYABLE_PRODUCT_STATUSES or product.id in selected_product_ids:
             products_total += get_discounted_product_amount(product, discount_percentage)
 
     payment_amount = round(payment_amount, 2)

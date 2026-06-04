@@ -26,6 +26,8 @@ from .models import (
     StockCatalogOrder,
 )
 
+PAYABLE_PRODUCT_STATUSES = {'ANNOTATED', 'BOUGHT', 'SHIPPED'}
+
 class RelativeImageField(serializers.ImageField):
     def to_representation(self, value):
         if not value:
@@ -568,11 +570,11 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
             if product.mission_id != mission.id:
                 raise serializers.ValidationError({'products': 'All selected products must belong to the selected shopping.'})
             if (
-                str(product.status or '').upper() != 'ANNOTATED'
+                str(product.status or '').upper() not in PAYABLE_PRODUCT_STATUSES
                 and product.id not in existing_product_ids
             ):
                 raise serializers.ValidationError(
-                    {'products': 'Only annotated products can be added to a payment.'}
+                    {'products': 'Only payable products can be added to a payment.'}
                 )
         conflicting_product_names = []
         for payment in conflicting_payment_queryset.prefetch_related('products'):
