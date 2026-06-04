@@ -470,6 +470,10 @@ def attach_products_to_shipment(shipment, products):
     desired_ids = [product.id for product in products]
     current_ids = list(shipment.products.values_list('id', flat=True))
     remove_ids = [product_id for product_id in current_ids if product_id not in desired_ids]
+    primary_product_id = desired_ids[0] if desired_ids else None
+    if shipment.product_id in remove_ids:
+        shipment.product_id = primary_product_id
+        shipment.save(update_fields=['product'])
     if remove_ids:
         removed_products = list(ProductItem.objects.filter(id__in=remove_ids))
         shipment.products.remove(*remove_ids)
@@ -484,7 +488,6 @@ def attach_products_to_shipment(shipment, products):
         if not was_attached_to_this_shipment:
             mark_product_as_shipped(product)
         broadcast_update('products', action='updated', object_id=product.id)
-    primary_product_id = desired_ids[0] if desired_ids else None
     mission_ids = list(
         {
             product.mission_id
