@@ -347,6 +347,8 @@ export function useClientsDomain({
   );
 
   const closeSelectedClient = V.useCallback(() => {
+    clientDetailRequestRef.current += 1;
+    setClientDetailLoadingId(null);
     setSelectedClient(null);
     setFullscreenImage(null);
     setClientGalleryAllowsShoppingChoice(!1);
