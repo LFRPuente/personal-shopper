@@ -619,7 +619,17 @@ function nh() {
     closePaymentModal = paymentsDomain.closePaymentModal,
     closeClientPaymentModal = paymentsDomain.closeClientPaymentModal,
     openPaymentModal = paymentsDomain.openPaymentModal,
-    openClientPaymentModal = paymentsDomain.openClientPaymentModal,
+    rawOpenClientPaymentModal = paymentsDomain.openClientPaymentModal,
+    openClientPaymentModal = V.useCallback(
+      (client) => {
+        const hasHomeClientRoute =
+          typeof window !== "undefined" &&
+          window.location.pathname.startsWith("/home/clients/");
+        if (W || pendingHomeClientRouteRef.current || hasHomeClientRoute) Aa();
+        rawOpenClientPaymentModal(client);
+      },
+      [Aa, W, pendingHomeClientRouteRef, rawOpenClientPaymentModal],
+    ),
     togglePaymentProductSelection = paymentsDomain.togglePaymentProductSelection,
     startEditingPaymentEntry = paymentsDomain.startEditingPaymentEntry,
     cancelEditingPaymentEntry = paymentsDomain.cancelEditingPaymentEntry,
