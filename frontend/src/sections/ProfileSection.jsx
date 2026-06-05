@@ -107,7 +107,7 @@ const ProfileSection = V.memo(function ProfileSection() {
             }),
           c.jsxs("p", {
             className:
-              "mt-4 inline-flex items-center justify-center rounded-lg border border-border-light bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase text-text-sub dark:border-border-dark dark:bg-slate-900/60",
+              "mt-4 inline-flex items-center justify-center rounded-lg border border-border-light bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase text-text-sub dark:border-border-dark dark:bg-slate-900/60 dark:text-white",
             children: ["Version ", APP_COMMIT_SHA],
           }),
           c.jsx("button", {
