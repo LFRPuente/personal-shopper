@@ -10,7 +10,7 @@ import {
   getUserPhoneDisplay, getUserWahaChatId,
   getShipmentStatusLabel, getShipmentTrackingUrl,
   getPublicShareInfoFromPath, getPublicShareFocusShipmentIdFromSearch,
-  getAppRouteFromPath, buildAppPath, slugifyRouteToken,
+  APP_SECTION_PATHS, getAppRouteFromPath, buildAppPath, slugifyRouteToken,
   MODULE_NUMBER_FORMAT, MODULE_AMOUNT_FORMAT,
 } from './utils.js';
 import {
@@ -426,6 +426,7 @@ function nh() {
     reviewConversationSendCooldownTimerRef = V.useRef(null),
     currentTabRef = V.useRef(initialAppRoute.section),
     pendingHomeClientRouteRef = V.useRef(initialAppRoute.homeClientSlug),
+    recentlyClosedHomeClientRouteRef = V.useRef(null),
     selectedClientIdRef = V.useRef(null),
     activeMissionIdRef = V.useRef(null),
     openShoppingTabsRef = V.useRef([]),
@@ -436,6 +437,7 @@ function nh() {
       setClients: _l,
       publicShareType,
       pendingHomeClientRouteRef,
+      recentlyClosedHomeClientRouteRef,
       setFullscreenImage,
       setClosingOverlayKey: (value) => setClosingOverlayKeyActionRef.current(value),
       setProductGalleryTab: jt,
@@ -1183,6 +1185,16 @@ function nh() {
     if (!C || publicShareType || nl !== "HOME") return;
     const o = pendingHomeClientRouteRef.current;
     if (!o) return;
+    if (recentlyClosedHomeClientRouteRef.current === o) {
+      pendingHomeClientRouteRef.current = null;
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== APP_SECTION_PATHS.HOME
+      ) {
+        window.history.replaceState({}, "", APP_SECTION_PATHS.HOME);
+      }
+      return;
+    }
     const N = Kl.find((A) => {
       const vl = slugifyRouteToken(A.name || A.username || A.id);
       return vl === o || String(A.id) === String(o);

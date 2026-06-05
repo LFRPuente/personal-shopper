@@ -16,6 +16,7 @@ export function useClientsDomain({
   setClients,
   publicShareType,
   pendingHomeClientRouteRef,
+  recentlyClosedHomeClientRouteRef,
   setFullscreenImage,
   setClosingOverlayKey,
   setProductGalleryTab,
@@ -60,6 +61,10 @@ export function useClientsDomain({
   const clearPendingHomeClientRoute = V.useCallback(() => {
     pendingHomeClientRouteRef.current = null;
   }, [pendingHomeClientRouteRef]);
+
+  const allowHomeClientRouteOpen = V.useCallback(() => {
+    recentlyClosedHomeClientRouteRef.current = null;
+  }, [recentlyClosedHomeClientRouteRef]);
 
   const mergeClientIntoList = V.useCallback(
     (client) => {
@@ -295,6 +300,7 @@ export function useClientsDomain({
   const openClientFullGallery = V.useCallback(
     (client, missionScopeId = null) => {
       clearPendingHomeClientRoute();
+      allowHomeClientRouteOpen();
       setClientGalleryMissionScopeId(missionScopeId);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(
@@ -306,12 +312,13 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("REVIEW");
     },
-    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
+    [allowHomeClientRouteOpen, clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openMissionClientView = V.useCallback(
     (client, missionScopeId = null) => {
       clearPendingHomeClientRoute();
+      allowHomeClientRouteOpen();
       setClientGalleryMissionScopeId(missionScopeId);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!1);
@@ -319,12 +326,13 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
+    [allowHomeClientRouteOpen, clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientSectionGallery = V.useCallback(
     (client) => {
       clearPendingHomeClientRoute();
+      allowHomeClientRouteOpen();
       setClientGalleryMissionScopeId(null);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!0);
@@ -332,12 +340,13 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
+    [allowHomeClientRouteOpen, clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientShoppingGallery = V.useCallback(
     (client, missionScope = null) => {
       clearPendingHomeClientRoute();
+      allowHomeClientRouteOpen();
       const scopeId =
         missionScope && typeof missionScope === "object"
           ? Number(missionScope.id || missionScope.key || missionScope.shopping || missionScope.mission || 0)
@@ -351,10 +360,13 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
+    [allowHomeClientRouteOpen, clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const closeSelectedClient = V.useCallback(() => {
+    recentlyClosedHomeClientRouteRef.current = selectedClient
+      ? slugifyRouteToken(selectedClient.name || selectedClient.username || selectedClient.id)
+      : null;
     clientDetailRequestRef.current += 1;
     setClientDetailLoadingId(null);
     setSelectedClient(null);
@@ -372,7 +384,14 @@ export function useClientsDomain({
     ) {
       window.history.replaceState({}, "", "/home/");
     }
-  }, [clearPendingHomeClientRoute, publicShareType, setClosingOverlayKey, setFullscreenImage]);
+  }, [
+    clearPendingHomeClientRoute,
+    publicShareType,
+    recentlyClosedHomeClientRouteRef,
+    selectedClient,
+    setClosingOverlayKey,
+    setFullscreenImage,
+  ]);
 
   const generateClientHistoryShareLink = V.useCallback(
     async (client) => {
