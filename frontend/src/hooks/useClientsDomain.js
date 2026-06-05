@@ -57,6 +57,10 @@ export function useClientsDomain({
   const [clientDetailLoadingId, setClientDetailLoadingId] = V.useState(null);
   const clientDetailRequestRef = V.useRef(0);
 
+  const clearPendingHomeClientRoute = V.useCallback(() => {
+    pendingHomeClientRouteRef.current = null;
+  }, [pendingHomeClientRouteRef]);
+
   const mergeClientIntoList = V.useCallback(
     (client) => {
       if (!client || !client.id) return;
@@ -290,6 +294,7 @@ export function useClientsDomain({
 
   const openClientFullGallery = V.useCallback(
     (client, missionScopeId = null) => {
+      clearPendingHomeClientRoute();
       setClientGalleryMissionScopeId(missionScopeId);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(
@@ -301,11 +306,12 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("REVIEW");
     },
-    [hydrateClientDetail, setProductGalleryTab],
+    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openMissionClientView = V.useCallback(
     (client, missionScopeId = null) => {
+      clearPendingHomeClientRoute();
       setClientGalleryMissionScopeId(missionScopeId);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!1);
@@ -313,11 +319,12 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [hydrateClientDetail, setProductGalleryTab],
+    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientSectionGallery = V.useCallback(
     (client) => {
+      clearPendingHomeClientRoute();
       setClientGalleryMissionScopeId(null);
       setClientGalleryMissionScopeMeta(null);
       setClientGalleryAllowsShoppingChoice(!0);
@@ -325,11 +332,12 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [hydrateClientDetail, setProductGalleryTab],
+    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const openClientShoppingGallery = V.useCallback(
     (client, missionScope = null) => {
+      clearPendingHomeClientRoute();
       const scopeId =
         missionScope && typeof missionScope === "object"
           ? Number(missionScope.id || missionScope.key || missionScope.shopping || missionScope.mission || 0)
@@ -343,7 +351,7 @@ export function useClientsDomain({
       hydrateClientDetail(client);
       setProductGalleryTab("ANNOTATED");
     },
-    [hydrateClientDetail, setProductGalleryTab],
+    [clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );
 
   const closeSelectedClient = V.useCallback(() => {
@@ -356,7 +364,7 @@ export function useClientsDomain({
     setClientGalleryMissionScopeId(null);
     setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER);
     setClosingOverlayKey("");
-    pendingHomeClientRouteRef.current = null;
+    clearPendingHomeClientRoute();
     if (
       typeof window !== "undefined" &&
       !publicShareType &&
@@ -364,7 +372,7 @@ export function useClientsDomain({
     ) {
       window.history.replaceState({}, "", "/home/");
     }
-  }, [pendingHomeClientRouteRef, publicShareType, setClosingOverlayKey, setFullscreenImage]);
+  }, [clearPendingHomeClientRoute, publicShareType, setClosingOverlayKey, setFullscreenImage]);
 
   const generateClientHistoryShareLink = V.useCallback(
     async (client) => {

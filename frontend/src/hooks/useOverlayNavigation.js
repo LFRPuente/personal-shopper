@@ -76,12 +76,17 @@ export function useOverlayNavigation({
   }, [activeOverlayKey, animationMs, clientHomeKey, closeActiveOverlay]);
 
   V.useEffect(() => {
-    if (!activeOverlayKey || typeof window === "undefined") return;
+    if (
+      !activeOverlayKey ||
+      activeOverlayKey === clientHomeKey ||
+      typeof window === "undefined"
+    )
+      return;
     const state = window.history.state || {};
     if (state.__ps_overlay !== activeOverlayKey) {
       window.history.pushState({ ...state, __ps_overlay: activeOverlayKey }, "");
     }
-  }, [activeOverlayKey]);
+  }, [activeOverlayKey, clientHomeKey]);
 
   V.useEffect(() => {
     if (typeof window === "undefined") return undefined;

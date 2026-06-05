@@ -1187,9 +1187,10 @@ function nh() {
       const vl = slugifyRouteToken(A.name || A.username || A.id);
       return vl === o || String(A.id) === String(o);
     });
-      N &&
-        (!W || Number(W.id) !== Number(N.id) || !Array.isArray(W.receipts)) &&
-        hydrateClientDetail(N);
+    if (!N) return;
+    pendingHomeClientRouteRef.current = null;
+    (!W || Number(W.id) !== Number(N.id) || !Array.isArray(W.receipts)) &&
+      hydrateClientDetail(N);
   }, [C, publicShareType, nl, Kl, W, hydrateClientDetail]);
   V.useEffect(() => {
     if (!C || publicShareType || typeof window === "undefined") return;
