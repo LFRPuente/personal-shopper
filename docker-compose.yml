@@ -57,6 +57,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_COMMIT_SHA: ${VITE_COMMIT_SHA:-unknown}
     restart: unless-stopped
     depends_on:
       - backend

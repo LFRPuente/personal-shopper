@@ -5,6 +5,11 @@ import UserManagementModal from "../components/UserManagementModal.jsx";
 const DEFAULT_BREAKDOWN_TEMPLATE =
   "DESGLOSE DE TU CUENTA:\n\n{items}\n{balance_line}\n\n*{total_label}: ${total}*\n\nPara poder pasar a caja ocupo la confirmacion de tu pago 💳 🤗\n\nTe lo puedo asegurar por 10 minutos en lo que haces transferencia.💕";
 
+const APP_COMMIT_SHA =
+  typeof __APP_COMMIT_SHA__ === "string" && __APP_COMMIT_SHA__
+    ? __APP_COMMIT_SHA__
+    : "unknown";
+
 const ProfileSection = V.memo(function ProfileSection() {
   const {
     user,
@@ -100,6 +105,11 @@ const ProfileSection = V.memo(function ProfileSection() {
                 String((profileSettingsForm.phone || "").trim()),
               ],
             }),
+          c.jsxs("p", {
+            className:
+              "mt-4 inline-flex items-center justify-center rounded-lg border border-border-light bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase text-text-sub dark:border-border-dark dark:bg-slate-900/60",
+            children: ["Version ", APP_COMMIT_SHA],
+          }),
           c.jsx("button", {
             onClick: handleLogout,
             className:
