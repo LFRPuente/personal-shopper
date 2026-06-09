@@ -25,6 +25,9 @@ fi
 cd "$ROOT_DIR"
 if [ -z "${VITE_COMMIT_SHA:-}" ]; then
   VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || printf unknown)"
+  if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    VITE_COMMIT_SHA="$VITE_COMMIT_SHA-dirty.$(date +%Y%m%d%H%M%S)"
+  fi
   export VITE_COMMIT_SHA
 fi
 "$DOCKER_BIN" compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" up -d --build

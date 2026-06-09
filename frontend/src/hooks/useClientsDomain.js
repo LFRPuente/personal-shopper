@@ -17,6 +17,7 @@ export function useClientsDomain({
   publicShareType,
   pendingHomeClientRouteRef,
   recentlyClosedHomeClientRouteRef,
+  selectedClientIdRef,
   setFullscreenImage,
   setClosingOverlayKey,
   setProductGalleryTab,
@@ -368,6 +369,7 @@ export function useClientsDomain({
       ? slugifyRouteToken(selectedClient.name || selectedClient.username || selectedClient.id)
       : null;
     clientDetailRequestRef.current += 1;
+    selectedClientIdRef && (selectedClientIdRef.current = null);
     setClientDetailLoadingId(null);
     setSelectedClient(null);
     setFullscreenImage(null);
@@ -389,6 +391,7 @@ export function useClientsDomain({
     publicShareType,
     recentlyClosedHomeClientRouteRef,
     selectedClient,
+    selectedClientIdRef,
     setClosingOverlayKey,
     setFullscreenImage,
   ]);

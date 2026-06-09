@@ -438,6 +438,7 @@ function nh() {
       publicShareType,
       pendingHomeClientRouteRef,
       recentlyClosedHomeClientRouteRef,
+      selectedClientIdRef,
       setFullscreenImage,
       setClosingOverlayKey: (value) => setClosingOverlayKeyActionRef.current(value),
       setProductGalleryTab: jt,
@@ -813,6 +814,7 @@ function nh() {
       if (!o) return;
       try {
         const N = await I(`/clients/${o}/`);
+        if (Number(selectedClientIdRef.current || 0) !== Number(o)) return;
         (et(N), _l((A) => A.map((vl) => (vl.id === N.id ? N : vl))));
       } catch (N) {
         console.error("Failed refreshing selected client", N);
