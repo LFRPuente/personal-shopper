@@ -28,6 +28,34 @@ from .models import (
 
 PAYABLE_PRODUCT_STATUSES = {'ANNOTATED', 'BOUGHT', 'SHIPPED'}
 
+
+def get_latest_related_shipment(obj):
+    try:
+        shipment = getattr(obj, 'shipment', None)
+    except Exception:
+        shipment = None
+    if shipment:
+        return shipment
+    related_shipments = getattr(obj, 'shipments', None)
+    if related_shipments is None:
+        return None
+    prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('shipments')
+    if prefetched is not None:
+        return max(
+            prefetched,
+            key=lambda item: (item.updated_at, item.id),
+            default=None,
+        )
+    return related_shipments.order_by('-updated_at', '-id').first()
+
+
+def get_prefetched_related_items(obj, related_name):
+    prefetched = getattr(obj, '_prefetched_objects_cache', {}).get(related_name)
+    if prefetched is not None:
+        return list(prefetched)
+    return list(getattr(obj, related_name).all())
+
+
 class RelativeImageField(serializers.ImageField):
     def to_representation(self, value):
         if not value:
@@ -303,20 +331,10 @@ class ProductItemSerializer(serializers.ModelSerializer):
     shipment = serializers.SerializerMethodField()
 
     def get_shipment(self, obj):
-        shipment = None
-        try:
-            shipment = getattr(obj, 'shipment', None)
-        except Exception:
-            shipment = None
+        shipment = get_latest_related_shipment(obj)
         if shipment:
             return ShipmentSerializer(shipment, context=self.context).data
-        related_shipments = getattr(obj, 'shipments', None)
-        if related_shipments is None:
-            return None
-        active_shipment = related_shipments.order_by('-updated_at', '-id').first()
-        if not active_shipment:
-            return None
-        return ShipmentSerializer(active_shipment, context=self.context).data
+        return None
 
     class Meta:
         model = ProductItem
@@ -325,20 +343,10 @@ class ProductItemSerializer(serializers.ModelSerializer):
 
 class ProductItemNestedSerializer(ProductItemSerializer):
     def get_shipment(self, obj):
-        shipment = None
-        try:
-            shipment = getattr(obj, 'shipment', None)
-        except Exception:
-            shipment = None
+        shipment = get_latest_related_shipment(obj)
         if shipment:
             return ShipmentNestedSummarySerializer(shipment, context=self.context).data
-        related_shipments = getattr(obj, 'shipments', None)
-        if related_shipments is None:
-            return None
-        active_shipment = related_shipments.order_by('-updated_at', '-id').first()
-        if not active_shipment:
-            return None
-        return ShipmentNestedSummarySerializer(active_shipment, context=self.context).data
+        return None
 
 
 class ClientListSerializer(serializers.ModelSerializer):
@@ -556,6 +564,7 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
             client=client,
             mission=mission,
         )
+        selected_product_ids = {selected_product.id for selected_product in products}
         if self.instance:
             conflicting_payment_queryset = conflicting_payment_queryset.exclude(
                 id=self.instance.id
@@ -581,7 +590,7 @@ class ShoppingPaymentSerializer(serializers.ModelSerializer):
             conflicting_product_names.extend(
                 product.name
                 for product in payment.products.all()
-                if product.id in [selected_product.id for selected_product in products]
+                if product.id in selected_product_ids
             )
         if conflicting_product_names:
             raise serializers.ValidationError(
@@ -976,12 +985,18 @@ class ShipmentSerializer(serializers.ModelSerializer):
     client_shipping_addresses = serializers.SerializerMethodField()
 
     def get_product_count(self, obj):
+        annotated_count = getattr(obj, 'product_count', None)
+        if annotated_count is not None:
+            return annotated_count
+        prefetched = getattr(obj, '_prefetched_objects_cache', {}).get('products')
+        if prefetched is not None:
+            return len(prefetched)
         return obj.products.count()
 
     def get_mission_names(self, obj):
         mission_names = []
         seen = set()
-        for product in obj.products.select_related('mission').all():
+        for product in get_prefetched_related_items(obj, 'products'):
             mission_name = None
             if product.mission and product.mission.name:
                 mission_name = product.mission.name
@@ -1094,6 +1109,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
     shopping_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     product_count = serializers.IntegerField(read_only=True)
+    evidence_count = serializers.IntegerField(read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -1129,6 +1145,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
             'shipping_address',
             'status',
             'product_count',
+            'evidence_count',
             'created_at',
             'updated_at',
         ]

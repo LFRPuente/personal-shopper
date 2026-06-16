@@ -103,6 +103,9 @@ const DEFAULT_CONTEXT = {
   getProductPaymentAmount: () => Number.NaN,
 };
 
+const SHIPMENT_PRODUCT_PREVIEW_LIMIT = 6;
+const SHIPMENT_EVIDENCE_PREVIEW_LIMIT = 6;
+
 function ShipmentProductsGrid({
   shipment,
   canEditBox,
@@ -122,6 +125,13 @@ function ShipmentProductsGrid({
   setFullscreenImage,
   toggleShipmentProductSelection,
 }) {
+  const [visibleLimit, setVisibleLimit] = V.useState(SHIPMENT_PRODUCT_PREVIEW_LIMIT);
+  V.useEffect(() => {
+    setVisibleLimit(SHIPMENT_PRODUCT_PREVIEW_LIMIT);
+  }, [shipment && shipment.id, selectedProducts.length]);
+  const visibleProducts = selectedProducts.slice(0, visibleLimit);
+  const hasMoreProducts = selectedProducts.length > visibleProducts.length;
+
   return c.jsxs('div', {
     className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
     children: [
@@ -152,7 +162,7 @@ function ShipmentProductsGrid({
       selectedProducts.length > 0
         ? c.jsx('div', {
             className: 'mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2',
-            children: selectedProducts.map((product) => {
+            children: visibleProducts.map((product) => {
               const productPrice = getProductPaymentAmount(product);
               const productStatusValue = String(
                 (product && product.status) || 'ANNOTATED',
@@ -244,6 +254,8 @@ function ShipmentProductsGrid({
                       product.image
                         ? c.jsx('img', {
                             src: resolveMedia(product.image),
+                            loading: 'lazy',
+                            decoding: 'async',
                             className:
                               'w-full aspect-[4/5] object-cover cursor-zoom-in rounded-t-xl',
                             onClick: (event) => {
@@ -333,6 +345,17 @@ function ShipmentProductsGrid({
               ? 'Abre la galeria para elegir productos.'
               : 'Sin productos asignados.',
           }),
+      hasMoreProducts &&
+        c.jsx('button', {
+          type: 'button',
+          onClick: () =>
+            setVisibleLimit((limit) =>
+              Math.min(limit + SHIPMENT_PRODUCT_PREVIEW_LIMIT, selectedProducts.length),
+            ),
+          className:
+            'mt-2 w-full rounded-lg border border-sky-100 bg-white/80 py-1.5 text-[11px] font-bold text-sky-700 hover:bg-sky-50 dark:border-sky-900 dark:bg-slate-900/70 dark:text-sky-300 dark:hover:bg-sky-950/40',
+          children: `Ver mas productos (${visibleProducts.length} de ${selectedProducts.length})`,
+        }),
     ],
   });
 }
@@ -350,6 +373,14 @@ function ShipmentEvidenceGrid({
   shipmentEvidenceDeletingId,
   setFullscreenImage,
 }) {
+  const evidenceItems = shipment.evidence || [];
+  const [visibleLimit, setVisibleLimit] = V.useState(SHIPMENT_EVIDENCE_PREVIEW_LIMIT);
+  V.useEffect(() => {
+    setVisibleLimit(SHIPMENT_EVIDENCE_PREVIEW_LIMIT);
+  }, [shipment && shipment.id, evidenceItems.length]);
+  const visibleEvidence = evidenceItems.slice(0, visibleLimit);
+  const hasMoreEvidence = evidenceItems.length > visibleEvidence.length;
+
   return c.jsxs('div', {
     className: 'rounded-lg bg-violet-50 dark:bg-violet-950/20 px-2.5 py-1.5',
     children: [
@@ -380,10 +411,10 @@ function ShipmentEvidenceGrid({
           }),
         ],
       }),
-      (shipment.evidence || []).length > 0
+      evidenceItems.length > 0
         ? c.jsx('div', {
             className: 'mt-2 grid grid-cols-3 sm:grid-cols-4 gap-1.5',
-            children: (shipment.evidence || []).map((evidenceItem) => {
+            children: visibleEvidence.map((evidenceItem) => {
               const evidenceKind = getShipmentEvidenceKind(evidenceItem);
               return c.jsxs(
                 'div',
@@ -476,6 +507,8 @@ function ShipmentEvidenceGrid({
                         })
                       : c.jsx('img', {
                           src: resolveMediaUrl(evidenceItem.file),
+                          loading: 'lazy',
+                          decoding: 'async',
                           onClick: () =>
                             setFullscreenImage({
                               url: resolveMediaUrl(evidenceItem.file),
@@ -505,6 +538,17 @@ function ShipmentEvidenceGrid({
             className: 'mt-1 text-xs text-violet-700/80 dark:text-violet-300/80',
             children: 'Sin evidencia cargada.',
           }),
+      hasMoreEvidence &&
+        c.jsx('button', {
+          type: 'button',
+          onClick: () =>
+            setVisibleLimit((limit) =>
+              Math.min(limit + SHIPMENT_EVIDENCE_PREVIEW_LIMIT, evidenceItems.length),
+            ),
+          className:
+            'mt-2 w-full rounded-lg border border-violet-100 bg-white/80 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-900/70 dark:text-violet-300 dark:hover:bg-violet-950/40',
+          children: `Ver mas evidencia (${visibleEvidence.length} de ${evidenceItems.length})`,
+        }),
     ],
   });
 }
@@ -1101,7 +1145,11 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                 shipment.carrier || 'Paqueteria sin definir',
                                 ' - ',
                                 shipment.product_count || 0,
-                                ' items - ',
+                                ' items',
+                                Number(shipment.evidence_count || 0) > 0
+                                  ? ` - ${shipment.evidence_count} evid.`
+                                  : '',
+                                ' - ',
                                 shipment.created_at
                                   ? new Date(shipment.created_at).toLocaleDateString()
                                   : 'Sin fecha',

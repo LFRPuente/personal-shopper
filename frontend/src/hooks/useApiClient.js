@@ -66,14 +66,18 @@ function createApiError(response, payload) {
 export function useApiClient(accessToken, handleUnauthorized) {
   const apiFetch = V.useCallback(
     async (path, options = {}) => {
+      const { skipUnauthorizedLogout = false, ...fetchOptions } = options;
       const headers = { "Content-Type": "application/json" };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-      if (options.body instanceof FormData) delete headers["Content-Type"];
-      const response = await fetch(`${Zs}${path}`, { ...options, headers });
+      if (fetchOptions.body instanceof FormData) delete headers["Content-Type"];
+      const response = await fetch(`${Zs}${path}`, { ...fetchOptions, headers });
       const payload = await parseApiResponse(response);
       if (response.status === 401) {
-        handleUnauthorized();
-        throw new Error((payload && (payload.detail || payload.message)) || "Unauthorized");
+        const tokenIsInvalid =
+          payload &&
+          String(payload.code || "").toLowerCase() === "token_not_valid";
+        if (!skipUnauthorizedLogout || tokenIsInvalid) handleUnauthorized();
+        throw createApiError(response, payload);
       }
       if (!response.ok) throw createApiError(response, payload);
       return payload;

@@ -60,7 +60,8 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
           }),
         }),
       c.jsxs("div", {
-        className: "absolute top-1.5 right-1.5 z-30",
+        className: "absolute top-1.5 right-1.5 z-40",
+        "data-product-menu": "1",
         children: [
           c.jsx("button", {
             onClick: (e) => {
@@ -75,7 +76,7 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
           }),
           menuOpen &&
             c.jsxs("div", {
-              className: "absolute right-0 top-9 z-40 w-36 rounded-xl border border-gray-200 bg-white shadow-lg p-1 ui-pop",
+              className: "absolute right-0 top-7 z-[999] w-32 rounded-xl border border-slate-200 bg-white shadow-xl p-1 ui-pop dark:border-slate-700 dark:bg-slate-900",
               children: [
                 c.jsxs("button", {
                   onClick: (e) => {
@@ -83,7 +84,7 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
                     onToggleProductMenu(null);
                     onEditProduct(product);
                   },
-                  className: "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-blue-700 hover:bg-blue-50",
+                  className: "w-full flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-200 dark:hover:bg-blue-950/30",
                   children: [c.jsx("span", { className: "material-symbols-outlined text-[14px]", children: "edit" }), "Editar"],
                 }),
                 c.jsxs("button", {
@@ -93,13 +94,13 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
                     onChangeProductPhoto(product);
                   },
                   disabled: productImageUploadingId === product.id,
-                  className: `w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-purple-700 ${productImageUploadingId === product.id ? "opacity-60 cursor-wait bg-purple-50" : "hover:bg-purple-50"}`,
+                  className: `w-full flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-purple-700 dark:text-purple-200 ${productImageUploadingId === product.id ? "opacity-60 cursor-wait bg-purple-50 dark:bg-purple-950/30" : "hover:bg-purple-50 dark:hover:bg-purple-950/30"}`,
                   children: [
                     c.jsx("span", {
                       className: `material-symbols-outlined text-[14px] ${productImageUploadingId === product.id ? "animate-spin" : ""}`,
                       children: productImageUploadingId === product.id ? "progress_activity" : "add_a_photo",
                     }),
-                    productImageUploadingId === product.id ? "Subiendo foto" : "Cambiar foto",
+                    productImageUploadingId === product.id ? "Subiendo" : "Cambiar foto",
                   ],
                 }),
                 c.jsxs("button", {
@@ -108,7 +109,7 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
                     onToggleProductMenu(null);
                     onDeleteProduct(product.id);
                   },
-                  className: "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-red-700 hover:bg-red-50",
+                  className: "w-full flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30",
                   children: [c.jsx("span", { className: "material-symbols-outlined text-[14px]", children: "delete" }), "Eliminar"],
                 }),
               ],

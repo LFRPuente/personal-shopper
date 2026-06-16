@@ -7,6 +7,8 @@ export function usePaymentsDomain({
   paymentDomainRef,
   refreshCoreDataRef,
   refreshSelectedClientRef,
+  queueCoreRefreshRef,
+  queueSelectedClientRefreshRef,
   notifyInfo,
   notifySuccess,
   notifyError,
@@ -38,6 +40,22 @@ export function usePaymentsDomain({
   const [clientPaymentEntrySavingId, setClientPaymentEntrySavingId] = V.useState(null);
 
   const getDomain = V.useCallback(() => paymentDomainRef.current || {}, [paymentDomainRef]);
+  const queuePaymentRefresh = V.useCallback(
+    (coreDelay = 180, selectedDelay = 260) => {
+      if (queueCoreRefreshRef && queueCoreRefreshRef.current) queueCoreRefreshRef.current(coreDelay);
+      else
+        refreshCoreDataRef.current().catch((error) => {
+          console.error("Failed refreshing payment core data", error);
+        });
+      if (queueSelectedClientRefreshRef && queueSelectedClientRefreshRef.current)
+        queueSelectedClientRefreshRef.current(selectedDelay);
+      else
+        refreshSelectedClientRef.current().catch((error) => {
+          console.error("Failed refreshing payment selected client", error);
+        });
+    },
+    [queueCoreRefreshRef, queueSelectedClientRefreshRef, refreshCoreDataRef, refreshSelectedClientRef],
+  );
 
   const closePaymentModal = V.useCallback(() => {
     setPaymentModalOpen(!1);
@@ -303,8 +321,7 @@ export function usePaymentsDomain({
         setPaymentAmountManual(!0);
         setPaymentEntryEditingId(null);
         setPaymentEntryDraftAmount("");
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess("Abono actualizado.");
       } catch (error) {
         console.error("Failed updating payment entry", error);
@@ -321,8 +338,7 @@ export function usePaymentsDomain({
       notifySuccess,
       paymentEntryDraftAmount,
       paymentForm.id,
-      refreshCoreDataRef,
-      refreshSelectedClientRef,
+      queuePaymentRefresh,
       saveNegativeClientBatchEntry,
     ],
   );
@@ -366,8 +382,7 @@ export function usePaymentsDomain({
           amount: "",
         }));
         setPaymentAmountManual(!0);
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess("Abono eliminado.");
       } catch (error) {
         console.error("Failed deleting payment entry", error);
@@ -383,8 +398,7 @@ export function usePaymentsDomain({
       notifySuccess,
       paymentEntryEditingId,
       paymentForm.id,
-      refreshCoreDataRef,
-      refreshSelectedClientRef,
+      queuePaymentRefresh,
     ],
   );
 
@@ -423,8 +437,7 @@ export function usePaymentsDomain({
         },
       );
       closePaymentModal();
-      await refreshCoreDataRef.current();
-      await refreshSelectedClientRef.current();
+      queuePaymentRefresh();
       notifySuccess(
         paymentForm.id
           ? amount > 0
@@ -447,8 +460,7 @@ export function usePaymentsDomain({
     notifyInfo,
     notifySuccess,
     paymentForm,
-    refreshCoreDataRef,
-    refreshSelectedClientRef,
+    queuePaymentRefresh,
     shoppings,
   ]);
 
@@ -486,8 +498,7 @@ export function usePaymentsDomain({
           }),
         });
         closeClientPaymentModal();
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess(successMessage);
         return !0;
       } catch (error) {
@@ -538,8 +549,7 @@ export function usePaymentsDomain({
         });
       }
       closeClientPaymentModal();
-      await refreshCoreDataRef.current();
-      await refreshSelectedClientRef.current();
+      queuePaymentRefresh();
       notifySuccess("Pago guardado.");
     } catch (error) {
       console.error("Failed saving client payment", error);
@@ -555,8 +565,7 @@ export function usePaymentsDomain({
     notifyError,
     notifyInfo,
     notifySuccess,
-    refreshCoreDataRef,
-    refreshSelectedClientRef,
+    queuePaymentRefresh,
   ]);
 
   const startEditingClientPaymentEntry = V.useCallback(
@@ -662,8 +671,7 @@ export function usePaymentsDomain({
         }
         setClientPaymentEntryEditingId(null);
         setClientPaymentEntryDraftAmount("");
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess("Abono actualizado.");
       } catch (error) {
         console.error("Failed updating client payment history row", error);
@@ -679,8 +687,7 @@ export function usePaymentsDomain({
       notifyError,
       notifyInfo,
       notifySuccess,
-      refreshCoreDataRef,
-      refreshSelectedClientRef,
+      queuePaymentRefresh,
       saveNegativeClientBatchEntry,
     ],
   );
@@ -719,8 +726,7 @@ export function usePaymentsDomain({
             }));
         String(clientPaymentEntryEditingId || "") === String(entry.id) &&
           (setClientPaymentEntryEditingId(null), setClientPaymentEntryDraftAmount(""));
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess("Abono eliminado.");
       } catch (error) {
         console.error("Failed deleting client payment history row", error);
@@ -735,8 +741,7 @@ export function usePaymentsDomain({
       confirmAction,
       notifyError,
       notifySuccess,
-      refreshCoreDataRef,
-      refreshSelectedClientRef,
+      queuePaymentRefresh,
     ],
   );
 
@@ -753,15 +758,14 @@ export function usePaymentsDomain({
       if (!confirmed) return;
       try {
         await apiFetch(`/payments/${payment.id}/`, { method: "DELETE" });
-        await refreshCoreDataRef.current();
-        await refreshSelectedClientRef.current();
+        queuePaymentRefresh();
         notifySuccess("Pago eliminado.");
       } catch (error) {
         console.error("Failed deleting payment", error);
         notifyError((error && error.message) || "No se pudo eliminar el pago.");
       }
     },
-    [apiFetch, confirmAction, notifyError, notifySuccess, refreshCoreDataRef, refreshSelectedClientRef],
+    [apiFetch, confirmAction, notifyError, notifySuccess, queuePaymentRefresh],
   );
 
   return {

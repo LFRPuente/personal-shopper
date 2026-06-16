@@ -48,7 +48,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personal_shopper}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      CHANNEL_LAYER_BACKEND: redis
+      CHANNEL_LAYER_BACKEND: ${CHANNEL_LAYER_BACKEND:-inmemory}
       REDIS_URL: redis://redis:6379/0
     volumes:
       - personal_shopper_media_data:/app/media

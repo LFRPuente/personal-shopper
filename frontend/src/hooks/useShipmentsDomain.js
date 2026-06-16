@@ -3,6 +3,7 @@ import {
   MODULE_AMOUNT_FORMAT,
   normalizeShipmentStatusValue,
 } from "../utils.js";
+import { getApiErrorMessage } from "./useApiClient.js";
 
 const EMPTY_SHIPMENT_FORM = {
   id: null,
@@ -87,6 +88,16 @@ export function useShipmentsDomain({
     return String(file.type || "").toLowerCase().startsWith("image/")
       ? compressImage(file).catch(() => file)
       : file;
+  }, []);
+
+  const getShipmentEvidenceUploadErrorMessage = V.useCallback((error, fallback) => {
+    if (error && error.status === 401) {
+      return "No se pudo validar tu sesion durante la subida. La imagen no se guardo; revisa tu conexion e intenta de nuevo.";
+    }
+    if (error && error.status === 413) {
+      return "La evidencia es demasiado pesada para subirla. Intenta con una imagen mas ligera.";
+    }
+    return getApiErrorMessage(error, fallback);
   }, []);
 
   const hasShipmentTrackingReady = V.useCallback(
@@ -860,39 +871,43 @@ export function useShipmentsDomain({
 
   const uploadShipmentEvidence = V.useCallback(
     async (shipment, files) => {
-      if (!shipment || !shipment.id || !files || !files.length) return;
+      const selectedFiles = Array.from(files || []).filter(Boolean);
+      if (!shipment || !shipment.id || !selectedFiles.length) return;
       setShipmentEvidenceUploadingId(shipment.id);
       setOpenShipmentEvidenceMenuId(null);
+      let uploadedCount = 0;
       try {
-        const body = new FormData();
-        for (const file of Array.from(files)) {
+        for (const file of selectedFiles) {
+          const body = new FormData();
           const evidenceFile = await prepareShipmentEvidenceFile(file);
           evidenceFile && body.append("files", evidenceFile);
+          if (!evidenceFile) continue;
+          const result = await apiFetch(`/shipments/${shipment.id}/upload-evidence/`, {
+            method: "POST",
+            body,
+            skipUnauthorizedLogout: true,
+          });
+          uploadedCount += 1;
+          result && result.shipment && upsertShipmentListItem(result.shipment);
         }
-        const result = await apiFetch(`/shipments/${shipment.id}/upload-evidence/`, {
-          method: "POST",
-          body,
-        });
-        result && result.shipment && upsertShipmentListItem(result.shipment);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
-        notifySuccess("Evidencia agregada.");
+        notifySuccess(uploadedCount === 1 ? "Evidencia agregada." : "Evidencias agregadas.");
       } catch (error) {
         console.error("Failed uploading shipment evidence", error);
-        notifyError((error && error.message) || "No se pudo subir la evidencia.");
+        notifyError(
+          getShipmentEvidenceUploadErrorMessage(error, "No se pudo subir la evidencia."),
+        );
       } finally {
         setShipmentEvidenceUploadingId(null);
       }
     },
     [
       apiFetch,
+      getShipmentEvidenceUploadErrorMessage,
       notifyError,
       notifySuccess,
       prepareShipmentEvidenceFile,
       publicClientShareToken,
-      queueCoreRefresh,
-      queueSelectedClientRefresh,
       reloadPublicShareData,
       upsertShipmentListItem,
     ],
@@ -942,28 +957,28 @@ export function useShipmentsDomain({
           {
             method: "POST",
             body,
+            skipUnauthorizedLogout: true,
           },
         );
         result && result.shipment && upsertShipmentListItem(result.shipment);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
         notifySuccess("Evidencia actualizada.");
       } catch (error) {
         console.error("Failed replacing shipment evidence", error);
-        notifyError((error && error.message) || "No se pudo cambiar la evidencia.");
+        notifyError(
+          getShipmentEvidenceUploadErrorMessage(error, "No se pudo cambiar la evidencia."),
+        );
       } finally {
         setShipmentEvidenceReplacingId(null);
       }
     },
     [
       apiFetch,
+      getShipmentEvidenceUploadErrorMessage,
       notifyError,
       notifySuccess,
       prepareShipmentEvidenceFile,
       publicClientShareToken,
-      queueCoreRefresh,
-      queueSelectedClientRefresh,
       reloadPublicShareData,
       upsertShipmentListItem,
     ],
@@ -985,15 +1000,16 @@ export function useShipmentsDomain({
       try {
         const result = await apiFetch(`/shipments/${shipment.id}/evidence/${evidenceId}/`, {
           method: "DELETE",
+          skipUnauthorizedLogout: true,
         });
         result && result.id && upsertShipmentListItem(result);
-        queueCoreRefresh(180);
-        queueSelectedClientRefresh(240);
         publicClientShareToken && (await reloadPublicShareData());
         notifySuccess("Evidencia eliminada.");
       } catch (error) {
         console.error("Failed deleting shipment evidence", error);
-        notifyError((error && error.message) || "No se pudo eliminar la evidencia.");
+        notifyError(
+          getShipmentEvidenceUploadErrorMessage(error, "No se pudo eliminar la evidencia."),
+        );
       } finally {
         setShipmentEvidenceDeletingId(null);
       }
@@ -1001,11 +1017,10 @@ export function useShipmentsDomain({
     [
       apiFetch,
       confirmAction,
+      getShipmentEvidenceUploadErrorMessage,
       notifyError,
       notifySuccess,
       publicClientShareToken,
-      queueCoreRefresh,
-      queueSelectedClientRefresh,
       reloadPublicShareData,
       upsertShipmentListItem,
     ],
@@ -1264,22 +1279,30 @@ function compressImage(file, maxWidth = 1600, quality = 0.82) {
       resolve(file);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
         let { width, height } = img;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        const maxSide = Math.max(width, height);
+        if (maxSide > maxWidth) {
+          const scale = maxWidth / maxSide;
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
         }
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Canvas context unavailable"));
+          return;
+        }
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => {
+            URL.revokeObjectURL(objectUrl);
             if (!blob) {
               reject(new Error("Canvas to Blob failed"));
               return;
@@ -1293,12 +1316,16 @@ function compressImage(file, maxWidth = 1600, quality = 0.82) {
           file.type,
           quality,
         );
-      };
-      img.onerror = () => reject(new Error("Invalid image format"));
-      img.src = event.target.result;
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      }
     };
-    reader.onerror = () => reject(new Error("Could not read file"));
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Invalid image format"));
+    };
+    img.src = objectUrl;
   });
 }
 

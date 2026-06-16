@@ -37,6 +37,8 @@ export function useRealtimeUpdates({
   setShoppingUnreadSummaryMap,
   setStores,
   setStoreRecommendations,
+  expandedShipmentIds = [],
+  fetchShipmentDetail = null,
 }) {
   const wsRef = V.useRef(null);
   const wsReconnectTimerRef = V.useRef(null);
@@ -55,6 +57,8 @@ export function useRealtimeUpdates({
   const currentViewRef = useLatestRef(currentView);
   const refreshCoreDataRef = useLatestRef(refreshCoreData);
   const refreshSelectedClientRef = useLatestRef(refreshSelectedClient);
+  const expandedShipmentIdsRef = useLatestRef(expandedShipmentIds);
+  const fetchShipmentDetailRef = useLatestRef(fetchShipmentDetail);
 
   const runQueuedCoreRefresh = V.useCallback(async () => {
     if (coreRefreshInFlightRef.current) {
@@ -297,7 +301,25 @@ export function useRealtimeUpdates({
             return;
           }
           if (model === "shipments") {
-            if (view === "SHIPMENTS") queueCoreRefresh();
+            if (view === "SHIPMENTS") {
+              queueCoreRefresh();
+              const expandedIds = (expandedShipmentIdsRef.current || [])
+                .map((id) => Number(id))
+                .filter((id) => Number.isFinite(id) && id > 0);
+              const messageId = Number(message.id || 0);
+              const idsToRefresh =
+                messageId && expandedIds.includes(messageId) ? [messageId] : expandedIds;
+              const loadDetail = fetchShipmentDetailRef.current;
+              if (idsToRefresh.length && typeof loadDetail === "function") {
+                setTimeout(() => {
+                  idsToRefresh.forEach((id) => {
+                    loadDetail(id, { force: true }).catch((error) => {
+                      console.error("Failed refreshing expanded shipment detail", error);
+                    });
+                  });
+                }, 180);
+              }
+            }
             return;
           }
           if (model === "products" || model === "receipts") {

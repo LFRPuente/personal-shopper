@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Prefetch, Q
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -190,6 +190,65 @@ def set_public_stock_catalog_state(enabled):
 
 PUBLIC_CLIENT_SHARE_PRODUCT_STATUSES = ['ANNOTATED', 'BOUGHT', 'SHIPPED']
 PAYABLE_PRODUCT_STATUSES = {'ANNOTATED', 'BOUGHT', 'SHIPPED'}
+
+
+def get_shipment_summary_queryset():
+    return Shipment.objects.select_related('client', 'mission').order_by('-updated_at', '-id')
+
+
+def get_product_nested_queryset():
+    return (
+        ProductItem.objects.select_related('client', 'mission', 'store', 'payer', 'shipment')
+        .prefetch_related(Prefetch('shipments', queryset=get_shipment_summary_queryset()))
+        .order_by('-created_at', '-id')
+    )
+
+
+def get_payment_product_queryset():
+    return ProductItem.objects.select_related('client', 'mission', 'store', 'payer').order_by('-created_at', '-id')
+
+
+def get_payment_entry_queryset():
+    return ShoppingPaymentEntry.objects.select_related('created_by', 'payment__mission').order_by('-created_at', '-id')
+
+
+def get_payment_queryset():
+    return (
+        ShoppingPayment.objects.select_related('client', 'mission', 'created_by')
+        .prefetch_related(
+            Prefetch('products', queryset=get_payment_product_queryset()),
+            Prefetch('entries', queryset=get_payment_entry_queryset()),
+        )
+        .order_by('-created_at', '-id')
+    )
+
+
+def get_payment_for_response(payment):
+    return get_payment_queryset().get(id=payment.id)
+
+
+def get_receipt_queryset():
+    return (
+        Receipt.objects.prefetch_related(
+            Prefetch('items', queryset=get_product_nested_queryset()),
+        )
+        .order_by('-uploaded_at', '-id')
+    )
+
+
+def get_shipment_evidence_queryset():
+    return ShipmentEvidence.objects.select_related('uploaded_by').order_by('created_at', 'id')
+
+
+def get_shipment_detail_queryset():
+    return (
+        Shipment.objects.select_related('client', 'product', 'mission', 'created_by')
+        .prefetch_related(
+            Prefetch('products', queryset=get_product_nested_queryset()),
+            Prefetch('evidence', queryset=get_shipment_evidence_queryset()),
+        )
+        .order_by('-updated_at', '-id')
+    )
 
 
 def calculate_client_credit_total(client):
@@ -1441,13 +1500,15 @@ class MissionViewSet(viewsets.ModelViewSet):
         return MissionSerializer
 
     def get_queryset(self):
-        return Mission.objects.select_related('store', 'payer').prefetch_related(
-            'clients',
-            'clients__products',
-            'clients__receipts',
-            'clients__payments',
-            'clients__payments__products',
-        ).all().order_by('-start_time')
+        return (
+            Mission.objects.select_related('store', 'payer')
+            .prefetch_related(
+                'clients',
+                Prefetch('products', queryset=get_product_nested_queryset()),
+            )
+            .all()
+            .order_by('-start_time')
+        )
 
     def perform_create(self, serializer):
         store = serializer.validated_data.get('store')
@@ -1996,13 +2057,13 @@ class ClientViewSet(viewsets.ModelViewSet):
         return ClientSerializer
 
     def get_queryset(self):
-        base_queryset = Client.objects.prefetch_related(
-            'products',
-            'receipts',
-            'payments',
-            'payments__products',
-        ).order_by('created_at', 'id')
-        return base_queryset.all()
+        prefetches = [
+            Prefetch('products', queryset=get_product_nested_queryset()),
+            Prefetch('payments', queryset=get_payment_queryset()),
+        ]
+        if self.action != 'list':
+            prefetches.append(Prefetch('receipts', queryset=get_receipt_queryset()))
+        return Client.objects.prefetch_related(*prefetches).order_by('created_at', 'id')
 
     def perform_create(self, serializer):
         # Asigna el Agente automáticamente
@@ -2035,6 +2096,11 @@ class ProductItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        queryset = queryset.select_related(
+            'client', 'mission', 'store', 'payer', 'receipt', 'shipment'
+        ).prefetch_related(
+            Prefetch('shipments', queryset=get_shipment_summary_queryset()),
+        )
         client_id = self.request.query_params.get('client_id')
         receipt_id = self.request.query_params.get('receipt_id')
         if client_id:
@@ -2326,9 +2392,7 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = ShoppingPayment.objects.select_related(
-            'client', 'mission', 'created_by'
-        ).prefetch_related('products', 'entries', 'entries__created_by').all().order_by('-created_at', '-id')
+        queryset = get_payment_queryset()
         client_id = self.request.query_params.get('client')
         shopping_id = get_shopping_query_param(self.request)
         if client_id:
@@ -2351,6 +2415,7 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
             entry_kind=entry_kind,
             group_token=group_token,
         )
+        self._payment_response_instance = get_payment_for_response(payment)
         broadcast_update('payments', action='created', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
 
@@ -2369,8 +2434,23 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
             entry_kind=entry_kind,
             group_token=group_token,
         )
+        self._payment_response_instance = get_payment_for_response(payment)
         broadcast_update('payments', action='updated', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        payment = getattr(self, '_payment_response_instance', None)
+        if payment is not None:
+            response.data = self.get_serializer(payment).data
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        payment = getattr(self, '_payment_response_instance', None)
+        if payment is not None:
+            response.data = self.get_serializer(payment).data
+        return response
 
     def perform_destroy(self, instance):
         payment_id = instance.id
@@ -2406,7 +2486,7 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
         else:
             entry.delete()
         payment = recalculate_payment_entry_totals(payment)
-        payment.refresh_from_db()
+        payment = get_payment_for_response(payment)
         broadcast_update('payments', action='updated', object_id=payment.id)
         broadcast_update('clients', action='updated', object_id=payment.client_id)
         return Response(self.get_serializer(payment).data)
@@ -2428,14 +2508,15 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 Shipment.objects.select_related(
                     'client', 'product', 'mission', 'created_by'
                 )
-                .annotate(product_count=Count('products', distinct=True))
+                .annotate(
+                    product_count=Count('products', distinct=True),
+                    evidence_count=Count('evidence', distinct=True),
+                )
                 .all()
                 .order_by('-updated_at', '-id')
             )
         else:
-            queryset = Shipment.objects.select_related(
-                'client', 'product', 'mission', 'created_by'
-            ).prefetch_related('products', 'evidence', 'evidence__uploaded_by').all().order_by('-updated_at', '-id')
+            queryset = get_shipment_detail_queryset()
         client_id = self.request.query_params.get('client')
         mission_id = get_shopping_query_param(self.request)
         product_id = self.request.query_params.get('product')
@@ -2588,7 +2669,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                     media_type=media_type,
                 )
             )
-        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
+        shipment = get_shipment_detail_queryset().get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(
             {
@@ -2640,7 +2721,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 ShipmentEvidence._meta.get_field('file').storage.delete(previous_file)
             except Exception:
                 pass
-        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
+        shipment = get_shipment_detail_queryset().get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(
             {
@@ -2669,7 +2750,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 ShipmentEvidence._meta.get_field('file').storage.delete(evidence_file)
             except Exception:
                 pass
-        shipment = Shipment.objects.prefetch_related('products', 'evidence', 'evidence__uploaded_by').get(id=shipment.id)
+        shipment = get_shipment_detail_queryset().get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(self.get_serializer(shipment).data)
 
