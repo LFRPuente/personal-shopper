@@ -2347,10 +2347,11 @@ function nh() {
       exchangeRate = "",
       taxPercentage = "",
       commissionPercentage = "",
+      detailLines = [],
       itemsCount = null,
       balanceAdjustment = 0,
     }) => {
-      const o = MODULE_NUMBER_FORMAT,
+      const o = MODULE_AMOUNT_FORMAT,
         Qa = toNumber(balanceAdjustment, 0),
         Za = Math.abs(Qa) > 0.009,
         ta = total + (Za ? Qa : 0),
@@ -2360,6 +2361,8 @@ function nh() {
         za = xa && va > 0.009
           ? `${ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor"}: $${o.format(va)}`
           : "",
+        detailText = (detailLines || []).filter(Boolean).join("\n"),
+        balanceBlock = [za, detailText].filter(Boolean).join("\n"),
         Ia = defaultBreakdownTemplate || DEFAULT_BREAKDOWN_TEMPLATE,
         Ya = Ia.includes("{balance_line}"),
         N =
@@ -2369,7 +2372,7 @@ function nh() {
                 .map((A) => `${itemBullet} ${A.name} – $${o.format(A.finalPrice)}`)
                 .join("\n")
             : "Sin productos."),
-        ka = za && !Ya ? `${N}\n${za}` : N,
+        ka = balanceBlock && !Ya ? `${N}\n${balanceBlock}` : N,
         A = Number.isFinite(itemsCount) ? itemsCount : items.length,
         vl = {
           title,
@@ -2378,7 +2381,7 @@ function nh() {
           total_label: ba,
           products_total: o.format(total),
           subtotal: o.format(Number.isFinite(subtotal) ? subtotal : total),
-          balance_line: za,
+          balance_line: balanceBlock,
           balance_label: xa ? (ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor") : "",
           balance_amount: xa ? o.format(va) : "",
           discount_percentage: formatBreakdownPercent(discountPercentage),
@@ -2404,7 +2407,7 @@ function nh() {
           total_label: ba,
           products_total: total,
           subtotal: Number.isFinite(subtotal) ? subtotal : total,
-          balance_line: za,
+          balance_line: balanceBlock,
           balance_label: xa ? (ta < -0.009 || Qa < -0.009 ? "Saldo a favor" : "Saldo deudor") : "",
           balance_amount: xa ? va : 0,
           balance_adjustment: Qa,
@@ -2419,7 +2422,38 @@ function nh() {
       const vl = getClientShoppingHistoryEntries(o),
         El = vl.reduce((Se, ea) => Se + toNumber(ea && ea.balance, 0), 0),
         Se = El - toNumber(N, 0);
-      return Math.abs(Se) > 0.009 ? Se : 0;
+      return Math.abs(Se) > 0.05 ? Se : 0;
+    },
+    buildPercentageBreakdown = (shopping, products, globalDiscount = 0) => {
+      if (String(shopping && shopping.calc_mode || "").toUpperCase() !== "PERCENTAGE") return null;
+      const rate = toNumber(shopping && shopping.exchange_rate, 0),
+        taxPct = toNumber(shopping && shopping.tax_percentage, 0),
+        commissionPct = toNumber(shopping && shopping.commission_percentage, 0),
+        o = (products || []).map((product) => {
+          const base = toNumber(product && product.real_price, 0) * rate,
+            totalPrice = getProductPaymentAmount(product, globalDiscount),
+            discountPct = getProductEffectiveDiscountPercentage(product, globalDiscount),
+            discount = base * Math.max(0, discountPct) / 100,
+            afterDiscount = Math.max(0, base - discount),
+            tax = afterDiscount * taxPct / 100,
+            commission = totalPrice - afterDiscount - tax;
+          return { name: product.name, basePrice: base, finalPrice: base, totalPrice, discount, tax, commission };
+        }),
+        subtotal = o.reduce((sum, item) => sum + item.basePrice, 0),
+        discountAmount = o.reduce((sum, item) => sum + item.discount, 0),
+        taxAmount = o.reduce((sum, item) => sum + item.tax, 0),
+        commissionAmount = o.reduce((sum, item) => sum + item.commission, 0);
+      return {
+        items: o,
+        subtotal,
+        total: o.reduce((sum, item) => sum + item.totalPrice, 0),
+        discountAmount,
+        detailLines: [
+          discountAmount > 0.009 ? `Descuento: -$${MODULE_AMOUNT_FORMAT.format(discountAmount)}` : "",
+          taxAmount > 0.009 ? `Tax (${formatBreakdownPercent(taxPct)}%): $${MODULE_AMOUNT_FORMAT.format(taxAmount)}` : "",
+          commissionAmount > 0.009 ? `Comision (${formatBreakdownPercent(commissionPct)}%): $${MODULE_AMOUNT_FORMAT.format(commissionAmount)}` : "",
+        ],
+      };
     },
     getWahaChatPreview = (o) => {
       return getClientWahaChatId(o, J && J.profile ? J.profile : null);
@@ -2490,14 +2524,16 @@ function nh() {
           basePrice: getBreakdownBaseAmount(ea),
           finalPrice: getProductPaymentAmount(ea, vl),
         })),
-        gl = Se.reduce((ea, oi) => ea + oi.basePrice, 0),
-        ae = Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
+        pctBreakdown = buildPercentageBreakdown(A, El, vl),
+        gl = pctBreakdown ? pctBreakdown.subtotal : Se.reduce((ea, oi) => ea + oi.basePrice, 0),
+        ae = pctBreakdown ? pctBreakdown.total : Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
         oi = buildBreakdownMessage({
-          items: Se,
+          items: pctBreakdown ? pctBreakdown.items : Se,
           total: ae,
           subtotal: gl,
           discountPercentage: vl,
-          discountAmount: Math.max(0, gl - ae),
+          discountAmount: pctBreakdown ? pctBreakdown.discountAmount : Math.max(0, gl - ae),
+          detailLines: pctBreakdown ? pctBreakdown.detailLines : [],
           shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
           clientName: String((N && N.name) || "").trim(),
           storeName: String((A && (A.store_name || A.name)) || "").trim(),
@@ -2527,14 +2563,16 @@ function nh() {
           basePrice: getBreakdownBaseAmount(ea),
           finalPrice: getProductPaymentAmount(ea, vl),
         })),
-        gl = Se.reduce((ea, oi) => ea + oi.basePrice, 0),
-        ae = Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
+        pctBreakdown = buildPercentageBreakdown(A, El, vl),
+        gl = pctBreakdown ? pctBreakdown.subtotal : Se.reduce((ea, oi) => ea + oi.basePrice, 0),
+        ae = pctBreakdown ? pctBreakdown.total : Se.reduce((ea, oi) => ea + oi.finalPrice, 0),
         oi = buildBreakdownMessage({
-          items: Se,
+          items: pctBreakdown ? pctBreakdown.items : Se,
           total: ae,
           subtotal: gl,
           discountPercentage: vl,
-          discountAmount: Math.max(0, gl - ae),
+          discountAmount: pctBreakdown ? pctBreakdown.discountAmount : Math.max(0, gl - ae),
+          detailLines: pctBreakdown ? pctBreakdown.detailLines : [],
           shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
           clientName: String((N && N.name) || "").trim(),
           storeName: String((A && (A.store_name || A.name)) || "").trim(),
@@ -2563,13 +2601,15 @@ function nh() {
               basePrice: getBreakdownBaseAmount(Nn),
               finalPrice: getProductPaymentAmount(Nn, vl),
             })),
-            Nn = oi.reduce((Ta, qa) => Ta + qa.basePrice, 0),
-            Ta = oi.reduce((qa, za) => qa + za.finalPrice, 0);
+            pctBreakdown = buildPercentageBreakdown(A, gl, vl),
+            Nn = pctBreakdown ? pctBreakdown.subtotal : oi.reduce((Ta, qa) => Ta + qa.basePrice, 0),
+            Ta = pctBreakdown ? pctBreakdown.total : oi.reduce((qa, za) => qa + za.finalPrice, 0);
           return {
             name: ea.name,
-            items: oi,
+            items: pctBreakdown ? pctBreakdown.items : oi,
             subtotal: Nn,
             total: Ta,
+            discountAmount: pctBreakdown ? pctBreakdown.discountAmount : Math.max(0, Nn - Ta),
           };
         }).filter((ea) => ea.items.length > 0);
       if (Se.length === 0) {
@@ -2579,6 +2619,14 @@ function nh() {
       const gl = Se.reduce((ea, oi) => ea + oi.subtotal, 0),
         ae = Se.reduce((ea, oi) => ea + oi.total, 0),
         oi = Se.reduce((ea, Nn) => ea + Nn.items.length, 0),
+        pctBreakdown = buildPercentageBreakdown(
+          A,
+          N.flatMap((ea) => ((ea && ea.products) || []).filter((product) => {
+            const status = String(product.status || "").toUpperCase();
+            return Number(product.shopping) === Number(A && A.id || o.id) && status === "ANNOTATED";
+          })),
+          vl,
+        ),
         Nn = buildBreakdownMessage({
           title: "DESGLOSE DE LA MISION:",
           itemsText: Se
@@ -2594,7 +2642,8 @@ function nh() {
           total: ae,
           subtotal: gl,
           discountPercentage: vl,
-          discountAmount: Math.max(0, gl - ae),
+          discountAmount: pctBreakdown ? pctBreakdown.discountAmount : Math.max(0, gl - ae),
+          detailLines: pctBreakdown ? pctBreakdown.detailLines : [],
           shoppingName: String((A && (A.store_name || A.name)) || "").trim(),
           storeName: String((A && (A.store_name || A.name)) || "").trim(),
           factorValue: A && A.factor_value,
@@ -2774,10 +2823,16 @@ function nh() {
       return Math.max(paymentLocalToNumber(N && N.discount_percentage, 0), 0);
     },
     paymentLocalProductAmount = (o, N = null) => {
-      const A =
+      const globalDiscount =
           N === null
             ? paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
-            : N,
+            : paymentLocalToNumber(N, 0),
+        productDiscount = paymentLocalToNumber(o && o.discount_percentage, 0),
+        A = (o && o.apply_discount) === !1
+          ? 0
+          : (o && o.discount_uses_global) !== !1 && globalDiscount > 0
+            ? globalDiscount
+            : productDiscount,
         vl = Math.max(0, 1 - paymentLocalToNumber(A, 0) / 100),
         El = paymentLocalToNumber(o && o.charged_price, Number.NaN);
       if (Number.isFinite(El)) return El * vl;
@@ -3771,13 +3826,13 @@ function nh() {
     getProductEffectiveDiscountPercentage = (o, N = null) => {
       if (!o || (o && o.apply_discount) === !1) return 0;
       const A = o && o.discount_uses_global !== !1,
-        vl =
+        vl = hasValue(o && o.discount_percentage)
+          ? toNumber(o && o.discount_percentage, 0)
+          : 0,
+        El =
           N === null
-            ? hasValue(o && o.discount_percentage)
-              ? toNumber(o && o.discount_percentage, 0)
-              : 0
-            : toNumber(N, 0),
-        El = paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null);
+            ? paymentLocalShoppingDiscount((o && (o.shopping || o.mission)) || null)
+            : toNumber(N, 0);
       return A && El > 0 ? El : vl;
     },
     getProductPaymentAmount = (o, N = null) => {

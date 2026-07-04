@@ -1059,7 +1059,7 @@ const HomeSection = V.memo(function HomeSection() {
                       className: isDesktopLayout
                         ? 'mt-1 block text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight'
                         : 'mt-1 block text-lg font-black text-slate-900 leading-none tracking-tight dark:text-white',
-                      children: ['$', money(shoppingPurchaseDisplayTotal)],
+                      children: ['$', money(shoppingPurchaseDisplayDiscountTotal)],
                     }),
                     missionHasAnyDiscount &&
                       shoppingPurchaseDisplayDiscountTotal !== shoppingPurchaseDisplayTotal &&
@@ -1067,7 +1067,7 @@ const HomeSection = V.memo(function HomeSection() {
                         className: isDesktopLayout
                           ? 'mt-0.5 block text-[9px] font-semibold text-slate-700 dark:text-slate-200 leading-none'
                           : 'mt-0.5 block text-[9px] font-semibold text-slate-700 leading-none dark:text-slate-200',
-                        children: ['C/desc $', money(shoppingPurchaseDisplayDiscountTotal)],
+                        children: ['S/desc $', money(shoppingPurchaseDisplayTotal)],
                       }),
                   ],
                 }),
@@ -1086,7 +1086,7 @@ const HomeSection = V.memo(function HomeSection() {
                       className: isDesktopLayout
                         ? 'mt-1 block text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight'
                         : 'mt-1 block text-lg font-black text-slate-900 leading-none tracking-tight dark:text-white',
-                      children: ['$', money(missionTotalWithTaxes)],
+                      children: ['$', money(missionTotalWithDiscount)],
                     }),
                     missionHasAnyDiscount &&
                       missionTotalWithDiscount !== missionTotalWithTaxes &&
@@ -1094,7 +1094,7 @@ const HomeSection = V.memo(function HomeSection() {
                         className: isDesktopLayout
                           ? 'mt-0.5 block text-[9px] font-semibold text-slate-700 dark:text-slate-200 leading-none'
                           : 'mt-0.5 block text-[9px] font-semibold text-slate-700 leading-none dark:text-slate-200',
-                        children: ['C/desc $', money(missionTotalWithDiscount)],
+                        children: ['S/desc $', money(missionTotalWithTaxes)],
                       }),
                   ],
                 }),

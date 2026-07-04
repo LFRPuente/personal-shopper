@@ -48,6 +48,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personal_shopper}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-60}
       CHANNEL_LAYER_BACKEND: ${CHANNEL_LAYER_BACKEND:-inmemory}
       REDIS_URL: redis://redis:6379/0
     volumes:
