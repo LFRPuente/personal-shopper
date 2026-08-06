@@ -22,6 +22,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
   updateShipmentForm,
   saveShipmentEditor,
 }) {
+  const productsSaleTotal = shipmentSelectedProducts.reduce((total, product) => total + getProductPaymentAmount(product), 0);
   return c.jsx("div", {
     className: overlayBackdropClass(
       "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
@@ -436,7 +437,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
                         }),
                         c.jsxs("p", {
                           className: "text-[11px] text-text-sub",
-                          children: [shipmentSelectedProducts.length, " seleccionados"],
+                          children: [shipmentSelectedProducts.length, " seleccionados · $", formatAmount(productsSaleTotal)],
                         }),
                       ],
                     }),

@@ -126,6 +126,7 @@ function ShipmentProductsGrid({
   toggleShipmentProductSelection,
 }) {
   const [visibleLimit, setVisibleLimit] = V.useState(SHIPMENT_PRODUCT_PREVIEW_LIMIT);
+  const productsSaleTotal = selectedProducts.reduce((total, product) => total + getProductPaymentAmount(product), 0);
   V.useEffect(() => {
     setVisibleLimit(SHIPMENT_PRODUCT_PREVIEW_LIMIT);
   }, [shipment && shipment.id, selectedProducts.length]);
@@ -141,7 +142,7 @@ function ShipmentProductsGrid({
           c.jsxs('p', {
             className:
               'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
-            children: ['Productos (', selectedProducts.length || 0, ')'],
+            children: ['Productos (', selectedProducts.length || 0, ') · $', formatAmount(productsSaleTotal)],
           }),
           canEditBox &&
             c.jsxs('button', {
