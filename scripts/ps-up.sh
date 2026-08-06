@@ -2,18 +2,10 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-personal-shopper-dev}"
-ENV_FILE="${DEV_ENV_FILE:-dev.env}"
 DOCKER_BIN="${DOCKER_BIN:-/usr/local/bin/docker}"
 
 if [ ! -x "$DOCKER_BIN" ]; then
   DOCKER_BIN="$(command -v docker || true)"
-fi
-
-if [ ! -f "$ROOT_DIR/$ENV_FILE" ]; then
-  echo "Missing $ROOT_DIR/$ENV_FILE"
-  echo "Create it from dev.env.example before starting the dev stack."
-  exit 1
 fi
 
 if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
@@ -23,9 +15,7 @@ if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
 fi
 
 cd "$ROOT_DIR"
-if [ -z "${VITE_COMMIT_SHA:-}" ] || [ "$VITE_COMMIT_SHA" = "unknown" ]; then
-  VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
-fi
+VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
 
 if [ -z "$VITE_COMMIT_SHA" ]; then
   echo "Unable to determine the current Git commit; frontend build aborted."
@@ -33,4 +23,4 @@ if [ -z "$VITE_COMMIT_SHA" ]; then
 fi
 
 export VITE_COMMIT_SHA
-"$DOCKER_BIN" compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" up -d --build
+"$DOCKER_BIN" compose up -d --build "$@"

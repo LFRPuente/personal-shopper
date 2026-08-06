@@ -31,6 +31,7 @@ This file is the current project context and the working agreement for this repo
 
 Latest known production commits:
 
+- `aeec8d5` Label shipment products sale total
 - `d838f05` Centralize Firefox loading class bootstrap
 - `2c12a5b` Restore confirm dialog and tune Firefox startup
 - `d12be2d` Fix shipments section media resolver
@@ -114,6 +115,7 @@ For a parallel `dev` stack, keep the same compose file and change only the envir
    - Frontend changes: `npm.cmd run build` or `npx vite build`
    - Backend changes: `python -m py_compile <files>`
 3. Commit locally.
+   - Before committing, update the first entry under **Latest known production commits** with the current latest commit SHA and its summary. Keep the newest entry first.
 4. Push from Windows to GitHub using the active remote for this clone:
    - usually `git push origin main`
 5. SSH from Windows into the Mac Mini through Cloudflare Access.
@@ -457,10 +459,10 @@ The deploy is:
 2. SSH to `homeserver@ssh.servidorfs.com`
 3. `cd /Users/homeserver/Documents/personal-shopper`
 4. `git pull origin main`
-5. Rebuild only what changed:
-   - frontend: `/usr/local/bin/docker compose up -d --build frontend`
-   - backend: `/usr/local/bin/docker compose up -d --build backend`
-   - both: `/usr/local/bin/docker compose up -d --build backend frontend`
+5. Rebuild only what changed with `scripts/ps-up.sh`. It injects the checked-out Git SHA into the frontend build, so Settings shows the deployed commit instead of `unknown`:
+   - frontend: `./scripts/ps-up.sh frontend`
+   - backend: `./scripts/ps-up.sh backend`
+   - both: `./scripts/ps-up.sh backend frontend`
 6. Run migrations if needed:
    - `/usr/local/bin/docker compose exec -T backend python manage.py migrate`
 7. Validate:
@@ -473,6 +475,7 @@ The deploy is:
 ## Non-negotiable rules
 
 - Do not use `docker compose down` as the normal deploy path.
+- For a PS frontend rebuild, use `./scripts/ps-up.sh` rather than calling `docker compose up --build` directly; the script is required to stamp the build with its Git commit.
 - Do not publish new host ports unless the user explicitly asks for that.
 - Do not connect `backend`, `postgres`, or `redis` to `npm_default`.
 - NPM for this project must point to `ps-frontend:80`.
