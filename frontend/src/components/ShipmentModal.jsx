@@ -437,7 +437,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
                         }),
                         c.jsxs("p", {
                           className: "text-[11px] text-text-sub",
-                          children: [shipmentSelectedProducts.length, " seleccionados · $", formatAmount(productsSaleTotal)],
+                          children: [shipmentSelectedProducts.length, " seleccionados · Total de venta: $", formatAmount(productsSaleTotal)],
                         }),
                       ],
                     }),

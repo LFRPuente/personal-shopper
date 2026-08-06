@@ -142,7 +142,7 @@ function ShipmentProductsGrid({
           c.jsxs('p', {
             className:
               'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
-            children: ['Productos (', selectedProducts.length || 0, ') · $', formatAmount(productsSaleTotal)],
+            children: ['Productos (', selectedProducts.length || 0, ') · Total de venta: $', formatAmount(productsSaleTotal)],
           }),
           canEditBox &&
             c.jsxs('button', {
