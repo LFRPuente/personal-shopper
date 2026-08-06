@@ -31,6 +31,7 @@ This file is the current project context and the working agreement for this repo
 
 Latest known production commits:
 
+- `f7ff294` Stamp frontend builds with commit SHA
 - `aeec8d5` Label shipment products sale total
 - `d838f05` Centralize Firefox loading class bootstrap
 - `2c12a5b` Restore confirm dialog and tune Firefox startup
