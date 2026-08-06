@@ -12,7 +12,7 @@ ARG VITE_COMMIT_SHA=unknown
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_COMMIT_SHA=${VITE_COMMIT_SHA}
 
-RUN npm run build
+RUN test -n "$VITE_COMMIT_SHA" && test "$VITE_COMMIT_SHA" != "unknown" && npm run build
 
 FROM nginx:1.27-alpine
 

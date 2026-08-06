@@ -473,6 +473,18 @@ The deploy is:
    - `https://ps.servidorfs.com/api/`
    - `home.servidorfs.com`, `n8n.servidorfs.com`, `chat.servidorfs.com`
 
+## Mandatory frontend commit stamp
+
+Every deploy that rebuilds `frontend` must stamp the build with the exact Git commit checked out on the target host. The version displayed in **Settings** must never be `unknown`.
+
+- For `dev`, use `./scripts/dev-up.sh`; it resolves and exports `VITE_COMMIT_SHA` before Docker builds the frontend.
+- For `ps`, use `./scripts/ps-up.sh [services...]`; it resolves and exports `VITE_COMMIT_SHA` before Docker builds the frontend.
+- Do not bypass these scripts with a direct `docker compose up --build frontend` command.
+- If the commit SHA cannot be resolved, the deployment must stop rather than publish an unversioned frontend.
+- After each frontend deploy, verify that the deployed asset contains the output of `git rev-parse --short HEAD` and confirm that Settings displays that same SHA.
+- After a PS frontend deployment, record that deployed SHA as the first entry under **Latest known production commits**.
+- The frontend Dockerfile also rejects a blank or `unknown` SHA, so an unversioned frontend cannot be built even if someone bypasses the deploy scripts.
+
 ## Non-negotiable rules
 
 - Do not use `docker compose down` as the normal deploy path.
