@@ -13,12 +13,13 @@ const amount = (value) => {
   return Number.isFinite(number) ? Number(number.toFixed(2)) : 0;
 };
 
-const finalPrice = (product, mission) => {
+const discountMultiplier = (product, mission) => {
   const discount = product?.apply_discount === false ? 0 : product?.discount_uses_global !== false && Number(mission?.discount_percentage || 0) > 0 ? Number(mission.discount_percentage) : Number(product?.discount_percentage || 0);
-  return amount(Number(product?.charged_price ?? product?.real_price ?? 0) * Math.max(0, 1 - discount / 100));
+  return Math.max(0, 1 - discount / 100);
 };
 
 const reportProducts = (mission) => (mission.products || []).filter((product) => String(product?.status || '').toUpperCase() !== 'IN_REVIEW');
+const discountedAmount = (value, product, mission) => amount(Number(value ?? 0) * discountMultiplier(product, mission));
 
 const dateOnly = (value) => {
   if (!value) return '';
@@ -57,7 +58,7 @@ export const downloadGeneralWorkbook = ({ missions = [], shipments = [], expense
   const shoppingColumns = ['Fecha', 'Cliente', 'Producto', 'Store Price (USD)', 'Store Price (USD+TAX)', 'Final Price (MXN)', 'Status', 'Tienda', 'Quien lo pago'];
   const shoppingRows = (missions || []).filter((mission) => inRange(mission.start_time)).flatMap((mission) =>
     reportProducts(mission).map((product) => {
-      const storePrice = amount(product.real_price);
+      const storePrice = discountedAmount(product.real_price, product, mission);
       const tax = Number(mission.tax_percentage || 0) / 100;
       return {
         Fecha: dateOnly(mission.start_time),
@@ -65,7 +66,7 @@ export const downloadGeneralWorkbook = ({ missions = [], shipments = [], expense
         Producto: product.name || '',
         'Store Price (USD)': storePrice,
         'Store Price (USD+TAX)': amount(storePrice * (1 + tax)),
-        'Final Price (MXN)': finalPrice(product, mission),
+        'Final Price (MXN)': discountedAmount(product.charged_price ?? product.real_price, product, mission),
         Status: product.status || '',
         Tienda: product.store_name || mission.store_name || mission.name || '',
         'Quien lo pago': payerName(product, mission),
@@ -144,14 +145,14 @@ export const downloadGeneralCsv = ({ missions = [], shipments = [], expenses = [
   };
   pushSection('SHOPPIING', ['Fecha', 'Cliente', 'Producto', 'Store Price (USD)', 'Store Price (USD+TAX)', 'Final Price (MXN)', 'Status', 'Tienda', 'Quien lo pago'], (missions || []).filter((mission) => inRange(mission.start_time)).flatMap((mission) =>
     reportProducts(mission).map((product) => {
-      const storePrice = amount(product.real_price);
+      const storePrice = discountedAmount(product.real_price, product, mission);
       return {
         Fecha: dateOnly(mission.start_time),
         Cliente: product.client_name || '',
         Producto: product.name || '',
         'Store Price (USD)': storePrice,
         'Store Price (USD+TAX)': amount(storePrice * (1 + Number(mission.tax_percentage || 0) / 100)),
-        'Final Price (MXN)': finalPrice(product, mission),
+        'Final Price (MXN)': discountedAmount(product.charged_price ?? product.real_price, product, mission),
         Status: product.status || '',
         Tienda: product.store_name || mission.store_name || mission.name || '',
         'Quien lo pago': payerName(product, mission),
