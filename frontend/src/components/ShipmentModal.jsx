@@ -4,6 +4,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
   shipmentForm,
   shipmentSaving,
   shipmentModalClient,
+  clientBalances = {},
   shipmentClientPickerOpen,
   shipmentClientSearch,
   filteredShipmentClients,
@@ -23,6 +24,12 @@ const ShipmentModal = V.memo(function ShipmentModal({
   saveShipmentEditor,
 }) {
   const productsSaleTotal = shipmentSelectedProducts.reduce((total, product) => total + getProductPaymentAmount(product), 0);
+  const clientBalance = (client) => Number(clientBalances[client && client.id]) || 0;
+  const balanceLabel = (client) => {
+    const value = clientBalance(client);
+    return value < 0 ? `A favor $${formatAmount(-value)}` : value > 0 ? `Deuda $${formatAmount(value)}` : "Sin saldo";
+  };
+  const balanceTone = (client) => clientBalance(client) < 0 ? "text-emerald-700 dark:text-emerald-300" : clientBalance(client) > 0 ? "text-rose-700 dark:text-rose-300" : "text-text-sub";
   return c.jsx("div", {
     className: overlayBackdropClass(
       "fixed inset-0 z-[89] bg-black/45 flex items-end sm:items-center justify-center p-0 sm:p-4 ui-backdrop",
@@ -88,7 +95,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
                             ? "text-text-main dark:text-white"
                             : "text-text-sub",
                           children: shipmentModalClient
-                            ? shipmentModalClient.name
+                            ? c.jsxs("span", { className: "flex items-center justify-between gap-2", children: [shipmentModalClient.name, c.jsx("small", { className: `${balanceTone(shipmentModalClient)} shrink-0 text-[10px] font-bold`, children: balanceLabel(shipmentModalClient) })] })
                             : "Selecciona un cliente",
                         }),
                         c.jsx("span", {
@@ -123,11 +130,8 @@ const ShipmentModal = V.memo(function ShipmentModal({
                                       type: "button",
                                       onClick: () => selectShipmentClient(o.id),
                                       className:
-                                        "w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
-                                      children:
-                                        String(shipmentForm.client) === String(o.id)
-                                          ? `${o.name} ✓`
-                                          : o.name,
+                                        "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-[11px] font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-slate-800",
+                                      children: [c.jsx("span", { className: "truncate", children: String(shipmentForm.client) === String(o.id) ? `${o.name} ✓` : o.name }), c.jsx("span", { className: `${balanceTone(o)} shrink-0 text-[10px] font-bold`, children: balanceLabel(o) })],
                                     },
                                     `shipment-client-option-${o.id}`,
                                   ),

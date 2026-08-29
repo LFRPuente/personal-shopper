@@ -7871,6 +7871,7 @@ function nh() {
           shipmentForm,
           shipmentSaving,
           shipmentModalClient,
+          clientBalances: homeClientGlobalBalanceMap,
           shipmentClientPickerOpen,
           shipmentClientSearch,
           filteredShipmentClients,

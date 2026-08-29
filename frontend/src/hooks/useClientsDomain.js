@@ -7,7 +7,7 @@ import {
   buildAppPath,
 } from "../utils.js";
 
-const HOME_CLIENT_GALLERY_TAB_ORDER = ["REVIEW", "ANNOTATED", "REJECTED"];
+const HOME_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
 const STANDARD_CLIENT_GALLERY_TAB_ORDER = ["ANNOTATED", "REVIEW", "REJECTED"];
 
 export function useClientsDomain({
@@ -311,7 +311,7 @@ export function useClientsDomain({
       );
       setClientGalleryTabOrder(HOME_CLIENT_GALLERY_TAB_ORDER);
       hydrateClientDetail(client);
-      setProductGalleryTab("REVIEW");
+      setProductGalleryTab("ANNOTATED");
     },
     [allowHomeClientRouteOpen, clearPendingHomeClientRoute, hydrateClientDetail, setProductGalleryTab],
   );

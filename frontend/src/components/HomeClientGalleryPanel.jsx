@@ -96,15 +96,6 @@ const HomeClientGalleryPanel = V.memo(function HomeClientGalleryPanel({
             ? "grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3"
             : "grid grid-cols-3 gap-1",
         children: [
-          sortedVisibleGalleryProducts.map((product) => {
-            const reviewEntry = latestReviewsByProduct[product.id];
-            const unread = !!(effectiveHomeClientReviewUnreadMap[client.id] || {})[product.id];
-            return renderProductCard({
-              product,
-              reviewEntry,
-              unread,
-            });
-          }),
           c.jsxs(
             "div",
             {
@@ -140,6 +131,15 @@ const HomeClientGalleryPanel = V.memo(function HomeClientGalleryPanel({
             },
             "add-product-card",
           ),
+          sortedVisibleGalleryProducts.map((product) => {
+            const reviewEntry = latestReviewsByProduct[product.id];
+            const unread = !!(effectiveHomeClientReviewUnreadMap[client.id] || {})[product.id];
+            return renderProductCard({
+              product,
+              reviewEntry,
+              unread,
+            });
+          }),
         ],
       }),
     ],
