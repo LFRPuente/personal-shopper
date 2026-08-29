@@ -235,7 +235,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         children: [
           c.jsxs('div', {
             children: [
-              c.jsx('h2', { className: 'text-lg font-bold text-text-main', children: 'Clients' }),
+              c.jsx('h2', { className: 'text-lg font-bold text-text-main dark:text-white', children: 'Clients' }),
               c.jsxs('p', { className: 'text-xs text-text-sub', children: ['Total: ', filteredClients.length] }),
             ],
           }),
