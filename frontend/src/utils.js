@@ -277,7 +277,9 @@ export const getUserWahaChatId = (user) => {
 };
 export const normalizeShipmentStatusValue = (o) => {
   const N = String(o || "").trim().toUpperCase();
-  return N === "SHIPPED"
+  return N === "PREPARING"
+    ? "PREPARING"
+    : N === "SHIPPED"
     ? "SHIPPED"
     : N === "DELIVERED"
       ? "DELIVERED"
@@ -287,7 +289,9 @@ export const normalizeShipmentStatusValue = (o) => {
 };
 export const getShipmentStatusLabel = (o) => {
   const N = normalizeShipmentStatusValue(o);
-  return N === "SHIPPED"
+  return N === "PREPARING"
+    ? "Preparando"
+    : N === "SHIPPED"
     ? "Enviado"
     : N === "DELIVERED"
       ? "Entregado"

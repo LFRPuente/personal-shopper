@@ -49,6 +49,7 @@ export function useShipmentsDomain({
 }) {
   const [shipments, setShipments] = V.useState([]);
   const [shipmentSearch, setShipmentSearch] = V.useState("");
+  const [shipmentStatusFilter, setShipmentStatusFilter] = V.useState("");
   const [shipmentPage, setShipmentPage] = V.useState(0);
   const [shipmentTotalCount, setShipmentTotalCount] = V.useState(0);
   const [shipmentHasNextPage, setShipmentHasNextPage] = V.useState(!1);
@@ -236,12 +237,12 @@ export function useShipmentsDomain({
 
   const loadShipmentsData = V.useCallback(
     async (options = {}) => {
-      const { force = !1, page = 1, append = !1, search = shipmentSearch } =
+      const { force = !1, page = 1, append = !1, search = shipmentSearch, status = shipmentStatusFilter } =
         typeof options === "boolean" ? { force: options } : options;
       if (!accessToken || (shipmentsLoadedRef.current && !force && page === 1 && !append)) return [];
       try {
         setShipmentLoading(!0);
-        const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}`);
+        const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}&status=${encodeURIComponent(status)}`);
         const results = Array.isArray(data) ? data : data.results || [];
         setShipments((items) => mergeShipmentSummariesWithHydrated(
           items,
@@ -259,7 +260,7 @@ export function useShipmentsDomain({
         setShipmentLoading(!1);
       }
     },
-    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated, shipmentSearch],
+    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated, shipmentSearch, shipmentStatusFilter],
   );
 
   const loadMoreShipments = V.useCallback(
@@ -271,7 +272,7 @@ export function useShipmentsDomain({
     if (!accessToken || currentTabRef.current !== "SHIPMENTS") return;
     const timer = setTimeout(() => loadShipmentsData({ force: !0 }), 250);
     return () => clearTimeout(timer);
-  }, [accessToken, currentTabRef, loadShipmentsData, shipmentSearch]);
+  }, [accessToken, currentTabRef, loadShipmentsData, shipmentSearch, shipmentStatusFilter]);
 
   const resetShipmentsDomain = V.useCallback(() => {
     shipmentsLoadedRef.current = !1;
@@ -1230,6 +1231,8 @@ export function useShipmentsDomain({
     setShipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentStatusFilter,
+    setShipmentStatusFilter,
     shipmentTotalCount,
     shipmentHasNextPage,
     shipmentLoading,

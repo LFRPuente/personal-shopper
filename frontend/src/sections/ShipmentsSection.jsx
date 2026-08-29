@@ -15,6 +15,8 @@ export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'shipments',
   'shipmentSearch',
   'setShipmentSearch',
+  'shipmentStatusFilter',
+  'setShipmentStatusFilter',
   'shipmentTotalCount',
   'shipmentHasNextPage',
   'shipmentLoading',
@@ -66,6 +68,8 @@ const DEFAULT_CONTEXT = {
   shipments: [],
   shipmentSearch: '',
   setShipmentSearch: () => {},
+  shipmentStatusFilter: '',
+  setShipmentStatusFilter: () => {},
   shipmentTotalCount: 0,
   shipmentHasNextPage: false,
   shipmentLoading: false,
@@ -987,6 +991,8 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     shipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentStatusFilter,
+    setShipmentStatusFilter,
     shipmentTotalCount,
     shipmentHasNextPage,
     shipmentLoading,
@@ -1067,20 +1073,31 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
         ],
       }),
       c.jsxs('div', {
-        className: 'relative',
+        className: 'flex gap-2',
         children: [
-          c.jsx('span', {
-            className:
-              'material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400',
-            children: 'search',
+          c.jsxs('div', {
+            className: 'relative flex-1',
+            children: [
+              c.jsx('span', {
+                className:
+                  'material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400',
+                children: 'search',
+              }),
+              c.jsx('input', {
+                type: 'text',
+                placeholder: 'Buscar envio, cliente o guia...',
+                value: shipmentSearch,
+                onChange: (event) => setShipmentSearch(event.target.value),
+                className:
+                  'w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+              }),
+            ],
           }),
-          c.jsx('input', {
-            type: 'text',
-            placeholder: 'Buscar envio, cliente o guia...',
-            value: shipmentSearch,
-            onChange: (event) => setShipmentSearch(event.target.value),
-            className:
-              'w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+          c.jsx('select', {
+            value: shipmentStatusFilter,
+            onChange: (event) => setShipmentStatusFilter(event.target.value),
+            className: 'w-36 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-text-main outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-surface-dark dark:text-white',
+            children: [['', 'Todos'], ['PENDING', 'Pendiente'], ['PREPARING', 'Preparando'], ['SHIPPED', 'Enviado'], ['DELIVERED', 'Entregado'], ['CANCELLED', 'Cancelado']].map(([value, label]) => c.jsx('option', { value, children: label }, value || 'all')),
           }),
         ],
       }),
