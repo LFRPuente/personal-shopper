@@ -49,6 +49,10 @@ export function useShipmentsDomain({
 }) {
   const [shipments, setShipments] = V.useState([]);
   const [shipmentSearch, setShipmentSearch] = V.useState("");
+  const [shipmentPage, setShipmentPage] = V.useState(0);
+  const [shipmentTotalCount, setShipmentTotalCount] = V.useState(0);
+  const [shipmentHasNextPage, setShipmentHasNextPage] = V.useState(!1);
+  const [shipmentLoading, setShipmentLoading] = V.useState(!1);
   const [shipmentEvidenceUploadingId, setShipmentEvidenceUploadingId] = V.useState(null);
   const [shipmentEvidenceDeletingId, setShipmentEvidenceDeletingId] = V.useState(null);
   const [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null);
@@ -231,24 +235,50 @@ export function useShipmentsDomain({
   );
 
   const loadShipmentsData = V.useCallback(
-    async (force = !1) => {
-      if (!accessToken || (shipmentsLoadedRef.current && !force)) return [];
+    async (options = {}) => {
+      const { force = !1, page = 1, append = !1, search = shipmentSearch } =
+        typeof options === "boolean" ? { force: options } : options;
+      if (!accessToken || (shipmentsLoadedRef.current && !force && page === 1 && !append)) return [];
       try {
-        const data = await apiFetch("/shipments/");
-        setShipments((items) => mergeShipmentSummariesWithHydrated(items, data || []));
+        setShipmentLoading(!0);
+        const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}`);
+        const results = Array.isArray(data) ? data : data.results || [];
+        setShipments((items) => mergeShipmentSummariesWithHydrated(
+          items,
+          append ? [...items, ...results.filter((item) => !items.some((current) => Number(current.id) === Number(item.id)))] : results,
+        ));
+        setShipmentPage(page);
+        setShipmentTotalCount(Array.isArray(data) ? results.length : Number(data.count) || 0);
+        setShipmentHasNextPage(!Array.isArray(data) && !!data.next);
         shipmentsLoadedRef.current = !0;
-        return data || [];
+        return results;
       } catch (error) {
         console.error("Failed loading shipments", error);
         return [];
+      } finally {
+        setShipmentLoading(!1);
       }
     },
-    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated],
+    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated, shipmentSearch],
   );
+
+  const loadMoreShipments = V.useCallback(
+    () => shipmentHasNextPage && !shipmentLoading && loadShipmentsData({ page: shipmentPage + 1, append: !0 }),
+    [loadShipmentsData, shipmentHasNextPage, shipmentLoading, shipmentPage],
+  );
+
+  V.useEffect(() => {
+    if (!accessToken || currentTabRef.current !== "SHIPMENTS") return;
+    const timer = setTimeout(() => loadShipmentsData({ force: !0 }), 250);
+    return () => clearTimeout(timer);
+  }, [accessToken, currentTabRef, loadShipmentsData, shipmentSearch]);
 
   const resetShipmentsDomain = V.useCallback(() => {
     shipmentsLoadedRef.current = !1;
     setShipments([]);
+    setShipmentPage(0);
+    setShipmentTotalCount(0);
+    setShipmentHasNextPage(!1);
   }, []);
 
   const getShipmentClientProducts = V.useCallback(
@@ -1200,6 +1230,9 @@ export function useShipmentsDomain({
     setShipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentTotalCount,
+    shipmentHasNextPage,
+    shipmentLoading,
     shipmentEvidenceUploadingId,
     shipmentEvidenceDeletingId,
     shipmentEvidenceReplacingId,
@@ -1225,6 +1258,7 @@ export function useShipmentsDomain({
     setShipmentForm,
     shipmentsLoadedRef,
     loadShipmentsData,
+    loadMoreShipments,
     resetShipmentsDomain,
     getShipmentEvidenceKind,
     prepareShipmentEvidenceFile,

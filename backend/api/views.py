@@ -3,6 +3,7 @@ from rest_framework.decorators import action, api_view, parser_classes, permissi
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
@@ -2492,6 +2493,10 @@ class ShoppingPaymentViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(payment).data)
 
 
+class ShipmentPagination(PageNumberPagination):
+    page_size = 20
+
+
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
     permission_classes = [IsAuthenticated]
@@ -2526,7 +2531,24 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(mission_id=mission_id)
         if product_id:
             queryset = queryset.filter(products__id=product_id)
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(client__name__icontains=search)
+                | Q(carrier__icontains=search)
+                | Q(tracking_number__icontains=search)
+                | Q(mission__name__icontains=search)
+                | Q(products__name__icontains=search)
+            ).distinct()
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        if 'page' not in request.query_params:
+            return super().list(request, *args, **kwargs)
+        paginator = ShipmentPagination()
+        page = paginator.paginate_queryset(self.filter_queryset(self.get_queryset()), request)
+        serializer = self.get_serializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def perform_create(self, serializer):
         client = serializer.validated_data.get('client')

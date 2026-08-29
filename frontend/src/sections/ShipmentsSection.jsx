@@ -15,6 +15,10 @@ export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'shipments',
   'shipmentSearch',
   'setShipmentSearch',
+  'shipmentTotalCount',
+  'shipmentHasNextPage',
+  'shipmentLoading',
+  'loadMoreShipments',
   'isDesktopLayout',
   'openShipmentEditor',
   'isShipmentExpanded',
@@ -62,6 +66,10 @@ const DEFAULT_CONTEXT = {
   shipments: [],
   shipmentSearch: '',
   setShipmentSearch: () => {},
+  shipmentTotalCount: 0,
+  shipmentHasNextPage: false,
+  shipmentLoading: false,
+  loadMoreShipments: () => {},
   isDesktopLayout: false,
   openShipmentEditor: () => {},
   isShipmentExpanded: () => false,
@@ -979,6 +987,10 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     shipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentTotalCount,
+    shipmentHasNextPage,
+    shipmentLoading,
+    loadMoreShipments,
     isDesktopLayout,
     openShipmentEditor,
     isShipmentExpanded,
@@ -1022,24 +1034,6 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     clientBalances,
   } = { ...DEFAULT_CONTEXT, ...ctx };
 
-  const filteredShipments = V.useMemo(() => {
-    const query = String(shipmentSearch || '').trim().toLowerCase();
-    if (!query) return shipments || [];
-    return (shipments || []).filter((shipment) =>
-      [
-        shipment.client_name,
-        shipment.shopping_name || shipment.mission_name,
-        ...((shipment.shopping_names || shipment.mission_names || [])),
-        shipment.carrier,
-        shipment.tracking_number,
-        shipment.shipping_address,
-        ...((shipment.products_detail || []).map((product) => product.name)),
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)),
-    );
-  }, [shipmentSearch, shipments]);
-
   return c.jsxs('div', {
     className: 'space-y-4',
     children: [
@@ -1054,7 +1048,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
               }),
               c.jsxs('p', {
                 className: 'text-xs text-text-sub',
-                children: ['Total: ', (shipments || []).length],
+                children: ['Total: ', shipmentTotalCount],
               }),
             ],
           }),
@@ -1090,7 +1084,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           }),
         ],
       }),
-      filteredShipments.length === 0
+      shipments.length === 0 && !shipmentLoading
         ? c.jsx('div', {
             className:
               'text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed',
@@ -1103,7 +1097,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
             className: isDesktopLayout
               ? 'grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
               : 'space-y-2',
-            children: filteredShipments.map((shipment) => {
+            children: shipments.map((shipment) => {
               const isExpanded = isShipmentExpanded(shipment.id);
               const clientBalance = isExpanded ? Number(clientBalances[shipment.client]) || 0 : 0;
               const hasHydratedDetail = shipmentHasHydratedDetail(shipment);
@@ -1283,6 +1277,14 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
               );
             }),
           }),
+      shipmentHasNextPage &&
+        c.jsx('button', {
+          type: 'button',
+          onClick: loadMoreShipments,
+          disabled: shipmentLoading,
+          className: 'w-full rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-bold text-primary hover:bg-primary/10 disabled:cursor-wait disabled:opacity-60',
+          children: shipmentLoading ? 'Cargando envios...' : 'Cargar 20 mas',
+        }),
     ],
   });
 });

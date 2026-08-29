@@ -671,6 +671,9 @@ function nh() {
     setShipments = shipmentsDomain.setShipments,
     shipmentSearch = shipmentsDomain.shipmentSearch,
     setShipmentSearch = shipmentsDomain.setShipmentSearch,
+    shipmentTotalCount = shipmentsDomain.shipmentTotalCount,
+    shipmentHasNextPage = shipmentsDomain.shipmentHasNextPage,
+    shipmentLoading = shipmentsDomain.shipmentLoading,
     shipmentEvidenceUploadingId = shipmentsDomain.shipmentEvidenceUploadingId,
     shipmentEvidenceDeletingId = shipmentsDomain.shipmentEvidenceDeletingId,
     shipmentEvidenceReplacingId = shipmentsDomain.shipmentEvidenceReplacingId,
@@ -695,6 +698,7 @@ function nh() {
     setShipmentForm = shipmentsDomain.setShipmentForm,
     shipmentsLoadedRef = shipmentsDomain.shipmentsLoadedRef,
     loadShipmentsData = shipmentsDomain.loadShipmentsData,
+    loadMoreShipments = shipmentsDomain.loadMoreShipments,
     resetShipmentsDomain = shipmentsDomain.resetShipmentsDomain,
     getShipmentEvidenceKind = shipmentsDomain.getShipmentEvidenceKind,
     getShipmentPurchasePriceAmount = shipmentsDomain.getShipmentPurchasePriceAmount,
@@ -782,16 +786,15 @@ function nh() {
     // <-------- seccion 8: refresh de clientes + misiones para eventos websocket
     refreshCoreData = async () => {
       try {
-        const [N, A, yl] = await Promise.all([
+        const [N, A] = await Promise.all([
           I("/clients/"),
           I("/shoppings/"),
           shipmentsLoadedRef.current || currentTabRef.current === "SHIPMENTS"
-            ? I("/shipments/")
+            ? loadShipmentsData(!0)
             : Promise.resolve(null),
         ]);
         _l(N || []);
         zl(A || []);
-        yl && setShipments((El) => mergeShipmentSummariesWithHydrated(El, yl || []));
         Dl(resolveSelectedShopping(A || []));
       } catch {}
     },
@@ -6905,6 +6908,9 @@ function nh() {
     shipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentTotalCount,
+    shipmentHasNextPage,
+    shipmentLoading,
     isDesktopLayout,
     openShipmentEditor,
     isShipmentExpanded,
@@ -6946,10 +6952,14 @@ function nh() {
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
     clientBalances: homeClientGlobalBalanceMap,
+    loadMoreShipments,
   }), [
     shipments,
     shipmentSearch,
     setShipmentSearch,
+    shipmentTotalCount,
+    shipmentHasNextPage,
+    shipmentLoading,
     isDesktopLayout,
     openShipmentEditor,
     isShipmentExpanded,
@@ -6984,6 +6994,7 @@ function nh() {
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
     homeClientGlobalBalanceMap,
+    loadMoreShipments,
   ]);
   const shoppingsContextValue = V.useMemo(() => ({
     isDesktopLayout,
