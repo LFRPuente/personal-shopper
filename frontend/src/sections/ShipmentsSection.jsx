@@ -1049,7 +1049,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           c.jsxs('div', {
             children: [
               c.jsx('h2', {
-                className: 'text-lg font-bold text-text-main',
+                className: 'text-lg font-bold text-text-main dark:text-white',
                 children: 'Shipments',
               }),
               c.jsxs('p', {
