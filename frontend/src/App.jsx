@@ -6945,6 +6945,7 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
+    clientBalances: homeClientGlobalBalanceMap,
   }), [
     shipments,
     shipmentSearch,
@@ -6982,6 +6983,7 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
+    homeClientGlobalBalanceMap,
   ]);
   const shoppingsContextValue = V.useMemo(() => ({
     isDesktopLayout,

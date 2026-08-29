@@ -55,6 +55,7 @@ export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'productStatusUpdatingId',
   'setShipmentProductStatusQuick',
   'getProductPaymentAmount',
+  'clientBalances',
 ];
 
 const DEFAULT_CONTEXT = {
@@ -101,6 +102,7 @@ const DEFAULT_CONTEXT = {
   productStatusUpdatingId: null,
   setShipmentProductStatusQuick: () => {},
   getProductPaymentAmount: () => Number.NaN,
+  clientBalances: {},
 };
 
 const SHIPMENT_PRODUCT_PREVIEW_LIMIT = 6;
@@ -567,6 +569,8 @@ function ShipmentExpandedPanel(props) {
     resetExpandedShipmentForm,
     shipmentSaving,
     saveShipmentEditor,
+    clientBalance = 0,
+    formatAmount,
   } = props;
 
   if (!hasHydratedDetail) {
@@ -600,6 +604,13 @@ function ShipmentExpandedPanel(props) {
   return c.jsxs('div', {
     className: 'space-y-2.5 pt-0.5',
     children: [
+      c.jsxs('div', {
+        className: `flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs font-bold ${Number(clientBalance) < 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-200' : Number(clientBalance) > 0 ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-200' : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200'}`,
+        children: [
+          c.jsx('span', { children: 'Saldo del cliente' }),
+          c.jsx('span', { children: Number(clientBalance) < 0 ? `A favor $${formatAmount(-clientBalance)}` : Number(clientBalance) > 0 ? `Deuda $${formatAmount(clientBalance)}` : 'Sin saldo' }),
+        ],
+      }),
       c.jsxs('div', {
         className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
         children: [
@@ -1017,6 +1028,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
+    clientBalances,
   } = { ...DEFAULT_CONTEXT, ...ctx };
 
   const filteredShipments = V.useMemo(() => {
@@ -1242,6 +1254,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                             resetExpandedShipmentForm,
                             shipmentSaving,
                             saveShipmentEditor,
+                            clientBalance: clientBalances[shipment.client],
                             openShipmentEvidencePicker,
                             shipmentEvidenceUploadingId,
                             openShipmentEvidenceMenuId,
