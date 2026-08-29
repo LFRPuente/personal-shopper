@@ -1181,7 +1181,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                         }),
                         isExpanded &&
                           c.jsx('span', {
-                            className: `shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${clientBalance < 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-200' : clientBalance > 0 ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-200' : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200'}`,
+                            className: `shrink-0 rounded-xl border px-4 py-2 text-sm font-bold ${clientBalance < 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-200' : clientBalance > 0 ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-200' : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200'}`,
                             children: clientBalance < 0 ? `A favor $${formatAmount(-clientBalance)}` : clientBalance > 0 ? `Deuda $${formatAmount(clientBalance)}` : 'Sin saldo',
                           }),
                         c.jsxs('div', {
