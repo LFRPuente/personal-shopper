@@ -2532,7 +2532,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         if product_id:
             queryset = queryset.filter(products__id=product_id)
         status_filter = self.request.query_params.get('status', '').upper()
-        if status_filter in Shipment.Status.values:
+        if status_filter in {'PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED'}:
             queryset = queryset.filter(status=status_filter)
         search = self.request.query_params.get('search', '').strip()
         if search:

@@ -1097,7 +1097,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
             value: shipmentStatusFilter,
             onChange: (event) => setShipmentStatusFilter(event.target.value),
             className: 'w-36 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-text-main outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-surface-dark dark:text-white',
-            children: [['', 'Todos'], ['PENDING', 'Pendiente'], ['PREPARING', 'Preparando'], ['SHIPPED', 'Enviado'], ['DELIVERED', 'Entregado'], ['CANCELLED', 'Cancelado']].map(([value, label]) => c.jsx('option', { value, children: label }, value || 'all')),
+            children: [['', 'Todos'], ['PENDING', 'Pendiente'], ['SHIPPED', 'Enviado'], ['DELIVERED', 'Entregado'], ['CANCELLED', 'Cancelado']].map(([value, label]) => c.jsx('option', { value, children: label }, value || 'all')),
           }),
         ],
       }),
