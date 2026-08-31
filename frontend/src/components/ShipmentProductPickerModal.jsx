@@ -25,11 +25,16 @@ const ShipmentProductPickerModal = V.memo(function ShipmentProductPickerModal({
   resolveMediaUrl,
   getProductPaymentAmount,
   toggleShipmentProductSelection,
+  toggleAllShipmentProductSelections,
   setShipmentProductRenderLimit,
   setShipmentProductPickerOpen,
   formatAmount = defaultFmt,
 }) {
   if (!shipmentProductPickerOpen) return null;
+  const selectedProductIds = new Set((shipmentForm.product_ids || []).map(Number));
+  const allFilteredProductsSelected =
+    shipmentModalFilteredProducts.length > 0 &&
+    shipmentModalFilteredProducts.every((product) => selectedProductIds.has(Number(product.id)));
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -90,11 +95,29 @@ const ShipmentProductPickerModal = V.memo(function ShipmentProductPickerModal({
                 }),
               ],
             }),
-            c.jsxs("p", {
-              className: "text-[11px] text-text-sub",
+            c.jsxs("div", {
+              className: "flex items-center justify-between gap-3",
               children: [
-                shipmentSelectedProducts.length,
-                " producto(s) seleccionado(s)",
+                c.jsxs("p", {
+                  className: "text-[11px] text-text-sub",
+                  children: [
+                    shipmentSelectedProducts.length,
+                    " producto(s) seleccionado(s)",
+                  ],
+                }),
+                c.jsxs("button", {
+                  type: "button",
+                  onClick: () => toggleAllShipmentProductSelections(shipmentModalFilteredProducts),
+                  className:
+                    "shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary hover:bg-primary/20 transition-colors",
+                  children: [
+                    c.jsx("span", {
+                      className: "material-symbols-outlined text-[16px]",
+                      children: allFilteredProductsSelected ? "deselect" : "select_all",
+                    }),
+                    allFilteredProductsSelected ? "Quitar todo" : "Seleccionar todo",
+                  ],
+                }),
               ],
             }),
           ],

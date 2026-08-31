@@ -634,6 +634,21 @@ export function useShipmentsDomain({
     });
   }, []);
 
+  const toggleAllShipmentProductSelections = V.useCallback((products = []) => {
+    const productIds = [...new Set(products.map((product) => Number(product?.id)).filter(Boolean))];
+    if (!productIds.length) return;
+    setShipmentForm((form) => {
+      const selectedIds = new Set((form.product_ids || []).map(Number));
+      const allSelected = productIds.every((id) => selectedIds.has(id));
+      return {
+        ...form,
+        product_ids: allSelected
+          ? (form.product_ids || []).filter((id) => !productIds.includes(Number(id)))
+          : [...selectedIds, ...productIds],
+      };
+    });
+  }, []);
+
   const saveShipmentEditor = V.useCallback(async () => {
     const client = clients.find(
       (item) => String(item.id) === String(shipmentForm.client || ""),
@@ -1287,6 +1302,7 @@ export function useShipmentsDomain({
     updateShipmentForm,
     selectShipmentClient,
     toggleShipmentProductSelection,
+    toggleAllShipmentProductSelections,
     saveShipmentEditor,
     openShipmentAssignmentPicker,
     deleteShipment,
