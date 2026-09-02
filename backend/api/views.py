@@ -451,15 +451,9 @@ def deactivate_empty_shipment_share_links(shipment):
 def product_has_any_shipment(product):
     if not product:
         return False
-    try:
-        if getattr(product, 'shipment', None):
-            return True
-    except Exception:
-        pass
-    try:
-        return product.shipments.exists()
-    except Exception:
-        return False
+    return Shipment.objects.filter(
+        Q(product_id=product.id) | Q(products__id=product.id)
+    ).exists()
 
 
 def validate_products_ready_for_shipment(products):
@@ -509,8 +503,9 @@ def mark_product_as_shipped(product):
     if not product:
         return
     if product.status != 'SHIPPED':
+        product.shipment_previous_status = product.status
         product.status = 'SHIPPED'
-        product.save(update_fields=['status'])
+        product.save(update_fields=['status', 'shipment_previous_status'])
 
 
 def sync_detached_product_status(product):
@@ -518,9 +513,11 @@ def sync_detached_product_status(product):
         return
     if product_has_any_shipment(product):
         return
-    if product.status == 'SHIPPED':
-        product.status = 'ANNOTATED'
-        product.save(update_fields=['status'])
+    previous_status = product.shipment_previous_status or 'ANNOTATED'
+    if product.status != previous_status or product.shipment_previous_status:
+        product.status = previous_status
+        product.shipment_previous_status = None
+        product.save(update_fields=['status', 'shipment_previous_status'])
 
 
 def attach_products_to_shipment(shipment, products):
@@ -2557,7 +2554,16 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         client = serializer.validated_data.get('client')
         if not client:
             raise serializers.ValidationError({'detail': 'Client is required.'})
-        shipment = serializer.save(created_by=self.request.user, product=None)
+        products = serializer.validated_data.pop('products', None)
+        if products is not None:
+            if any(product.client_id != client.id for product in products):
+                raise serializers.ValidationError({'products': 'All products must belong to the client.'})
+            validate_products_ready_for_shipment(products)
+            validate_products_not_assigned_to_other_shipments(products)
+        with transaction.atomic():
+            shipment = serializer.save(created_by=self.request.user, product=None)
+            if products is not None:
+                attach_products_to_shipment(shipment, products)
         client_updated = sync_shipment_shipping_address(
             shipment,
             serializer.validated_data,
@@ -2574,7 +2580,16 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         client = serializer.validated_data.get('client', serializer.instance.client)
         if not client:
             raise serializers.ValidationError({'detail': 'Client is required.'})
-        shipment = serializer.save(product=serializer.instance.product)
+        products = serializer.validated_data.pop('products', None)
+        if products is not None:
+            if any(product.client_id != client.id for product in products):
+                raise serializers.ValidationError({'products': 'All products must belong to the client.'})
+            validate_products_ready_for_shipment(products)
+            validate_products_not_assigned_to_other_shipments(products, shipment=serializer.instance)
+        with transaction.atomic():
+            shipment = serializer.save(product=serializer.instance.product)
+            if products is not None:
+                attach_products_to_shipment(shipment, products)
         client_updated = sync_shipment_shipping_address(
             shipment,
             serializer.validated_data,

@@ -178,6 +178,7 @@ class ProductItem(models.Model):
         ('SHIPPED', 'Enviado'),
         ('REJECTED', 'Rechazado'),
     ], default='ANNOTATED')
+    shipment_previous_status = models.CharField(max_length=50, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     purchase_date = models.DateField(null=True, blank=True)
 
