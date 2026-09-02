@@ -7,7 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery
+from django.db.models import Case, Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery, Value, When
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -2530,7 +2530,15 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                     ),
                 )
                 .all()
-                .order_by('-updated_at', '-id')
+                .order_by(
+                    Case(
+                        When(status=Shipment.Status.PENDING, then=Value(0)),
+                        default=Value(1),
+                        output_field=IntegerField(),
+                    ),
+                    '-updated_at',
+                    '-id',
+                )
             )
         else:
             queryset = get_shipment_detail_queryset()

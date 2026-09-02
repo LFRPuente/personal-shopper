@@ -336,7 +336,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                             children: [
                               c.jsxs('div', {
                                 className:
-                                  `rounded-xl border px-2 py-2 min-w-0 overflow-hidden ${balanceTotal < 0 ? 'border-emerald-200 bg-emerald-50/90' : balanceTotal > 0 ? 'border-slate-300 bg-slate-100/95' : 'border-slate-200 bg-slate-50/95'}`,
+                                  `rounded-xl border px-2 py-2 min-w-0 overflow-hidden ${balanceTotal < 0 ? 'border-emerald-200 bg-emerald-50/90 dark:border-emerald-800 dark:bg-emerald-950/40' : balanceTotal > 0 ? 'border-slate-300 bg-slate-100/95 dark:border-slate-600 dark:bg-slate-800/90' : 'border-slate-200 bg-slate-50/95 dark:border-slate-700 dark:bg-slate-800/70'}`,
                                 children: [
                                   c.jsx('p', {
                                     className:
@@ -352,15 +352,15 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                               }),
                               c.jsxs('div', {
                                 className:
-                                  'rounded-xl border border-blue-200 bg-blue-50/95 px-2 py-2 shadow-[0_14px_24px_-22px_rgba(37,99,235,0.48)] min-w-0 overflow-hidden',
+                                  'rounded-xl border border-blue-200 bg-blue-50/95 px-2 py-2 shadow-[0_14px_24px_-22px_rgba(37,99,235,0.48)] min-w-0 overflow-hidden dark:border-blue-800 dark:bg-blue-950/40',
                                 children: [
                                   c.jsx('p', {
-                                    className: 'text-[9px] font-black uppercase tracking-[0.08em] text-blue-700/75',
+                                    className: 'text-[9px] font-black uppercase tracking-[0.08em] text-blue-700/75 dark:text-blue-300',
                                     children: 'Venta',
                                   }),
                                   c.jsxs('p', {
                                     className:
-                                      'mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 leading-none truncate tabular-nums',
+                                      'mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 dark:text-blue-200 leading-none truncate tabular-nums',
                                     children: ['$', formatAmount(saleTotal || totals.sale)],
                                   }),
                                 ],
