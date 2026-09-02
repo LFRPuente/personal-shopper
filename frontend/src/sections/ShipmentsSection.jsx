@@ -1153,9 +1153,12 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                 ? 'text-base font-bold text-text-main dark:text-white truncate'
                                 : 'text-sm font-bold text-text-main dark:text-white truncate',
                               children: [
-                                shipment.client_name || 'Cliente',
+                                c.jsx('span', { children: shipment.client_name || 'Cliente' }),
                                 Number(shipment.client_shipment_number) > 0
-                                  ? ` | (${shipment.client_shipment_number})`
+                                  ? c.jsx('span', {
+                                      className: 'ml-1.5 inline-flex rounded-md border border-slate-300 bg-slate-100 px-1.5 py-0.5 align-middle text-[10px] font-bold leading-none text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',
+                                      children: `#${shipment.client_shipment_number}`,
+                                    })
                                   : '',
                               ],
                             }),
@@ -1186,7 +1189,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                   children: getShipmentStatusLabel(shipment.status),
                                 }),
                                 c.jsxs('span', {
-                                  className: 'text-text-sub',
+                                  className: 'font-semibold text-slate-700 dark:text-slate-200',
                                   children:
                                     getShipmentSalePriceAmount(shipment) <= 0
                                       ? 'Gratis'
