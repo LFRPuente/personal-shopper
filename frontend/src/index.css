@@ -29,6 +29,10 @@
 }
 
 @layer base {
+  .dark {
+    --color-text-sub: #cbd5e1;
+  }
+
   body {
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
