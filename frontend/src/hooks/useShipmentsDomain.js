@@ -862,9 +862,13 @@ export function useShipmentsDomain({
   const deleteShipment = V.useCallback(
     async (shipment) => {
       if (!shipment || !shipment.id) return;
+      if (String(shipment.status || "").toUpperCase() !== "PENDING") {
+        notifyInfo("Solo se pueden eliminar envios en estado Pendiente.");
+        return;
+      }
       const confirmed = await confirmAction({
         title: "Eliminar envio",
-        message: "Este envio se desvinculara del producto.",
+        message: "¿Seguro que deseas borrar este envío? Los productos volverán a su estado anterior.",
         confirmLabel: "Eliminar",
         cancelLabel: "Cancelar",
         tone: "danger",
@@ -886,7 +890,7 @@ export function useShipmentsDomain({
         notifyError((error && error.message) || "No se pudo eliminar el envio.");
       }
     },
-    [apiFetch, confirmAction, notifyError, notifySuccess, queueCoreRefresh, queueSelectedClientRefresh],
+    [apiFetch, confirmAction, notifyError, notifyInfo, notifySuccess, queueCoreRefresh, queueSelectedClientRefresh],
   );
 
   const openShipmentEvidencePicker = V.useCallback(

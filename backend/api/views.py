@@ -2603,6 +2603,10 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             broadcast_update('clients', action='updated', object_id=client.id)
 
     def perform_destroy(self, instance):
+        if instance.status != Shipment.Status.PENDING:
+            raise serializers.ValidationError(
+                {'detail': 'Solo se pueden eliminar envios en estado Pendiente.'}
+            )
         shipment_id = instance.id
         shipment_products = list(instance.products.all())
         product_ids = [product.id for product in shipment_products]

@@ -1127,6 +1127,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                     : null
                 : null;
               const canEditBox = canEditShipmentBox(shipment);
+              const canDeleteShipment = String(shipment.status || '').toUpperCase() === 'PENDING';
               const selectedProducts = isExpanded
                 ? hasHydratedDetail && Number(shipmentForm.id) === Number(shipment.id)
                   ? shipmentSelectedProducts
@@ -1234,9 +1235,12 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                               }),
                             }),
                             c.jsx('button', {
+                              type: 'button',
                               onClick: () => deleteShipment(shipment),
+                              disabled: !canDeleteShipment,
                               className:
-                                'w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30',
+                                'w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:cursor-not-allowed disabled:opacity-35',
+                              title: canDeleteShipment ? 'Eliminar envio' : 'Solo se pueden eliminar envios pendientes',
                               children: c.jsx('span', {
                                 className: 'material-symbols-outlined text-[16px]',
                                 children: 'delete',
