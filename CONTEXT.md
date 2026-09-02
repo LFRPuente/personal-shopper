@@ -100,6 +100,8 @@ The source of truth is the local Windows repo. The Mac Mini is the deploy target
 - `ps` is the only environment that should be treated as live production
 - `dev` must be used first for validation whenever possible
 - copying production data into `dev` is allowed only when explicitly requested
+- **Never overwrite, restore into, replace, or sync the PS database from another environment.** PS is the primary production database and its data is authoritative.
+- All database work, testing, and data copies must use `dev` as the target. If a PS database change is ever requested, stop and require an explicit recovery/maintenance procedure; do not infer permission from a request to copy data.
 
 For a parallel `dev` stack, keep the same compose file and change only the environment values per stack:
 
