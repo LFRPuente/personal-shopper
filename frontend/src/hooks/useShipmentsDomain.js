@@ -25,6 +25,11 @@ const EMPTY_SHIPMENT_FORM = {
   initial_product_ids: [],
 };
 
+const getOptionalShipmentValue = (value) => {
+  const normalized = String(value ?? "").trim();
+  return normalized === "" ? null : normalized;
+};
+
 export function useShipmentsDomain({
   accessToken,
   apiFetch,
@@ -654,38 +659,14 @@ export function useShipmentsDomain({
       (item) => String(item.id) === String(shipmentForm.client || ""),
     );
     const carrier = String(shipmentForm.carrier || "").trim();
-    const guidePrice =
-      String(shipmentForm.guide_price || "").trim() === ""
-        ? null
-        : String(shipmentForm.guide_price || "").trim();
-    const clientPrice =
-      String(shipmentForm.client_price || "").trim() === ""
-        ? null
-        : String(shipmentForm.client_price || "").trim();
-    const insurancePrice =
-      String(shipmentForm.insurance_price || "").trim() === ""
-        ? null
-        : String(shipmentForm.insurance_price || "").trim();
-    const insuranceSalePrice =
-      String(shipmentForm.insurance_sale_price || "").trim() === ""
-        ? null
-        : String(shipmentForm.insurance_sale_price || "").trim();
-    const packageLength =
-      String(shipmentForm.package_length || "").trim() === ""
-        ? null
-        : String(shipmentForm.package_length || "").trim();
-    const packageWidth =
-      String(shipmentForm.package_width || "").trim() === ""
-        ? null
-        : String(shipmentForm.package_width || "").trim();
-    const packageHeight =
-      String(shipmentForm.package_height || "").trim() === ""
-        ? null
-        : String(shipmentForm.package_height || "").trim();
-    const packageWeight =
-      String(shipmentForm.package_weight || "").trim() === ""
-        ? null
-        : String(shipmentForm.package_weight || "").trim();
+    const guidePrice = getOptionalShipmentValue(shipmentForm.guide_price);
+    const clientPrice = getOptionalShipmentValue(shipmentForm.client_price);
+    const insurancePrice = getOptionalShipmentValue(shipmentForm.insurance_price);
+    const insuranceSalePrice = getOptionalShipmentValue(shipmentForm.insurance_sale_price);
+    const packageLength = getOptionalShipmentValue(shipmentForm.package_length);
+    const packageWidth = getOptionalShipmentValue(shipmentForm.package_width);
+    const packageHeight = getOptionalShipmentValue(shipmentForm.package_height);
+    const packageWeight = getOptionalShipmentValue(shipmentForm.package_weight);
     if (!client) {
       notifyInfo("Selecciona un cliente.");
       return;
