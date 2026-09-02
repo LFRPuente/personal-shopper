@@ -2536,7 +2536,6 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                         default=Value(1),
                         output_field=IntegerField(),
                     ),
-                    '-updated_at',
                     '-id',
                 )
             )
