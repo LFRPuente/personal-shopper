@@ -1155,10 +1155,18 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                               children: [
                                 c.jsx('span', { children: shipment.client_name || 'Cliente' }),
                                 Number(shipment.id) > 0
-                                  ? c.jsx('span', {
+                                  ? c.jsxs('span', {
                                       className: 'ml-1.5 inline-flex rounded-md border border-slate-300 bg-slate-100 px-2 py-1 align-middle text-[12px] font-bold leading-none text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',
                                       title: Number(shipment.client_shipment_number) > 0 ? `Envio ${shipment.client_shipment_number} de este cliente` : 'Numero de envio',
-                                      children: `#${shipment.id}`,
+                                      children: [
+                                        `#${shipment.id}`,
+                                        Number(shipment.client_shipment_number) > 0
+                                          ? c.jsx('span', {
+                                              className: 'ml-1 opacity-70',
+                                              children: `· ${shipment.client_shipment_number}.º`,
+                                            })
+                                          : '',
+                                      ],
                                     })
                                   : '',
                               ],
