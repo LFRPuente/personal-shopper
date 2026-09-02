@@ -1163,7 +1163,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                         Number(shipment.client_shipment_number) > 0
                                           ? c.jsx('span', {
                                               className: 'ml-1 opacity-70',
-                                              children: `· ${shipment.client_shipment_number}.º`,
+                                              children: `· ${shipment.client_shipment_number}º`,
                                             })
                                           : '',
                                       ],
