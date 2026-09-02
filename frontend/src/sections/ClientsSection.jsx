@@ -297,7 +297,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         ? c.jsx('div', {
             className:
               'text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed',
-            children: c.jsx('p', { className: 'text-gray-500 text-sm', children: 'No clients defined or matched search.' }),
+            children: c.jsx('p', { className: 'text-gray-500 dark:text-slate-300 text-sm', children: 'No clients defined or matched search.' }),
           })
         : c.jsx('div', {
             className: isDesktopLayout ? 'grid grid-cols-1 xl:grid-cols-2 gap-3' : 'space-y-3',
@@ -328,7 +328,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                         children: [
                           c.jsx('h3', { className: 'font-bold text-sm', children: client.name || 'Cliente' }),
                           c.jsx('p', {
-                            className: 'text-xs text-gray-500',
+                            className: 'text-xs text-gray-500 dark:text-slate-300',
                             children: clientStatusSummary || 'Sin items',
                           }),
                           c.jsxs('div', {
@@ -340,12 +340,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                 children: [
                                   c.jsx('p', {
                                     className:
-                                      `text-[9px] font-black uppercase tracking-[0.08em] ${balanceTotal < 0 ? 'text-emerald-700/75' : balanceTotal > 0 ? 'text-slate-700/75' : 'text-slate-500/75'}`,
+                                      `text-[9px] font-black uppercase tracking-[0.08em] ${balanceTotal < 0 ? 'text-emerald-700/75 dark:text-emerald-300' : balanceTotal > 0 ? 'text-slate-700/75 dark:text-slate-200' : 'text-slate-500/75 dark:text-slate-300'}`,
                                     children: balanceTotal < 0 ? 'A favor' : 'Deuda',
                                   }),
                                   c.jsxs('p', {
                                     className:
-                                      `mt-0.5 text-[11px] sm:text-[13px] font-extrabold leading-none truncate tabular-nums ${balanceTotal < 0 ? 'text-emerald-800' : balanceTotal > 0 ? 'text-slate-800' : 'text-slate-600'}`,
+                                      `mt-0.5 text-[11px] sm:text-[13px] font-extrabold leading-none truncate tabular-nums ${balanceTotal < 0 ? 'text-emerald-800 dark:text-emerald-200' : balanceTotal > 0 ? 'text-slate-800 dark:text-slate-100' : 'text-slate-600 dark:text-slate-200'}`,
                                     children: ['$', formatAmount(Math.abs(balanceTotal))],
                                   }),
                                 ],
@@ -369,7 +369,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           }),
                           client.tags &&
                             c.jsx('p', {
-                              className: 'text-[10px] text-gray-400 mt-0.5 max-w-[150px] truncate',
+                              className: 'text-[10px] text-gray-400 dark:text-slate-300 mt-0.5 max-w-[150px] truncate',
                               children: client.tags,
                             }),
                         ],
@@ -416,7 +416,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                               c.jsx('button', {
                                 onClick: () => typeof onEditClient === 'function' && onEditClient(client),
                                 className:
-                                  'w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center',
+                                  'w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-slate-300 hover:text-gray-700 dark:hover:text-white flex items-center justify-center',
                                 children: c.jsx('span', {
                                   className: 'material-symbols-outlined text-[15px]',
                                   children: 'more_vert',
@@ -424,7 +424,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                               }),
                               c.jsx('span', {
                                 className:
-                                  `material-symbols-outlined text-gray-400 text-[15px] cursor-pointer ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
+                                  `material-symbols-outlined text-gray-400 dark:text-slate-300 text-[15px] cursor-pointer ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
                                 onClick: () => setExpandedClientId((current) => (Number(current) === Number(client.id) ? null : client.id)),
                                 children: 'expand_more',
                               }),
@@ -443,20 +443,20 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           className: 'border-t border-border-light dark:border-border-dark px-4 py-3',
                           children: [
                             !!getClientPhoneDisplay(client) &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📱 ', getClientPhoneDisplay(client)] }),
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-1', children: ['📱 ', getClientPhoneDisplay(client)] }),
                             client.email &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-1', children: ['📧 ', client.email] }),
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-1', children: ['📧 ', client.email] }),
                             client.shipping_address &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 mb-2', children: ['📦 ', client.shipping_address] }),
+                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-2', children: ['📦 ', client.shipping_address] }),
                             Array.isArray(client.shipping_addresses) && client.shipping_addresses.length > 0 &&
                               c.jsx('div', {
                                 className: 'mb-2 space-y-1',
                                 children: client.shipping_addresses.map((address, index) =>
-                                  c.jsxs('p', { className: 'text-[10px] text-gray-500', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
+                                  c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
                                 ),
                               }),
                             visibleProducts.length === 0 && (client.payments || []).length === 0
-                              ? c.jsx('p', { className: 'text-xs text-gray-400 text-center py-4', children: 'No purchases yet for this client.' })
+                              ? c.jsx('p', { className: 'text-xs text-gray-400 dark:text-slate-300 text-center py-4', children: 'No purchases yet for this client.' })
                               : c.jsxs(c.Fragment, {
                                   children: [
                                     c.jsxs('h4', {
@@ -478,7 +478,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                   children: [
                                                     c.jsx('p', { className: 'font-semibold text-xs truncate', children: getEntryTitle(entry) }),
                                                     c.jsxs('p', {
-                                                      className: 'text-[10px] text-gray-500',
+                                                      className: 'text-[10px] text-gray-500 dark:text-slate-300',
                                                       children: [
                                                         getProductStatusSummary(entry.statusItems || entry.items || []) || 'Sin items',
                                                         (entry.payments || []).length > 0 ? c.jsxs(c.Fragment, { children: [' • ', entry.payments.length, ' pago(s)'] }) : null,
@@ -539,7 +539,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                           [client.id]: state[client.id] === entry.key ? null : entry.key,
                                                         }));
                                                       },
-                                                      className: 'w-7 h-7 rounded-md text-gray-500 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 flex items-center justify-center',
+                                                      className: 'w-7 h-7 rounded-md text-gray-500 dark:text-slate-300 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 flex items-center justify-center',
                                                       title: 'Ver desglose',
                                                       children: c.jsx('span', {
                                                         className: `material-symbols-outlined text-[14px] ui-disclosure-chevron ${expandedHistoryByClient[client.id] === entry.key ? 'ui-disclosure-chevron-open' : ''}`,
