@@ -30,6 +30,8 @@ const getOptionalShipmentValue = (value) => {
   return normalized === "" ? null : normalized;
 };
 
+const getShipmentAmountValue = (value) => getOptionalShipmentValue(value) ?? "0.00";
+
 export function useShipmentsDomain({
   accessToken,
   apiFetch,
@@ -659,10 +661,10 @@ export function useShipmentsDomain({
       (item) => String(item.id) === String(shipmentForm.client || ""),
     );
     const carrier = String(shipmentForm.carrier || "").trim();
-    const guidePrice = getOptionalShipmentValue(shipmentForm.guide_price);
-    const clientPrice = getOptionalShipmentValue(shipmentForm.client_price);
-    const insurancePrice = getOptionalShipmentValue(shipmentForm.insurance_price);
-    const insuranceSalePrice = getOptionalShipmentValue(shipmentForm.insurance_sale_price);
+    const guidePrice = getShipmentAmountValue(shipmentForm.guide_price);
+    const clientPrice = getShipmentAmountValue(shipmentForm.client_price);
+    const insurancePrice = getShipmentAmountValue(shipmentForm.insurance_price);
+    const insuranceSalePrice = getShipmentAmountValue(shipmentForm.insurance_sale_price);
     const packageLength = getOptionalShipmentValue(shipmentForm.package_length);
     const packageWidth = getOptionalShipmentValue(shipmentForm.package_width);
     const packageHeight = getOptionalShipmentValue(shipmentForm.package_height);
