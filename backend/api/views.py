@@ -7,7 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -2506,6 +2506,17 @@ class ShipmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list':
+            client_shipment_number = (
+                Shipment.objects.filter(client_id=OuterRef('client_id'))
+                .filter(
+                    Q(created_at__lt=OuterRef('created_at'))
+                    | Q(created_at=OuterRef('created_at'), id__lte=OuterRef('id'))
+                )
+                .order_by()
+                .values('client_id')
+                .annotate(total=Count('id'))
+                .values('total')[:1]
+            )
             queryset = (
                 Shipment.objects.select_related(
                     'client', 'product', 'mission', 'created_by'
@@ -2513,6 +2524,10 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 .annotate(
                     product_count=Count('products', distinct=True),
                     evidence_count=Count('evidence', distinct=True),
+                    client_shipment_number=Subquery(
+                        client_shipment_number,
+                        output_field=IntegerField(),
+                    ),
                 )
                 .all()
                 .order_by('-updated_at', '-id')

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.db.models import Q
 from .models import (
     UserProfile,
     Client,
@@ -54,6 +55,16 @@ def get_prefetched_related_items(obj, related_name):
     if prefetched is not None:
         return list(prefetched)
     return list(getattr(obj, related_name).all())
+
+
+def get_client_shipment_number(obj):
+    annotated_number = getattr(obj, 'client_shipment_number', None)
+    if annotated_number is not None:
+        return annotated_number
+    return Shipment.objects.filter(client_id=obj.client_id).filter(
+        Q(created_at__lt=obj.created_at)
+        | Q(created_at=obj.created_at, id__lte=obj.id)
+    ).count()
 
 
 class RelativeImageField(serializers.ImageField):
@@ -983,6 +994,10 @@ class ShipmentSerializer(serializers.ModelSerializer):
     mission_names = serializers.SerializerMethodField()
     evidence = serializers.SerializerMethodField()
     client_shipping_addresses = serializers.SerializerMethodField()
+    client_shipment_number = serializers.SerializerMethodField()
+
+    def get_client_shipment_number(self, obj):
+        return get_client_shipment_number(obj)
 
     def get_product_count(self, obj):
         annotated_count = getattr(obj, 'product_count', None)
@@ -1110,6 +1125,10 @@ class ShipmentListSerializer(serializers.ModelSerializer):
     mission_name = serializers.CharField(source='mission.name', read_only=True, default=None)
     product_count = serializers.IntegerField(read_only=True)
     evidence_count = serializers.IntegerField(read_only=True)
+    client_shipment_number = serializers.SerializerMethodField()
+
+    def get_client_shipment_number(self, obj):
+        return get_client_shipment_number(obj)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -1128,6 +1147,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
             'id',
             'client',
             'client_name',
+            'client_shipment_number',
             'shopping',
             'shopping_name',
             'mission_name',

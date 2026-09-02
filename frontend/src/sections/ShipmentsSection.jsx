@@ -1148,16 +1148,21 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                         c.jsxs('div', {
                           className: 'min-w-0 flex-1',
                           children: [
-                            c.jsx('p', {
+                            c.jsxs('p', {
                               className: isDesktopLayout
                                 ? 'text-base font-bold text-text-main dark:text-white truncate'
                                 : 'text-sm font-bold text-text-main dark:text-white truncate',
-                              children: shipment.client_name || 'Cliente',
+                              children: [
+                                shipment.client_name || 'Cliente',
+                                Number(shipment.client_shipment_number) > 0
+                                  ? ` | (${shipment.client_shipment_number})`
+                                  : '',
+                              ],
                             }),
                             c.jsxs('p', {
                               className: isDesktopLayout
-                                ? 'text-[12px] text-text-sub truncate'
-                                : 'text-[11px] text-text-sub truncate',
+                                ? 'text-[12px] text-slate-600 dark:text-slate-300 truncate'
+                                : 'text-[11px] text-slate-600 dark:text-slate-300 truncate',
                               children: [
                                 shipment.carrier || 'Paqueteria sin definir',
                                 ' - ',
