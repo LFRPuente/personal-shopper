@@ -244,20 +244,25 @@ export function useShipmentsDomain({
 
   const loadShipmentsData = V.useCallback(
     async (options = {}) => {
-      const { force = !1, page = 1, append = !1, search = shipmentSearch, status = shipmentStatusFilter } =
-        typeof options === "boolean" ? { force: options } : options;
+      const { force = !1, page = 1, append = !1, preserveLoaded = !1, search = shipmentSearch, status = shipmentStatusFilter } =
+        typeof options === "boolean" ? { force: options, preserveLoaded: options } : options;
       if (!accessToken || (shipmentsLoadedRef.current && !force && page === 1 && !append)) return [];
       try {
         setShipmentLoading(!0);
         const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}&status=${encodeURIComponent(status)}`);
         const results = Array.isArray(data) ? data : data.results || [];
-        setShipments((items) => mergeShipmentSummariesWithHydrated(
-          items,
-          append ? [...items, ...results.filter((item) => !items.some((current) => Number(current.id) === Number(item.id)))] : results,
-        ));
-        setShipmentPage(page);
+        setShipments((items) => {
+          const current = Array.isArray(items) ? items : [];
+          const incoming = append
+            ? [...current, ...results.filter((item) => !current.some((entry) => Number(entry.id) === Number(item.id)))]
+            : preserveLoaded && page === 1
+              ? [...results, ...current.filter((entry) => !results.some((item) => Number(item.id) === Number(entry.id)))]
+              : results;
+          return mergeShipmentSummariesWithHydrated(current, incoming);
+        });
+        setShipmentPage((current) => preserveLoaded ? Math.max(current, page) : page);
         setShipmentTotalCount(Array.isArray(data) ? results.length : Number(data.count) || 0);
-        setShipmentHasNextPage(!Array.isArray(data) && !!data.next);
+        setShipmentHasNextPage((current) => preserveLoaded ? current : !Array.isArray(data) && !!data.next);
         shipmentsLoadedRef.current = !0;
         return results;
       } catch (error) {
