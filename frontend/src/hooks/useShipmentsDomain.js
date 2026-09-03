@@ -32,6 +32,10 @@ const getOptionalShipmentValue = (value) => {
 
 const getShipmentAmountValue = (value) => getOptionalShipmentValue(value) ?? "0.00";
 
+const getUniqueShipmentProductIds = (productIds = []) => [
+  ...new Set(productIds.map(Number).filter((id) => Number.isFinite(id) && id > 0)),
+];
+
 export function useShipmentsDomain({
   accessToken,
   apiFetch,
@@ -457,9 +461,11 @@ export function useShipmentsDomain({
           (shipment && shipment.shipping_address) ||
           getClientShipmentAddressOptions(clientId)[0] ||
           ((product && (product.shipping_address || "")) || ""),
-        product_ids: products.map((item) => Number(typeof item === "object" ? item.id : item)),
-        initial_product_ids: products.map((item) =>
-          Number(typeof item === "object" ? item.id : item),
+        product_ids: getUniqueShipmentProductIds(
+          products.map((item) => (typeof item === "object" ? item.id : item)),
+        ),
+        initial_product_ids: getUniqueShipmentProductIds(
+          products.map((item) => (typeof item === "object" ? item.id : item)),
         ),
       };
     },
@@ -639,10 +645,11 @@ export function useShipmentsDomain({
     if (!product) return;
     setShipmentForm((form) => {
       const productId = Number(product.id);
-      const productIds = (form.product_ids || []).includes(productId)
-        ? (form.product_ids || []).filter((item) => Number(item) !== productId)
-        : [...(form.product_ids || []), productId];
-      return { ...form, product_ids: productIds };
+      const productIds = getUniqueShipmentProductIds(form.product_ids);
+      const nextProductIds = productIds.includes(productId)
+        ? productIds.filter((item) => item !== productId)
+        : [...productIds, productId];
+      return { ...form, product_ids: nextProductIds };
     });
   }, []);
 
@@ -650,13 +657,14 @@ export function useShipmentsDomain({
     const productIds = [...new Set(products.map((product) => Number(product?.id)).filter(Boolean))];
     if (!productIds.length) return;
     setShipmentForm((form) => {
-      const selectedIds = new Set((form.product_ids || []).map(Number));
+      const selectedProductIds = getUniqueShipmentProductIds(form.product_ids);
+      const selectedIds = new Set(selectedProductIds);
       const allSelected = productIds.every((id) => selectedIds.has(id));
       return {
         ...form,
         product_ids: allSelected
-          ? (form.product_ids || []).filter((id) => !productIds.includes(Number(id)))
-          : [...selectedIds, ...productIds],
+          ? selectedProductIds.filter((id) => !productIds.includes(id))
+          : [...new Set([...selectedProductIds, ...productIds])],
       };
     });
   }, []);
@@ -678,7 +686,8 @@ export function useShipmentsDomain({
       notifyInfo("Selecciona un cliente.");
       return;
     }
-    if (!(shipmentForm.product_ids || []).length) {
+    const selectedProductIds = getUniqueShipmentProductIds(shipmentForm.product_ids);
+    if (!selectedProductIds.length) {
       notifyInfo("Selecciona al menos un producto.");
       return;
     }
@@ -686,7 +695,7 @@ export function useShipmentsDomain({
     const shipmentProductsById = new Map(
       pickerState.products.map((product) => [Number(product.id), product]),
     );
-    const invalidShipmentSelection = (shipmentForm.product_ids || []).some(
+    const invalidShipmentSelection = selectedProductIds.some(
       (productId) => !shipmentProductsById.has(Number(productId)),
     );
     if (invalidShipmentSelection) {
@@ -696,12 +705,10 @@ export function useShipmentsDomain({
       return;
     }
     const sameShipmentProductSelection =
-      [...(shipmentForm.product_ids || [])]
-        .map((productId) => Number(productId))
+      [...selectedProductIds]
         .sort((left, right) => left - right)
         .join(",") ===
-      [...(shipmentForm.initial_product_ids || [])]
-        .map((productId) => Number(productId))
+      getUniqueShipmentProductIds(shipmentForm.initial_product_ids)
         .sort((left, right) => left - right)
         .join(",");
     setShipmentSaving(!0);
@@ -733,9 +740,7 @@ export function useShipmentsDomain({
         : await apiFetch(`/shipments/${shipment.id}/set-products/`, {
             method: "POST",
             body: JSON.stringify({
-              products: (shipmentForm.product_ids || []).map((productId) =>
-                Number(productId),
-              ),
+              products: selectedProductIds,
             }),
           });
       const updatedShipment = withProducts || shipment;

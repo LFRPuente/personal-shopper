@@ -523,6 +523,7 @@ def sync_detached_product_status(product):
 def attach_products_to_shipment(shipment, products):
     if not shipment:
         return
+    products = list({product.id: product for product in products}.values())
     validate_products_ready_for_shipment(products)
     validate_products_not_assigned_to_other_shipments(products, shipment=shipment)
     desired_ids = [product.id for product in products]
@@ -2677,7 +2678,9 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         cleaned_ids = []
         for product_id in product_ids:
             try:
-                cleaned_ids.append(int(product_id))
+                product_id = int(product_id)
+                if product_id not in cleaned_ids:
+                    cleaned_ids.append(product_id)
             except (TypeError, ValueError):
                 continue
         products = list(
