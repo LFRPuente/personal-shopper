@@ -710,6 +710,9 @@ function nh() {
     shipmentHasHydratedDetail = shipmentsDomain.shipmentHasHydratedDetail,
     mergeShipmentSummariesWithHydrated = shipmentsDomain.mergeShipmentSummariesWithHydrated,
     fetchShipmentDetail = shipmentsDomain.fetchShipmentDetail,
+    shipmentClientBalances = shipmentsDomain.shipmentClientBalances,
+    shipmentClientBalanceLoadingIds = shipmentsDomain.shipmentClientBalanceLoadingIds,
+    shipmentClientBalanceErrors = shipmentsDomain.shipmentClientBalanceErrors,
     getShipmentClientProducts = shipmentsDomain.getShipmentClientProducts,
     getShipmentProductPickerState = shipmentsDomain.getShipmentProductPickerState,
     getClientShipmentAddressOptions = shipmentsDomain.getClientShipmentAddressOptions,
@@ -6956,7 +6959,9 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
-    clientBalances: homeClientGlobalBalanceMap,
+    clientBalances: shipmentClientBalances,
+    clientBalanceLoadingIds: shipmentClientBalanceLoadingIds,
+    clientBalanceErrors: shipmentClientBalanceErrors,
     loadMoreShipments,
   }), [
     shipments,
@@ -7000,7 +7005,9 @@ function nh() {
     productStatusUpdatingId,
     setShipmentProductStatusQuick,
     getProductPaymentAmount,
-    homeClientGlobalBalanceMap,
+    shipmentClientBalances,
+    shipmentClientBalanceLoadingIds,
+    shipmentClientBalanceErrors,
     loadMoreShipments,
   ]);
   const shoppingsContextValue = V.useMemo(() => ({

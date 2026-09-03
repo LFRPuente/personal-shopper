@@ -70,6 +70,9 @@ export function useShipmentsDomain({
   const [shipmentEvidenceReplacingId, setShipmentEvidenceReplacingId] = V.useState(null);
   const [openShipmentEvidenceMenuId, setOpenShipmentEvidenceMenuId] = V.useState(null);
   const [shipmentDetailLoadingIds, setShipmentDetailLoadingIds] = V.useState([]);
+  const [shipmentClientBalances, setShipmentClientBalances] = V.useState({});
+  const [shipmentClientBalanceLoadingIds, setShipmentClientBalanceLoadingIds] = V.useState([]);
+  const [shipmentClientBalanceErrors, setShipmentClientBalanceErrors] = V.useState({});
   const [expandedShipmentIds, setExpandedShipmentIds] = V.useState([]);
   const [shipmentSaving, setShipmentSaving] = V.useState(!1);
   const [shipmentModalOpen, setShipmentModalOpen] = V.useState(!1);
@@ -296,6 +299,9 @@ export function useShipmentsDomain({
     setShipmentPage(0);
     setShipmentTotalCount(0);
     setShipmentHasNextPage(!1);
+    setShipmentClientBalances({});
+    setShipmentClientBalanceLoadingIds([]);
+    setShipmentClientBalanceErrors({});
   }, []);
 
   const getShipmentClientProducts = V.useCallback(
@@ -511,6 +517,28 @@ export function useShipmentsDomain({
     [apiFetch, notifyError, shipmentHasHydratedDetail, shipments, upsertShipmentListItem],
   );
 
+  const refreshShipmentClientBalance = V.useCallback(async (clientId) => {
+    const id = Number(clientId || 0);
+    if (!Number.isFinite(id) || id <= 0) return;
+    setShipmentClientBalanceLoadingIds((items) =>
+      items.includes(id) ? items : [...items, id],
+    );
+    setShipmentClientBalanceErrors((items) => ({ ...items, [id]: !1 }));
+    try {
+      const data = await apiFetch(`/clients/${id}/balance/`);
+      const balance = Number(data && data.balance);
+      if (!Number.isFinite(balance)) throw new Error("Invalid client balance");
+      setShipmentClientBalances((items) => ({ ...items, [id]: balance }));
+    } catch (error) {
+      console.error("Failed refreshing shipment client balance", error);
+      setShipmentClientBalanceErrors((items) => ({ ...items, [id]: !0 }));
+    } finally {
+      setShipmentClientBalanceLoadingIds((items) =>
+        items.filter((item) => Number(item) !== id),
+      );
+    }
+  }, [apiFetch]);
+
   const isShipmentExpanded = V.useCallback(
     (shipment) =>
       (expandedShipmentIds || []).includes(Number((shipment && shipment.id) || shipment || 0)),
@@ -528,6 +556,7 @@ export function useShipmentsDomain({
         return;
       }
       setExpandedShipmentIds((items) => [...new Set([...(items || []), id])]);
+      refreshShipmentClientBalance(shipment.client);
       if (shipmentHasHydratedDetail(shipment)) {
         loadShipmentForm(shipment);
         return;
@@ -594,7 +623,7 @@ export function useShipmentsDomain({
         data && loadShipmentForm(data);
       });
     },
-    [fetchShipmentDetail, isShipmentExpanded, loadShipmentForm, shipmentHasHydratedDetail],
+    [fetchShipmentDetail, isShipmentExpanded, loadShipmentForm, refreshShipmentClientBalance, shipmentHasHydratedDetail],
   );
 
   const resetExpandedShipmentForm = V.useCallback(
@@ -1254,6 +1283,9 @@ export function useShipmentsDomain({
     openShipmentEvidenceMenuId,
     setOpenShipmentEvidenceMenuId,
     shipmentDetailLoadingIds,
+    shipmentClientBalances,
+    shipmentClientBalanceLoadingIds,
+    shipmentClientBalanceErrors,
     expandedShipmentIds,
     setExpandedShipmentIds,
     shipmentSaving,

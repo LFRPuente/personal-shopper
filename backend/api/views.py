@@ -2064,6 +2064,12 @@ class ClientViewSet(viewsets.ModelViewSet):
             prefetches.append(Prefetch('receipts', queryset=get_receipt_queryset()))
         return Client.objects.prefetch_related(*prefetches).order_by('created_at', 'id')
 
+    @action(detail=True, methods=['get'])
+    def balance(self, request, pk=None):
+        client = get_object_or_404(Client, pk=pk)
+        self.check_object_permissions(request, client)
+        return Response({'client': client.id, 'balance': calculate_client_share_balance_total(client)})
+
     def perform_create(self, serializer):
         # Asigna el Agente automáticamente
         client = serializer.save(added_by=self.request.user)
