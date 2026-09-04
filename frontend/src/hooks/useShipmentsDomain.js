@@ -60,7 +60,7 @@ export function useShipmentsDomain({
 }) {
   const [shipments, setShipments] = V.useState([]);
   const [shipmentSearch, setShipmentSearch] = V.useState("");
-  const [shipmentStatusFilter, setShipmentStatusFilter] = V.useState("");
+  const [shipmentSort, setShipmentSort] = V.useState("NUMBER");
   const [shipmentPage, setShipmentPage] = V.useState(0);
   const [shipmentTotalCount, setShipmentTotalCount] = V.useState(0);
   const [shipmentHasNextPage, setShipmentHasNextPage] = V.useState(!1);
@@ -251,12 +251,12 @@ export function useShipmentsDomain({
 
   const loadShipmentsData = V.useCallback(
     async (options = {}) => {
-      const { force = !1, page = 1, append = !1, preserveLoaded = !1, search = shipmentSearch, status = shipmentStatusFilter } =
+      const { force = !1, page = 1, append = !1, preserveLoaded = !1, search = shipmentSearch, sort = shipmentSort } =
         typeof options === "boolean" ? { force: options, preserveLoaded: options } : options;
       if (!accessToken || (shipmentsLoadedRef.current && !force && page === 1 && !append)) return [];
       try {
         setShipmentLoading(!0);
-        const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}&status=${encodeURIComponent(status)}`);
+        const data = await apiFetch(`/shipments/?page=${page}&search=${encodeURIComponent(search.trim())}&sort=${encodeURIComponent(sort)}`);
         const results = Array.isArray(data) ? data : data.results || [];
         setShipments((items) => {
           const current = Array.isArray(items) ? items : [];
@@ -279,7 +279,7 @@ export function useShipmentsDomain({
         setShipmentLoading(!1);
       }
     },
-    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated, shipmentSearch, shipmentStatusFilter],
+    [accessToken, apiFetch, mergeShipmentSummariesWithHydrated, shipmentSearch, shipmentSort],
   );
 
   const loadMoreShipments = V.useCallback(
@@ -291,7 +291,7 @@ export function useShipmentsDomain({
     if (!accessToken || currentTabRef.current !== "SHIPMENTS") return;
     const timer = setTimeout(() => loadShipmentsData({ force: !0 }), 250);
     return () => clearTimeout(timer);
-  }, [accessToken, currentTabRef, loadShipmentsData, shipmentSearch, shipmentStatusFilter]);
+  }, [accessToken, currentTabRef, loadShipmentsData, shipmentSearch, shipmentSort]);
 
   const resetShipmentsDomain = V.useCallback(() => {
     shipmentsLoadedRef.current = !1;
@@ -1272,8 +1272,8 @@ export function useShipmentsDomain({
     setShipments,
     shipmentSearch,
     setShipmentSearch,
-    shipmentStatusFilter,
-    setShipmentStatusFilter,
+    shipmentSort,
+    setShipmentSort,
     shipmentTotalCount,
     shipmentHasNextPage,
     shipmentLoading,

@@ -2513,6 +2513,8 @@ class ShipmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list':
+            sort = self.request.query_params.get('sort', 'NUMBER').upper()
+            ordering = ['-updated_at', '-id'] if sort == 'UPDATED' else ['-id']
             client_shipment_number = (
                 Shipment.objects.filter(client_id=OuterRef('client_id'))
                 .filter(
@@ -2543,7 +2545,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                         default=Value(1),
                         output_field=IntegerField(),
                     ),
-                    '-id',
+                    *ordering,
                 )
             )
         else:
