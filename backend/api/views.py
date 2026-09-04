@@ -2515,16 +2515,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             sort = self.request.query_params.get('sort', 'NUMBER').upper()
             ordering = (
-                ['-updated_at', '-id']
-                if sort == 'UPDATED'
-                else [
-                    Case(
-                        When(status=Shipment.Status.PENDING, then=Value(0)),
-                        default=Value(1),
-                        output_field=IntegerField(),
-                    ),
-                    '-id',
-                ]
+                ['-updated_at', '-id'] if sort == 'UPDATED' else ['-id']
             )
             client_shipment_number = (
                 Shipment.objects.filter(client_id=OuterRef('client_id'))
@@ -2550,7 +2541,14 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                     ),
                 )
                 .all()
-                .order_by(*ordering)
+                .order_by(
+                    Case(
+                        When(status=Shipment.Status.PENDING, then=Value(0)),
+                        default=Value(1),
+                        output_field=IntegerField(),
+                    ),
+                    *ordering,
+                )
             )
         else:
             queryset = get_shipment_detail_queryset()
