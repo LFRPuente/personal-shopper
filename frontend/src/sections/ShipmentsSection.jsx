@@ -1149,7 +1149,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
               return c.jsxs(
                 'div',
                 {
-                  className: `modern-card modern-shipment-card rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm h-full ${isDesktopLayout ? 'rounded-2xl' : ''}`,
+                  className: `modern-card modern-shipment-card rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm ${isDesktopLayout ? 'h-full rounded-2xl' : ''}`,
                   children: [
                     c.jsxs('div', {
                       className: isDesktopLayout
