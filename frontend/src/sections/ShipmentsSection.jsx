@@ -462,6 +462,7 @@ function ShipmentEvidenceGrid({
                           },
                           className:
                             'w-5 h-5 rounded-full bg-white/38 text-gray-700 hover:bg-white/56 border border-white/35 shadow-sm backdrop-blur-[2px] flex items-center justify-center',
+                          'aria-label': 'Opciones de evidencia',
                           title: 'Opciones de evidencia',
                           children: c.jsx('span', {
                             className: 'material-symbols-outlined text-[12px]',
@@ -1232,6 +1233,9 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                             c.jsx('button', {
                               type: 'button',
                               onClick: () => toggleExpandedShipment(shipment),
+                              'aria-label': isExpanded ? 'Contraer envío' : 'Desplegar envío',
+                              'aria-expanded': isExpanded,
+                              title: isExpanded ? 'Contraer envío' : 'Desplegar envío',
                               className:
                                 'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
                               children: c.jsx('span', {
@@ -1243,6 +1247,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                               type: 'button',
                               onClick: () => openShipmentEvidencePicker(shipment),
                               disabled: shipmentEvidenceUploadingId === shipment.id,
+                              'aria-label': shipmentEvidenceUploadingId === shipment.id ? 'Subiendo evidencia' : 'Agregar evidencia',
                               className:
                                 'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60',
                               title: 'Agregar evidencia',
@@ -1254,6 +1259,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                             c.jsx('button', {
                               type: 'button',
                               onClick: () => copyClientShipmentHistoryLink(shipment),
+                              'aria-label': 'Copiar enlace del cliente con este envío abierto',
                               className:
                                 'w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
                               title: 'Copiar link del cliente con este envio abierto',
@@ -1268,6 +1274,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                               type: 'button',
                               onClick: () => deleteShipment(shipment),
                               disabled: !canDeleteShipment,
+                              'aria-label': canDeleteShipment ? 'Eliminar envío' : 'Solo se pueden eliminar envíos pendientes',
                               className:
                                 'w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:cursor-not-allowed disabled:opacity-35',
                               title: canDeleteShipment ? 'Eliminar envio' : 'Solo se pueden eliminar envios pendientes',

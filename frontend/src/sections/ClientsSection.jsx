@@ -377,6 +377,9 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                             children: [
                               c.jsx('button', {
                                 onClick: () => copyClientMissionShareLink(null, client),
+                                type: 'button',
+                                'aria-label': 'Copiar enlace del cliente',
+                                title: 'Copiar enlace del cliente',
                                 className:
                                   'w-7 h-7 rounded-full flex items-center justify-center hover:bg-violet-100 text-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/30',
                                 children: c.jsx('span', {
@@ -391,7 +394,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                     : openClientShoppingGallery(client, null),
                                 className:
                                   'w-7 h-7 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary dark:text-violet-300 dark:hover:bg-violet-950/30',
-                                title: 'Open Full Gallery',
+                                'aria-label': 'Abrir galería completa',
+                                title: 'Abrir galería completa',
                                 children: c.jsx('span', {
                                   className: 'material-symbols-outlined text-[15px]',
                                   children: 'photo_library',
@@ -399,6 +403,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                               }),
                               c.jsx('button', {
                                 onClick: () => openClientPaymentModal(client),
+                                type: 'button',
+                                'aria-label': 'Registrar pago del cliente',
                                 className:
                                   'w-7 h-7 rounded-full flex items-center justify-center hover:bg-emerald-100 text-emerald-600 dark:text-emerald-300 dark:hover:bg-emerald-950/30',
                                 title: 'Pago del cliente',
@@ -409,6 +415,9 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                               }),
                               c.jsx('button', {
                                 onClick: () => typeof onEditClient === 'function' && onEditClient(client),
+                                type: 'button',
+                                'aria-label': 'Editar cliente',
+                                title: 'Editar cliente',
                                 className:
                                   'w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-slate-300 hover:text-gray-700 dark:hover:text-white flex items-center justify-center',
                                 children: c.jsx('span', {
@@ -416,9 +425,13 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                   children: 'more_vert',
                                 }),
                               }),
-                              c.jsx('span', {
+                              c.jsx('button', {
+                                type: 'button',
+                                'aria-label': isExpanded ? 'Contraer cliente' : 'Desplegar cliente',
+                                'aria-expanded': isExpanded,
+                                title: isExpanded ? 'Contraer cliente' : 'Desplegar cliente',
                                 className:
-                                  `material-symbols-outlined text-gray-400 dark:text-slate-300 text-[15px] cursor-pointer ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
+                                  `w-7 h-7 rounded-full material-symbols-outlined text-gray-400 dark:text-slate-300 text-[15px] hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center ui-disclosure-chevron ${isExpanded ? 'ui-disclosure-chevron-open' : ''}`,
                                 onClick: () => setExpandedClientId((current) => (Number(current) === Number(client.id) ? null : client.id)),
                                 children: 'expand_more',
                               }),
