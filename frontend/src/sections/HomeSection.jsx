@@ -994,7 +994,6 @@ const HomeSection = V.memo(function HomeSection() {
                 c.jsxs('div', {
                   className: 'min-w-0',
                   children: [
-                    c.jsx('h3', { className: isDesktopLayout ? 'truncate font-bold text-lg text-text-main dark:text-white' : 'truncate font-bold text-sm text-text-main dark:text-white', children: 'Shopping en Tienda' }),
                     c.jsxs('p', {
                       className: isDesktopLayout ? 'mt-0.5 truncate text-xs text-gray-500' : 'truncate text-[10px] text-gray-500',
                       children: [

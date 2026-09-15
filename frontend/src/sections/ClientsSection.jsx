@@ -268,16 +268,11 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             className:
               'modern-filter relative min-w-[148px] shrink-0 rounded-xl border border-primary/15 bg-primary/5 text-primary shadow-[0_14px_28px_-24px_rgba(124,58,237,0.55)] dark:border-violet-800 dark:bg-violet-950/25 dark:text-violet-200',
             children: [
-              c.jsx('span', {
-                className:
-                  'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px]',
-                children: balanceFilter === 'BALANCE' ? 'account_balance_wallet' : 'groups',
-              }),
               c.jsx('select', {
                 value: balanceFilter,
                 onChange: (event) => setBalanceFilter(event.target.value),
                 className:
-                  'h-full w-full appearance-none bg-transparent py-3 pl-11 pr-9 text-[12px] font-black uppercase tracking-[0.08em] outline-none',
+                  'h-full w-full appearance-none bg-transparent py-3 pl-3 pr-9 text-[12px] font-black uppercase tracking-[0.08em] outline-none',
                 children: [
                   c.jsx('option', { value: 'ALL', children: 'Todos' }),
                   c.jsx('option', { value: 'BALANCE', children: 'Con saldo' }),

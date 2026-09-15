@@ -175,10 +175,6 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
                               className: 'truncate text-[11px] font-semibold',
                               children: client.name,
                             }),
-                            c.jsx('p', {
-                              className: 'truncate text-[9px] text-text-sub',
-                              children: client.tags || 'Sin etiquetas',
-                            }),
                           ],
                         }),
                         c.jsx('span', {

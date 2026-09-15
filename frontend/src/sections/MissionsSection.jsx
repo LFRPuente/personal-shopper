@@ -3,10 +3,10 @@ import { useShoppingsContext } from '../AppContext.jsx';
 
 const getMissionStatusClassName = (status) =>
   status === 'ACTIVE'
-    ? 'bg-green-100 text-green-700'
+    ? 'bg-green-100 text-green-700 dark:bg-emerald-950/60 dark:text-emerald-200'
     : status === 'PAUSED'
-      ? 'bg-amber-100 text-amber-700'
-      : 'bg-gray-200 text-gray-600';
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-200'
+      : 'bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-100';
 
 const getMissionProductStatusLabel = (status) => {
   const normalized = String(status || '').toUpperCase();

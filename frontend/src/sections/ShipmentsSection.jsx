@@ -1114,7 +1114,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           })
         : c.jsx('div', {
             className: isDesktopLayout
-              ? 'modern-list grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
+              ? 'modern-list grid grid-cols-2 gap-4'
               : 'modern-list space-y-2',
             children: shipments.map((shipment) => {
               const isExpanded = isShipmentExpanded(shipment.id);
@@ -1147,20 +1147,20 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                     c.jsxs('div', {
                       className: isDesktopLayout
                         ? 'flex items-start justify-between gap-3'
-                        : 'flex items-start justify-between gap-2',
+                        : 'flex flex-col gap-2',
                       children: [
                         c.jsxs('div', {
-                          className: 'min-w-0 flex-1',
+                          className: isDesktopLayout ? 'min-w-0 flex-1' : 'w-full min-w-0',
                           children: [
                             c.jsxs('p', {
                               className: isDesktopLayout
-                                ? 'text-base font-bold text-text-main dark:text-white truncate'
-                                : 'text-sm font-bold text-text-main dark:text-white truncate',
+                                ? 'flex flex-wrap items-center gap-1.5 text-base font-bold text-text-main dark:text-white'
+                                : 'flex flex-wrap items-center gap-1.5 text-sm font-bold text-text-main dark:text-white',
                               children: [
-                                c.jsx('span', { children: shipment.client_name || 'Cliente' }),
+                                c.jsx('span', { className: 'min-w-0 break-words', children: shipment.client_name || 'Cliente' }),
                                 Number(shipment.id) > 0
                                   ? c.jsxs('span', {
-                                      className: 'ml-1.5 inline-flex rounded-md border border-slate-300 bg-slate-100 px-2 py-1 align-middle text-[12px] font-bold leading-none text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',
+                                      className: 'inline-flex shrink-0 rounded-md border border-slate-300 bg-slate-100 px-2 py-1 align-middle text-[12px] font-bold leading-none text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',
                                       title: Number(shipment.client_shipment_number) > 0 ? `Envio ${shipment.client_shipment_number} de este cliente` : 'Numero de envio',
                                       children: [
                                         `#${shipment.id}`,
@@ -1218,7 +1218,9 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                             children: clientBalanceLoading ? 'Actualizando saldo...' : clientBalanceError ? 'Saldo no disponible' : clientBalance < 0 ? `A favor $${formatAmount(-clientBalance)}` : clientBalance > 0 ? `Deuda $${formatAmount(clientBalance)}` : 'Sin saldo',
                           }),
                         c.jsxs('div', {
-                          className: 'flex items-center gap-1',
+                          className: isDesktopLayout
+                            ? 'flex items-center gap-1'
+                            : 'flex w-full items-center justify-end gap-1 border-t border-border-light pt-2 dark:border-border-dark',
                           children: [
                             c.jsx('button', {
                               type: 'button',
