@@ -30,6 +30,8 @@ const ProfileSection = V.memo(function ProfileSection() {
     createUserRecord,
     saveUserRecord,
     deleteUserRecord,
+    activeRole,
+    switchDevRole,
   } = useLayoutProfileContext();
 
   const J = user;
@@ -355,6 +357,49 @@ const ProfileSection = V.memo(function ProfileSection() {
               }),
             ],
           }),
+          isBothRole &&
+            c.jsxs("div", {
+              className: "space-y-2",
+              children: [
+                c.jsxs("div", {
+                  children: [
+                    c.jsx("h3", {
+                      className: "text-sm font-bold text-text-main",
+                      children: "Modo de trabajo",
+                    }),
+                    c.jsx("p", {
+                      className: "text-xs text-text-sub mt-1",
+                      children: "Cambia entre las vistas de tienda y oficina sin salir de Settings.",
+                    }),
+                  ],
+                }),
+                c.jsxs("div", {
+                  className: "grid grid-cols-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-1",
+                  children: [
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () => switchDevRole("PS"),
+                      className: `rounded-xl px-3 py-2 text-xs font-bold transition ${
+                        activeRole === "PS"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                      }`,
+                      children: "Tienda (PS)",
+                    }),
+                    c.jsx("button", {
+                      type: "button",
+                      onClick: () => switchDevRole("AV"),
+                      className: `rounded-xl px-3 py-2 text-xs font-bold transition ${
+                        activeRole === "AV"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                      }`,
+                      children: "Oficina (AV)",
+                    }),
+                  ],
+                }),
+              ],
+            }),
           c.jsxs("div", {
             className: "space-y-2",
             children: [

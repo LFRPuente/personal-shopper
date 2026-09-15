@@ -1202,12 +1202,6 @@ const HomeSection = V.memo(function HomeSection() {
                       className:
                         'home-shopping-client-row flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition',
                       children: [
-                        c.jsx('div', {
-                          onClick: () => openClientFullGallery(client, activeMission && activeMission.id),
-                          className:
-                            'w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg uppercase border border-primary/20',
-                          children: client.name.charAt(0),
-                        }),
                         c.jsxs('div', {
                           onClick: () => openClientFullGallery(client, activeMission && activeMission.id),
                           className: 'flex-1 min-w-0',

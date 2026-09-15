@@ -6829,6 +6829,13 @@ function nh() {
   // Missions section extracted to sections/MissionsSection.jsx
   // Profile section extracted to sections/ProfileSection.jsx
   // Shipments section extracted to sections/ShipmentsSection.jsx
+  const switchDevRole = V.useCallback(
+    (nextRole) => {
+      H(nextRole === "PS" ? "PS" : "AV");
+      Aa();
+    },
+    [Aa],
+  );
   const appServicesContextValue = V.useMemo(() => ({
     apiFetch: I,
     notifySuccess,
@@ -6892,6 +6899,8 @@ function nh() {
     createUserRecord,
     saveUserRecord,
     deleteUserRecord,
+    activeRole: X,
+    switchDevRole,
   }), [
     J,
     isDesktopLayout,
@@ -6910,6 +6919,8 @@ function nh() {
     createUserRecord,
     saveUserRecord,
     deleteUserRecord,
+    X,
+    switchDevRole,
   ]);
   const shipmentsContextValue = V.useMemo(() => ({
     shipments,
@@ -7316,49 +7327,6 @@ function nh() {
       ? "w-screen h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col overflow-hidden"
       : "w-full max-w-[480px] h-[100dvh] min-h-[100dvh] bg-surface-light dark:bg-surface-dark shadow-2xl relative flex flex-col border-x border-border-light dark:border-border-dark overflow-hidden",
     children: [
-      J &&
-      J.profile.role === "BOTH" &&
-      c.jsxs("div", {
-        className: isDesktopLayout
-          ? "bg-emerald-600 text-white text-xs p-2 flex justify-center gap-4 z-50 relative shadow-md ml-20"
-          : "bg-emerald-600 text-white text-xs p-2 flex justify-center gap-4 z-50 relative shadow-md",
-        children: [
-          c.jsx("span", {
-            className: "font-bold border-r border-emerald-500 pr-3",
-            children: "Dev Toggle",
-          }),
-          c.jsxs("label", {
-            className: "flex items-center gap-1 cursor-pointer",
-            children: [
-              c.jsx("input", {
-                type: "radio",
-                name: "role",
-                value: "PS",
-                checked: X === "PS",
-                onChange: () => {
-                  (H("PS"), Aa());
-                },
-              }),
-              " PS Mode",
-            ],
-          }),
-          c.jsxs("label", {
-            className: "flex items-center gap-1 cursor-pointer",
-            children: [
-              c.jsx("input", {
-                type: "radio",
-                name: "role",
-                value: "AV",
-                checked: X === "AV",
-                onChange: () => {
-                  (H("AV"), Aa());
-                },
-              }),
-              " AV Mode",
-            ],
-          }),
-        ],
-      }),
       c.jsx("header", {
         className: isDesktopLayout
           ? "sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-200 ml-20"

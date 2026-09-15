@@ -375,7 +375,7 @@ main:has(.modern-ui) {
   box-shadow: 0 7px 20px -20px rgb(34 38 62 / 32%);
 }
 .modern-home-pilot .home-shopping-client-row:hover { background: var(--modern-inset); }
-.modern-home-pilot .home-shopping-client-row > div:nth-child(2) > div:first-child > p { font-size: 16px; }
+.modern-home-pilot .home-shopping-client-row > div:first-child > div:first-child > p { font-size: 16px; }
 .modern-home-pilot .home-shopping-client-row .text-\[10px\] { font-size: 12px; color: var(--modern-muted); }
 .modern-home-pilot .home-shopping-client-row .text-\[9px\] { font-size: 11px; }
 .modern-home-pilot .home-shopping-client-row > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
@@ -388,6 +388,8 @@ main:has(.modern-ui) {
   .modern-home-pilot .home-live-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .modern-home-pilot .home-live-metrics > div:last-child { grid-column: 1 / -1; min-height: auto; }
   .modern-home-pilot .home-live-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modern-home-pilot .home-shopping-client-row { align-items: flex-start; gap: 10px; }
+  .modern-home-pilot .home-shopping-client-row > div:first-child { min-width: 0; }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .modern-home-pilot .home-live-console { box-shadow: none; }
