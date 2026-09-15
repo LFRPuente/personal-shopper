@@ -454,10 +454,9 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-9rem)] space-y-5">
-      <div className="flex items-center justify-between gap-4">
+    <div className="modern-ui modern-stock min-h-[calc(100dvh-9rem)] space-y-5">
+      <div className="stock-heading flex items-center justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary">Vista web</p>
           <h1 className="text-3xl font-black text-text-main dark:text-white">Catalogo de Stock</h1>
           <p className="mt-1 text-sm text-text-sub">Administra productos disponibles, vendidos y pagina publica.</p>
         </div>
@@ -486,7 +485,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="stock-metrics grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-border-light bg-surface-light p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-sub">Productos activos</p>
           <p className="mt-2 text-2xl font-black">{activeProductsCount}</p>
@@ -501,7 +500,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border-light bg-surface-light p-4 shadow-card dark:border-border-dark dark:bg-surface-dark">
+      <div className="stock-catalog rounded-2xl border border-border-light bg-surface-light p-4 shadow-card dark:border-border-dark dark:bg-surface-dark">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-text-main dark:text-white">Productos cargados</h2>
@@ -527,17 +526,17 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
             <p className="mt-2 text-sm font-bold">Aun no hay productos en stock.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border-light dark:border-border-dark">
+          <div className="stock-product-list overflow-hidden rounded-xl border border-border-light dark:border-border-dark">
             {products.map((product) => {
               const available = Number(product.available_quantity || 0);
               const sold = Number(product.sold_quantity || 0);
               const isOffer = product.discount_uses_global !== false;
               const newSalesCount = getSalesBadgeCount(product);
               return (
-                <div key={`stock-product-${product.id}`} className={`grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_285px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
+                <div key={`stock-product-${product.id}`} className={`stock-product-row grid grid-cols-[88px_minmax(0,1.2fr)_105px_125px_125px_155px_285px] items-center gap-3 border-b border-border-light px-3 py-3 last:border-b-0 dark:border-border-dark ${product.is_active === false ? "opacity-50" : ""}`}>
                   <button type="button" onClick={() => openProductImagePreview(product)} title="Ver imagen" className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
                     {product.image ? (
-                      <img src={resolveMediaUrl(product.image)} className="h-full w-full object-cover" />
+                      <img src={resolveMediaUrl(product.image)} alt={product.name || "Producto de stock"} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-slate-400">
                         <span className="material-symbols-outlined">image</span>
@@ -610,7 +609,7 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
                       <button type="button" onClick={() => openSalesModal(product)} title="Ver compradores" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30">
                         <span className="material-symbols-outlined text-[18px]">group</span>
                         {newSalesCount > 0 && (
-                        <span className="absolute -right-2 -top-2 min-w-5 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg ring-2 ring-white dark:bg-white dark:text-slate-950 dark:ring-slate-900">
+                        <span className="absolute -right-2 -top-2 min-w-5 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg ring-2 ring-white dark:bg-rose-800 dark:text-rose-100 dark:ring-slate-900">
                             {newSalesCount}
                           </span>
                         )}

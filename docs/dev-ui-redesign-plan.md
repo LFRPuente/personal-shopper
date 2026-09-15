@@ -70,7 +70,7 @@ If this conversation is interrupted, say: `Continúa el plan de rediseño Dev, f
 
 ## Current local state
 
-- Dev frontend has the shared visual system and the Shopping Live, Clients, Shipments, gallery, and modal foundation deployed through commit `28a7964`.
+- Dev frontend has the shared visual system and the Shopping Live, Clients, Shipments, Stock, gallery, and modal foundation deployed through the current UI-redesign commits.
 - Production and every database remain untouched by this redesign.
-- Next: finish Shopping Live accessibility/states, then redesign Stock, Missions, Expenses, Calculator, Reports, and Profile using the same system.
+- Shopping Live accessibility and Stock catalog/product/sales-modal work are complete for this pass; next: Missions, Expenses, Calculator, Reports, and Profile using the same system.
 - A non-integrated local draft remains under `frontend/src/components/ui/`; it is not used by the app.

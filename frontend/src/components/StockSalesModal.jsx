@@ -29,18 +29,17 @@ const StockSalesModal = V.memo(function StockSalesModal({ product, onClose }) {
   if (!product || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-3 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark" onClick={(event) => event.stopPropagation()}>
+    <div className="ui-backdrop fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-3 sm:items-center" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-labelledby="stock-sales-modal-title" className="ui-sheet w-full max-w-lg rounded-2xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark" onClick={(event) => event.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Ventas de stock</p>
-            <h3 className="truncate text-xl font-black text-text-main dark:text-white">{product.name}</h3>
+            <h3 id="stock-sales-modal-title" className="truncate text-xl font-black text-text-main dark:text-white">Ventas de stock · {product.name}</h3>
             <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-700 dark:bg-rose-500/15 dark:text-rose-200">
               <span className="uppercase tracking-[0.14em]">Vendidos</span>
               <span>{Number(product.sold_quantity || 0)}</span>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800">
+          <button type="button" onClick={onClose} aria-label="Cerrar ventas de stock" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>

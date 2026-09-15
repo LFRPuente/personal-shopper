@@ -193,17 +193,19 @@ const StockProductModal = V.memo(function StockProductModal({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
+        className="ui-backdrop fixed inset-0 z-[98] flex items-end justify-center overflow-y-auto bg-black/55 p-3 sm:items-center sm:p-5"
         onClick={onClose}
       >
         <div
-          className="w-full max-w-4xl rounded-2xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="stock-product-modal-title"
+          className="ui-sheet w-full max-w-4xl rounded-2xl border border-border-light bg-surface-light p-5 shadow-2xl dark:border-border-dark dark:bg-surface-dark"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Catalogo de Stock</p>
-              <h3 className="text-xl font-black text-text-main dark:text-white">
+              <h3 id="stock-product-modal-title" className="text-xl font-black text-text-main dark:text-white">
                 {isEditing ? "Editar producto" : "Agregar producto"}
               </h3>
             </div>
@@ -216,12 +218,13 @@ const StockProductModal = V.memo(function StockProductModal({
                   aria-label="Ver imagen del producto"
                   className="h-10 w-10 overflow-hidden rounded-lg border border-border-light bg-slate-100 shadow-sm dark:border-border-dark dark:bg-slate-900"
                 >
-                  <img src={imagePreviewUrl} className="h-full w-full object-cover" />
+                  <img src={imagePreviewUrl} alt="Vista previa del producto" className="h-full w-full object-cover" />
                 </button>
               )}
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="Cerrar editor de producto"
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-border-light text-text-sub hover:bg-slate-100 dark:border-border-dark dark:hover:bg-slate-800"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
