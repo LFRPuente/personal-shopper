@@ -222,6 +222,7 @@ main:has(.modern-ui) {
 }
 @media (prefers-reduced-motion: reduce) {
   .modern-ui *, .modern-ui *::before { animation: none !important; transition: none !important; transform: none !important; }
+  .ui-sheet :is(.ui-btn-primary, .ui-btn-secondary) { transition: none !important; transform: none !important; }
 }
 .browser-firefox .modern-toolbar { background: var(--modern-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
