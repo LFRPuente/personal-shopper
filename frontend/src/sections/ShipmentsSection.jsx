@@ -1047,10 +1047,10 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
   } = { ...DEFAULT_CONTEXT, ...ctx };
 
   return c.jsxs('div', {
-    className: 'space-y-4',
+    className: 'modern-ui modern-shipments space-y-4',
     children: [
       c.jsxs('div', {
-        className: 'flex items-center justify-between mb-2',
+        className: 'modern-heading flex items-center justify-between mb-2',
         children: [
           c.jsxs('div', {
             children: [
@@ -1067,7 +1067,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           c.jsxs('button', {
             onClick: () => openShipmentEditor(),
             className:
-              'bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
+              'modern-button modern-button--primary bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
             children: [
               c.jsx('span', {
                 className: 'material-symbols-outlined text-[18px]',
@@ -1079,7 +1079,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
         ],
       }),
       c.jsxs('div', {
-        className: 'flex gap-2',
+        className: 'modern-toolbar flex gap-2',
         children: [
           c.jsxs('div', {
             className: 'relative flex-1',
@@ -1095,14 +1095,14 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                 value: shipmentSearch,
                 onChange: (event) => setShipmentSearch(event.target.value),
                 className:
-                  'w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+                  'modern-search-input w-full pl-10 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
               }),
             ],
           }),
           c.jsx('select', {
             value: shipmentSort,
             onChange: (event) => setShipmentSort(event.target.value),
-            className: 'w-36 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-text-main outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-surface-dark dark:text-white',
+            className: 'modern-filter w-36 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-text-main outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-surface-dark dark:text-white',
             children: [['NUMBER', 'Número'], ['UPDATED', 'Último cambio']].map(([value, label]) => c.jsx('option', { value, children: label }, value)),
           }),
         ],
@@ -1118,8 +1118,8 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           })
         : c.jsx('div', {
             className: isDesktopLayout
-              ? 'grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
-              : 'space-y-2',
+              ? 'modern-list grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
+              : 'modern-list space-y-2',
             children: shipments.map((shipment) => {
               const isExpanded = isShipmentExpanded(shipment.id);
               const clientBalance = isExpanded ? Number(clientBalances[shipment.client]) || 0 : 0;
@@ -1146,7 +1146,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
               return c.jsxs(
                 'div',
                 {
-                  className: `rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm h-full ${isDesktopLayout ? 'rounded-2xl' : ''}`,
+                  className: `modern-card modern-shipment-card rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-3 py-2.5 shadow-sm h-full ${isDesktopLayout ? 'rounded-2xl' : ''}`,
                   children: [
                     c.jsxs('div', {
                       className: isDesktopLayout

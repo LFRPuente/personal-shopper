@@ -226,12 +226,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
   }, [clients, search, balanceFilter, getClientShoppingHistoryEntries]);
 
   return c.jsxs('section', {
-    className: isDesktopLayout ? 'space-y-6' : 'space-y-4',
+    className: isDesktopLayout ? 'modern-ui modern-clients space-y-6' : 'modern-ui modern-clients space-y-4',
     children: [
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mb-2'
-          : 'flex items-center justify-between mb-2',
+          ? 'modern-heading flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mb-2'
+          : 'modern-heading flex items-center justify-between mb-2',
         children: [
           c.jsxs('div', {
             children: [
@@ -243,7 +243,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             c.jsxs('button', {
               onClick: onOpenClientCreate,
               className:
-                'bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
+                'modern-button modern-button--primary bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
               children: [
                 c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
                 ' New',
@@ -253,8 +253,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
       }),
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'flex w-full max-w-2xl items-center gap-2'
-          : 'flex w-full items-center gap-2',
+          ? 'modern-toolbar flex w-full max-w-2xl items-center gap-2'
+          : 'modern-toolbar flex w-full items-center gap-2',
         children: [
           c.jsx('input', {
             type: 'text',
@@ -262,12 +262,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             value: search,
             onChange: (event) => setSearch(event.target.value),
             className: isDesktopLayout
-              ? 'min-w-0 flex-1 pl-4 pr-4 py-3.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow'
-              : 'min-w-0 flex-1 pl-4 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
+              ? 'modern-search-input min-w-0 flex-1 pl-4 pr-4 py-3.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow'
+              : 'modern-search-input min-w-0 flex-1 pl-4 pr-4 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 transition-shadow',
           }),
           c.jsxs('label', {
             className:
-              'relative min-w-[148px] shrink-0 rounded-xl border border-primary/15 bg-primary/5 text-primary shadow-[0_14px_28px_-24px_rgba(124,58,237,0.55)] dark:border-violet-800 dark:bg-violet-950/25 dark:text-violet-200',
+              'modern-filter relative min-w-[148px] shrink-0 rounded-xl border border-primary/15 bg-primary/5 text-primary shadow-[0_14px_28px_-24px_rgba(124,58,237,0.55)] dark:border-violet-800 dark:bg-violet-950/25 dark:text-violet-200',
             children: [
               c.jsx('span', {
                 className:
@@ -300,7 +300,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
             children: c.jsx('p', { className: 'text-gray-500 dark:text-slate-300 text-sm', children: 'No clients defined or matched search.' }),
           })
         : c.jsx('div', {
-            className: isDesktopLayout ? 'grid grid-cols-1 xl:grid-cols-2 gap-3' : 'space-y-3',
+            className: isDesktopLayout ? 'modern-list modern-list--desktop grid grid-cols-1 xl:grid-cols-2 gap-3' : 'modern-list space-y-3',
             children: filteredClients.map((client) => {
               const isExpanded = expandedClientId === client.id;
               const visibleProducts = getHomeVisibleProducts(client);
@@ -312,7 +312,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
 
               return c.jsxs('div', {
                 className:
-                  'rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-hidden group shadow-card ui-card-quiet',
+                  'modern-card modern-client-card rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-hidden group shadow-card ui-card-quiet',
                 children: [
                   c.jsxs('div', {
                     className: 'px-3 py-3 sm:px-4 sm:py-4 flex flex-wrap items-start gap-3 relative',

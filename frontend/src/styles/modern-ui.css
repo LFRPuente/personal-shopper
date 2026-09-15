@@ -99,6 +99,27 @@ main:has(.modern-ui) {
 .modern-client-detail .modern-history-chip { white-space: normal; font-size: 13px; line-height: 1.5; padding: 4px 8px; }
 .modern-ui .modern-load-more { width: 100%; margin-top: 18px; }
 .modern-ui .modern-empty { padding: 48px 24px; text-align: center; color: var(--modern-muted); }
+.modern-clients .modern-heading h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
+.modern-clients .modern-toolbar { max-width: 46rem; }
+.modern-clients .modern-search-input { min-height: 44px; border: 0; background: transparent; color: var(--modern-ink); font-size: 16px; }
+.modern-clients .modern-search-input::placeholder { color: var(--modern-muted); opacity: 1; }
+.modern-clients .modern-client-card > div:first-child { padding: 20px; gap: 14px; }
+.modern-clients .modern-client-card h3 { font-size: 18px; letter-spacing: -.025em; }
+.modern-clients .modern-client-card h3 + p { font-size: 14px; color: var(--modern-muted); }
+.modern-clients .modern-client-card .mt-2.grid > div { min-height: 72px; padding: 10px; border-radius: 14px; }
+.modern-clients .modern-client-card .mt-2.grid p:first-child { font-size: 12px; letter-spacing: .035em; }
+.modern-clients .modern-client-card .mt-2.grid p:last-child { font-size: 19px; }
+.modern-clients .modern-client-card > div:first-child > div:last-child button { width: 40px; height: 40px; }
+.modern-shipments .modern-heading h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
+.modern-shipments .modern-toolbar { max-width: 46rem; }
+.modern-shipments .modern-search-input { min-height: 44px; border: 0; background: transparent; color: var(--modern-ink); font-size: 16px; }
+.modern-shipments .modern-search-input::placeholder { color: var(--modern-muted); opacity: 1; }
+.modern-shipments .modern-toolbar > select { min-height: 44px; background: var(--modern-inset); border: 0; color: var(--modern-ink); }
+.modern-shipments .modern-shipment-card { padding: 20px; }
+.modern-shipments .modern-shipment-card > div:first-child > div:first-child > p:first-child { font-size: 19px; letter-spacing: -.025em; }
+.modern-shipments .modern-shipment-card > div:first-child > div:first-child > p:nth-child(2) { color: var(--modern-muted); font-size: 14px; }
+.modern-shipments .modern-shipment-card > div:first-child > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
+.modern-shipments .modern-shipment-card > div:first-child > div:last-child { gap: 6px; }
 @media (min-width: 1100px) { .modern-list--desktop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   .modern-heading { gap: 10px; }
