@@ -327,6 +327,15 @@ export function useShoppingsDomain({
 
   const endMission = V.useCallback(async () => {
     if (!activeShopping) return;
+    if (
+      !(await confirmAction({
+        title: "Finalizar shopping",
+        message: "¿Deseas finalizar este shopping? Se cerrará como completado.",
+        confirmLabel: "Finalizar shopping",
+        tone: "danger",
+      }))
+    )
+      return;
     try {
       const updated = await apiFetch(`/shoppings/${activeShopping.id}/`, {
         method: "PATCH",
@@ -340,7 +349,7 @@ export function useShoppingsDomain({
       setShoppings(shoppings.map((mission) => (mission.id === activeShopping.id ? updated : mission)));
       setActiveShopping(remainingOpenShoppings[0] || null);
     } catch {}
-  }, [activeShopping, apiFetch, getOpenShoppingMissions, setClients, shoppings]);
+  }, [activeShopping, apiFetch, confirmAction, getOpenShoppingMissions, setClients, shoppings]);
 
   const deleteMission = V.useCallback(
     async (id) => {
