@@ -74,7 +74,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
   };
   return c.jsxs('div', { className: isDesktopLayout ? 'modern-ui modern-expenses space-y-5' : 'hidden', children: [
     c.jsxs('div', { className: 'modern-heading flex items-center justify-between gap-4', children: [
-      c.jsx('h2', { className: 'text-lg font-bold text-text-main dark:text-white', children: 'Gastos' }),
+      c.jsx('span', { className: 'sr-only', children: 'Gastos' }),
       c.jsxs('div', { className: 'relative', children: [
         c.jsxs('button', { type: 'button', onClick: () => setMonthPickerOpen((value) => !value), className: 'flex min-w-[170px] items-center justify-between gap-3 rounded-xl border border-border-light bg-white px-3 py-2 text-sm font-bold text-text-main shadow-sm hover:bg-slate-50 dark:border-border-dark dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800', children: [
           monthLabel,

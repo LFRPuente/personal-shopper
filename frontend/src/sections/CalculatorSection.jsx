@@ -51,7 +51,6 @@ const CalculatorSection = V.memo(function CalculatorSection() {
   return (
     <div className="modern-ui modern-calculator space-y-4">
       <div className="calc-header rounded-2xl p-4 border border-border-light dark:border-border-dark bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 shadow-sm">
-        <h2 className="text-lg font-bold text-text-main dark:text-white">Calculadora</h2>
         <p className="text-xs text-text-sub dark:text-slate-300 mt-1">
           Cambia entre Factor y Porcentaje. Toca el resultado para copiar.
         </p>

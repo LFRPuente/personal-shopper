@@ -7308,6 +7308,17 @@ function nh() {
   });
   if (!C || !J) return authScreen;
   const canUseWebBothSections = isDesktopLayout && J && J.profile && J.profile.role === "BOTH";
+  const sectionTitle = {
+    HOME: "Shopping Live",
+    MISSIONS: "Shoppings",
+    CLIENTS: "Clientes",
+    SHIPMENTS: "Envíos",
+    EXPENSES: "Gastos",
+    REPORTS: "Reportes",
+    STOCK_CATALOG: "Catálogo de stock",
+    CALCULATOR: "Calculadora",
+    PROFILE: "Settings",
+  }[nl] || "Shopping Live";
   return c.jsx(AppServicesProvider, {
     value: appServicesContextValue,
     children: c.jsx(CalculatorProvider, {
@@ -7345,18 +7356,20 @@ function nh() {
                 c.jsxs("div", {
                   className: "min-w-0",
                   children: [
-                    c.jsxs("h2", {
+                    c.jsx("h1", {
                       className:
-                        "text-sm font-semibold text-text-main dark:text-white leading-tight truncate",
-                      children: ["Hi, ", J.username],
+                        "text-base font-bold text-text-main dark:text-white leading-tight truncate tracking-[-0.02em]",
+                      children: sectionTitle,
                     }),
-                    c.jsx("p", {
+                    c.jsxs("p", {
                       className:
                         "text-xs text-text-sub dark:text-slate-400 font-medium truncate",
-                      children:
-                      X === "PS"
-                          ? "Compratelo con Pao (Tienda)"
-                          : "Agente de Ventas (Oficina)",
+                      children: [
+                        "Hi, ",
+                        J.username,
+                        " · ",
+                        X === "PS" ? "Tienda" : "Oficina",
+                      ],
                     }),
                   ],
                 }),

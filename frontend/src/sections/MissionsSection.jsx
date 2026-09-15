@@ -114,10 +114,7 @@ const MissionsSection = V.memo(function MissionsSection() {
           ? 'modern-heading flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mt-2 mb-2'
           : 'modern-heading flex items-center justify-between mt-2 mb-2',
         children: [
-          c.jsx('h2', {
-            className: 'text-lg font-bold text-text-main dark:text-white',
-            children: 'Shoppings',
-          }),
+          c.jsx('span', { className: 'sr-only', children: 'Shoppings' }),
           !activeMission &&
             c.jsxs('button', {
               onClick: openMissionStart,

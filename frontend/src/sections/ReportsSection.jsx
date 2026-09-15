@@ -45,7 +45,6 @@ const ReportsSection = V.memo(function ReportsSection() {
     }
   };
   return c.jsxs('div', { className: isDesktopLayout ? 'modern-ui modern-reports space-y-5' : 'hidden', children: [
-    c.jsx('h2', { className: 'modern-report-title text-lg font-bold text-text-main dark:text-white', children: 'Reportes' }),
     c.jsxs('div', { className: 'modern-card modern-report-card rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-5 space-y-4 max-w-3xl', children: [
       c.jsxs('div', { children: [
         c.jsx('h3', { className: 'text-sm font-bold text-text-main dark:text-white', children: 'Reporte general' }),

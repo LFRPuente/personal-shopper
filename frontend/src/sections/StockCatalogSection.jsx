@@ -457,7 +457,6 @@ const StockCatalogSection = V.memo(function StockCatalogSection() {
     <div className="modern-ui modern-stock min-h-[calc(100dvh-9rem)] space-y-5">
       <div className="stock-heading flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-text-main dark:text-white">Catalogo de Stock</h1>
           <p className="mt-1 text-sm text-text-sub">Administra productos disponibles, vendidos y pagina publica.</p>
         </div>
         <div className="flex items-center gap-3">

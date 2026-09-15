@@ -134,10 +134,6 @@ const ProfileSection = V.memo(function ProfileSection() {
           c.jsxs("div", {
             className: "space-y-1 pb-1 border-b border-border-light dark:border-border-dark",
             children: [
-              c.jsx("h3", {
-                className: "text-base font-bold text-text-main",
-                children: "Configuraciones",
-              }),
               c.jsx("p", {
                 className: "text-xs text-text-sub",
                 children: "Ajustes del perfil y WhatsApp.",

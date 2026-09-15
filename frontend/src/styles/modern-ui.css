@@ -176,6 +176,11 @@ main:has(.modern-ui) {
 .modern-profile .modern-profile-card h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.045em; }
 .modern-profile .modern-profile-settings h3 { font-size: 20px; letter-spacing: -.025em; }
 .modern-profile .modern-profile-settings :is(input, select, textarea, button) { min-height: 44px; font-size: 16px; }
+.dark .modern-profile .modern-profile-settings { color: #f7f8fc; }
+.dark .modern-profile .modern-profile-settings h3 { color: #f8fafc; }
+.dark .modern-profile .modern-profile-settings :is(p, .text-text-sub) { color: #d5d9e6; }
+.dark .modern-profile .modern-profile-settings label > span { color: #e2e6f0; }
+.dark .modern-profile .modern-profile-settings .grid.rounded-2xl button:not(.bg-primary) { color: #e5e9f4; }
 @media (max-width: 767px) {
   .modern-expenses .modern-expense-table { overflow-x: auto; }
   .modern-expenses .modern-expense-table table { min-width: 620px; }
