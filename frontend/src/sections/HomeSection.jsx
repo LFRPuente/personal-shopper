@@ -957,7 +957,7 @@ const HomeSection = V.memo(function HomeSection() {
                                 c.jsx('p', {
                                   className: isDesktopLayout
                                     ? 'max-w-[240px] truncate text-[13px] font-black leading-tight uppercase tracking-[0.08em]'
-                                    : 'truncate text-[9px] font-black leading-tight uppercase',
+                                : 'truncate text-[11px] font-black leading-tight uppercase',
                                   children: String(getMissionStoreLabel(mission) || '').toUpperCase(),
                                 }),
                                 Number(getShoppingUnreadReviewBadgeCount(mission) || 0) > 0 &&
@@ -975,7 +975,7 @@ const HomeSection = V.memo(function HomeSection() {
                             c.jsx('p', {
                               className: isDesktopLayout
                                 ? 'mt-0.5 max-w-[240px] truncate text-[10px] font-black uppercase tracking-[0.12em] leading-tight opacity-80'
-                                : 'mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.08em] leading-tight opacity-80',
+                                : 'mt-0.5 truncate text-[10px] font-black uppercase tracking-[0.08em] leading-tight opacity-80',
                               children: String(mission?.shopper_name || mission?.shopper_username || mission?.payer_username || 'PS').trim().toUpperCase(),
                             }),
                           ],
@@ -995,15 +995,15 @@ const HomeSection = V.memo(function HomeSection() {
                   className: 'min-w-0',
                   children: [
                     c.jsxs('p', {
-                      className: isDesktopLayout ? 'mt-0.5 truncate text-xs text-gray-500' : 'truncate text-[10px] text-gray-500',
+                      className: isDesktopLayout ? 'mt-0.5 truncate text-xs text-gray-500' : 'truncate text-[12px] text-gray-600',
                       children: [
                         getMissionStoreLabel(activeMission),
-                        ' • ACTIVE',
+                        ' • ACTIVA',
                         activeMissionPayerLabel ? ` • ${activeMissionPayerLabel}` : '',
                       ],
                     }),
                     c.jsxs('p', {
-                      className: isDesktopLayout ? 'truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300' : 'truncate text-[9px] font-semibold text-slate-600 dark:text-slate-300',
+                      className: isDesktopLayout ? 'truncate text-[12px] font-semibold text-slate-600 dark:text-slate-300' : 'truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300',
                       children: [
                         'TOTAL ANOTADOS: ',
                         missionProductsCount,
@@ -1020,7 +1020,7 @@ const HomeSection = V.memo(function HomeSection() {
                         c.jsx('p', {
                           className: isDesktopLayout
                             ? 'text-sm font-bold text-text-main dark:text-white'
-                            : 'text-[10px] font-bold text-text-main dark:text-white',
+                          : 'text-[11px] font-bold text-text-main dark:text-white',
                           children: [openShoppingCount, '/', shoppingTabLimit, ' abiertos'],
                         }),
                       ],
@@ -1226,14 +1226,14 @@ const HomeSection = V.memo(function HomeSection() {
                             }),
                             statusSummary &&
                               c.jsx('p', {
-                                className: 'text-[10px] text-gray-500',
+                              className: 'text-[12px] text-gray-600',
                                 children: statusSummary,
                               }),
                             c.jsxs('div', {
                               className: 'flex gap-2 mt-1',
                               children: [
                                 c.jsxs('span', {
-                                  className: `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
+                                  className: `inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md text-[11px] font-bold ${
                                     balance < 0
                                       ? 'bg-emerald-100 text-emerald-800'
                                       : balance > 0
@@ -1248,7 +1248,7 @@ const HomeSection = V.memo(function HomeSection() {
                                 }),
                                 c.jsxs('span', {
                                   className:
-                                    'inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold',
+                                    'inline-flex items-center gap-0.5 whitespace-nowrap px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-bold',
                                   children: ['Venta: $', formatAmount(totals.sale)],
                                 }),
                               ],

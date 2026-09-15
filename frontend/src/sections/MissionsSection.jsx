@@ -281,7 +281,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                     c.jsxs('p', {
                                       className: isDesktopLayout
                                         ? 'text-[11px] text-gray-500 mt-0.5'
-                                        : 'text-[10px] text-gray-500 mt-0.5',
+                                        : 'text-[12px] text-gray-600 mt-0.5',
                                       children: [
                                         mission.start_time
                                           ? new Date(
@@ -305,7 +305,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                       c.jsxs('p', {
                                         className: isDesktopLayout
                                           ? 'text-[11px] text-gray-500 mt-0.5'
-                                          : 'text-[10px] text-gray-500 mt-0.5',
+                                          : 'text-[12px] text-gray-600 mt-0.5',
                                         children: [
                                           'Creado por: ',
                                           mission.shopper_name || 'Sin dato',
@@ -416,7 +416,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                 ],
                               }),
                               c.jsx('span', {
-                                className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${getMissionStatusClassName(
+                                className: `text-[11px] uppercase font-bold px-2 py-0.5 rounded-full ${getMissionStatusClassName(
                                   mission.status,
                                 )}`,
                                 children: getMissionStatusLabel(mission.status),
@@ -646,7 +646,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                 'min-w-[96px] shrink-0 rounded-lg border border-blue-100 bg-white/90 px-2 py-1.5 shadow-[0_14px_26px_-24px_rgba(37,99,235,0.65)] dark:border-gray-700 dark:bg-gray-900 sm:min-w-[112px]',
                                               children: [
                                                 c.jsxs('p', {
-                                                  className: `text-[9px] font-black uppercase tracking-[0.08em] ${
+                                                  className: `text-[11px] font-black uppercase tracking-[0.08em] ${
                                                     shoppingBalance < -0.009
                                                       ? 'text-emerald-700 dark:text-emerald-300'
                                                       : shoppingBalance > 0.009
@@ -665,7 +665,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                 }),
                                                 c.jsxs('p', {
                                                   className:
-                                                    'mt-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 dark:text-blue-300',
+                                                    'mt-0.5 text-[11px] font-black uppercase tracking-[0.06em] text-blue-700 dark:text-blue-300',
                                                   children: ['Venta: $', formatAmount(shoppingSaleTotal)],
                                                 }),
                                               ],

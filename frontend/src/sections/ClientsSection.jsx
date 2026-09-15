@@ -334,12 +334,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                 children: [
                                   c.jsx('p', {
                                     className:
-                                      `text-[9px] font-black uppercase tracking-[0.08em] ${balanceTotal < 0 ? 'text-emerald-700/75 dark:text-emerald-300' : balanceTotal > 0 ? 'text-slate-700/75 dark:text-slate-200' : 'text-slate-500/75 dark:text-slate-300'}`,
+                                      `text-[11px] font-black uppercase tracking-[0.08em] ${balanceTotal < 0 ? 'text-emerald-700/75 dark:text-emerald-300' : balanceTotal > 0 ? 'text-slate-700/75 dark:text-slate-200' : 'text-slate-500/75 dark:text-slate-300'}`,
                                     children: balanceTotal < 0 ? 'A favor' : 'Deuda',
                                   }),
                                   c.jsxs('p', {
                                     className:
-                                      `mt-0.5 text-[11px] sm:text-[13px] font-extrabold leading-none truncate tabular-nums ${balanceTotal < 0 ? 'text-emerald-800 dark:text-emerald-200' : balanceTotal > 0 ? 'text-slate-800 dark:text-slate-100' : 'text-slate-600 dark:text-slate-200'}`,
+                                      `mt-0.5 text-[13px] font-extrabold leading-none truncate tabular-nums ${balanceTotal < 0 ? 'text-emerald-800 dark:text-emerald-200' : balanceTotal > 0 ? 'text-slate-800 dark:text-slate-100' : 'text-slate-600 dark:text-slate-200'}`,
                                     children: ['$', formatAmount(Math.abs(balanceTotal))],
                                   }),
                                 ],
@@ -349,12 +349,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                   'rounded-xl border border-blue-200 bg-blue-50/95 px-2 py-2 shadow-[0_14px_24px_-22px_rgba(37,99,235,0.48)] min-w-0 overflow-hidden dark:border-blue-800 dark:bg-blue-950/40',
                                 children: [
                                   c.jsx('p', {
-                                    className: 'text-[9px] font-black uppercase tracking-[0.08em] text-blue-700/75 dark:text-blue-300',
+                                    className: 'text-[11px] font-black uppercase tracking-[0.08em] text-blue-700/75 dark:text-blue-300',
                                     children: 'Venta',
                                   }),
                                   c.jsxs('p', {
                                     className:
-                                      'mt-0.5 text-[11px] sm:text-[13px] font-extrabold text-blue-800 dark:text-blue-200 leading-none truncate tabular-nums',
+                                      'mt-0.5 text-[13px] font-extrabold text-blue-800 dark:text-blue-200 leading-none truncate tabular-nums',
                                     children: ['$', formatAmount(saleTotal || totals.sale)],
                                   }),
                                 ],
@@ -363,7 +363,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           }),
                           client.tags &&
                             c.jsx('p', {
-                              className: 'text-[10px] text-gray-400 dark:text-slate-300 mt-0.5 max-w-[150px] truncate',
+                              className: 'text-[12px] text-gray-500 dark:text-slate-300 mt-0.5 max-w-[150px] truncate',
                               children: client.tags,
                             }),
                         ],
@@ -450,16 +450,16 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           className: 'border-t border-border-light dark:border-border-dark px-4 py-3',
                           children: [
                             !!getClientPhoneDisplay(client) &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-1', children: ['📱 ', getClientPhoneDisplay(client)] }),
+                              c.jsxs('p', { className: 'text-[12px] text-gray-600 dark:text-slate-300 mb-1', children: ['📱 ', getClientPhoneDisplay(client)] }),
                             client.email &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-1', children: ['📧 ', client.email] }),
+                              c.jsxs('p', { className: 'text-[12px] text-gray-600 dark:text-slate-300 mb-1', children: ['📧 ', client.email] }),
                             client.shipping_address &&
-                              c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300 mb-2', children: ['📦 ', client.shipping_address] }),
+                              c.jsxs('p', { className: 'text-[12px] text-gray-600 dark:text-slate-300 mb-2', children: ['📦 ', client.shipping_address] }),
                             Array.isArray(client.shipping_addresses) && client.shipping_addresses.length > 0 &&
                               c.jsx('div', {
                                 className: 'mb-2 space-y-1',
                                 children: client.shipping_addresses.map((address, index) =>
-                                  c.jsxs('p', { className: 'text-[10px] text-gray-500 dark:text-slate-300', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
+                                  c.jsxs('p', { className: 'text-[12px] text-gray-600 dark:text-slate-300', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
                                 ),
                               }),
                             visibleProducts.length === 0 && (client.payments || []).length === 0
@@ -485,7 +485,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                   children: [
                                                     c.jsx('p', { className: 'font-semibold text-xs truncate', children: getEntryTitle(entry) }),
                                                     c.jsxs('p', {
-                                                      className: 'text-[10px] text-gray-500 dark:text-slate-300',
+                                                      className: 'text-[12px] text-gray-600 dark:text-slate-300',
                                                       children: [
                                                         getProductStatusSummary(entry.statusItems || entry.items || []) || 'Sin items',
                                                         (entry.payments || []).length > 0 ? c.jsxs(c.Fragment, { children: [' • ', entry.payments.length, ' pago(s)'] }) : null,
@@ -495,10 +495,10 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                                     c.jsxs('div', {
                                                       className: 'mt-1 flex flex-wrap gap-1',
                                                       children: [
-                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700', children: ['Venta: $', formatAmount(entry.productsTotal)] }),
-                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700', children: ['Pagado: $', formatAmount(entry.paymentsTotal)] }),
+                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700', children: ['Venta: $', formatAmount(entry.productsTotal)] }),
+                                                        c.jsxs('span', { className: 'inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700', children: ['Pagado: $', formatAmount(entry.paymentsTotal)] }),
                                                         c.jsxs('span', {
-                                                          className: `inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold ${entry.balance < 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`,
+                                                          className: `inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-bold ${entry.balance < 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`,
                                                           children: [entry.balance < 0 ? 'A favor: $' : 'Deuda: $', formatAmount(entry.balance < 0 ? Math.abs(entry.balance) : entry.balance)],
                                                         }),
                                                       ],
