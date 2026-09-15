@@ -196,6 +196,7 @@ main:has(.modern-ui) {
   .modern-client-header { padding: 16px; gap: 10px; }
   .modern-client-actions { grid-column: 1 / -1; padding-top: 4px; }
   .modern-shipment { padding: 16px; }
+  .modern-shipments .modern-shipment-card > div:first-child > div:last-child button { width: 34px; height: 34px; border-radius: 10px; }
   .modern-shipment-summary { flex-basis: 100%; }
   .modern-metrics { grid-template-columns: minmax(0, 1fr); }
   .modern-metric { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

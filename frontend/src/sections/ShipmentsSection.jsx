@@ -1114,7 +1114,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
           })
         : c.jsx('div', {
             className: isDesktopLayout
-              ? 'modern-list grid grid-cols-2 gap-4'
+              ? 'modern-list modern-list--desktop grid grid-cols-1 xl:grid-cols-2 gap-4'
               : 'modern-list space-y-2',
             children: shipments.map((shipment) => {
               const isExpanded = isShipmentExpanded(shipment.id);
@@ -1220,7 +1220,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                         c.jsxs('div', {
                           className: isDesktopLayout
                             ? 'flex items-center gap-1'
-                            : 'flex w-full items-center justify-end gap-1 border-t border-border-light pt-2 dark:border-border-dark',
+                            : 'flex w-full items-center justify-end gap-0.5 pt-1',
                           children: [
                             c.jsx('button', {
                               type: 'button',
