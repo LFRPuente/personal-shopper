@@ -66,14 +66,14 @@ const ProfileSection = V.memo(function ProfileSection() {
 
   return c.jsxs("div", {
     className: isDesktopLayout
-      ? "grid gap-6 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] items-start"
-      : "space-y-6",
+      ? "modern-ui modern-profile grid gap-6 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] items-start"
+      : "modern-ui modern-profile space-y-6",
     children: [
       c.jsxs("div", {
         className:
           isDesktopLayout
-            ? "bg-surface-light p-6 rounded-3xl border shadow-card text-center xl:sticky xl:top-6"
-            : "bg-surface-light p-6 rounded-2xl border shadow-card text-center",
+            ? "modern-card modern-profile-card bg-surface-light p-6 rounded-3xl border shadow-card text-center xl:sticky xl:top-6"
+            : "modern-card modern-profile-card bg-surface-light p-6 rounded-2xl border shadow-card text-center",
         children: [
           c.jsx("div", {
             className:
@@ -126,8 +126,8 @@ const ProfileSection = V.memo(function ProfileSection() {
       }),
       c.jsxs("div", {
         className: isDesktopLayout
-          ? "bg-surface-light p-5 rounded-3xl border shadow-card space-y-4"
-          : "bg-surface-light p-4 rounded-2xl border shadow-card space-y-3",
+          ? "modern-card modern-profile-settings bg-surface-light p-5 rounded-3xl border shadow-card space-y-4"
+          : "modern-card modern-profile-settings bg-surface-light p-4 rounded-2xl border shadow-card space-y-3",
         children: [
           c.jsxs("div", {
             className: "space-y-1 pb-1 border-b border-border-light dark:border-border-dark",

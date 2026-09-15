@@ -107,12 +107,12 @@ const MissionsSection = V.memo(function MissionsSection() {
   }, [getMissionSearchBlob, getSearchTokens, missionSearch, missions]);
 
   return c.jsxs('div', {
-    className: isDesktopLayout ? 'space-y-6' : 'space-y-4',
+    className: isDesktopLayout ? 'modern-ui modern-missions space-y-6' : 'modern-ui modern-missions space-y-4',
     children: [
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mt-2 mb-2'
-          : 'flex items-center justify-between mt-2 mb-2',
+          ? 'modern-heading flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mt-2 mb-2'
+          : 'modern-heading flex items-center justify-between mt-2 mb-2',
         children: [
           c.jsx('h2', {
             className: 'text-lg font-bold text-text-main dark:text-white',
@@ -122,7 +122,7 @@ const MissionsSection = V.memo(function MissionsSection() {
             c.jsxs('button', {
               onClick: openMissionStart,
               className:
-                'text-xs font-bold bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition flex items-center gap-1',
+                'modern-button modern-button--primary text-xs font-bold bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition flex items-center gap-1',
               children: [
                 c.jsx('span', {
                   className: 'material-symbols-outlined text-[16px]',
@@ -139,8 +139,8 @@ const MissionsSection = V.memo(function MissionsSection() {
         onChange: (event) => setMissionSearch(event.target.value),
         placeholder: 'Buscar misión o fecha...',
         className: isDesktopLayout
-          ? 'w-full max-w-2xl px-4 py-3 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary'
-          : 'w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary',
+          ? 'modern-mission-search w-full max-w-2xl px-4 py-3 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary'
+          : 'modern-mission-search w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary',
       }),
       (missions || []).length === 0
         ? c.jsxs('div', {
@@ -170,8 +170,8 @@ const MissionsSection = V.memo(function MissionsSection() {
           })
         : c.jsx('div', {
             className: isDesktopLayout
-              ? 'grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
-              : 'space-y-3',
+              ? 'modern-list grid gap-4 xl:grid-cols-2 2xl:grid-cols-3'
+              : 'modern-list space-y-3',
             children: filteredMissions.map((mission) => {
               const isExpanded = expandedMissionId === mission.id;
               const isActiveMission = activeMission && activeMission.id === mission.id;
@@ -221,7 +221,7 @@ const MissionsSection = V.memo(function MissionsSection() {
               return c.jsxs(
                 'div',
                 {
-                  className: `bg-surface-light dark:bg-surface-dark rounded-xl border shadow-sm overflow-hidden transition-all ui-card-quiet h-full ${
+                  className: `modern-card modern-mission-card bg-surface-light dark:bg-surface-dark rounded-xl border shadow-sm overflow-hidden transition-all ui-card-quiet h-full ${
                     isDesktopLayout ? 'rounded-2xl' : ''
                   } ${
                     isActiveMission

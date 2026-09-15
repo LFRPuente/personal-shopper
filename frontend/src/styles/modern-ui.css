@@ -146,6 +146,41 @@ main:has(.modern-ui) {
   .modern-stock .stock-product-row > div:nth-child(n+3):not(:last-child) { grid-column: span 1; }
   .modern-stock .stock-product-row > div:last-child { grid-column: 1 / -1; justify-content: flex-start; border-top: 1px solid var(--modern-border); padding-top: 12px; }
 }
+.modern-missions .modern-heading h2, .modern-expenses .modern-heading h2, .modern-report-title { font-size: clamp(26px, 3vw, 34px); font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
+.modern-missions .modern-mission-search { min-height: 44px; max-width: 46rem; border-color: var(--modern-border); background: var(--modern-surface); color: var(--modern-ink); font-size: 16px; }
+.modern-missions .modern-mission-card { border-color: var(--modern-border); box-shadow: var(--modern-shadow); }
+.modern-missions .modern-mission-card > div:first-child { padding: 20px; }
+.modern-missions .modern-mission-card p.font-bold { font-size: 18px; letter-spacing: -.025em; }
+.modern-missions .modern-mission-card .text-\[10px\], .modern-missions .modern-mission-card .text-\[11px\] { font-size: 12px; color: var(--modern-muted); }
+.modern-missions .modern-mission-card button { min-height: 40px; }
+.modern-expenses .modern-heading { margin-bottom: 24px; }
+.modern-expenses .modern-expense-form, .modern-expenses .modern-expense-table { border-color: var(--modern-border); box-shadow: var(--modern-shadow); }
+.modern-expenses .modern-expense-form :is(input, button) { min-height: 44px; font-size: 15px; }
+.modern-expenses .modern-expense-table thead { background: var(--modern-inset); color: var(--modern-muted); }
+.modern-expenses .modern-expense-table tbody tr:hover { background: var(--modern-inset); }
+.modern-calculator { max-width: 42rem; }
+.modern-calculator :is(.calc-header, .calc-input-panel, .calc-result) { border-color: var(--modern-border); background: var(--modern-surface); box-shadow: var(--modern-shadow); }
+.modern-calculator .calc-header h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 750; letter-spacing: -.045em; }
+.modern-calculator .calc-header p { color: var(--modern-muted); font-size: 15px; }
+.modern-calculator .calc-input-panel label { color: var(--modern-muted); font-size: 14px; }
+.modern-calculator .calc-input-panel .calc-input { min-height: 46px; border-color: var(--modern-border); background: var(--modern-inset); color: var(--modern-ink); font-size: 17px; }
+.modern-calculator .calc-result { min-height: 128px; }
+.modern-calculator .calc-result p:first-child { color: var(--modern-muted); font-size: 13px; }
+.modern-calculator .calc-result p:nth-child(2) { font-size: clamp(32px, 6vw, 44px); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.modern-reports { max-width: 60rem; }
+.modern-reports .modern-report-card { padding: 24px; border-color: var(--modern-border); }
+.modern-reports .modern-report-card h3 { font-size: 21px; letter-spacing: -.03em; }
+.modern-reports .modern-report-card p, .modern-reports .modern-report-card label { color: var(--modern-muted); font-size: 14px; }
+.modern-reports .modern-report-card input, .modern-reports .modern-report-card button { min-height: 44px; font-size: 15px; }
+.modern-profile .modern-profile-card, .modern-profile .modern-profile-settings { border-color: var(--modern-border); box-shadow: var(--modern-shadow); }
+.modern-profile .modern-profile-card h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.045em; }
+.modern-profile .modern-profile-settings h3 { font-size: 20px; letter-spacing: -.025em; }
+.modern-profile .modern-profile-settings :is(input, select, textarea, button) { min-height: 44px; font-size: 16px; }
+@media (max-width: 767px) {
+  .modern-expenses .modern-expense-table { overflow-x: auto; }
+  .modern-expenses .modern-expense-table table { min-width: 620px; }
+  .modern-reports .modern-report-card { padding: 18px; }
+}
 @media (min-width: 1100px) { .modern-list--desktop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   .modern-heading { gap: 10px; }

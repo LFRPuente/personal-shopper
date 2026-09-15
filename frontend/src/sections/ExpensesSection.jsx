@@ -72,8 +72,8 @@ const ExpensesSection = V.memo(function ExpensesSection() {
       notifyError((error && error.message) || 'No se pudo eliminar el gasto.');
     }
   };
-  return c.jsxs('div', { className: isDesktopLayout ? 'space-y-5' : 'hidden', children: [
-    c.jsxs('div', { className: 'flex items-center justify-between gap-4', children: [
+  return c.jsxs('div', { className: isDesktopLayout ? 'modern-ui modern-expenses space-y-5' : 'hidden', children: [
+    c.jsxs('div', { className: 'modern-heading flex items-center justify-between gap-4', children: [
       c.jsx('h2', { className: 'text-lg font-bold text-text-main dark:text-white', children: 'Gastos' }),
       c.jsxs('div', { className: 'relative', children: [
         c.jsxs('button', { type: 'button', onClick: () => setMonthPickerOpen((value) => !value), className: 'flex min-w-[170px] items-center justify-between gap-3 rounded-xl border border-border-light bg-white px-3 py-2 text-sm font-bold text-text-main shadow-sm hover:bg-slate-50 dark:border-border-dark dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800', children: [
@@ -100,7 +100,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
         ] }),
       ] }),
     ] }),
-    c.jsxs('form', { onSubmit: saveExpense, className: 'grid grid-cols-1 gap-3 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 md:grid-cols-[150px_1fr_1.5fr_150px_auto]', children: [
+    c.jsxs('form', { onSubmit: saveExpense, className: 'modern-expense-form grid grid-cols-1 gap-3 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 md:grid-cols-[150px_1fr_1.5fr_150px_auto]', children: [
       c.jsx('input', { type: 'date', value: form.expense_date, onChange: (event) => setForm({ ...form, expense_date: event.target.value }), className: 'rounded-xl border dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),
       c.jsxs('div', { children: [
         c.jsx('input', { list: 'expense-types', value: form.expense_type, onChange: (event) => setForm({ ...form, expense_type: event.target.value }), placeholder: 'Tipo de gasto', className: 'w-full rounded-xl border dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),
@@ -110,7 +110,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
       c.jsx('input', { type: 'number', min: '0', step: '0.01', value: form.amount, onChange: (event) => setForm({ ...form, amount: event.target.value }), placeholder: lastAmount ? `Ultimo ${lastAmount}` : 'Monto', className: 'rounded-xl border dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white' }),
       c.jsx('button', { disabled: saving, className: 'rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60', children: saving ? 'Guardando...' : 'Guardar' }),
     ] }),
-    c.jsx('div', { className: 'overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark', children: c.jsxs('table', { className: 'w-full text-left text-sm', children: [
+    c.jsx('div', { className: 'modern-expense-table overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark', children: c.jsxs('table', { className: 'w-full text-left text-sm', children: [
       c.jsx('thead', { className: 'bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900 dark:text-slate-400', children: c.jsxs('tr', { children: ['Fecha', 'Tipo', 'Descripcion', 'Monto', ''].map((header) => c.jsx('th', { className: 'px-4 py-3 font-bold', children: header }, header || 'actions')) }) }),
       c.jsx('tbody', { className: 'divide-y divide-border-light dark:divide-border-dark', children: (expenses || []).slice(0, 50).map((expense) => c.jsxs('tr', { className: 'text-text-main dark:text-white', children: [
         c.jsx('td', { className: 'px-4 py-3 whitespace-nowrap', children: expense.expense_date }),

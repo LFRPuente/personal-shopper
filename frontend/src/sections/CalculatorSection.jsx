@@ -49,8 +49,8 @@ const CalculatorSection = V.memo(function CalculatorSection() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl p-4 border border-border-light dark:border-border-dark bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 shadow-sm">
+    <div className="modern-ui modern-calculator space-y-4">
+      <div className="calc-header rounded-2xl p-4 border border-border-light dark:border-border-dark bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 shadow-sm">
         <h2 className="text-lg font-bold text-text-main dark:text-white">Calculadora</h2>
         <p className="text-xs text-text-sub dark:text-slate-300 mt-1">
           Cambia entre Factor y Porcentaje. Toca el resultado para copiar.
@@ -72,7 +72,7 @@ const CalculatorSection = V.memo(function CalculatorSection() {
       </div>
 
       {calcMode === "FACTOR" ? (
-        <div className="rounded-2xl p-4 border border-amber-100 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-amber-950/30 shadow-sm space-y-3">
+        <div className="calc-input-panel rounded-2xl p-4 border border-amber-100 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-amber-950/30 shadow-sm space-y-3">
           <div>
             <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Precio</label>
             <input
@@ -106,7 +106,7 @@ const CalculatorSection = V.memo(function CalculatorSection() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-emerald-950/30 shadow-sm space-y-3">
+        <div className="calc-input-panel rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-emerald-950/30 shadow-sm space-y-3">
           <div>
             <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">Monto</label>
             <input
@@ -167,7 +167,7 @@ const CalculatorSection = V.memo(function CalculatorSection() {
 
       <button
         onClick={() => copyCalculatorValue(El)}
-        className="w-full rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition text-left"
+        className="calc-result w-full rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition text-left"
       >
         <p className="text-[10px] uppercase font-bold tracking-wide text-gray-500 dark:text-gray-400">Resultado</p>
         <p className="text-3xl font-black mt-1 text-gray-900 dark:text-white">
