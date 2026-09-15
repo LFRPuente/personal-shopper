@@ -1115,14 +1115,19 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'home-live-actions mt-3 grid grid-cols-2 xl:grid-cols-4 gap-2' : 'home-live-actions mt-2 grid grid-cols-4 gap-2',
+              className: isDesktopLayout ? 'home-live-actions mt-3 flex flex-wrap items-center gap-2' : 'home-live-actions mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2',
               children: [
                 activeMission.status === 'ACTIVE'
-                  ? c.jsx('button', { onClick: pauseMission, className: isDesktopLayout ? 'py-1.5 rounded-lg bg-amber-500 text-white text-[10px] font-bold hover:bg-amber-600' : 'py-2 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600', children: 'Pausar' }, 'pause')
-                  : c.jsx('button', { onClick: resumeMission, className: isDesktopLayout ? 'py-1.5 rounded-lg bg-green-600 text-white text-[10px] font-bold hover:bg-green-700' : 'py-2 rounded-lg bg-green-600 text-white text-[11px] font-bold hover:bg-green-700', children: 'Reanudar' }, 'resume'),
-                c.jsx('button', { onClick: endMission, className: isDesktopLayout ? 'py-1.5 rounded-lg bg-red-500 text-white text-[10px] font-bold hover:bg-red-600' : 'py-2 rounded-lg bg-red-500 text-white text-[11px] font-bold hover:bg-red-600', children: 'Finalizar' }, 'end'),
-                c.jsx('button', { onClick: () => setMissionSummaryOpen(true), className: isDesktopLayout ? 'py-1.5 rounded-lg bg-primary text-white text-[10px] font-bold hover:bg-primary-dark' : 'py-2 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark', children: 'Ver' }, 'view'),
-                c.jsx('button', { onClick: openMissionTicketPicker, disabled: missionTicketUploading, className: `${isDesktopLayout ? 'py-1.5 text-[10px]' : 'py-2 text-[11px]'} rounded-lg text-white font-bold ${missionTicketUploading ? 'bg-purple-400 cursor-wait opacity-80' : 'bg-purple-600 hover:bg-purple-700'}`, children: missionTicketUploading ? 'Subiendo...' : 'Ticket' }, 'ticket'),
+                  ? c.jsx('button', { onClick: pauseMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-amber-500 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(217,119,6,0.95)] hover:bg-amber-600`, children: 'Pausar compra' }, 'pause')
+                  : c.jsx('button', { onClick: resumeMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-emerald-600 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(5,150,105,0.95)] hover:bg-emerald-700`, children: 'Reanudar compra' }, 'resume'),
+                c.jsx('button', { onClick: endMission, className: `${isDesktopLayout ? 'px-4 py-2' : 'px-3 py-2.5'} rounded-xl border border-rose-300 bg-rose-50 text-[12px] font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50`, children: 'Finalizar' }, 'end'),
+                c.jsxs('div', {
+                  className: isDesktopLayout ? 'ml-auto flex items-center gap-2' : 'col-span-2 grid grid-cols-2 gap-2',
+                  children: [
+                    c.jsx('button', { onClick: () => setMissionSummaryOpen(true), className: 'rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary hover:bg-primary/10 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200', children: 'Resumen' }, 'view'),
+                    c.jsx('button', { onClick: openMissionTicketPicker, disabled: missionTicketUploading, className: `rounded-xl border px-3 py-2 text-[12px] font-bold ${missionTicketUploading ? 'border-violet-300 bg-violet-100 text-violet-700 cursor-wait opacity-80 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50'}`, children: missionTicketUploading ? 'Subiendo…' : 'Ticket' }, 'ticket'),
+                  ],
+                }),
               ],
             }),
             c.jsx('div', {
