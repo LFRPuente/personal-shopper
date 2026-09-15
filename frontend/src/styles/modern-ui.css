@@ -185,9 +185,18 @@ main:has(.modern-ui) {
 .modern-reports .modern-report-card p, .modern-reports .modern-report-card label { color: var(--modern-muted); font-size: 14px; }
 .modern-reports .modern-report-card input, .modern-reports .modern-report-card button { min-height: 44px; font-size: 15px; }
 .modern-profile .modern-profile-card, .modern-profile .modern-profile-settings { border-color: var(--modern-border); box-shadow: var(--modern-shadow); }
+.modern-profile { max-width: 1180px; margin-inline: auto; }
 .modern-profile .modern-profile-card h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.045em; }
+.modern-profile .modern-profile-card > span { background: var(--modern-tint); color: var(--modern-ink); }
+.modern-profile .modern-profile-phone { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 7px 12px; border: 1px solid var(--modern-border); border-radius: 999px; background: var(--modern-inset); color: var(--modern-ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.modern-profile .modern-profile-settings > .profile-setting-group { border-top: 1px solid var(--modern-border); padding-top: 18px; }
 .modern-profile .modern-profile-settings h3 { font-size: 20px; letter-spacing: -.025em; }
 .modern-profile .modern-profile-settings :is(input, select, textarea, button) { min-height: 44px; font-size: 16px; }
+.modern-profile .modern-profile-settings .grid.rounded-2xl { border: 1px solid var(--modern-border); background: var(--modern-inset); padding: 5px; }
+.modern-profile .modern-profile-settings .grid.rounded-2xl button { min-height: 42px; color: var(--modern-muted); }
+.modern-profile .modern-profile-settings .grid.rounded-2xl button.bg-primary { box-shadow: 0 5px 14px -9px rgb(52 31 125 / 80%); }
+.modern-profile .modern-profile-settings > textarea { min-height: 220px; background: var(--modern-inset); border-color: var(--modern-border); color: var(--modern-ink); line-height: 1.55; }
+.modern-profile .modern-profile-settings > div.rounded-2xl { background: var(--modern-inset); border-color: var(--modern-border); }
 .dark .modern-profile .modern-profile-settings { color: #f7f8fc; }
 .dark .modern-profile .modern-profile-settings h3 { color: #f8fafc; }
 .dark .modern-profile .modern-profile-settings :is(p, .text-text-sub) { color: #d5d9e6; }
@@ -195,6 +204,7 @@ main:has(.modern-ui) {
 .dark .modern-profile .modern-profile-settings :is(input, select, textarea) { color: #f8fafc; }
 .dark .modern-profile .modern-profile-settings :is(input, textarea)::placeholder { color: #9da5b8; opacity: 1; }
 .dark .modern-profile .modern-profile-card .text-text-main { color: #f8fafc; }
+.dark .modern-profile .modern-profile-card :is(.text-text-sub, .modern-profile-phone) { color: #e3e7f1; }
 .dark .modern-profile .modern-profile-settings .grid.rounded-2xl button:not(.bg-primary) { color: #e5e9f4; }
 @media (max-width: 767px) {
   .modern-expenses .modern-expense-table { overflow-x: auto; }

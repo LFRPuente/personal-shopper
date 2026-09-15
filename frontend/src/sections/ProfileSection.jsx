@@ -99,7 +99,7 @@ const ProfileSection = V.memo(function ProfileSection() {
           }),
           !!String((profileSettingsForm.phone || "").trim()) &&
             c.jsxs("p", {
-              className: "mt-4 text-sm text-text-main text-center",
+              className: "modern-profile-phone mt-4 text-sm text-text-main text-center",
               children: [
                 "Tel: ",
                 String((profileSettingsForm.phone_country_code || "+52").trim()),
@@ -121,7 +121,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                 className: "material-symbols-outlined",
                 children: "logout",
               }),
-              "Logout",
+              "Cerrar sesión",
             ],
           }),
         ],
@@ -141,7 +141,7 @@ const ProfileSection = V.memo(function ProfileSection() {
             ],
           }),
           c.jsxs("div", {
-            className: "space-y-3",
+            className: "profile-setting-group space-y-3",
             children: [
               c.jsxs("div", {
                 children: [
@@ -151,7 +151,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                   }),
                   c.jsx("p", {
                     className: "text-xs text-text-sub mt-1",
-                    children: "Nombre, codigo de pais y telefono del usuario.",
+                    children: "Nombre, código de país y teléfono del usuario.",
                   }),
                 ],
               }),
@@ -184,7 +184,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                     children: [
                       c.jsx("span", {
                         className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                        children: "Codigo de pais",
+                        children: "Código de país",
                       }),
                       c.jsx("input", {
                         type: "text",
@@ -206,7 +206,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                     children: [
                       c.jsx("span", {
                         className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                        children: "Telefono",
+                        children: "Teléfono",
                       }),
                       c.jsx("input", {
                         type: "text",
@@ -248,7 +248,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                         children: [
                           c.jsx("span", {
                             className: "block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1",
-                            children: "Nuevo password",
+                            children: "Nueva contraseña",
                           }),
                           c.jsx("input", {
                             type: "password",
@@ -279,7 +279,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                         disabled: !String(ownPassword || "").trim() || ownPasswordSaving,
                         className:
                           "md:self-end w-full md:w-auto h-10 px-4 rounded-xl text-xs font-bold transition bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed",
-                        children: ownPasswordSaving ? "Guardando..." : "Cambiar password",
+                        children: ownPasswordSaving ? "Guardando..." : "Cambiar contraseña",
                       }),
                     ],
                   }),
@@ -310,7 +310,7 @@ const ProfileSection = V.memo(function ProfileSection() {
             ],
           }),
           c.jsxs("div", {
-            className: "space-y-2",
+            className: "profile-setting-group space-y-2",
             children: [
               c.jsxs("div", {
                 children: [
@@ -355,7 +355,7 @@ const ProfileSection = V.memo(function ProfileSection() {
           }),
           isBothRole &&
             c.jsxs("div", {
-              className: "space-y-2",
+              className: "profile-setting-group space-y-2",
               children: [
                 c.jsxs("div", {
                   children: [
@@ -397,7 +397,7 @@ const ProfileSection = V.memo(function ProfileSection() {
               ],
             }),
           c.jsxs("div", {
-            className: "space-y-2",
+            className: "profile-setting-group space-y-2",
             children: [
               c.jsxs("div", {
                 children: [
@@ -444,7 +444,7 @@ const ProfileSection = V.memo(function ProfileSection() {
             children: [
               c.jsx("h3", {
                 className: "text-sm font-bold text-text-main",
-                children: "Configuracion de desglose",
+                children: "Configuración de desglose",
               }),
               c.jsx("p", {
                 className: "mt-1 text-xs text-text-sub",
@@ -474,7 +474,7 @@ const ProfileSection = V.memo(function ProfileSection() {
                 onClick: () => persistDefaultBreakdownTemplate(DEFAULT_BREAKDOWN_TEMPLATE),
                 className:
                   "px-3 py-2 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-xs font-bold",
-                children: "Reset",
+                children: "Restablecer",
               }),
               c.jsx("p", {
                 className: "text-[11px] text-text-sub",
@@ -616,7 +616,7 @@ const ProfileSection = V.memo(function ProfileSection() {
               },
               className:
                 "w-full px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 text-sm font-bold transition",
-              children: "EDICION DE USUARIOS",
+              children: "Editar usuarios",
             }),
         ],
       }),
