@@ -37,6 +37,7 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
     getMissionStoreLabel,
   } = useShoppingsContext();
   const [search, setSearch] = V.useState('');
+  const dialogRef = V.useRef(null);
 
   V.useEffect(() => {
     if (!open) {
@@ -60,6 +61,11 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
     };
   }, [open, onClose]);
 
+  V.useEffect(() => {
+    if (!open) return;
+    dialogRef.current?.querySelector('input')?.focus();
+  }, [open]);
+
   const currentMission = open ? activeMission : null;
   const currentClientIds = getShoppingClientIds(currentMission);
   const filteredClients = [...(Array.isArray(clients) ? clients : [])]
@@ -73,11 +79,15 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
   if (!open) return null;
 
   return c.jsx('div', {
-    className: 'fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-3 py-6',
+    className: 'ui-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-3 py-6',
     onClick: onClose,
     children: c.jsxs('div', {
+      ref: dialogRef,
+      role: 'dialog',
+      'aria-modal': true,
+      'aria-labelledby': 'shopping-client-assignment-title',
       className:
-        'w-full max-w-3xl overflow-hidden rounded-3xl border border-border-light bg-surface-light shadow-2xl dark:border-border-dark dark:bg-surface-dark',
+        'ui-sheet w-full max-w-3xl overflow-hidden rounded-3xl border border-border-light bg-surface-light shadow-2xl dark:border-border-dark dark:bg-surface-dark',
       onClick: (event) => event.stopPropagation(),
       children: [
         c.jsxs('div', {
@@ -90,6 +100,7 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
                   children: 'Clients in Shopping',
                 }),
                 c.jsx('h2', {
+                  id: 'shopping-client-assignment-title',
                   className: 'text-base font-black text-text-main dark:text-white',
                   children: ['ASIGNAR CLIENTES - ', getMissionStoreLabel(currentMission)],
                 }),
@@ -102,6 +113,7 @@ const ShoppingClientAssignmentModal = V.memo(function ShoppingClientAssignmentMo
             c.jsx('button', {
               type: 'button',
               onClick: onClose,
+              'aria-label': 'Cerrar asignación de clientes',
               className:
                 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-light text-text-sub hover:bg-gray-100 dark:border-border-dark dark:hover:bg-slate-800',
               children: c.jsx('span', {

@@ -70,6 +70,7 @@ If this conversation is interrupted, say: `Continúa el plan de rediseño Dev, f
 
 ## Current local state
 
-- No redesign change has been deployed.
-- A non-integrated local draft exists under `frontend/src/components/ui/` and `frontend/src/styles/`; it is not imported by the app.
-- `lucide-react` was added locally as a possible icon library, but no existing UI uses it yet.
+- Dev frontend has the shared visual system and the Shopping Live, Clients, Shipments, gallery, and modal foundation deployed through commit `28a7964`.
+- Production and every database remain untouched by this redesign.
+- Next: finish Shopping Live accessibility/states, then redesign Stock, Missions, Expenses, Calculator, Reports, and Profile using the same system.
+- A non-integrated local draft remains under `frontend/src/components/ui/`; it is not used by the app.

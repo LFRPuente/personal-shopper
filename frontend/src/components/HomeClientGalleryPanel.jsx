@@ -97,10 +97,12 @@ const HomeClientGalleryPanel = V.memo(function HomeClientGalleryPanel({
             : "grid grid-cols-3 gap-1",
         children: [
           c.jsxs(
-            "div",
+            "button",
             {
-              onClick: newProductUploading ? void 0 : onAddNewProduct,
-              className: `bg-gray-50 dark:bg-gray-800 ${
+              type: "button",
+              onClick: onAddNewProduct,
+              disabled: newProductUploading,
+              className: `w-full bg-gray-50 text-inherit dark:bg-gray-800 ${
                 isDesktopLayout ? "rounded-2xl h-52" : "rounded-lg h-40"
               } flex flex-col items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 transition group ${
                 newProductUploading

@@ -136,16 +136,21 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
           c.jsx("div", {
             className: "absolute inset-0 overflow-hidden",
             children: product.image
-              ? c.jsx("img", {
-                  src: resolveMediaUrl(product.image),
-                  className: "w-full h-full object-cover cursor-zoom-in",
+              ? c.jsx("button", {
+                  type: "button",
                   onClick: () =>
                     setFullscreenImage({
                       url: resolveMediaUrl(product.image),
                       copyOnClick: true,
                       copyMessage: "Imagen copiada.",
                     }),
-                  title: "Abrir imagen",
+                  className: "h-full w-full cursor-zoom-in focus-visible:outline focus-visible:outline-3 focus-visible:outline-primary focus-visible:outline-offset-[-3px]",
+                  "aria-label": `Abrir imagen de ${product.name || "producto"}`,
+                  children: c.jsx("img", {
+                    src: resolveMediaUrl(product.image),
+                    alt: product.name || "Producto",
+                    className: "w-full h-full object-cover",
+                  }),
                 })
               : c.jsxs("div", {
                   className: "w-full h-full flex flex-col items-center justify-center text-gray-400",
