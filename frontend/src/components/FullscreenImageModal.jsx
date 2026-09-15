@@ -1,4 +1,4 @@
-import { V, c } from '../utils.js';
+import { V, c, useDialogFocus } from '../utils.js';
 
 const FullscreenImageModal = V.memo(function FullscreenImageModal({
   fullscreenImage,
@@ -8,7 +8,14 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
   getFullscreenImageUrl,
   handleFullscreenImageCopy,
 }) {
+  const dialogRef = V.useRef(null);
+  useDialogFocus(dialogRef);
   if (!fullscreenImage) return null;
+
+  const isCopyable = typeof fullscreenImage === 'object' && fullscreenImage && fullscreenImage.copyOnClick;
+  const imageTitle = typeof fullscreenImage === 'object' && fullscreenImage && fullscreenImage.title
+    ? fullscreenImage.title
+    : 'Imagen ampliada';
 
   return c.jsx("div", {
     className: overlayBackdropClass(
@@ -17,12 +24,22 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
     ),
     onClick: () => dismissActiveOverlayRef.current(),
     children: c.jsxs("div", {
+      ref: dialogRef,
+      role: "dialog",
+      "aria-modal": true,
+      "aria-labelledby": "fullscreen-image-title",
+      tabIndex: -1,
       className: overlaySheetClass(
         "relative flex max-h-[calc(100dvh-2rem)] max-w-[calc(100dvw-1.5rem)] flex-col items-center justify-center ui-sheet sm:max-w-[calc(100dvw-2rem)]",
         "fullscreen-image",
       ),
       onClick: (event) => event.stopPropagation(),
       children: [
+        c.jsx("h2", {
+          id: "fullscreen-image-title",
+          className: "sr-only",
+          children: imageTitle,
+        }),
         c.jsxs("div", {
           className: "absolute -top-11 right-0 flex items-center gap-2",
           children: [
@@ -35,6 +52,8 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
               children: "Abrir enlace",
             }),
             c.jsx("button", {
+              "data-dialog-initial-focus": true,
+              "aria-label": "Cerrar imagen ampliada",
               onClick: () => dismissActiveOverlayRef.current(),
               className:
                 "w-9 h-9 rounded-full bg-white text-gray-700 border border-gray-200 flex items-center justify-center shadow",
@@ -50,8 +69,17 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
           children: [
             c.jsx("img", {
               src: getFullscreenImageUrl(fullscreenImage),
+              alt: imageTitle,
+              role: isCopyable ? 'button' : undefined,
+              tabIndex: isCopyable ? 0 : undefined,
+              "aria-label": isCopyable ? `${imageTitle}. Presiona Enter para copiarla.` : undefined,
               className: `block max-h-[calc(100dvh-5.5rem)] max-w-[calc(100dvw-1.5rem)] object-contain rounded-xl bg-black sm:max-w-[calc(100dvw-2rem)] ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
               onClick: () => handleFullscreenImageCopy(),
+              onKeyDown: (event) => {
+                if (!isCopyable || (event.key !== 'Enter' && event.key !== ' ')) return;
+                event.preventDefault();
+                handleFullscreenImageCopy();
+              },
               onError: (event) => {
                 event.currentTarget.style.display = "none";
               },
@@ -62,7 +90,7 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
               c.jsxs("div", {
                 className: "pointer-events-none absolute inset-x-2 bottom-2 rounded-lg bg-slate-950/92 px-3 py-2 text-left text-white shadow-lg",
                 children: [
-                  c.jsx("p", {
+                c.jsx("p", {
                     className: "truncate text-sm font-bold",
                     children: fullscreenImage.title,
                   }),

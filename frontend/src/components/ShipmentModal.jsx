@@ -1,4 +1,4 @@
-import { V, c, DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE, SHIPMENT_CARRIER_OPTIONS, resolveMediaUrl } from "../utils.js";
+import { V, c, DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE, SHIPMENT_CARRIER_OPTIONS, resolveMediaUrl, useDialogFocus } from "../utils.js";
 
 const ShipmentModal = V.memo(function ShipmentModal({
   shipmentForm,
@@ -23,6 +23,8 @@ const ShipmentModal = V.memo(function ShipmentModal({
   updateShipmentForm,
   saveShipmentEditor,
 }) {
+  const dialogRef = V.useRef(null);
+  useDialogFocus(dialogRef);
   const productsSaleTotal = shipmentSelectedProducts.reduce((total, product) => total + getProductPaymentAmount(product), 0);
   const clientBalance = (client) => Number(clientBalances[client && client.id]) || 0;
   const balanceLabel = (client) => {
@@ -37,6 +39,12 @@ const ShipmentModal = V.memo(function ShipmentModal({
     ),
     onClick: () => dismissActiveOverlayRef.current(),
     children: c.jsxs("div", {
+      ref: dialogRef,
+      role: "dialog",
+      "aria-modal": true,
+      "aria-labelledby": "shipment-modal-title",
+      "aria-describedby": "shipment-modal-description",
+      tabIndex: -1,
       className: overlaySheetClass(
         "bg-surface-light dark:bg-surface-dark w-full sm:max-w-xl max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl ui-sheet flex flex-col overflow-hidden",
         "shipment-modal",
@@ -51,16 +59,20 @@ const ShipmentModal = V.memo(function ShipmentModal({
               className: "min-w-0",
               children: [
                 c.jsx("h3", {
+                  id: "shipment-modal-title",
                   className: "text-base font-bold text-text-main",
                   children: shipmentForm.id ? "Editar envio" : "Nuevo envio",
                 }),
                 c.jsx("p", {
+                  id: "shipment-modal-description",
                   className: "text-[11px] text-text-sub mt-0.5",
                   children: "Selecciona cliente y productos.",
                 }),
               ],
             }),
             c.jsx("button", {
+              "data-dialog-initial-focus": true,
+              "aria-label": "Cerrar envío",
               onClick: () => dismissActiveOverlayRef.current(),
               className:
                 "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",

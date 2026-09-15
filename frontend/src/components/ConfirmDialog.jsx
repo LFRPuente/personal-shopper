@@ -1,4 +1,4 @@
-import { V, c } from '../utils.js';
+import { V, c, useDialogFocus } from '../utils.js';
 
 const ConfirmDialog = V.memo(function ConfirmDialog({
   confirmDialog,
@@ -7,6 +7,8 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
   onDismiss,
   onConfirm,
 }) {
+  const dialogRef = V.useRef(null);
+  useDialogFocus(dialogRef);
   if (!confirmDialog) return null;
 
   return c.jsx('div', {
@@ -16,6 +18,12 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
     ),
     onClick: onDismiss,
     children: c.jsxs('div', {
+      ref: dialogRef,
+      role: confirmDialog.tone === 'danger' ? 'alertdialog' : 'dialog',
+      'aria-modal': true,
+      'aria-labelledby': 'confirm-dialog-title',
+      'aria-describedby': 'confirm-dialog-message',
+      tabIndex: -1,
       className: overlaySheetClass(
         'bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet',
         'confirm',
@@ -41,10 +49,12 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
               className: 'flex-1',
               children: [
                 c.jsx('h3', {
+                  id: 'confirm-dialog-title',
                   className: 'text-base font-bold text-text-main',
                   children: confirmDialog.title,
                 }),
                 c.jsx('p', {
+                  id: 'confirm-dialog-message',
                   className: 'text-sm text-text-sub mt-1',
                   children: confirmDialog.message,
                 }),
@@ -56,6 +66,7 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
           className: 'mt-5 grid grid-cols-2 gap-2',
           children: [
             c.jsx('button', {
+              'data-dialog-initial-focus': true,
               onClick: onDismiss,
               className:
                 'py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-sm font-semibold',

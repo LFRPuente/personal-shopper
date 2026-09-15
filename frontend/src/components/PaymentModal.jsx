@@ -1,4 +1,4 @@
-import { V, c, resolveMediaUrl } from "../utils.js";
+import { V, c, resolveMediaUrl, useDialogFocus } from "../utils.js";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -9,6 +9,8 @@ const PAYMENT_PRODUCT_INITIAL_RENDER_LIMIT = 40;
 const PAYMENT_PRODUCT_RENDER_INCREMENT = 40;
 
 const PaymentModal = V.memo(function PaymentModal(props) {
+  const dialogRef = V.useRef(null);
+  useDialogFocus(dialogRef);
   const {
     paymentForm,
     paymentSaving,
@@ -82,6 +84,12 @@ const PaymentModal = V.memo(function PaymentModal(props) {
     ),
     onClick: () => dismissActiveOverlayRef.current(),
     children: c.jsxs("div", {
+      ref: dialogRef,
+      role: "dialog",
+      "aria-modal": true,
+      "aria-labelledby": "payment-modal-title",
+      "aria-describedby": "payment-modal-description",
+      tabIndex: -1,
       className: overlaySheetClass(
         "w-full sm:max-w-6xl max-h-[92vh] bg-surface-light dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl overflow-hidden ui-sheet flex flex-col",
         "payment-modal",
@@ -100,10 +108,12 @@ const PaymentModal = V.memo(function PaymentModal(props) {
                   children: paymentModalShopping.name || paymentModalShopping.title || "Shopping",
                 }),
                 c.jsx("h3", {
+                  id: "payment-modal-title",
                   className: "text-base font-bold text-text-main truncate",
                   children: paymentModalClient.name || paymentModalClient.username || "Cliente",
                 }),
                 c.jsx("p", {
+                  id: "payment-modal-description",
                   className: "text-[11px] text-text-sub mt-0.5",
                   children:
                     paymentForm.id
@@ -113,6 +123,8 @@ const PaymentModal = V.memo(function PaymentModal(props) {
               ],
             }),
             c.jsx("button", {
+              "data-dialog-initial-focus": true,
+              "aria-label": "Cerrar abono",
               onClick: () => dismissActiveOverlayRef.current(),
               className:
                 "w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 flex items-center justify-center",

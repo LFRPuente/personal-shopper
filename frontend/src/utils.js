@@ -4,6 +4,46 @@ import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 export const V = React;
 export const c = { jsx, jsxs, Fragment };
 
+export const useDialogFocus = (dialogRef, initialFocusSelector = '[data-dialog-initial-focus]') => {
+  V.useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return undefined;
+    const previouslyFocused = document.activeElement;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusInitial = () => {
+      const target = dialog.querySelector(initialFocusSelector) || dialog.querySelector(focusableSelector) || dialog;
+      target.focus({ preventScroll: true });
+    };
+    const frame = window.requestAnimationFrame(focusInitial);
+    const trapFocus = (event) => {
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(dialog.querySelectorAll(focusableSelector));
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', trapFocus);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', trapFocus);
+      if (previouslyFocused instanceof HTMLElement && document.contains(previouslyFocused)) {
+        previouslyFocused.focus({ preventScroll: true });
+      }
+    };
+  }, [dialogRef, initialFocusSelector]);
+};
+
 export const IS_FIREFOX =
   typeof navigator != "undefined" &&
   /firefox/i.test(String(navigator.userAgent || ""));
