@@ -305,7 +305,7 @@ function ShipmentProductsGrid({
                       Number.isFinite(productPrice) &&
                         c.jsx('div', {
                           className:
-                            'absolute right-2 top-2 z-20 flex justify-center pointer-events-none',
+                            'absolute inset-0 z-20 flex items-center justify-center pointer-events-none',
                           children: c.jsxs('span', {
                             className:
                               'inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md',
@@ -317,7 +317,7 @@ function ShipmentProductsGrid({
                           'absolute inset-x-0 bottom-0 z-20 bg-slate-950/92 px-2 py-2 shadow-[0_-8px_18px_-12px_rgba(0,0,0,0.9)]',
                         children: [
                           c.jsx('p', {
-                            className: 'text-[10px] font-bold text-white truncate',
+                            className: 'inline-flex max-w-full truncate rounded-full bg-slate-800/95 px-2 py-1 text-[10px] font-bold text-white',
                             children: product.name,
                           }),
                           c.jsxs('div', {
@@ -325,7 +325,7 @@ function ShipmentProductsGrid({
                             children: [
                               c.jsx('span', {
                                 className:
-                                  'inline-flex max-w-full truncate rounded-md bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-100',
+                                  'inline-flex max-w-full truncate rounded-full bg-slate-800/95 px-1.5 py-0.5 text-[9px] font-semibold text-slate-100',
                                 children:
                                   product.shopping_name ||
                                   product.mission_name ||
@@ -335,7 +335,7 @@ function ShipmentProductsGrid({
                               (product.shopping_date || product.mission_date) &&
                                 c.jsx('span', {
                                   className:
-                                    'inline-flex shrink-0 rounded-md bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-200',
+                                    'inline-flex shrink-0 rounded-full bg-slate-800/95 px-1.5 py-0.5 text-[9px] font-semibold text-slate-200',
                                   children: new Date(
                                     product.shopping_date || product.mission_date,
                                   ).toLocaleDateString(),
