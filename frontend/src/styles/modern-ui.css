@@ -53,6 +53,18 @@ main:has(.modern-ui) {
 .modern-ui .modern-button--danger { color: #ad263f; background: #fff1f3; border-color: #f1cfd6; }
 .dark .modern-ui .modern-button--danger { color: #ffb6c5; background: #402735; border-color: #6c3d4e; }
 .modern-ui .modern-button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.modern-ui ::selection, .ui-sheet ::selection { background: #dcd2ff; color: #24194c; }
+.dark .modern-ui ::selection, .dark .ui-sheet ::selection { background: #7359c8; color: #fff; }
+.modern-ui :is(.modern-button, .home-live-actions button, .home-shopping-clients button, .modern-client-card button, .modern-shipment-card button),
+.ui-sheet :is(.ui-btn-primary, .ui-btn-secondary) {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out, background-color 160ms ease-out, border-color 160ms ease-out;
+}
+.modern-ui :is(.modern-button, .home-live-actions button, .home-shopping-clients button, .modern-client-card button, .modern-shipment-card button):not(:disabled):active,
+.ui-sheet :is(.ui-btn-primary, .ui-btn-secondary):not(:disabled):active { transform: scale(.98); }
+@media (hover: hover) {
+  .modern-ui :is(.modern-button, .home-live-actions button, .home-shopping-clients button):not(:disabled):hover { transform: translateY(-1px); }
+}
 .modern-ui :is(button, input, select, a, [role='button']):focus-visible { outline: 3px solid var(--modern-accent); outline-offset: 3px; }
 .modern-card { background: var(--modern-surface); border: 1px solid var(--modern-border); border-radius: 24px; box-shadow: var(--modern-shadow); min-width: 0; }
 .modern-card[data-expanded='true'] { border-color: var(--modern-accent); }
