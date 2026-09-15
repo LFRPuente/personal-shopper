@@ -314,7 +314,7 @@ function ShipmentProductsGrid({
                         }),
                       c.jsx('div', {
                         className:
-                          'absolute inset-x-0 bottom-0 z-20 bg-slate-950/92 px-2 py-2 shadow-[0_-8px_18px_-12px_rgba(0,0,0,0.9)]',
+                          'absolute inset-x-0 bottom-0 z-20 px-2 py-2',
                         children: [
                           c.jsx('p', {
                             className: 'inline-flex max-w-full truncate rounded-full bg-slate-800/95 px-2 py-1 text-[10px] font-bold text-white',
