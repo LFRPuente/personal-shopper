@@ -333,11 +333,11 @@ const HomeSection = V.memo(function HomeSection() {
         }),
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
-          : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
+          ? 'home-requests-panel col-start-1 row-start-3 bg-surface-light dark:bg-surface-dark p-5 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
+          : 'home-requests-panel bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
         children: [
           c.jsxs('h3', {
-            className: 'font-bold text-sm mb-2 text-text-main dark:text-white',
+            className: 'home-panel-title font-bold text-sm mb-2 text-text-main dark:text-white',
             children: ['Peticiones (', requests.length, ')'],
           }),
           c.jsx('div', {
@@ -346,7 +346,7 @@ const HomeSection = V.memo(function HomeSection() {
               ? c.jsx('p', { className: 'text-xs text-gray-400 py-3 text-center', children: 'Sin peticiones activas.' })
               : sortedRequests.map((request) =>
                   c.jsxs('div', {
-                    className: `relative rounded-xl border-l-4 px-3 py-2.5 shadow-sm transition ${
+                    className: `home-request-card relative rounded-xl border px-3 py-2.5 shadow-sm transition ${
                       request.status === 'ACKNOWLEDGED'
                         ? 'bg-emerald-100/95 border-emerald-500 border-l-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:border-l-emerald-500'
                         : request.status === 'NO_STOCK'
@@ -572,16 +572,16 @@ const HomeSection = V.memo(function HomeSection() {
                                       c.jsx('span', {
                                         className: `text-[9px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded ${
                                           request.status === 'ACKNOWLEDGED'
-                                            ? 'bg-emerald-700 text-white dark:bg-emerald-500 dark:text-slate-900'
+                                            ? 'bg-emerald-700 text-white dark:bg-emerald-900 dark:text-emerald-100'
                                             : request.status === 'NO_STOCK'
-                                              ? 'bg-rose-700 text-white dark:bg-rose-500 dark:text-slate-900'
+                                              ? 'bg-rose-700 text-white dark:bg-rose-900 dark:text-rose-100'
                                               : request.status === 'MODIFIED'
-                                                ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-900'
+                                                ? 'bg-amber-700 text-white dark:bg-amber-900 dark:text-amber-100'
                                                 : request.status === 'DISCARDED'
-                                                  ? 'bg-slate-600 text-white dark:bg-slate-400 dark:text-slate-900'
+                                                  ? 'bg-slate-600 text-white dark:bg-slate-700 dark:text-slate-100'
                                                   : request.is_priority
                                                     ? 'bg-yellow-500 text-yellow-950 dark:bg-yellow-400 dark:text-yellow-950'
-                                                    : 'bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-900'
+                                                    : 'bg-sky-700 text-white dark:bg-sky-900 dark:text-sky-100'
                                         }`,
                                         children:
                                           request.status === 'ACKNOWLEDGED'
@@ -804,7 +804,7 @@ const HomeSection = V.memo(function HomeSection() {
                 ),
           }),
           c.jsxs('div', {
-            className: 'mt-3 space-y-2',
+            className: 'home-request-compose mt-3 space-y-2',
             children: [
               newRequestImagePreview &&
                 c.jsxs('div', {
@@ -1138,9 +1138,9 @@ const HomeSection = V.memo(function HomeSection() {
         }),
       activeMission &&
         c.jsxs('div', {
-          className: isDesktopLayout
-            ? 'col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
-            : 'bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
+        className: isDesktopLayout
+            ? 'home-shopping-clients col-start-3 row-start-1 row-span-3 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card min-h-0 h-full overflow-hidden flex flex-col'
+            : 'home-shopping-clients bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
           children: [
             c.jsxs('div', {
               className: 'mb-3 flex items-start justify-between gap-3',
@@ -1149,7 +1149,7 @@ const HomeSection = V.memo(function HomeSection() {
                   className: 'space-y-1',
                   children: [
                     c.jsxs('h3', {
-                      className: 'font-bold text-sm text-text-main dark:text-white',
+                      className: 'home-panel-title font-bold text-sm text-text-main dark:text-white',
                       children: ['Clients in Shopping (', filteredHomeClientsInMission.length, ')'],
                     }),
                     c.jsx('input', {
@@ -1157,7 +1157,7 @@ const HomeSection = V.memo(function HomeSection() {
                       value: homeClientSearch,
                       onChange: (event) => setHomeClientSearch(event.target.value),
                       placeholder: 'Buscar client...',
-                      className: 'w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary',
+                      className: 'home-client-search w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-700 text-sm outline-none focus:ring-2 focus:ring-primary',
                     }),
                   ],
                 }),
@@ -1200,7 +1200,7 @@ const HomeSection = V.memo(function HomeSection() {
                     const balance = homeClientGlobalBalanceMap[client.id] || 0;
                     return c.jsxs('div', {
                       className:
-                        'flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition',
+                        'home-shopping-client-row flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition',
                       children: [
                         c.jsx('div', {
                           onClick: () => openClientFullGallery(client, activeMission && activeMission.id),

@@ -283,6 +283,41 @@ main:has(.modern-ui) {
   font-size: 13px !important;
   letter-spacing: .01em;
 }
+.modern-home-pilot :is(.home-requests-panel, .home-shopping-clients) {
+  background: var(--modern-surface);
+  border-color: var(--modern-border);
+  box-shadow: var(--modern-shadow);
+}
+.modern-home-pilot .home-panel-title { font-size: 18px; font-weight: 750; letter-spacing: -.025em; }
+.modern-home-pilot .home-request-card {
+  border: 1px solid var(--modern-border) !important;
+  background: var(--modern-surface) !important;
+  box-shadow: 0 8px 22px -20px rgb(34 38 62 / 42%);
+  padding: 14px;
+}
+.modern-home-pilot .home-request-card:hover { border-color: #b8a8ec !important; background: var(--modern-inset) !important; }
+.modern-home-pilot .home-request-card .text-xs { font-size: 15px; line-height: 1.35; }
+.modern-home-pilot .home-request-card .text-\[10px\] { font-size: 12px; }
+.modern-home-pilot .home-request-card .text-\[9px\] { font-size: 11px; letter-spacing: .035em; }
+.modern-home-pilot .home-request-card button[title] { min-width: 36px; min-height: 36px; }
+.modern-home-pilot .home-request-compose { border-top: 1px solid var(--modern-border); padding-top: 14px; }
+.modern-home-pilot .home-request-compose input { min-height: 44px; font-size: 16px; }
+.modern-home-pilot .home-request-compose > div:last-child > button { min-height: 44px; }
+.modern-home-pilot .home-client-search { min-height: 44px; border-color: var(--modern-border); background: var(--modern-inset); color: var(--modern-ink); font-size: 16px; }
+.modern-home-pilot .home-shopping-clients > div:first-child > button { min-height: 44px; padding-inline: 16px; font-size: 13px; letter-spacing: .02em; }
+.modern-home-pilot .home-shopping-client-row {
+  margin-bottom: 8px;
+  border: 1px solid var(--modern-border);
+  border-radius: 16px;
+  background: var(--modern-surface);
+  padding: 14px;
+  box-shadow: 0 7px 20px -20px rgb(34 38 62 / 32%);
+}
+.modern-home-pilot .home-shopping-client-row:hover { background: var(--modern-inset); }
+.modern-home-pilot .home-shopping-client-row > div:nth-child(2) > div:first-child > p { font-size: 16px; }
+.modern-home-pilot .home-shopping-client-row .text-\[10px\] { font-size: 12px; color: var(--modern-muted); }
+.modern-home-pilot .home-shopping-client-row .text-\[9px\] { font-size: 11px; }
+.modern-home-pilot .home-shopping-client-row > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
 @media (max-width: 767px) {
   .modern-home-pilot .home-live-console { padding: 16px 14px; }
   .modern-home-pilot .home-live-tabs { display: flex; overflow-x: auto; padding-bottom: 4px; }
