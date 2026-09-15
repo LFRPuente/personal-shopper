@@ -1,6 +1,7 @@
 import { V, c, isPdfMediaUrl, resolveMediaUrl } from '../utils.js';
 import { useHomeContext } from '../AppContext.jsx';
 import ShoppingClientAssignmentModal from './HomeShoppingClientAssignmentModal.jsx';
+import '../styles/modern-ui.css';
 
 export const HOME_SECTION_REQUIRED_CONTEXT = [
   'isDesktopLayout',
@@ -291,8 +292,8 @@ const HomeSection = V.memo(function HomeSection() {
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
     className: isDesktopLayout
-      ? 'grid gap-0 items-stretch h-[calc(100dvh-9rem)] min-h-0 max-h-[calc(100dvh-9rem)] overflow-hidden'
-      : 'flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark',
+      ? 'modern-ui modern-home-pilot grid gap-0 items-stretch h-[calc(100dvh-9rem)] min-h-0 max-h-[calc(100dvh-9rem)] overflow-hidden'
+      : 'modern-ui modern-home-pilot flex flex-col gap-0 pb-24 rounded-2xl overflow-hidden shadow-sm border border-border-light dark:border-border-dark',
     style: isDesktopLayout
       ? activeMission
         ? {
@@ -920,16 +921,16 @@ const HomeSection = V.memo(function HomeSection() {
       activeMission &&
       c.jsxs('div', {
         className: isDesktopLayout
-            ? 'col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto'
-            : 'bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4',
+            ? 'home-live-console col-start-1 row-start-1 bg-surface-light dark:bg-surface-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-card h-full overflow-y-auto'
+            : 'home-live-console bg-surface-light dark:bg-surface-dark px-3 py-3 md:px-4',
           children: [
             c.jsxs('div', {
               className: 'mb-3 flex flex-col gap-2',
               children: [
                 c.jsxs('div', {
                   className: isDesktopLayout
-                    ? 'flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 pr-2 ios-scroll'
-                    : 'grid grid-cols-3 gap-1.5',
+                    ? 'home-live-tabs flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 pr-2 ios-scroll'
+                    : 'home-live-tabs grid grid-cols-3 gap-1.5',
                   children: (shoppingTabs || []).length > 0
                     ? shoppingTabs.map((mission) =>
                         c.jsxs('button', {
@@ -988,7 +989,7 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: 'flex items-center justify-between gap-2',
+              className: 'home-live-heading flex items-center justify-between gap-2',
               children: [
                 c.jsxs('div', {
                   className: 'min-w-0',
@@ -1040,7 +1041,7 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'mt-2 grid grid-cols-3 gap-2 items-stretch',
+              className: isDesktopLayout ? 'home-live-metrics mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px] gap-2 items-stretch' : 'home-live-metrics mt-2 grid grid-cols-3 gap-2 items-stretch',
               children: [
                 c.jsxs('div', {
                   className: isDesktopLayout
@@ -1115,7 +1116,7 @@ const HomeSection = V.memo(function HomeSection() {
               ],
             }),
             c.jsxs('div', {
-              className: isDesktopLayout ? 'mt-3 grid grid-cols-2 xl:grid-cols-4 gap-2' : 'mt-2 grid grid-cols-4 gap-2',
+              className: isDesktopLayout ? 'home-live-actions mt-3 grid grid-cols-2 xl:grid-cols-4 gap-2' : 'home-live-actions mt-2 grid grid-cols-4 gap-2',
               children: [
                 activeMission.status === 'ACTIVE'
                   ? c.jsx('button', { onClick: pauseMission, className: isDesktopLayout ? 'py-1.5 rounded-lg bg-amber-500 text-white text-[10px] font-bold hover:bg-amber-600' : 'py-2 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600', children: 'Pause' }, 'pause')
