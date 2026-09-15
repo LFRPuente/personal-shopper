@@ -283,6 +283,13 @@ function ShipmentProductsGrid({
                                 url: resolveMedia(product.image),
                                 copyOnClick: true,
                                 copyMessage: 'Imagen copiada.',
+                                title: product.name || 'Producto',
+                                details: [
+                                  product.shopping_name || product.mission_name || product.store_name || 'Sin shopping',
+                                  product.shopping_date || product.mission_date
+                                    ? new Date(product.shopping_date || product.mission_date).toLocaleDateString()
+                                    : '',
+                                ].filter(Boolean),
                               });
                             },
                             title: 'Abrir imagen',
@@ -298,7 +305,7 @@ function ShipmentProductsGrid({
                       Number.isFinite(productPrice) &&
                         c.jsx('div', {
                           className:
-                            'absolute inset-x-0 bottom-2 z-20 flex justify-center pointer-events-none',
+                            'absolute right-2 top-2 z-20 flex justify-center pointer-events-none',
                           children: c.jsxs('span', {
                             className:
                               'inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white/82 dark:bg-slate-900/82 px-2 py-[3px] text-[10px] font-bold text-slate-800 dark:text-slate-100 border border-white/70 dark:border-slate-700/80 shadow-sm backdrop-blur-md',
@@ -307,7 +314,7 @@ function ShipmentProductsGrid({
                         }),
                       c.jsx('div', {
                         className:
-                          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/45 to-transparent px-2 py-2 pb-8',
+                          'absolute inset-x-0 bottom-0 z-20 bg-slate-950/92 px-2 py-2 shadow-[0_-8px_18px_-12px_rgba(0,0,0,0.9)]',
                         children: [
                           c.jsx('p', {
                             className: 'text-[10px] font-bold text-white truncate',
@@ -318,7 +325,7 @@ function ShipmentProductsGrid({
                             children: [
                               c.jsx('span', {
                                 className:
-                                  'inline-flex max-w-full truncate rounded-full bg-white/16 px-1.5 py-0.5 text-[9px] font-semibold text-white/92 backdrop-blur-sm',
+                                  'inline-flex max-w-full truncate rounded-md bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-100',
                                 children:
                                   product.shopping_name ||
                                   product.mission_name ||
@@ -328,7 +335,7 @@ function ShipmentProductsGrid({
                               (product.shopping_date || product.mission_date) &&
                                 c.jsx('span', {
                                   className:
-                                    'inline-flex shrink-0 rounded-full bg-white/14 px-1.5 py-0.5 text-[9px] font-semibold text-white/80 backdrop-blur-sm',
+                                    'inline-flex shrink-0 rounded-md bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-200',
                                   children: new Date(
                                     product.shopping_date || product.mission_date,
                                   ).toLocaleDateString(),

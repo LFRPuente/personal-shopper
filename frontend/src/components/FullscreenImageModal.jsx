@@ -45,13 +45,36 @@ const FullscreenImageModal = V.memo(function FullscreenImageModal({
             }),
           ],
         }),
-        c.jsx("img", {
-          src: getFullscreenImageUrl(fullscreenImage),
-          className: `block max-h-[calc(100dvh-5.5rem)] max-w-[calc(100dvw-1.5rem)] object-contain rounded-xl bg-black sm:max-w-[calc(100dvw-2rem)] ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
-          onClick: () => handleFullscreenImageCopy(),
-          onError: (event) => {
-            event.currentTarget.style.display = "none";
-          },
+        c.jsxs("div", {
+          className: "relative min-w-0",
+          children: [
+            c.jsx("img", {
+              src: getFullscreenImageUrl(fullscreenImage),
+              className: `block max-h-[calc(100dvh-5.5rem)] max-w-[calc(100dvw-1.5rem)] object-contain rounded-xl bg-black sm:max-w-[calc(100dvw-2rem)] ${typeof fullscreenImage == "object" && fullscreenImage && fullscreenImage.copyOnClick ? "cursor-copy" : ""}`,
+              onClick: () => handleFullscreenImageCopy(),
+              onError: (event) => {
+                event.currentTarget.style.display = "none";
+              },
+            }),
+            typeof fullscreenImage == "object" &&
+              fullscreenImage &&
+              fullscreenImage.title &&
+              c.jsxs("div", {
+                className: "pointer-events-none absolute inset-x-2 bottom-2 rounded-lg bg-slate-950/92 px-3 py-2 text-left text-white shadow-lg",
+                children: [
+                  c.jsx("p", {
+                    className: "truncate text-sm font-bold",
+                    children: fullscreenImage.title,
+                  }),
+                  Array.isArray(fullscreenImage.details) &&
+                    fullscreenImage.details.length > 0 &&
+                    c.jsx("p", {
+                      className: "mt-0.5 truncate text-xs font-medium text-slate-200",
+                      children: fullscreenImage.details.join(" · "),
+                    }),
+                ],
+              }),
+          ],
         }),
         typeof fullscreenImage == "object" &&
           fullscreenImage &&
