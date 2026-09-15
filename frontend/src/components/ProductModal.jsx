@@ -86,7 +86,7 @@ const ProductModal = V.memo(function ProductModal({
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-xl font-bold">
-            {productModalMode === "create" ? "Agregar producto" : "Edit Product Info"}
+            {productModalMode === "create" ? "Agregar producto" : "Editar producto"}
           </h3>
           {productModalMode === "create" && productImagePreviewUrl && (
             <button
@@ -633,7 +633,7 @@ const ProductModal = V.memo(function ProductModal({
               disabled={newProductUploading}
               className={`flex-1 py-3 font-semibold rounded-xl ui-btn-secondary ${newProductUploading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
@@ -650,13 +650,13 @@ const ProductModal = V.memo(function ProductModal({
                 ? newProductUploading
                   ? "Creando..."
                   : "Crear producto"
-                : "Save Changes"}
+                : "Guardar cambios"}
             </button>
           </div>
 
           {!modalHasRequiredProductFields && (
             <p className={`${isDesktopLayout ? "col-span-2" : ""} text-xs font-medium text-rose-600 dark:text-rose-300`}>
-              Debes capturar el nombre, Store Price (USD) y Final Price (MXN) para guardar este
+              Debes capturar el nombre, precio de tienda (USD) y precio final (MXN) para guardar este
               producto. Cancelar sigue disponible.
             </p>
           )}

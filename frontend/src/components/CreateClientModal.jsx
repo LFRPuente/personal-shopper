@@ -38,7 +38,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
       children: [
         c.jsx("h3", {
           className: "text-xl font-bold mb-4",
-          children: "Add New Client",
+          children: "Agregar cliente",
         }),
         c.jsxs("form", {
           onSubmit,
@@ -49,7 +49,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                 c.jsx("label", {
                   className:
                     "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                  children: "Client Name",
+                  children: "Nombre del cliente",
                 }),
                 c.jsx("input", {
                   type: "text",
@@ -69,7 +69,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Phone",
+                      children: "Teléfono",
                     }),
                     c.jsxs("div", {
                       className: "grid grid-cols-[112px_minmax(0,1fr)] gap-3",
@@ -115,7 +115,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                 c.jsx("label", {
                   className:
                     "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                  children: "Shipping Address",
+                  children: "Dirección de envío",
                 }),
                 c.jsx("textarea", {
                   value: shippingAddress,
@@ -134,7 +134,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                         c.jsx("p", {
                           className:
                             "text-xs font-medium uppercase tracking-[0.18em] text-gray-500",
-                          children: "Other shipping addresses",
+                          children: "Otras direcciones de envío",
                         }),
                         c.jsxs("button", {
                           type: "button",
@@ -145,7 +145,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                             ]),
                           className:
                             "px-3 py-1.5 text-xs font-semibold rounded-xl ui-btn-secondary",
-                          children: ["+", " Add"],
+                          children: ["+", " Agregar"],
                         }),
                       ],
                     }),
@@ -168,7 +168,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                                       ),
                                     ),
                                   rows: 2,
-                                  placeholder: "Additional shipping address",
+                                  placeholder: "Dirección de envío adicional",
                                   className:
                                     "flex-1 px-4 py-2 border rounded-xl dark:bg-gray-800 dark:border-gray-700 focus:ring-2 focus:ring-primary outline-none resize-none",
                                 }),
@@ -183,7 +183,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                                     ),
                                   className:
                                     "px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 text-red-500 hover:bg-red-100",
-                                  children: "Remove",
+                                  children: "Quitar",
                                 }),
                               ],
                             },
@@ -192,7 +192,7 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                         )
                       : c.jsx("p", {
                           className: "text-xs text-gray-500",
-                          children: "No additional addresses yet.",
+                          children: "Aún no hay direcciones adicionales.",
                         }),
                   ],
                 }),
@@ -206,13 +206,13 @@ const CreateClientModal = V.memo(function CreateClientModal(props) {
                   onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
-                  children: "Cancel",
+                  children: "Cancelar",
                 }),
                 c.jsx("button", {
                   type: "submit",
                   className:
                     "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
-                  children: "Create",
+                  children: "Crear",
                 }),
               ],
             }),

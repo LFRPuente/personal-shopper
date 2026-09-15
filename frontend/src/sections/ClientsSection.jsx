@@ -245,7 +245,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                 'modern-button modern-button--primary bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition',
               children: [
                 c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
-                ' New',
+                ' Nuevo',
               ],
             }),
         ],
@@ -257,7 +257,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         children: [
           c.jsx('input', {
             type: 'text',
-            placeholder: 'Search by name or tags...',
+            placeholder: 'Buscar por nombre o etiquetas...',
             value: search,
             onChange: (event) => setSearch(event.target.value),
             className: isDesktopLayout

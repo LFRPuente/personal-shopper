@@ -1076,7 +1076,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                 className: 'material-symbols-outlined text-[18px]',
                 children: 'add',
               }),
-              ' New',
+              ' Nuevo',
             ],
           }),
         ],

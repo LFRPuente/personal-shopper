@@ -8,6 +8,11 @@ const getMissionStatusClassName = (status) =>
       ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-200'
       : 'bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-100';
 
+const getMissionStatusLabel = (status) =>
+  ({ ACTIVE: 'ACTIVO', PAUSED: 'EN PAUSA', COMPLETED: 'COMPLETADO', PENDING: 'PENDIENTE' })[
+    String(status || '').toUpperCase()
+  ] || status || 'PENDIENTE';
+
 const getMissionProductStatusLabel = (status) => {
   const normalized = String(status || '').toUpperCase();
   return normalized === 'IN_REVIEW'
@@ -125,7 +130,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                   className: 'material-symbols-outlined text-[16px]',
                   children: 'add',
                 }),
-                ' New',
+                ' Nueva',
               ],
             }),
         ],
@@ -151,17 +156,17 @@ const MissionsSection = V.memo(function MissionsSection() {
               }),
               c.jsx('p', {
                 className: 'font-bold text-lg mb-2',
-                children: 'No shoppings yet',
+                children: 'Aún no hay compras',
               }),
               c.jsx('p', {
                 className: 'text-gray-500 text-sm mb-4',
-                children: 'Inicia tu primer shopping en tienda desde aqui.',
+                children: 'Inicia tu primera compra en tienda desde aquí.',
               }),
               c.jsx('button', {
                 onClick: openMissionStart,
                 className:
                   'px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark transition',
-                children: 'Iniciar Shopping',
+                children: 'Iniciar compra',
               }),
             ],
           })
@@ -255,7 +260,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                       onClick: () => saveEditedMission(mission.id),
                                       className:
                                         'text-xs bg-primary text-white px-3 py-1 rounded-lg font-bold',
-                                      children: 'Save',
+                                      children: 'Guardar',
                                     }),
                                     c.jsx('button', {
                                       onClick: () => setEditingMissionId(null),
@@ -304,7 +309,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         children: [
                                           'Creado por: ',
                                           mission.shopper_name || 'Sin dato',
-                                          ' • Shopping pagado por: ',
+                                          ' • Compra pagada por: ',
                                           mission.payer_username || 'Sin dato',
                                         ],
                                       }),
@@ -414,7 +419,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                 className: `text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${getMissionStatusClassName(
                                   mission.status,
                                 )}`,
-                                children: mission.status || 'PENDING',
+                                children: getMissionStatusLabel(mission.status),
                               }),
                               c.jsx('span', {
                                 className:
@@ -450,7 +455,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                             'material-symbols-outlined text-[14px]',
                                           children: 'pause_circle',
                                         }),
-                                        ' Pause',
+                                        ' Pausar',
                                       ],
                                     })
                                   : c.jsxs('button', {
@@ -463,7 +468,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                             'material-symbols-outlined text-[14px]',
                                           children: 'play_circle',
                                         }),
-                                        ' Resume',
+                                        ' Reanudar',
                                       ],
                                     }),
                                 c.jsxs('button', {
@@ -476,7 +481,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                         'material-symbols-outlined text-[14px]',
                                       children: 'stop_circle',
                                     }),
-                                    ' End',
+                                    ' Finalizar',
                                   ],
                                 }),
                               ],
@@ -677,7 +682,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                                   ),
                                                 className:
                                                   'text-[10px] font-bold bg-white text-primary border border-primary/20 px-2.5 py-1 rounded-lg hover:bg-primary/10 dark:bg-white dark:text-primary dark:border-white/80 transition',
-                                                children: 'View',
+                                                children: 'Ver',
                                               }),
                                             ],
                                           }),
@@ -697,7 +702,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                 c.jsxs('h4', {
                                   className:
                                     'text-xs font-bold text-text-sub uppercase mb-2',
-                                  children: ['Products (', visibleProducts.length, ')'],
+                                  children: ['Productos (', visibleProducts.length, ')'],
                                 }),
                                 c.jsx('div', {
                                   className: 'grid grid-cols-3 gap-1.5',
@@ -874,7 +879,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                       'material-symbols-outlined text-[14px]',
                                     children: 'edit',
                                   }),
-                                  ' Rename',
+                                  ' Renombrar',
                                 ],
                               }),
                               c.jsxs('button', {
@@ -890,7 +895,7 @@ const MissionsSection = V.memo(function MissionsSection() {
                                       'material-symbols-outlined text-[14px]',
                                     children: 'delete',
                                   }),
-                                  ' Delete',
+                                  ' Eliminar',
                                 ],
                               }),
                             ],

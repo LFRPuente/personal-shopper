@@ -448,7 +448,7 @@ const ProfileSection = V.memo(function ProfileSection() {
               }),
               c.jsx("p", {
                 className: "mt-1 text-xs text-text-sub",
-                children: "Editor libre del texto por default. Ya no usa bloques visuales.",
+                children: "Editor libre del texto predeterminado. Ya no usa bloques visuales.",
               }),
             ],
           }),

@@ -27,7 +27,7 @@ const EditTicketModal = V.memo(function EditTicketModal({
       children: [
         c.jsxs("h3", {
           className: "text-xl font-bold mb-4",
-          children: ["Edit Ticket #", ticket.id, " Data"],
+          children: ["Editar datos del ticket #", ticket.id],
         }),
         c.jsxs("form", {
           onSubmit,
@@ -41,7 +41,7 @@ const EditTicketModal = V.memo(function EditTicketModal({
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Store Total",
+                      children: "Total de tienda",
                     }),
                     c.jsx("input", {
                       type: "number",
@@ -62,7 +62,7 @@ const EditTicketModal = V.memo(function EditTicketModal({
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Charged Total",
+                      children: "Total cobrado",
                     }),
                     c.jsx("input", {
                       type: "number",
@@ -88,7 +88,7 @@ const EditTicketModal = V.memo(function EditTicketModal({
                     c.jsx("label", {
                       className:
                         "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-                      children: "Tax %",
+                      children: "Impuestos %",
                     }),
                     c.jsx("input", {
                       type: "number",
@@ -136,13 +136,13 @@ const EditTicketModal = V.memo(function EditTicketModal({
                   onClick: () => dismissActiveOverlayRef.current(),
                   className:
                     "flex-1 py-3 font-semibold rounded-xl ui-btn-secondary",
-                  children: "Cancel",
+                  children: "Cancelar",
                 }),
                 c.jsx("button", {
                   type: "submit",
                   className:
                     "flex-1 py-3 font-semibold rounded-xl ui-btn-primary",
-                  children: "Save",
+                  children: "Guardar",
                 }),
               ],
             }),

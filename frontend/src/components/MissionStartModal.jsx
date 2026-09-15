@@ -158,7 +158,7 @@ const MissionStartModal = V.memo(function MissionStartModal({
                   children: [
                     c.jsx("label", {
                       className: "text-[10px] font-semibold text-gray-500",
-                      children: "Taxes (%)",
+                      children: "Impuestos (%)",
                     }),
                     c.jsx("input", {
                       type: "number",

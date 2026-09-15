@@ -332,7 +332,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           children: [
                             c.jsx("span", {
                               className: "block text-sm font-medium text-slate-700 dark:text-slate-100 mb-1",
-                              children: "Username",
+                              children: "Usuario",
                             }),
                             c.jsx("input", {
                               type: "text",
@@ -448,7 +448,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                           children: [
                             c.jsx("span", {
                               className: "block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1",
-                              children: isCreating ? "Password" : "Nuevo password",
+                              children: isCreating ? "Contraseña" : "Nueva contraseña",
                             }),
                             c.jsxs("div", {
                               className:
@@ -464,7 +464,7 @@ const UserManagementModal = V.memo(function UserManagementModal(props) {
                                     })),
                                   autoComplete: isCreating ? "new-password" : "off",
                                   placeholder: isCreating
-                                    ? "Password del nuevo usuario"
+                                    ? "Contraseña del nuevo usuario"
                                     : "Deja vacio para mantener el actual",
                                   className:
                                     "w-full h-10 px-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:bg-slate-950/60 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-primary/40",
