@@ -180,6 +180,9 @@ main:has(.modern-ui) {
 .dark .modern-profile .modern-profile-settings h3 { color: #f8fafc; }
 .dark .modern-profile .modern-profile-settings :is(p, .text-text-sub) { color: #d5d9e6; }
 .dark .modern-profile .modern-profile-settings label > span { color: #e2e6f0; }
+.dark .modern-profile .modern-profile-settings :is(input, select, textarea) { color: #f8fafc; }
+.dark .modern-profile .modern-profile-settings :is(input, textarea)::placeholder { color: #9da5b8; opacity: 1; }
+.dark .modern-profile .modern-profile-card .text-text-main { color: #f8fafc; }
 .dark .modern-profile .modern-profile-settings .grid.rounded-2xl button:not(.bg-primary) { color: #e5e9f4; }
 @media (max-width: 767px) {
   .modern-expenses .modern-expense-table { overflow-x: auto; }
