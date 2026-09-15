@@ -213,6 +213,25 @@ main:has(.modern-ui) {
 }
 .browser-firefox .modern-toolbar { background: var(--modern-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+/* Auth is intentionally full-viewport: mobile gets a calm, edge-to-edge surface; web earns its extra space. */
+.login-screen { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 100dvh; }
+.login-screen__intro { position: relative; overflow: hidden; min-height: 100dvh; flex-direction: column; justify-content: space-between; padding: clamp(48px, 7vw, 104px); background: #302060; }
+.login-screen__glow { position: absolute; border-radius: 999px; pointer-events: none; filter: blur(2px); }
+.login-screen__glow--one { width: min(46vw, 580px); height: min(46vw, 580px); right: -18%; top: -16%; background: rgb(169 135 255 / 35%); }
+.login-screen__glow--two { width: min(30vw, 390px); height: min(30vw, 390px); left: -12%; bottom: -14%; background: rgb(88 211 190 / 18%); }
+.login-screen__form-area { display: flex; align-items: center; justify-content: center; padding: clamp(24px, 5vw, 80px); }
+.login-screen__form-card { width: min(100%, 420px); }
+.login-screen__label { display: block; margin-bottom: 8px; color: var(--modern-ink); font-size: 14px; font-weight: 700; }
+.login-screen__field { display: flex; min-height: 52px; align-items: center; gap: 12px; border: 1px solid var(--modern-border); border-radius: 16px; padding: 0 16px; background: var(--modern-inset); color: var(--modern-muted); }
+.login-screen__field:focus-within { border-color: var(--modern-accent); box-shadow: 0 0 0 4px rgb(97 64 200 / 14%); color: var(--modern-accent); }
+.login-screen__field input { color: var(--modern-ink); font-size: 16px; }
+.login-screen__field input::placeholder { color: var(--modern-muted); opacity: 1; }
+.login-screen__submit { width: 100%; min-height: 52px; border-radius: 16px; background: #6140c8; color: #fff; font-size: 16px; font-weight: 700; box-shadow: 0 12px 25px -16px rgb(65 41 145 / 70%); }
+.dark .login-screen__label, .dark .login-screen__field input { color: #f7f8fc; }
+.dark .login-screen__field { background: #292d3a; }
+@media (min-width: 1024px) { .login-screen { grid-template-columns: minmax(0, 1.08fr) minmax(460px, .92fr); } }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .login-screen__intro { background: #302060; } }
+
 /* Shared modal language: every existing dialog keeps its own events and content. */
 .ui-backdrop.ui-backdrop {
   background: rgb(15 18 28 / 62%);

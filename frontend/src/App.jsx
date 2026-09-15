@@ -35,6 +35,7 @@ import { prepareCompressedImageFile } from './imageCompression.js';
 import { sortShipmentEvidenceByNewest, sortShipmentProductsByNewest } from './shipmentEvidence.js';
 import './styles/modern-ui.css';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
+import LoginScreen from './components/LoginScreen.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));
 const ClientsSection = V.lazy(() => import('./sections/ClientsSection.jsx'));
@@ -6652,69 +6653,12 @@ function nh() {
       publicShipmentProductPickerOverlay,
       ],
     });
-  const authScreen = c.jsxs("div", {
-      className:
-        "w-full max-w-[480px] min-h-screen bg-surface-light dark:bg-surface-dark flex flex-col justify-center p-8 border-x border-border-light relative animate-in fade-in",
-      children: [
-        c.jsxs("div", {
-          className: "text-center mb-10",
-          children: [
-            c.jsx("span", {
-              className:
-                "material-symbols-outlined text-6xl text-primary mb-4 font-variation-settings-fill",
-              children: "shopping_cart",
-            }),
-            c.jsx("h1", {
-              className: "text-3xl md:text-4xl font-black mb-2",
-              children: "Compratelo con Pao",
-            }),
-            c.jsx("p", {
-              className: "text-gray-500",
-              children: "Inicia sesión para continuar.",
-            }),
-          ],
-        }),
-        U &&
-        c.jsx("div", {
-          className:
-            "bg-red-100 text-red-700 p-3 rounded-xl mb-4 text-sm font-medium border border-red-200",
-          children: U,
-        }),
-        c.jsxs("form", {
-          onSubmit: Ai,
-          className: "space-y-3 md:space-y-4",
-          children: [
-            c.jsx("div", {
-              children: c.jsx("input", {
-                placeholder: "Username",
-                value: cl.username,
-                onChange: (o) => Ql({ ...cl, username: o.target.value }),
-                className:
-                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
-                required: !0,
-              }),
-            }),
-            c.jsx("div", {
-              children: c.jsx("input", {
-                type: "password",
-                placeholder: "Password",
-                value: cl.password,
-                onChange: (o) => Ql({ ...cl, password: o.target.value }),
-                className:
-                  "w-full border p-3 md:p-4 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 outline-none focus:ring-2 ring-primary transition-all",
-                required: !0,
-              }),
-            }),
-            c.jsx("button", {
-              type: "submit",
-              className:
-                "w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 md:py-4 rounded-xl shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all",
-              children: "Access Account",
-            }),
-          ],
-        }),
-      ],
-    });
+  const authScreen = c.jsx(LoginScreen, {
+    form: cl,
+    error: U,
+    onChange: Ql,
+    onSubmit: Ai,
+  });
   const persistDefaultBreakdownTemplate = (o) => {
       setDefaultBreakdownTemplate(o);
       localStorage.setItem("default_breakdown_template", o);
