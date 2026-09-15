@@ -26,10 +26,6 @@ const LoginScreen = V.memo(function LoginScreen({ form, error, onChange, onSubmi
               }),
             ],
           }),
-          c.jsx('p', {
-            className: 'relative z-10 text-sm font-medium text-violet-200',
-            children: 'Personal Shopper · acceso seguro',
-          }),
         ],
       }),
       c.jsx('section', {
@@ -52,7 +48,7 @@ const LoginScreen = V.memo(function LoginScreen({ form, error, onChange, onSubmi
             }),
             c.jsx('h2', {
               className: 'mt-7 text-3xl font-bold tracking-[-0.035em] text-text-main dark:text-white lg:mt-0',
-              children: 'Bienvenida de vuelta',
+              children: 'Bienvenid@ de vuelta',
             }),
             c.jsx('p', {
               className: 'mt-2 text-sm leading-6 text-text-sub dark:text-slate-300',
