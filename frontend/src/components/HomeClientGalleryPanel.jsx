@@ -47,7 +47,7 @@ const HomeClientGalleryPanel = V.memo(function HomeClientGalleryPanel({
   const activeGalleryTab = galleryTabConfig[galleryTab] || galleryTabConfig.ANNOTATED;
 
   return c.jsxs("div", {
-    className: isDesktopLayout ? "animate-in fade-in duration-200 space-y-4" : "animate-in fade-in duration-200",
+    className: isDesktopLayout ? "modern-client-gallery animate-in fade-in duration-200 space-y-4" : "modern-client-gallery animate-in fade-in duration-200",
     children: [
       c.jsxs("div", {
         className: "mb-4",

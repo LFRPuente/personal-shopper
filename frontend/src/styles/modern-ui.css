@@ -122,6 +122,75 @@ main:has(.modern-ui) {
 }
 .browser-firefox .modern-toolbar { background: var(--modern-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+/* Shared modal language: every existing dialog keeps its own events and content. */
+.ui-backdrop.ui-backdrop {
+  background: rgb(15 18 28 / 62%);
+  -webkit-backdrop-filter: blur(7px) saturate(125%);
+  backdrop-filter: blur(7px) saturate(125%);
+}
+.ui-sheet.ui-sheet {
+  background: #fff;
+  border-color: #e1e3ec;
+  box-shadow: 0 24px 64px -24px rgb(12 17 35 / 48%), 0 1px 0 rgb(255 255 255 / 80%) inset;
+  color: #1c2030;
+}
+.dark .ui-sheet.ui-sheet {
+  background: #20232e;
+  border-color: #3b4051;
+  color: #f5f6fc;
+  box-shadow: 0 28px 72px -28px rgb(0 0 0 / 72%), 0 1px 0 rgb(255 255 255 / 6%) inset;
+}
+.ui-sheet :is(h1, h2, h3) { letter-spacing: -.025em; font-weight: 750; color: inherit; }
+.ui-sheet :is(label, input, select, textarea, button) { font-size: max(14px, 1em); }
+.ui-sheet :is(input, select, textarea) {
+  min-height: 44px;
+  border-color: #d6d9e5;
+  background: #fff;
+  color: #1c2030;
+  border-radius: 12px;
+}
+.dark .ui-sheet :is(input, select, textarea) { border-color: #4a5165; background: #171a23; color: #f5f6fc; }
+.ui-sheet :is(button, input, select, textarea, a):focus-visible { outline: 3px solid #7658d1; outline-offset: 3px; }
+.ui-sheet button:not(.material-symbols-outlined):active { transform: scale(.98); }
+.modern-client-overlay .sticky { background: rgb(255 255 255 / 94%); border-color: #e1e3ec; }
+.dark .modern-client-overlay .sticky { background: rgb(32 35 46 / 94%); border-color: #3b4051; }
+.modern-client-overlay .sticky h2 { font-size: clamp(22px, 2.2vw, 30px); letter-spacing: -.04em; }
+.modern-client-overlay .ui-icon-button { width: 44px; height: 44px; border: 1px solid #d6d9e5; background: #f3f4f8; color: #1c2030; }
+.dark .modern-client-overlay .ui-icon-button { border-color: #4a5165; background: #292d3a; color: #f5f6fc; }
+.modern-client-gallery h4 { font-size: clamp(22px, 2vw, 28px); letter-spacing: -.035em; line-height: 1.15; }
+.modern-client-gallery h4 + p { color: #5c6273; font-size: 14px; }
+.dark .modern-client-gallery h4 + p { color: #bfc5d6; }
+.modern-client-gallery > div:nth-child(2) { border-color: #e1e3ec; box-shadow: 0 5px 18px -15px rgb(34 38 62 / 24%); }
+.dark .modern-client-gallery > div:nth-child(2) { border-color: #3b4051; }
+.modern-client-gallery > div:nth-child(2) button { min-height: 44px; font-size: 14px; }
+.modern-client-gallery > div:nth-child(3) > div:first-child {
+  min-height: 176px;
+  border-color: #b8a8ec;
+  background: #f5f2ff;
+  color: #4f34ab;
+}
+.dark .modern-client-gallery > div:nth-child(3) > div:first-child { border-color: #6c58a9; background: #29243d; color: #d7caff; }
+.modern-client-overlay .modern-client-summary { border-color: #e1e3ec; box-shadow: 0 10px 28px -20px rgb(34 38 62 / 32%); }
+.dark .modern-client-overlay .modern-client-summary { border-color: #3b4051; }
+.modern-client-overlay .modern-client-summary > div:nth-child(2) > span { min-height: 72px; border-radius: 14px; padding: 10px; }
+.modern-client-overlay .modern-client-summary > div:nth-child(2) > span > span:first-child { font-size: 12px; letter-spacing: .035em; }
+.modern-client-overlay .modern-client-summary > div:nth-child(2) > span > span:last-child { font-size: 20px; font-variant-numeric: tabular-nums; }
+.modern-client-overlay .modern-product-card { border-color: #e1e3ec; box-shadow: 0 10px 24px -19px rgb(34 38 62 / 32%); }
+.dark .modern-client-overlay .modern-product-card { border-color: #3b4051; }
+.modern-client-overlay .modern-product-card :is(button[title], button[aria-label]) { min-width: 32px; min-height: 32px; }
+@media (max-width: 767px) {
+  .ui-backdrop.ui-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ui-sheet.ui-sheet { border-radius: 24px 24px 0 0; }
+  .modern-client-overlay .sticky h2 { font-size: 21px; }
+  .modern-client-overlay .sticky { background: #fff; }
+  .dark .modern-client-overlay .sticky { background: #20232e; }
+  .modern-client-gallery > div:nth-child(3) > div:first-child { min-height: 160px; }
+  .modern-client-overlay .modern-product-card :is(button[title], button[aria-label]) { min-width: 34px; min-height: 34px; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .ui-backdrop.ui-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(15 18 28 / 78%); }
+}
+
 /* Shopping Live pilot: the existing data and actions remain in place; only hierarchy changes. */
 .modern-home-pilot .home-live-console {
   background: var(--modern-surface);

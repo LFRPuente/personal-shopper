@@ -33,6 +33,7 @@ import { useShoppingsDomain } from './hooks/useShoppingsDomain.js';
 import { useToastsAndDialogs } from './hooks/useToastsAndDialogs.js';
 import { prepareCompressedImageFile } from './imageCompression.js';
 import { sortShipmentEvidenceByNewest, sortShipmentProductsByNewest } from './shipmentEvidence.js';
+import './styles/modern-ui.css';
 import ClientPaymentModal from './components/ClientPaymentModal.jsx';
 import ReportsSection from './sections/ReportsSection.jsx';
 const CalculatorSection = V.lazy(() => import('./sections/CalculatorSection.jsx'));

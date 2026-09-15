@@ -47,7 +47,7 @@ const HomeClientProductCard = V.memo(function HomeClientProductCard({
   const price = getProductImagePrimaryPrice(product);
 
   return c.jsxs("div", {
-    className: `bg-surface-light dark:bg-surface-dark ${isDesktopLayout ? "rounded-2xl" : "rounded-lg"} overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ui-media-card ${unread ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
+    className: `modern-product-card bg-surface-light dark:bg-surface-dark ${isDesktopLayout ? "rounded-2xl" : "rounded-lg"} overflow-visible shadow-card border flex flex-col relative group ui-card-quiet ui-media-card ${unread ? "review-item-alert border-red-400 bg-red-50/40 dark:bg-red-950/18" : "border-border-light dark:border-border-dark"}`,
     children: [
       unread && c.jsx("span", { className: "absolute top-1.5 left-1.5 z-20 w-2.5 h-2.5 rounded-full bg-red-500 border border-white dark:border-slate-900" }),
       isShipped &&
@@ -358,7 +358,7 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
     children: [
       c.jsxs("div", {
         className: overlaySheetClass(
-          `${isDesktopLayout ? "w-full max-w-[1500px] rounded-[32px] border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark shadow-[0_32px_80px_rgba(15,23,42,0.38)] flex flex-col overflow-hidden animate-in fade-in zoom-in-[0.98] duration-200" : "flex flex-col h-full"} ui-sheet${closingOverlayKey === overlayKey ? " ui-sheet-out" : ""}`,
+          `${isDesktopLayout ? "modern-client-overlay w-full max-w-[1500px] rounded-[32px] border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark shadow-[0_32px_80px_rgba(15,23,42,0.38)] flex flex-col overflow-hidden animate-in fade-in zoom-in-[0.98] duration-200" : "modern-client-overlay flex flex-col h-full"} ui-sheet${closingOverlayKey === overlayKey ? " ui-sheet-out" : ""}`,
           overlayKey,
         ),
         onClick: isDesktopLayout ? (e) => e.stopPropagation() : void 0,
@@ -394,7 +394,7 @@ const HomeClientOverlay = V.memo(function HomeClientOverlay({
             className: isDesktopLayout ? "p-6 flex-1 overflow-y-auto grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] items-start" : "p-5 flex-1 overflow-y-auto space-y-6",
             children: [
               c.jsxs("div", {
-                className: isDesktopLayout ? "bg-surface-light dark:bg-surface-dark p-5 rounded-3xl shadow-card border border-border-light dark:border-border-dark space-y-4 xl:sticky xl:top-6" : "bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light space-y-3",
+                className: isDesktopLayout ? "modern-client-summary bg-surface-light dark:bg-surface-dark p-5 rounded-3xl shadow-card border border-border-light dark:border-border-dark space-y-4 xl:sticky xl:top-6" : "modern-client-summary bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light space-y-3",
                 children: [
                   c.jsxs("div", {
                     className: "flex items-start justify-between gap-3",
