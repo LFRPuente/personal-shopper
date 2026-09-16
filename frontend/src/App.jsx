@@ -5948,7 +5948,7 @@ function nh() {
   if (publicClientShareToken)
     return c.jsxs("div", {
       className:
-        "w-full min-h-[100dvh] bg-background-light dark:bg-background-dark flex justify-center px-4 py-6",
+        "public-client-history w-full min-h-[100dvh] bg-background-light dark:bg-background-dark flex justify-center px-4 py-6",
       children: [
         fullscreenImage &&
         c.jsx("div", {
@@ -5979,11 +5979,11 @@ function nh() {
         }),
         c.jsxs("div", {
         className:
-          "w-full max-w-[480px] rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-xl overflow-hidden",
+          "public-client-history-shell w-full max-w-[480px] rounded-3xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-xl overflow-hidden",
         children: [
           c.jsxs("div", {
             className:
-              "px-5 py-4 border-b border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/70",
+              "public-client-history-header px-5 py-4 border-b border-border-light dark:border-border-dark bg-white/80 dark:bg-slate-900/70",
             children: [
               c.jsxs("div", {
                 className: "flex items-start justify-between gap-3",
@@ -6078,10 +6078,10 @@ function nh() {
                   ],
                 })
               : c.jsxs("div", {
-                  className: "px-4 py-4 flex flex-col gap-3",
+                  className: "public-client-history-content px-4 py-4 flex flex-col gap-3",
                   children: [
                     c.jsx("div", {
-                      className: `order-2 ui-disclosure-panel ${
+                      className: `public-client-history-detail order-2 ui-disclosure-panel ${
                         publicSelectedShipment ? "ui-disclosure-panel-open" : ""
                       }`,
                       children: c.jsx("div", {
@@ -6214,7 +6214,7 @@ function nh() {
                               children: "Evidencia del envio",
                             }),
                             c.jsx("div", {
-                              className: "grid grid-cols-2 gap-2",
+                              className: "public-client-history-evidence grid grid-cols-2 gap-2",
                               children: sortShipmentEvidenceByNewest(publicSelectedShipment.evidence).map(
                                 (o) => {
                                   const N = getShipmentEvidenceKind(o);
@@ -6273,7 +6273,7 @@ function nh() {
                               ],
                             }),
                             c.jsx("div", {
-                              className: "grid grid-cols-2 gap-2",
+                              className: "public-client-history-products grid grid-cols-2 gap-2",
                               children: sortShipmentProductsByNewest(publicSelectedShipment.products_detail).map(
                                 (o) =>
                                   c.jsxs(
@@ -6347,7 +6347,7 @@ function nh() {
                     publicPendingShipmentProducts.length > 0 &&
                     c.jsxs("div", {
                       className:
-                        "order-3 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
+                        "public-client-history-purchases order-3 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("div", {
                           className: "flex items-center justify-between gap-2",
@@ -6367,7 +6367,7 @@ function nh() {
                           ],
                         }),
                         c.jsx("div", {
-                          className: "grid grid-cols-3 gap-1.5 justify-items-center",
+                          className: "public-client-history-pending-products grid grid-cols-3 gap-1.5 justify-items-center",
                           children: publicPendingShipmentProducts.map((o) =>
                             c.jsxs(
                               "div",
@@ -6466,7 +6466,7 @@ function nh() {
                     }),
                     c.jsxs("div", {
                       className:
-                        "order-1 rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                        "public-client-history-list order-1 rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
                       children: [
                         c.jsxs("button", {
                           type: "button",
@@ -6513,7 +6513,7 @@ function nh() {
                             className: "ui-disclosure-inner",
                             children: publicOrderedShipments.length > 0
                           ? c.jsx("div", {
-                              className: "space-y-2",
+                              className: "public-client-history-list-items space-y-2",
                               children: publicOrderedShipments.map((o) =>
                                 c.jsxs(
                                   "button",
@@ -6590,14 +6590,14 @@ function nh() {
                     (publicClientShareData.receipts || []).length > 0 &&
                     c.jsxs("div", {
                       className:
-                        "rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
+                        "public-client-history-receipts rounded-2xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-900 px-4 py-3 space-y-2",
                       children: [
                         c.jsx("h3", {
                           className: "text-sm font-bold text-text-main dark:text-white",
                           children: "Tickets",
                         }),
                         c.jsx("div", {
-                          className: "grid grid-cols-3 gap-2",
+                          className: "public-client-history-receipt-grid grid grid-cols-3 gap-2",
                           children: (publicClientShareData.receipts || []).map((o) =>
                             c.jsx(
                               "button",
