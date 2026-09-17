@@ -432,8 +432,8 @@ main:has(.modern-ui) {
 .modern-home-pilot .home-shopping-client-row > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
 @media (max-width: 767px) {
   .modern-home-pilot .home-live-console { padding: 16px 14px; }
-  .modern-home-pilot > .home-live-console { order: 1; }
-  .modern-home-pilot > .home-shopping-clients { order: 2; }
+  .modern-home-pilot > .home-shopping-clients { order: 1; }
+  .modern-home-pilot > .home-live-console { order: 2; }
   .modern-home-pilot > .home-live-actions--mobile { order: 3; }
   .modern-home-pilot > .home-requests-panel { order: 4; }
   .modern-home-pilot .home-live-tabs { display: flex; overflow-x: auto; padding-bottom: 4px; }
