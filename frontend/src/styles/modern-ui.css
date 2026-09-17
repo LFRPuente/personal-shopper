@@ -432,13 +432,39 @@ main:has(.modern-ui) {
 .modern-home-pilot .home-shopping-client-row > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
 @media (max-width: 767px) {
   .modern-home-pilot .home-live-console { padding: 16px 14px; }
+  .modern-home-pilot > .home-live-console { order: 1; }
+  .modern-home-pilot > .home-shopping-clients { order: 2; }
+  .modern-home-pilot > .home-live-actions--mobile { order: 3; }
+  .modern-home-pilot > .home-requests-panel { order: 4; }
   .modern-home-pilot .home-live-tabs { display: flex; overflow-x: auto; padding-bottom: 4px; }
   .modern-home-pilot .home-live-tabs > button { flex: 0 0 min(190px, 68vw); padding: 10px 13px; }
   .modern-home-pilot .home-live-heading { margin-top: 18px; }
   .modern-home-pilot .home-live-heading h3 { font-size: 22px; }
   .modern-home-pilot .home-live-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modern-home-pilot .home-live-metrics > div:nth-child(-n + 2) {
+    min-height: 0;
+    padding: 7px 8px !important;
+  }
+  .modern-home-pilot .home-live-metrics > div:nth-child(-n + 2) > span {
+    margin-top: 3px !important;
+    font-size: clamp(16px, 5vw, 20px) !important;
+  }
+  .modern-home-pilot .home-live-metrics > div:nth-child(-n + 2) :is(button, p) {
+    font-size: 10px !important;
+    line-height: 1.1;
+  }
   .modern-home-pilot .home-live-metrics > div:last-child { grid-column: 1 / -1; min-height: auto; }
   .modern-home-pilot .home-live-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modern-home-pilot .home-shopping-clients-heading { align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .modern-home-pilot .home-shopping-clients-heading-copy { min-width: 0; }
+  .modern-home-pilot .home-shopping-clients-title {
+    overflow: hidden;
+    font-size: clamp(12px, 4vw, 16px);
+    line-height: 36px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .modern-home-pilot .home-assign-clients-button { min-height: 36px; padding-inline: 10px; font-size: 11px; letter-spacing: .01em; white-space: nowrap; }
   .modern-home-pilot .home-shopping-client-row { align-items: flex-start; gap: 10px; }
   .modern-home-pilot .home-shopping-client-row > div:first-child { min-width: 0; }
 }

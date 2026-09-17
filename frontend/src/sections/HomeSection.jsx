@@ -288,6 +288,26 @@ const HomeSection = V.memo(function HomeSection() {
       }),
     [requests],
   );
+  const missionActions =
+    activeMission &&
+    c.jsxs('div', {
+      className: isDesktopLayout
+        ? 'home-live-actions mt-3 flex flex-wrap items-center gap-2'
+        : 'home-live-actions home-live-actions--mobile mt-2 grid grid-cols-2 gap-2',
+      children: [
+        activeMission.status === 'ACTIVE'
+          ? c.jsx('button', { onClick: pauseMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-amber-500 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(217,119,6,0.95)] hover:bg-amber-600`, children: 'Pausar compra' }, 'pause')
+          : c.jsx('button', { onClick: resumeMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-emerald-600 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(5,150,105,0.95)] hover:bg-emerald-700`, children: 'Reanudar compra' }, 'resume'),
+        c.jsx('button', { onClick: endMission, className: `${isDesktopLayout ? 'px-4 py-2' : 'px-3 py-2.5'} rounded-xl border border-rose-300 bg-rose-50 text-[12px] font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50`, children: 'Finalizar' }, 'end'),
+        c.jsxs('div', {
+          className: isDesktopLayout ? 'ml-auto flex items-center gap-2' : 'col-span-2 grid grid-cols-2 gap-2',
+          children: [
+            c.jsx('button', { onClick: () => setMissionSummaryOpen(true), className: 'rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary hover:bg-primary/10 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200', children: 'Resumen' }, 'view'),
+            c.jsx('button', { onClick: openMissionTicketPicker, disabled: missionTicketUploading, className: `rounded-xl border px-3 py-2 text-[12px] font-bold ${missionTicketUploading ? 'border-violet-300 bg-violet-100 text-violet-700 cursor-wait opacity-80 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50'}`, children: missionTicketUploading ? 'Subiendo…' : 'Ticket' }, 'ticket'),
+          ],
+        }),
+      ],
+    });
 
   return c.jsxs('div', {
     ref: isDesktopLayout ? homeDesktopGridRef : null,
@@ -1114,22 +1134,7 @@ const HomeSection = V.memo(function HomeSection() {
                 }),
               ],
             }),
-            c.jsxs('div', {
-              className: isDesktopLayout ? 'home-live-actions mt-3 flex flex-wrap items-center gap-2' : 'home-live-actions mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2',
-              children: [
-                activeMission.status === 'ACTIVE'
-                  ? c.jsx('button', { onClick: pauseMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-amber-500 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(217,119,6,0.95)] hover:bg-amber-600`, children: 'Pausar compra' }, 'pause')
-                  : c.jsx('button', { onClick: resumeMission, className: `${isDesktopLayout ? 'min-w-36 px-5 py-2' : 'px-4 py-2.5'} rounded-xl bg-emerald-600 text-white text-[12px] font-bold shadow-[0_10px_22px_-15px_rgba(5,150,105,0.95)] hover:bg-emerald-700`, children: 'Reanudar compra' }, 'resume'),
-                c.jsx('button', { onClick: endMission, className: `${isDesktopLayout ? 'px-4 py-2' : 'px-3 py-2.5'} rounded-xl border border-rose-300 bg-rose-50 text-[12px] font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50`, children: 'Finalizar' }, 'end'),
-                c.jsxs('div', {
-                  className: isDesktopLayout ? 'ml-auto flex items-center gap-2' : 'col-span-2 grid grid-cols-2 gap-2',
-                  children: [
-                    c.jsx('button', { onClick: () => setMissionSummaryOpen(true), className: 'rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary hover:bg-primary/10 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200', children: 'Resumen' }, 'view'),
-                    c.jsx('button', { onClick: openMissionTicketPicker, disabled: missionTicketUploading, className: `rounded-xl border px-3 py-2 text-[12px] font-bold ${missionTicketUploading ? 'border-violet-300 bg-violet-100 text-violet-700 cursor-wait opacity-80 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50'}`, children: missionTicketUploading ? 'Subiendo…' : 'Ticket' }, 'ticket'),
-                  ],
-                }),
-              ],
-            }),
+            isDesktopLayout && missionActions,
             c.jsx('div', {
               className: isDesktopLayout ? 'mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2.5' : 'mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-2',
               children: missionTicketUploading
@@ -1147,13 +1152,13 @@ const HomeSection = V.memo(function HomeSection() {
             : 'home-shopping-clients bg-surface-light dark:bg-surface-dark p-3 md:p-4 border-b border-border-light dark:border-border-dark',
           children: [
             c.jsxs('div', {
-              className: 'mb-3 flex items-start justify-between gap-3',
+              className: 'home-shopping-clients-heading mb-3 flex items-start justify-between gap-3',
               children: [
                 c.jsxs('div', {
-                  className: 'space-y-1',
+                  className: 'home-shopping-clients-heading-copy min-w-0 space-y-1',
                   children: [
                     c.jsxs('h3', {
-                      className: 'home-panel-title font-bold text-sm text-text-main dark:text-white',
+                      className: 'home-panel-title home-shopping-clients-title font-bold text-sm text-text-main dark:text-white',
                       children: ['Clients in Shopping (', filteredHomeClientsInMission.length, ')'],
                     }),
                     c.jsx('input', {
@@ -1169,8 +1174,12 @@ const HomeSection = V.memo(function HomeSection() {
                   type: 'button',
                   onClick: () => setShoppingClientAssignmentModalOpen(true),
                   className:
-                    'shrink-0 rounded-full bg-primary px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:bg-primary-dark',
-                  children: 'Asignar clientes',
+                    'home-assign-clients-button shrink-0 rounded-full bg-primary px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:bg-primary-dark',
+                  'aria-label': 'Asignar clientes',
+                  children: c.jsx('span', {
+                    className: 'home-assign-clients-label',
+                    children: isDesktopLayout ? 'Asignar clientes' : 'Agregar',
+                  }),
                 }),
               ],
             }),
@@ -1337,6 +1346,7 @@ const HomeSection = V.memo(function HomeSection() {
             }),
           ],
         }),
+      activeMission && !isDesktopLayout && missionActions,
     ],
   });
 });
