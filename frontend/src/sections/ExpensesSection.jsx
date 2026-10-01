@@ -1,13 +1,17 @@
 import { V, c, NATIVE_DROPDOWN_OPTION_STYLE } from '../utils.js';
 import { useAppServices, useLayoutProfileContext } from '../AppContext.jsx';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const matamorosDate = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Matamoros', year: 'numeric', month: '2-digit', day: '2-digit' });
+const today = () => {
+  const parts = Object.fromEntries(matamorosDate.formatToParts(new Date()).map(({ type, value }) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 const monthBounds = (month) => [`${month}-01`, new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).toISOString().slice(0, 10)];
 const MONTH_NAMES = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-const currentYear = () => new Date().getFullYear();
-const currentMonthNumber = () => new Date().getMonth() + 1;
+const currentYear = () => Number(today().slice(0, 4));
+const currentMonthNumber = () => Number(today().slice(5, 7));
 const padMonth = (value) => String(value).padStart(2, '0');
-const currentMonthKey = () => `${currentYear()}-${padMonth(currentMonthNumber())}`;
+const currentMonthKey = () => today().slice(0, 7);
 
 const ExpensesSection = V.memo(function ExpensesSection() {
   const { isDesktopLayout } = useLayoutProfileContext();
@@ -81,7 +85,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
           c.jsx('span', { className: 'material-symbols-outlined text-[18px] text-text-sub', children: 'expand_more' }),
         ] }),
         monthPickerOpen &&
-        c.jsxs('div', { className: 'absolute right-0 top-full z-50 mt-2 grid w-[320px] grid-cols-[1fr_92px] overflow-hidden rounded-2xl border border-border-light bg-white shadow-xl dark:border-border-dark dark:bg-slate-900', children: [
+        c.jsxs('div', { className: 'absolute left-0 top-full z-50 mt-2 grid w-[320px] grid-cols-[1fr_92px] overflow-hidden rounded-2xl border border-border-light bg-white shadow-xl dark:border-border-dark dark:bg-slate-900', children: [
           c.jsx('div', { className: 'grid grid-cols-2 gap-1 p-3', children: MONTH_NAMES.slice(0, monthLimit).map((name, index) => {
             const monthNumber = index + 1;
             const active = monthNumber === selectedMonth;
