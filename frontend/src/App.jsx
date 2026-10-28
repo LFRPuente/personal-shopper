@@ -5026,14 +5026,14 @@ function nh() {
     ),
     homeClientGlobalBalanceMap = V.useMemo(
       () =>
-        Rt.reduce((o, N) => {
+        Kl.reduce((o, N) => {
           o[N.id] = (clientShoppingHistoryEntriesByClientId[N.id] || []).reduce(
             (A, vl) => A + toNumber(vl && vl.balance, 0),
             0,
           );
           return o;
         }, {}),
-      [Rt, clientShoppingHistoryEntriesByClientId],
+      [Kl, clientShoppingHistoryEntriesByClientId],
     ),
     filteredHomeClientsInMission = V.useMemo(
       () =>
