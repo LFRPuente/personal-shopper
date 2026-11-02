@@ -15,6 +15,10 @@ if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
 fi
 
 cd "$ROOT_DIR"
+if ! git diff --quiet HEAD --; then
+  echo "Commit tracked changes before deploying so the build matches its Git commit."
+  exit 1
+fi
 VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
 
 if [ -z "$VITE_COMMIT_SHA" ]; then

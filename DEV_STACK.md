@@ -41,10 +41,10 @@ This host port is only for direct host access and troubleshooting.
 ./scripts/dev-up.sh
 ```
 
-Or run the compose command directly:
+For frontend-only changes, preserve backend and data services:
 
 ```sh
-docker compose -p personal-shopper-dev --env-file dev.env up -d --build
+./scripts/dev-up.sh --no-deps frontend
 ```
 
 ## Copy production data into dev
@@ -73,3 +73,5 @@ When `dev` is working correctly, you can ask:
 - `deploy dev to ps`
 
 That is the short phrase to promote the approved `dev` changes into production.
+
+Commit changes before building Dev. At the end of each promotion, local HEAD, `origin/main`, and both running frontend commit stamps must match. Use the deploy scripts so builds reject pending tracked changes and always stamp HEAD. See `CONTEXT.md` for the required commit-parity procedure. Unchanged backend services do not need rebuilding to align frontend versions.

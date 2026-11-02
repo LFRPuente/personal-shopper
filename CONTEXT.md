@@ -91,7 +91,16 @@ The frontend refactor is already in production and is the current base state.
 
 ## Working model
 
-The source of truth is the local Windows repo. The Mac Mini is the deploy target.
+As of 2026-11-02, the user works directly in the Mac Mini repo at `/Users/homeserver/Documents/personal-shopper`. Local editing here is explicitly authorized. The Windows/SSH instructions below are legacy references for remote work.
+
+### Required commit parity when promoting Dev to PS
+
+- Commit the approved changes before building Dev. Never deploy tracked changes that are absent from the stamped commit.
+- Validate Dev at that commit, push it to `origin/main`, then deploy PS from the same commit. Both deploy scripts resolve the stamp from HEAD and reject pending tracked changes.
+- At the end of every promotion, verify that local HEAD, `origin/main`, and both running frontend stamps match. If they do not, the promotion is not complete; report the mismatch and resolve it.
+- Rebuild only the affected services. For frontend-only changes use `./scripts/dev-up.sh --no-deps frontend` and `./scripts/ps-up.sh --no-deps frontend`. Do not rebuild backend or modify databases just to align frontend stamps.
+- A backend that was not rebuilt retains its existing version; never claim that every container was rebuilt from the new commit.
+- Record the release through its Git commit and verified running stamps. Do not create a follow-up documentation-only commit after deployment just to write its own SHA: that would immediately make HEAD differ from the deployed revision.
 
 ## Environment naming
 
@@ -118,7 +127,7 @@ For a parallel `dev` stack, keep the same compose file and change only the envir
    - Frontend changes: `npm.cmd run build` or `npx vite build`
    - Backend changes: `python -m py_compile <files>`
 3. Commit locally.
-   - Before committing, update the first entry under **Latest known production commits** with the current latest commit SHA and its summary. Keep the newest entry first.
+   - Keep the release changes in one committed revision and follow the required commit-parity procedure above.
 4. Push from Windows to GitHub using the active remote for this clone:
    - usually `git push origin main`
 5. SSH from Windows into the Mac Mini through Cloudflare Access.
@@ -484,7 +493,7 @@ Every deploy that rebuilds `frontend` must stamp the build with the exact Git co
 - Do not bypass these scripts with a direct `docker compose up --build frontend` command.
 - If the commit SHA cannot be resolved, the deployment must stop rather than publish an unversioned frontend.
 - After each frontend deploy, verify that the deployed asset contains the output of `git rev-parse --short HEAD` and confirm that Settings displays that same SHA.
-- After a PS frontend deployment, record that deployed SHA as the first entry under **Latest known production commits**.
+- After a PS frontend deployment, verify the same SHA in Dev, PS, local HEAD, and `origin/main`, and report it to the user. The historical production-commit list above is not a live deployment registry.
 - The frontend Dockerfile also rejects a blank or `unknown` SHA, so an unversioned frontend cannot be built even if someone bypasses the deploy scripts.
 
 ## Non-negotiable rules

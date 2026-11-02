@@ -23,9 +23,11 @@ if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
 fi
 
 cd "$ROOT_DIR"
-if [ -z "${VITE_COMMIT_SHA:-}" ] || [ "$VITE_COMMIT_SHA" = "unknown" ]; then
-  VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
+if ! git diff --quiet HEAD --; then
+  echo "Commit tracked changes before deploying so the build matches its Git commit."
+  exit 1
 fi
+VITE_COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
 
 if [ -z "$VITE_COMMIT_SHA" ]; then
   echo "Unable to determine the current Git commit; frontend build aborted."
@@ -33,4 +35,4 @@ if [ -z "$VITE_COMMIT_SHA" ]; then
 fi
 
 export VITE_COMMIT_SHA
-"$DOCKER_BIN" compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" up -d --build
+"$DOCKER_BIN" compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" up -d --build "$@"
