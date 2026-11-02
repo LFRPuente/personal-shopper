@@ -45,7 +45,7 @@ const ExpensesSection = V.memo(function ExpensesSection() {
     setSaving(true);
     try {
       await apiFetchRef.current('/expenses/', { method: 'POST', body: JSON.stringify({ ...form, expense_type: form.expense_type.trim(), amount: Number(form.amount) }) });
-      setForm({ expense_date: today(), expense_type: form.expense_type, description: '', amount: '' });
+      setForm((current) => ({ ...current, description: '', amount: '' }));
       await loadExpenses();
       notifySuccess('Gasto guardado.');
     } catch (error) {
