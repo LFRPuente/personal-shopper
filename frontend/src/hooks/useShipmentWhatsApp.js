@@ -7,7 +7,7 @@ export function buildShipmentClosingMessage(clientName, shareUrl) {
     .replace(/^[\s#.:_\-–—()]+|[\s#.:_\-–—()]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim() || 'cliente';
-  return `Hola ${name}, te envio el link con los productos que iran en el cierre de tu cajita, please confirmame que todo esta correcto.\n\n${shareUrl}\n\nDejame saber si tienes dudas`;
+  return `Hola ${name}, te envio el link con los productos que iran en el cierre de tu cajita, please confirmame que todo esta correcto.\n\n${shareUrl}`;
 }
 
 export function useShipmentWhatsApp({ user, apiFetch, generateClientHistoryShareLink, confirmAction, notifyInfo, notifyError, notifySuccess }) {
