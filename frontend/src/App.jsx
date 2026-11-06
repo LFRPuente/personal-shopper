@@ -24,6 +24,7 @@ import {
 } from './AppContext.jsx';
 import { useApiClient, getApiErrorMessage } from './hooks/useApiClient.js';
 import { useClientsDomain } from './hooks/useClientsDomain.js';
+import { useShipmentWhatsApp } from './hooks/useShipmentWhatsApp.js';
 import { useImageSource } from './hooks/useImageSource.js';
 import { useOverlayNavigation } from './hooks/useOverlayNavigation.js';
 import { usePaymentsDomain } from './hooks/usePaymentsDomain.js';
@@ -501,6 +502,15 @@ function nh() {
     generateClientHistoryShareLink = clientsDomain.generateClientHistoryShareLink,
     copyClientMissionShareLink = clientsDomain.copyClientMissionShareLink,
     copyClientShipmentHistoryLink = clientsDomain.copyClientShipmentHistoryLink,
+    { sendShipmentWhatsApp, sendingShipmentWhatsAppId } = useShipmentWhatsApp({
+      user: J,
+      apiFetch: I,
+      generateClientHistoryShareLink,
+      confirmAction,
+      notifyInfo,
+      notifyError,
+      notifySuccess,
+    }),
     storesLoadedRef = V.useRef(!1),
     carrierRecommendationsLoadedRef = V.useRef(!1),
     homeDesktopGridRef = V.useRef(null),
@@ -6887,6 +6897,8 @@ function nh() {
     openShipmentEvidencePicker,
     shipmentEvidenceUploadingId,
     copyClientShipmentHistoryLink,
+    sendShipmentWhatsApp,
+    sendingShipmentWhatsAppId,
     copiedClientShareLinks,
     deleteShipment,
     formatAmount,
@@ -6940,6 +6952,8 @@ function nh() {
     openShipmentEvidencePicker,
     shipmentEvidenceUploadingId,
     copyClientShipmentHistoryLink,
+    sendShipmentWhatsApp,
+    sendingShipmentWhatsAppId,
     copiedClientShareLinks,
     deleteShipment,
     formatAmount,

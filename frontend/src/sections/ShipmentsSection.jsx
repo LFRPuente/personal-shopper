@@ -33,6 +33,8 @@ export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'openShipmentEvidencePicker',
   'shipmentEvidenceUploadingId',
   'copyClientShipmentHistoryLink',
+  'sendShipmentWhatsApp',
+  'sendingShipmentWhatsAppId',
   'copiedClientShareLinks',
   'deleteShipment',
   'formatAmount',
@@ -88,6 +90,8 @@ const DEFAULT_CONTEXT = {
   openShipmentEvidencePicker: () => {},
   shipmentEvidenceUploadingId: null,
   copyClientShipmentHistoryLink: () => {},
+  sendShipmentWhatsApp: () => {},
+  sendingShipmentWhatsAppId: null,
   copiedClientShareLinks: [],
   deleteShipment: () => {},
   formatAmount: (value) => String(value ?? ''),
@@ -1021,6 +1025,8 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     openShipmentEvidencePicker,
     shipmentEvidenceUploadingId,
     copyClientShipmentHistoryLink,
+    sendShipmentWhatsApp,
+    sendingShipmentWhatsAppId,
     copiedClientShareLinks,
     deleteShipment,
     formatAmount,
@@ -1268,6 +1274,19 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                 children: copiedClientShareLinks.includes(`shipment-client-history-share-${shipment.id}`)
                                   ? 'done'
                                   : 'link',
+                              }),
+                            }),
+                            c.jsx('button', {
+                              type: 'button',
+                              onClick: () => sendShipmentWhatsApp(shipment),
+                              disabled: sendingShipmentWhatsAppId !== null,
+                              'aria-label': 'Enviar link del envío por WhatsApp',
+                              title: 'Enviar por WAHA',
+                              className:
+                                'w-8 h-8 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 flex items-center justify-center disabled:opacity-60',
+                              children: c.jsx('span', {
+                                className: `material-symbols-outlined text-[16px] ${sendingShipmentWhatsAppId === shipment.id ? 'animate-spin' : ''}`,
+                                children: sendingShipmentWhatsAppId === shipment.id ? 'progress_activity' : 'send',
                               }),
                             }),
                             c.jsx('button', {
