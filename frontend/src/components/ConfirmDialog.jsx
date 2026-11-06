@@ -25,7 +25,7 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
       'aria-describedby': 'confirm-dialog-message',
       tabIndex: -1,
       className: overlaySheetClass(
-        'bg-surface-light dark:bg-surface-dark w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet',
+        'bg-surface-light dark:bg-surface-dark w-full min-w-0 sm:max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet',
         'confirm',
       ),
       onClick: (event) => event.stopPropagation(),
@@ -34,7 +34,7 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
           className: 'flex items-start gap-3',
           children: [
             c.jsx('div', {
-              className: `w-10 h-10 rounded-2xl flex items-center justify-center ${
+              className: `w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center ${
                 confirmDialog.tone === 'danger'
                   ? 'bg-rose-100 text-rose-700'
                   : 'bg-sky-100 text-sky-700'
@@ -46,7 +46,7 @@ const ConfirmDialog = V.memo(function ConfirmDialog({
               }),
             }),
             c.jsxs('div', {
-              className: 'flex-1',
+              className: 'min-w-0 flex-1 [overflow-wrap:anywhere]',
               children: [
                 c.jsx('h3', {
                   id: 'confirm-dialog-title',
