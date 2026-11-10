@@ -1,5 +1,6 @@
 import { V, c, MODULE_AMOUNT_FORMAT, getClientPhoneDisplay } from '../utils.js';
 import { useClientsContext } from '../AppContext.jsx';
+import { getMatamorosDate, getPendingShipmentAge } from '../pendingShipmentAge.js';
 
 export const CLIENTS_SECTION_REQUIRED_CONTEXT = [
   'clients',
@@ -170,8 +171,14 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
   const canCreateClient = ['AV', 'PS', 'BOTH'].includes(role);
   const [search, setSearch] = V.useState(String(clientSearch || ''));
   const [balanceFilter, setBalanceFilter] = V.useState('ALL');
+  const [pendingShipmentFilter, setPendingShipmentFilter] = V.useState(false);
   const [expandedClientId, setExpandedClientId] = V.useState(null);
   const [expandedHistoryByClient, setExpandedHistoryByClient] = V.useState({});
+  const today = getMatamorosDate();
+  const pendingShipmentByClient = V.useMemo(() => new Map(
+    (Array.isArray(clients) ? clients : []).map((client) => [client.id, getPendingShipmentAge(client, today)]),
+  ), [clients, today]);
+  const pendingShipmentClientCount = [...pendingShipmentByClient.values()].filter(({ count }) => count > 0).length;
 
   const filteredClients = V.useMemo(() => {
     const tokens = getTokens(search);
@@ -198,7 +205,12 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         );
         return Math.abs(balance) > 0.009;
       })
+      .filter((client) => !pendingShipmentFilter || pendingShipmentByClient.get(client.id)?.count > 0)
       .sort((a, b) => {
+        if (pendingShipmentFilter) {
+          const byAge = pendingShipmentByClient.get(b.id).oldestDays - pendingShipmentByClient.get(a.id).oldestDays;
+          if (byAge) return byAge;
+        }
         if (balanceFilter === 'BALANCE') {
           const getBalance = (client) =>
             getClientShoppingHistoryEntries(client).reduce(
@@ -223,7 +235,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
         );
         return byName || Number(a?.id || 0) - Number(b?.id || 0);
       });
-  }, [clients, search, balanceFilter, getClientShoppingHistoryEntries]);
+  }, [clients, search, balanceFilter, getClientShoppingHistoryEntries, pendingShipmentFilter, pendingShipmentByClient]);
 
   return c.jsxs('section', {
     className: isDesktopLayout ? 'modern-ui modern-clients space-y-6' : 'modern-ui modern-clients space-y-4',
@@ -252,8 +264,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
       }),
       c.jsxs('div', {
         className: isDesktopLayout
-          ? 'modern-toolbar flex w-full max-w-2xl items-center gap-2'
-          : 'modern-toolbar flex w-full items-center gap-2',
+          ? 'modern-toolbar flex w-full max-w-3xl flex-wrap items-center gap-2'
+          : 'modern-toolbar flex w-full flex-wrap items-center gap-2',
         children: [
           c.jsx('input', {
             type: 'text',
@@ -285,18 +297,35 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
               }),
             ],
           }),
+          c.jsxs('button', {
+            type: 'button',
+            onClick: () => setPendingShipmentFilter((active) => !active),
+            'aria-pressed': pendingShipmentFilter,
+            title: 'Clientes con productos comprados hace más de 30 días sin asignar a un envío. Ordenados del más antiguo al más reciente.',
+            className: `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${pendingShipmentFilter ? 'border-amber-400 bg-amber-100 text-amber-950 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-100' : 'border-border-light bg-surface-light text-text-main hover:bg-amber-50 dark:border-border-dark dark:bg-surface-dark dark:text-slate-200 dark:hover:bg-slate-800'}`,
+            children: [
+              c.jsx('span', { className: 'material-symbols-outlined text-[18px]', 'aria-hidden': true, children: 'schedule' }),
+              'Más de 30 días',
+              c.jsx('span', { className: 'rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-950 dark:bg-amber-900 dark:text-amber-100', children: pendingShipmentClientCount }),
+            ],
+          }),
         ],
+      }),
+      pendingShipmentFilter && c.jsx('p', {
+        className: 'text-xs text-text-sub',
+        children: 'Productos sin asignar a un envío. Clientes ordenados por su compra pendiente más antigua.',
       }),
       filteredClients.length === 0
         ? c.jsx('div', {
             className:
               'text-center py-12 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light border-dashed',
-            children: c.jsx('p', { className: 'text-gray-500 dark:text-slate-300 text-sm', children: 'No clients defined or matched search.' }),
+            children: c.jsx('p', { className: 'text-gray-500 dark:text-slate-300 text-sm', children: pendingShipmentFilter ? 'No hay clientes con productos de más de 30 días sin asignar a un envío que coincidan con los filtros.' : 'No clients defined or matched search.' }),
           })
         : c.jsx('div', {
             className: isDesktopLayout ? 'modern-list modern-list--desktop grid grid-cols-1 xl:grid-cols-2 gap-3' : 'modern-list space-y-3',
             children: filteredClients.map((client) => {
               const isExpanded = expandedClientId === client.id;
+              const pendingShipment = pendingShipmentByClient.get(client.id);
               const visibleProducts = getHomeVisibleProducts(client);
               const totals = getHomeClientTotals(visibleProducts);
               const history = getClientShoppingHistoryEntries(client);
@@ -324,6 +353,13 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           c.jsx('p', {
                             className: 'text-xs text-gray-500 dark:text-slate-300',
                             children: clientStatusSummary || 'Sin items',
+                          }),
+                          pendingShipment.count > 0 && c.jsxs('p', {
+                            className: 'mt-2 inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+                            children: [
+                              c.jsx('span', { className: 'material-symbols-outlined text-[16px]', 'aria-hidden': true, children: 'schedule' }),
+                              `${pendingShipment.oldestDays} días · ${pendingShipment.count} ${pendingShipment.count === 1 ? 'producto sin pedir envío' : 'productos sin pedir envío'}`,
+                            ],
                           }),
                           c.jsxs('div', {
                             className: 'mt-2 grid grid-cols-2 gap-2 w-full max-w-none sm:max-w-[18rem] min-w-0',
@@ -462,6 +498,22 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                                   c.jsxs('p', { className: 'text-[12px] text-gray-600 dark:text-slate-300', children: ['📍 ', address] }, `client-extra-shipping-${client.id}-${index}`),
                                 ),
                               }),
+                            pendingShipmentFilter && pendingShipment.count > 0 && c.jsxs('div', {
+                              className: 'my-3 rounded-xl border border-amber-200 p-3 dark:border-amber-900',
+                              children: [
+                                c.jsx('h4', { className: 'mb-2 text-xs font-bold text-amber-900 dark:text-amber-200', children: 'Productos de más de 30 días sin pedir envío' }),
+                                c.jsx('ul', { className: 'max-h-60 space-y-2 overflow-y-auto', children: pendingShipment.items.map(({ product, days }) => c.jsxs('li', {
+                                  className: 'flex items-start justify-between gap-3 text-xs',
+                                  children: [
+                                    c.jsxs('div', { className: 'min-w-0', children: [
+                                      c.jsx('p', { className: 'break-words font-semibold text-text-main dark:text-slate-100', children: product.name || 'Producto' }),
+                                      c.jsx('p', { className: 'mt-0.5 text-text-sub', children: `Compra: ${product.purchase_date.split('-').reverse().join('/')}` }),
+                                    ] }),
+                                    c.jsx('span', { className: 'shrink-0 font-semibold text-amber-900 dark:text-amber-200', children: `${days} días` }),
+                                  ],
+                                }, product.id)) }),
+                              ],
+                            }),
                             visibleProducts.length === 0 && (client.payments || []).length === 0
                               ? c.jsx('p', { className: 'text-xs text-gray-400 dark:text-slate-300 text-center py-4', children: 'No purchases yet for this client.' })
                               : c.jsxs(c.Fragment, {
