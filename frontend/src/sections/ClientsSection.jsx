@@ -354,7 +354,7 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                             children: [
                               c.jsx('h3', { className: 'min-w-0 flex-1 truncate font-bold text-sm', title: client.name || 'Cliente', children: client.name || 'Cliente' }),
                               pendingShipment.count > 0 && c.jsxs('span', {
-                                className: 'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+                                className: 'modern-client-pending-badge inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-amber-50 px-1.5 text-[11px] font-semibold leading-4 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
                                 title: `${pendingShipment.oldestDays} días · ${pendingShipment.count} ${pendingShipment.count === 1 ? 'producto sin pedir envío' : 'productos sin pedir envío'}`,
                                 'aria-label': `${pendingShipment.oldestDays} días · ${pendingShipment.count} ${pendingShipment.count === 1 ? 'producto sin pedir envío' : 'productos sin pedir envío'}`,
                                 children: [
