@@ -117,7 +117,8 @@ main:has(.modern-ui) {
 .modern-clients .modern-search-input::placeholder { color: var(--modern-muted); opacity: 1; }
 .modern-clients .modern-client-card > div:first-child { padding: 20px; gap: 14px; }
 .modern-clients .modern-client-card h3 { font-size: 18px; letter-spacing: -.025em; }
-.modern-clients .modern-client-card h3 + p { font-size: 14px; color: var(--modern-muted); }
+.modern-clients .modern-client-card h3 + p,
+.modern-clients .modern-client-card .modern-client-status { font-size: 14px; color: var(--modern-muted); }
 .modern-clients .modern-client-card .mt-2.grid > div { min-height: 72px; padding: 10px; border-radius: 14px; }
 .modern-clients .modern-client-card .mt-2.grid p:first-child { font-size: 12px; letter-spacing: .035em; }
 .modern-clients .modern-client-card .mt-2.grid p:last-child { font-size: 19px; }
