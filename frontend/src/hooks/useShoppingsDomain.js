@@ -90,8 +90,8 @@ export function useShoppingsDomain({
       const selectedId =
         Number.isFinite(Number(preferredId)) && Number(preferredId) > 0
           ? Number(preferredId)
-          : Number(activeShopping && activeShopping.id) ||
-            Number((activeMissionIdRef && activeMissionIdRef.current) || 0) ||
+          : Number((activeMissionIdRef && activeMissionIdRef.current) || 0) ||
+            Number(activeShopping && activeShopping.id) ||
             0;
       if (selectedId > 0) {
         const match = openMissions.find((mission) => Number(mission.id) === selectedId);
@@ -101,6 +101,13 @@ export function useShoppingsDomain({
     },
     [activeMissionIdRef, activeShopping, getOpenShoppingMissions, shoppings],
   );
+
+  const selectShoppingTab = V.useCallback((missionId) => {
+    const selected = resolveSelectedShopping(shoppings, missionId);
+    // An in-flight refresh must see the click before React runs its effects.
+    if (activeMissionIdRef) activeMissionIdRef.current = selected ? selected.id : null;
+    setActiveShopping(selected);
+  }, [activeMissionIdRef, resolveSelectedShopping, shoppings]);
 
   const findStoreByName = V.useCallback(
     (name) =>
@@ -470,6 +477,7 @@ export function useShoppingsDomain({
     getMissionStoreLabel,
     getOpenShoppingMissions,
     resolveSelectedShopping,
+    selectShoppingTab,
     openMissionStart,
     createShopping,
     pauseMission,

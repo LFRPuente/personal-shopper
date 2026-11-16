@@ -26,6 +26,7 @@ This file is the current project context and the working agreement for this repo
   - reduced compositor-heavy transitions
   - temporary `ff-loading` class during startup
   - no realtime websocket on Firefox
+- Shopping Live tab selection must survive realtime refreshes, including responses that started before the operator switched tabs. Resolve selection from the live selected-ID ref at response time, and update that ref immediately on tab clicks. Only fall back to another open shopping if the selected one has closed or disappeared.
 
 ## Recent deployed changes
 

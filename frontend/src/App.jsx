@@ -585,6 +585,7 @@ function nh() {
     getMissionStoreLabel = shoppingsDomain.getMissionStoreLabel,
     getOpenShoppingMissions = shoppingsDomain.getOpenShoppingMissions,
     resolveSelectedShopping = shoppingsDomain.resolveSelectedShopping,
+    selectShoppingTab = shoppingsDomain.selectShoppingTab,
     openMissionStart = shoppingsDomain.openMissionStart,
     ye = shoppingsDomain.createShopping,
     be = shoppingsDomain.pauseMission,
@@ -814,7 +815,7 @@ function nh() {
         ]);
         _l(N || []);
         zl(A || []);
-        Dl(resolveSelectedShopping(A || []));
+        Dl(resolveSelectedShopping(A || [], activeMissionIdRef.current));
       } catch {}
     },
     loadAuxiliaryData = async () => {
@@ -7110,7 +7111,7 @@ function nh() {
     activeMission: w,
     shoppingTabs: getOpenShoppingMissions(Al),
     shoppingTabLimit: MAX_OPEN_SHOPPINGS,
-    selectShoppingTab: (missionId) => Dl(resolveSelectedShopping(Al, missionId)),
+    selectShoppingTab,
     startHomeDesktopResize,
     requests,
     openMissionStart,
@@ -7191,7 +7192,7 @@ function nh() {
     homeDesktopLayout,
     w,
     Al,
-    resolveSelectedShopping,
+    selectShoppingTab,
     startHomeDesktopResize,
     requests,
     openMissionStart,
