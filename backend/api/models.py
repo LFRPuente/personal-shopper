@@ -605,6 +605,7 @@ class Shipment(models.Model):
         blank=True,
         related_name='shipments_created',
     )
+    payment_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

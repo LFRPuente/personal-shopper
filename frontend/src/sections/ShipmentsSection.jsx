@@ -10,6 +10,7 @@ import {
   resolveMediaUrl,
 } from '../utils.js';
 import { useShipmentsContext } from '../AppContext.jsx';
+import ShipmentPaymentDate from '../components/ShipmentPaymentDate.jsx';
 
 export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'shipments',
@@ -43,6 +44,7 @@ export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'resetExpandedShipmentForm',
   'shipmentSaving',
   'saveShipmentEditor',
+  'saveShipmentPaymentDate',
   'getClientShipmentAddressOptions',
   'toggleShipmentProductSelection',
   'openShipmentEvidenceMenuId',
@@ -100,6 +102,7 @@ const DEFAULT_CONTEXT = {
   resetExpandedShipmentForm: () => {},
   shipmentSaving: false,
   saveShipmentEditor: () => {},
+  saveShipmentPaymentDate: () => {},
   getClientShipmentAddressOptions: () => [],
   toggleShipmentProductSelection: () => {},
   openShipmentEvidenceMenuId: null,
@@ -1035,6 +1038,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
     resetExpandedShipmentForm,
     shipmentSaving,
     saveShipmentEditor,
+    saveShipmentPaymentDate,
     getClientShipmentAddressOptions,
     toggleShipmentProductSelection,
     openShipmentEvidenceMenuId,
@@ -1190,21 +1194,19 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                               ],
                             }),
                             c.jsxs('p', {
-                              className: isDesktopLayout
-                                ? 'text-[12px] text-slate-600 dark:text-slate-300 truncate'
-                                : 'text-[12px] text-slate-600 dark:text-slate-300 truncate',
+                              className: 'shipment-meta flex min-w-0 items-center gap-1 text-[12px] text-slate-600 dark:text-slate-300',
                               children: [
-                                shipment.carrier || 'Paqueteria sin definir',
-                                ' - ',
-                                shipment.product_count || 0,
-                                ' items',
-                                Number(shipment.evidence_count || 0) > 0
-                                  ? ` - ${shipment.evidence_count} evid.`
-                                  : '',
-                                ' - ',
-                                shipment.created_at
-                                  ? new Date(shipment.created_at).toLocaleDateString()
-                                  : 'Sin fecha',
+                                c.jsxs('span', { className: 'min-w-0 truncate', children: [
+                                  shipment.carrier || 'Paqueteria sin definir',
+                                  ' - ',
+                                  shipment.product_count || 0,
+                                  ' items',
+                                  Number(shipment.evidence_count || 0) > 0
+                                    ? ` - ${shipment.evidence_count} evid.`
+                                    : '',
+                                ] }),
+                                c.jsx('span', { 'aria-hidden': true, children: '·' }),
+                                c.jsx(ShipmentPaymentDate, { shipment, onSave: saveShipmentPaymentDate }),
                               ],
                             }),
                             c.jsxs('div', {

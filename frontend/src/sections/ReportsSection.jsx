@@ -2,7 +2,6 @@ import { V, c } from '../utils.js';
 import {
   useAppServices,
   useLayoutProfileContext,
-  useShipmentsContext,
   useShoppingsContext,
 } from '../AppContext.jsx';
 import { downloadGeneralCsv } from '../reportWorkbook.js';
@@ -15,7 +14,6 @@ const monthStart = () => {
 
 const ReportsSection = V.memo(function ReportsSection() {
   const { missions } = useShoppingsContext();
-  const { shipments } = useShipmentsContext();
   const { users, isDesktopLayout } = useLayoutProfileContext();
   const { apiFetch, notifySuccess, notifyInfo, notifyError } = useAppServices();
   const [startDate, setStartDate] = V.useState(monthStart());
@@ -26,7 +24,7 @@ const ReportsSection = V.memo(function ReportsSection() {
     setGenerating(true);
     try {
       const [shipmentsResult, expensesResult] = await Promise.allSettled([
-        Array.isArray(shipments) && shipments.length ? Promise.resolve(shipments) : apiFetch('/shipments/'),
+        apiFetch('/shipments/'),
         apiFetch(`/expenses/?start=${startDate || ''}&end=${endDate || ''}`),
       ]);
       const reportShipments = shipmentsResult.status === 'fulfilled' ? shipmentsResult.value || [] : [];

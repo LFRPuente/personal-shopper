@@ -91,7 +91,14 @@ The frontend refactor is already in production and is the current base state.
 
 ## Working model
 
-As of 2026-11-02, the user works directly in the Mac Mini repo at `/Users/homeserver/Documents/personal-shopper`. Local editing here is explicitly authorized. The Windows/SSH instructions below are legacy references for remote work.
+As of 2026-11-16, the user works directly in the Mac Mini repo at `/Users/homeserver/docker/personal-shopper` (moved from `/Users/homeserver/Documents/personal-shopper`). Local editing here is explicitly authorized. The Windows/SSH instructions below are legacy references for remote work.
+
+### Shipment payment date
+
+- `Shipment.payment_date` is independent of the immutable creation timestamp. The first evidence upload fills an empty payment date using the upload day in America/Matamoros; an existing manual date is preserved.
+- Later evidence uploads, replacements, and deletions do not change the payment date. Operators can edit it while the shipment is Pending or Preparing, using the existing date position on its card.
+- Both CSV and workbook shipping sections filter and display payment date, falling back to creation date for historical shipments without payment date. Reports fetch all shipments instead of using only the current list page. Amount calculations remain unchanged.
+- This feature includes migration `0053_shipment_payment_date`; validate it in Dev. Production promotion requires a separate explicit request and the documented production schema-maintenance procedure.
 
 ### Required commit parity when promoting Dev to PS
 

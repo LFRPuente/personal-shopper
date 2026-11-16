@@ -16,6 +16,7 @@ from collections import defaultdict
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 import hashlib
 import secrets
 import json
@@ -2728,7 +2729,8 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        created_items = []
+        # Validate the whole batch before saving any evidence or payment date.
+        validated_files = []
         for uploaded_file in uploaded_files:
             content_type = str(getattr(uploaded_file, 'content_type', '') or '').lower()
             if content_type.startswith('image/'):
@@ -2740,14 +2742,27 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                     {'error': 'Only image or video files are allowed.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            created_items.append(
-                ShipmentEvidence.objects.create(
-                    shipment=shipment,
-                    uploaded_by=request.user,
-                    file=uploaded_file,
-                    media_type=media_type,
+            validated_files.append((uploaded_file, media_type))
+        created_items = []
+        with transaction.atomic():
+            shipment = Shipment.objects.select_for_update().get(pk=shipment.pk)
+            first_evidence = not shipment.evidence.exists()
+            for uploaded_file, media_type in validated_files:
+                created_items.append(
+                    ShipmentEvidence.objects.create(
+                        shipment=shipment,
+                        uploaded_by=request.user,
+                        file=uploaded_file,
+                        media_type=media_type,
+                    )
                 )
-            )
+            if first_evidence and shipment.payment_date is None:
+                payment_date = timezone.localdate(
+                    created_items[0].created_at, timezone=ZoneInfo('America/Matamoros')
+                )
+                Shipment.objects.filter(pk=shipment.pk, payment_date__isnull=True).update(
+                    payment_date=payment_date
+                )
         shipment = get_shipment_detail_queryset().get(id=shipment.id)
         broadcast_update('shipments', action='updated', object_id=shipment.id)
         return Response(

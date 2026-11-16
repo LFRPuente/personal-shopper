@@ -132,6 +132,12 @@ main:has(.modern-ui) {
 .modern-shipments .modern-shipment-card { padding: 20px; }
 .modern-shipments .modern-shipment-card > div:first-child > div:first-child > p:first-child { font-size: 19px; letter-spacing: -.025em; }
 .modern-shipments .modern-shipment-card > div:first-child > div:first-child > p:nth-child(2) { color: var(--modern-muted); font-size: 14px; }
+.modern-shipments .shipment-meta .shipment-payment-date,
+.modern-shipments .shipment-meta .shipment-payment-date-input { flex-shrink: 0; height: 20px; min-height: 0; max-width: 145px; padding: 0 2px; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; line-height: 20px; }
+.modern-shipments .shipment-payment-date:not(:disabled) { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.modern-shipments .shipment-payment-date:disabled { opacity: 1; }
+.modern-shipments .shipment-payment-date:focus-visible,
+.modern-shipments .shipment-payment-date-input:focus { outline: 2px solid #8b5cf6; outline-offset: 2px; }
 .modern-shipments .modern-shipment-card > div:first-child > div:last-child button { width: 40px; height: 40px; border-radius: 12px; }
 .modern-shipments .modern-shipment-card > div:first-child > div:last-child { gap: 6px; }
 .modern-stock .stock-heading { margin-bottom: 28px; }

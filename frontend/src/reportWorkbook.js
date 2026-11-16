@@ -27,6 +27,12 @@ const dateOnly = (value) => {
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : String(value).slice(0, 10);
 };
 
+export const getShipmentReportDate = (shipment) => shipment.payment_date || dateOnly(shipment.created_at);
+export const isShipmentInReportRange = (shipment, startDate, endDate) => {
+  const date = getShipmentReportDate(shipment);
+  return !!date && (!startDate || date >= startDate) && (!endDate || date <= endDate);
+};
+
 const cell = (value) => {
   const number = typeof value === 'number' && Number.isFinite(value);
   return `<Cell><Data ss:Type="${number ? 'Number' : 'String'}">${esc(value)}</Data></Cell>`;
@@ -74,8 +80,8 @@ export const downloadGeneralWorkbook = ({ missions = [], shipments = [], expense
     }),
   );
   const envioColumns = ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro'];
-  const envioRows = (shipments || []).filter((shipment) => inRange(shipment.created_at)).map((shipment) => ({
-    Fecha: dateOnly(shipment.created_at),
+  const envioRows = (shipments || []).filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate)).map((shipment) => ({
+    Fecha: getShipmentReportDate(shipment),
     Cliente: shipment.client_name || '',
     Paqueteria: shipment.carrier || '',
     'Costo de compra': amount(shipment.guide_price),
@@ -159,8 +165,8 @@ export const downloadGeneralCsv = ({ missions = [], shipments = [], expenses = [
       };
     }),
   ));
-  pushSection('ENVIOS', ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro'], (shipments || []).filter((shipment) => inRange(shipment.created_at)).map((shipment) => ({
-    Fecha: dateOnly(shipment.created_at),
+  pushSection('ENVIOS', ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro'], (shipments || []).filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate)).map((shipment) => ({
+    Fecha: getShipmentReportDate(shipment),
     Cliente: shipment.client_name || '',
     Paqueteria: shipment.carrier || '',
     'Costo de compra': amount(shipment.guide_price),

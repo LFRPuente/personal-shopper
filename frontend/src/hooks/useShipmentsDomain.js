@@ -698,6 +698,21 @@ export function useShipmentsDomain({
     });
   }, []);
 
+  const saveShipmentPaymentDate = V.useCallback(async (shipment, paymentDate) => {
+    try {
+      const updated = await apiFetch(`/shipments/${shipment.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ payment_date: paymentDate || null }),
+      });
+      upsertShipmentListItem(updated);
+      notifySuccess('Fecha de pago guardada.');
+      return true;
+    } catch (error) {
+      notifyError(getApiErrorMessage(error, 'No se pudo guardar la fecha de pago.'));
+      return false;
+    }
+  }, [apiFetch, upsertShipmentListItem, notifySuccess, notifyError]);
+
   const saveShipmentEditor = V.useCallback(async () => {
     const client = clients.find(
       (item) => String(item.id) === String(shipmentForm.client || ""),
@@ -1333,6 +1348,7 @@ export function useShipmentsDomain({
     toggleShipmentProductSelection,
     toggleAllShipmentProductSelections,
     saveShipmentEditor,
+    saveShipmentPaymentDate,
     openShipmentAssignmentPicker,
     deleteShipment,
     openShipmentEvidencePicker,
