@@ -96,7 +96,7 @@ As of 2026-11-16, the user works directly in the Mac Mini repo at `/Users/homese
 ### Shipment payment date
 
 - `Shipment.payment_date` is independent of the immutable creation timestamp. The first evidence upload fills an empty payment date using the upload day in America/Matamoros; an existing manual date is preserved.
-- Later evidence uploads, replacements, and deletions do not change the payment date. Operators can edit it while the shipment is Pending or Preparing, using the existing date position on its card.
+- Later evidence uploads, replacements, and deletions do not change the payment date. Operators can correct it in any shipment status, including Shipped and Delivered, using the existing date position on its card. Historical corrections must not alter shipment status, creation date, products, or amounts.
 - Both CSV and workbook shipping sections filter and display payment date, falling back to creation date for historical shipments without payment date. Reports fetch all shipments instead of using only the current list page. Amount calculations remain unchanged.
 - This feature includes migration `0053_shipment_payment_date`; validate it in Dev. Production promotion requires a separate explicit request and the documented production schema-maintenance procedure.
 

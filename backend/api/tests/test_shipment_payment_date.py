@@ -81,16 +81,22 @@ class ShipmentPaymentDateTests(TestCase):
         self.shipment.refresh_from_db()
         self.assertEqual(self.shipment.payment_date, original)
 
-    def test_partial_date_update_changes_no_amounts_and_is_locked_after_shipping(self):
-        self.assertEqual(self.request('patch', 'partial_update', {'payment_date': '2026-10-28'}).status_code, 200)
-        self.shipment.refresh_from_db()
-        self.assertEqual(self.shipment.payment_date, date(2026, 10, 28))
-        self.assertEqual(self.shipment.client_price, Decimal('120.00'))
-        self.shipment.status = Shipment.Status.SHIPPED
-        self.shipment.save(update_fields=['status'])
-        self.assertEqual(self.request('patch', 'partial_update', {'payment_date': '2026-10-29'}).status_code, 400)
-        self.shipment.refresh_from_db()
-        self.assertEqual(self.shipment.payment_date, date(2026, 10, 28))
+    def test_date_correction_in_every_status_preserves_status_creation_and_amounts(self):
+        for index, shipment_status in enumerate(Shipment.Status.values):
+            with self.subTest(status=shipment_status):
+                self.shipment.status = shipment_status
+                self.shipment.save(update_fields=['status'])
+                corrected = date(2026, 10, 20 + index)
+                response = self.request('patch', 'partial_update', {'payment_date': corrected.isoformat()})
+                self.assertEqual(response.status_code, 200)
+                self.shipment.refresh_from_db()
+                self.assertEqual(self.shipment.payment_date, corrected)
+                self.assertEqual(self.shipment.status, shipment_status)
+                self.assertEqual(self.shipment.created_at, self.created_at)
+                self.assertEqual(self.shipment.guide_price, Decimal('80.00'))
+                self.assertEqual(self.shipment.client_price, Decimal('120.00'))
+                self.assertEqual(self.shipment.insurance_price, Decimal('10.00'))
+                self.assertEqual(self.shipment.insurance_sale_price, Decimal('15.00'))
 
     def test_later_upload_does_not_backfill_historical_evidence(self):
         ShipmentEvidence.objects.create(shipment=self.shipment, file='historic.png')

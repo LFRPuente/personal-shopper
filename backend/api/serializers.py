@@ -1069,15 +1069,6 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        if (
-            self.instance
-            and 'payment_date' in attrs
-            and attrs['payment_date'] != self.instance.payment_date
-            and self.instance.status not in {Shipment.Status.PENDING, Shipment.Status.PREPARING}
-        ):
-            raise serializers.ValidationError(
-                {'payment_date': 'La fecha de pago solo se puede editar antes de enviar la caja.'}
-            )
         client = attrs.get('client') or getattr(self.instance, 'client', None)
         mission = attrs.get('mission') if 'mission' in attrs else getattr(self.instance, 'mission', None)
         tracking_number = attrs.get('tracking_number') if 'tracking_number' in attrs else getattr(self.instance, 'tracking_number', None)

@@ -7,9 +7,8 @@ export default function ShipmentPaymentDate({ shipment, onSave }) {
   const [draft, setDraft] = V.useState('');
   const [saving, setSaving] = V.useState(false);
   const cancelled = V.useRef(false);
-  const canEdit = ['PENDING', 'PREPARING'].includes(shipment.status);
   const created = shipment.created_at ? new Date(shipment.created_at).toLocaleDateString('es-MX', { timeZone: 'America/Matamoros' }) : 'Sin fecha';
-  const title = `Creado: ${created}. ${shipment.payment_date ? `Pago: ${displayDate(shipment.payment_date)}.` : 'Pago pendiente; el reporte usa la fecha de creación.'}${canEdit ? ' Editar fecha de pago.' : ''}`;
+  const title = `Creado: ${created}. ${shipment.payment_date ? `Pago: ${displayDate(shipment.payment_date)}.` : 'Pago pendiente; el reporte usa la fecha de creación.'} Editar fecha de pago.`;
   const label = shipment.payment_date ? `Pago: ${displayDate(shipment.payment_date)}` : `Creado: ${created}`;
   const finish = async () => {
     if (cancelled.current) return;
@@ -37,8 +36,8 @@ export default function ShipmentPaymentDate({ shipment, onSave }) {
 
   return c.jsx('button', {
     type: 'button',
-    disabled: !canEdit || saving,
-    'aria-label': `${canEdit ? 'Editar fecha de pago' : 'Fecha de pago'} del envío de ${shipment.client_name || 'cliente'}`,
+    disabled: saving,
+    'aria-label': `Editar fecha de pago del envío de ${shipment.client_name || 'cliente'}`,
     title,
     onClick: () => { cancelled.current = false; setDraft(shipment.payment_date || ''); setEditing(true); },
     className: 'shipment-payment-date',
