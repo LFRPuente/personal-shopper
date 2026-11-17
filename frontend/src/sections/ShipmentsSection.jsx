@@ -664,8 +664,11 @@ function ShipmentExpandedPanel(props) {
       c.jsxs('div', {
         className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
         children: [
+          c.jsxs('div', {
+            className: 'flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
+            children: [
           c.jsxs('label', {
-            className: 'rounded-lg bg-slate-50 dark:bg-slate-900/50 px-2.5 py-2',
+            className: 'min-w-0 flex-1',
             children: [
               c.jsx('p', {
                 className: 'text-[10px] uppercase font-bold text-text-sub',
@@ -685,6 +688,15 @@ function ShipmentExpandedPanel(props) {
                   ),
                 ),
               }),
+            ],
+          }),
+          !rootFormState.second_package && c.jsx('button', {
+            type: 'button', disabled: shipmentSaving,
+            'aria-label': 'Agregar segunda caja', title: 'Agregar segunda caja',
+            className: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:text-primary dark:border-border-dark',
+            onClick: () => { updateRootForm('second_package', createShipmentPackage({ carrier: rootFormState.carrier })); setActiveBox(2); },
+            children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
+          }),
             ],
           }),
           c.jsxs('label', {
@@ -1009,13 +1021,6 @@ function ShipmentExpandedPanel(props) {
       c.jsxs('div', {
         className: 'flex items-center gap-2',
         children: [
-          !rootFormState.second_package && c.jsx('button', {
-            type: 'button', disabled: shipmentSaving,
-            'aria-label': 'Agregar segunda caja', title: 'Agregar segunda caja',
-            className: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:text-primary dark:border-border-dark',
-            onClick: () => { updateRootForm('second_package', createShipmentPackage({ carrier: rootFormState.carrier })); setActiveBox(2); },
-            children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
-          }),
           c.jsx('button', {
             type: 'button',
             onClick: () => resetExpandedShipmentForm(shipment),
