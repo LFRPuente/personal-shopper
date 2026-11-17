@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.db.models import Q
+from decimal import Decimal
 from .models import (
     UserProfile,
     Client,
@@ -304,6 +305,7 @@ class ShipmentNestedSummarySerializer(serializers.ModelSerializer):
             'mission_name',
             'carrier',
             'tracking_number',
+            'second_package',
             'guide_price',
             'client_price',
             'includes_insurance',
@@ -902,6 +904,7 @@ class PublicShipmentSummarySerializer(serializers.ModelSerializer):
             'status',
             'carrier',
             'tracking_number',
+            'second_package',
             'guide_price',
             'client_price',
             'includes_insurance',
@@ -978,7 +981,22 @@ class PublicClientReceiptSerializer(serializers.ModelSerializer):
         ]
 
 
+class SecondShipmentPackageSerializer(serializers.Serializer):
+    carrier = serializers.CharField(max_length=120, required=False, allow_blank=True, default='')
+    tracking_number = serializers.CharField(max_length=120, required=False, allow_blank=True, default='')
+    guide_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    client_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    includes_insurance = serializers.BooleanField(required=False, default=False)
+    insurance_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    insurance_sale_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    package_length = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    package_width = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    package_height = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+    package_weight = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0'), required=False, allow_null=True)
+
+
 class ShipmentSerializer(serializers.ModelSerializer):
+    second_package = SecondShipmentPackageSerializer(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.name', read_only=True)
     shopping = serializers.PrimaryKeyRelatedField(
         source='mission',
@@ -1069,6 +1087,10 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        if attrs.get('second_package') is not None:
+            # Store exact decimal strings in the optional JSON package, never floats.
+            normalized = {key: format(value, 'f') if isinstance(value, Decimal) else value for key, value in attrs['second_package'].items()}
+            attrs['second_package'] = {**(getattr(self.instance, 'second_package', None) or {}), **normalized}
         client = attrs.get('client') or getattr(self.instance, 'client', None)
         mission = attrs.get('mission') if 'mission' in attrs else getattr(self.instance, 'mission', None)
         tracking_number = attrs.get('tracking_number') if 'tracking_number' in attrs else getattr(self.instance, 'tracking_number', None)
@@ -1153,6 +1175,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
             'mission_name',
             'carrier',
             'tracking_number',
+            'second_package',
             'guide_price',
             'client_price',
             'includes_insurance',

@@ -49,3 +49,21 @@ test('CSV and workbook export the payment date with identical shipping amounts',
     URL.revokeObjectURL = originalRevoke;
   }
 });
+
+test('two boxes produce exactly two independent report rows in the shared payment month', async () => {
+  const { getShipmentReportRows } = await import('./reportWorkbook.js');
+  const dual = { ...shipment, tracking_number: 'FIRST', second_package: {
+    carrier: 'Estafeta', tracking_number: 'SECOND', guide_price: '90.25', client_price: '160.50',
+    insurance_price: '12.75', insurance_sale_price: '18.25',
+  } };
+  const initial = JSON.stringify(dual);
+  const rows = getShipmentReportRows([dual], '2026-11-01', '2026-11-30');
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((row) => [row.Envio, row.Caja, row.Guia, row.Fecha]), [
+    [1, 1, 'FIRST', '2026-11-01'], [1, 2, 'SECOND', '2026-11-01'],
+  ]);
+  assert.deepEqual(rows.map((row) => [row['Costo de compra'], row['Costo de venta'], row['Costo del seguro'], row['Costo de venta del seguro']]), [[80, 120, 10, 15], [90.25, 160.5, 12.75, 18.25]]);
+  assert.equal(getShipmentReportRows([dual], '2026-10-01', '2026-10-31').length, 0);
+  assert.equal(getShipmentReportRows([shipment]).length, 1);
+  assert.equal(JSON.stringify(dual), initial);
+});

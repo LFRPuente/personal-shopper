@@ -11,6 +11,7 @@ import {
 } from '../utils.js';
 import { useShipmentsContext } from '../AppContext.jsx';
 import ShipmentPaymentDate from '../components/ShipmentPaymentDate.jsx';
+import { createShipmentPackage, SHIPMENT_PACKAGE_FIELDS } from '../shipmentPackages.js';
 
 export const SHIPMENTS_SECTION_REQUIRED_CONTEXT = [
   'shipments',
@@ -592,15 +593,24 @@ function ShipmentExpandedPanel(props) {
     shipment,
     hasHydratedDetail,
     isLoadingDetail,
-    formState,
+    formState: rootFormState,
     canEditBox,
     selectedProducts,
-    updateShipmentForm,
+    updateShipmentForm: updateRootForm,
     getClientShipmentAddressOptions,
     resetExpandedShipmentForm,
     shipmentSaving,
     saveShipmentEditor,
   } = props;
+
+  const [activeBox, setActiveBox] = V.useState(1);
+  const selectedBox = activeBox === 2 && rootFormState?.second_package ? 2 : 1;
+  const formState = selectedBox === 2 ? { ...rootFormState, ...createShipmentPackage(rootFormState.second_package) } : rootFormState;
+  const updateShipmentForm = (field, value) => {
+    if (selectedBox === 2 && SHIPMENT_PACKAGE_FIELDS.includes(field)) {
+      updateRootForm('second_package', { ...rootFormState.second_package, [field]: value });
+    } else updateRootForm(field, value);
+  };
 
   if (!hasHydratedDetail) {
     return c.jsxs('div', {
@@ -633,6 +643,24 @@ function ShipmentExpandedPanel(props) {
   return c.jsxs('div', {
     className: 'space-y-2.5 pt-0.5',
     children: [
+      rootFormState.second_package && c.jsxs('div', {
+        className: 'flex items-center gap-1 text-xs',
+        role: 'group', 'aria-label': 'Caja del envío',
+        children: [
+          ...[1, 2].map((box) => c.jsx('button', {
+            type: 'button', onClick: () => setActiveBox(box), 'aria-pressed': selectedBox === box,
+            className: `rounded-lg border px-3 py-1.5 font-semibold ${selectedBox === box ? 'border-primary bg-primary/10 text-primary' : 'border-border-light text-text-sub dark:border-border-dark'}`,
+            children: `Caja ${box}`,
+          }, box)),
+          c.jsx('button', {
+            type: 'button', disabled: shipmentSaving, title: 'Quitar segunda caja (se aplica al guardar)',
+            'aria-label': 'Quitar segunda caja',
+            onClick: () => { updateRootForm('second_package', null); setActiveBox(1); },
+            className: 'ml-auto rounded-lg px-2 py-1 text-text-sub hover:text-red-600',
+            children: 'Quitar caja 2',
+          }),
+        ],
+      }),
       c.jsxs('div', {
         className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
         children: [
@@ -981,6 +1009,13 @@ function ShipmentExpandedPanel(props) {
       c.jsxs('div', {
         className: 'flex items-center gap-2',
         children: [
+          !rootFormState.second_package && c.jsx('button', {
+            type: 'button', disabled: shipmentSaving,
+            'aria-label': 'Agregar segunda caja', title: 'Agregar segunda caja',
+            className: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-light text-text-sub hover:text-primary dark:border-border-dark',
+            onClick: () => { updateRootForm('second_package', createShipmentPackage({ carrier: rootFormState.carrier })); setActiveBox(2); },
+            children: c.jsx('span', { className: 'material-symbols-outlined text-[18px]', children: 'add' }),
+          }),
           c.jsx('button', {
             type: 'button',
             onClick: () => resetExpandedShipmentForm(shipment),
@@ -1176,6 +1211,7 @@ const ShipmentsSection = V.memo(function ShipmentsSection() {
                                 : 'flex flex-wrap items-center gap-1.5 text-sm font-bold text-text-main dark:text-white',
                               children: [
                                 c.jsx('span', { className: 'min-w-0 break-words', children: shipment.client_name || 'Cliente' }),
+                                shipment.second_package && c.jsx('span', { className: 'shrink-0 text-[11px] font-semibold text-primary', children: '2 cajas' }),
                                 Number(shipment.id) > 0
                                   ? c.jsxs('span', {
                                       className: 'inline-flex shrink-0 rounded-md border border-slate-300 bg-slate-100 px-2 py-1 align-middle text-[12px] font-bold leading-none text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',

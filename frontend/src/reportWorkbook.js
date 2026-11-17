@@ -1,3 +1,5 @@
+import { getShipmentPackages } from './shipmentPackages.js';
+
 const esc = (value) =>
   String(value ?? '')
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
@@ -32,6 +34,24 @@ export const isShipmentInReportRange = (shipment, startDate, endDate) => {
   const date = getShipmentReportDate(shipment);
   return !!date && (!startDate || date >= startDate) && (!endDate || date <= endDate);
 };
+
+
+const SHIPMENT_REPORT_COLUMNS = ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro', 'Envio', 'Caja', 'Guia'];
+
+export const getShipmentReportRows = (shipments = [], startDate, endDate) => shipments
+  .filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate))
+  .flatMap((shipment) => getShipmentPackages(shipment).map((box, index) => ({
+    Fecha: getShipmentReportDate(shipment),
+    Cliente: shipment.client_name || '',
+    Paqueteria: box.carrier || '',
+    'Costo de compra': amount(box.guide_price),
+    'Costo de venta': amount(box.client_price),
+    'Costo del seguro': amount(box.insurance_price),
+    'Costo de venta del seguro': amount(box.insurance_sale_price),
+    Envio: shipment.id,
+    Caja: index + 1,
+    Guia: box.tracking_number || '',
+  })));
 
 const cell = (value) => {
   const number = typeof value === 'number' && Number.isFinite(value);
@@ -79,16 +99,8 @@ export const downloadGeneralWorkbook = ({ missions = [], shipments = [], expense
       };
     }),
   );
-  const envioColumns = ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro'];
-  const envioRows = (shipments || []).filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate)).map((shipment) => ({
-    Fecha: getShipmentReportDate(shipment),
-    Cliente: shipment.client_name || '',
-    Paqueteria: shipment.carrier || '',
-    'Costo de compra': amount(shipment.guide_price),
-    'Costo de venta': amount(shipment.client_price),
-    'Costo del seguro': amount(shipment.insurance_price),
-    'Costo de venta del seguro': amount(shipment.insurance_sale_price),
-  }));
+  const envioColumns = SHIPMENT_REPORT_COLUMNS;
+  const envioRows = getShipmentReportRows(shipments, startDate, endDate);
   const gastoColumns = ['Fecha', 'Tipo de gasto', 'Descripcion', 'Monto'];
   const gastoRows = (expenses || []).filter((expense) => inRange(expense.expense_date)).map((expense) => ({
     Fecha: dateOnly(expense.expense_date),
@@ -165,15 +177,7 @@ export const downloadGeneralCsv = ({ missions = [], shipments = [], expenses = [
       };
     }),
   ));
-  pushSection('ENVIOS', ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro'], (shipments || []).filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate)).map((shipment) => ({
-    Fecha: getShipmentReportDate(shipment),
-    Cliente: shipment.client_name || '',
-    Paqueteria: shipment.carrier || '',
-    'Costo de compra': amount(shipment.guide_price),
-    'Costo de venta': amount(shipment.client_price),
-    'Costo del seguro': amount(shipment.insurance_price),
-    'Costo de venta del seguro': amount(shipment.insurance_sale_price),
-  })));
+  pushSection('ENVIOS', SHIPMENT_REPORT_COLUMNS, getShipmentReportRows(shipments, startDate, endDate));
   pushSection('GASTOS', ['Fecha', 'Tipo de gasto', 'Descripcion', 'Monto'], (expenses || []).filter((expense) => inRange(expense.expense_date)).map((expense) => ({
     Fecha: dateOnly(expense.expense_date),
     'Tipo de gasto': expense.expense_type || '',

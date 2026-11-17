@@ -4,6 +4,7 @@ import {
   normalizeShipmentStatusValue,
 } from "../utils.js";
 import { getApiErrorMessage } from "./useApiClient.js";
+import { getPackagesSalePrice, createShipmentPackage, shipmentPackagePayload } from '../shipmentPackages.js';
 
 const EMPTY_SHIPMENT_FORM = {
   id: null,
@@ -23,6 +24,7 @@ const EMPTY_SHIPMENT_FORM = {
   shipping_address: "",
   product_ids: [],
   initial_product_ids: [],
+  second_package: null,
 };
 
 const getOptionalShipmentValue = (value) => {
@@ -156,22 +158,8 @@ export function useShipmentsDomain({
   );
 
   const getShipmentSalePriceAmount = V.useCallback(
-    (shipment) => {
-      const value =
-        shipment &&
-        shipment.client_price !== null &&
-        typeof shipment.client_price !== "undefined" &&
-        String(shipment.client_price).trim() !== ""
-          ? shipment.client_price
-          : shipment &&
-              shipment.guide_price !== null &&
-              typeof shipment.guide_price !== "undefined" &&
-              String(shipment.guide_price).trim() !== ""
-            ? shipment.guide_price
-            : 0;
-      return toNumber(value, 0);
-    },
-    [toNumber],
+    (shipment) => getPackagesSalePrice(shipment),
+    [],
   );
 
   const getShipmentSalePriceSummary = V.useCallback(
@@ -420,6 +408,7 @@ export function useShipmentsDomain({
             : "";
       return {
         id: (shipment && shipment.id) || null,
+        second_package: shipment?.second_package ? createShipmentPackage(shipment.second_package) : null,
         client: clientId,
         carrier: String((shipment && shipment.carrier) || "").trim(),
         status: normalizeShipmentStatusValue((shipment && shipment.status) || "PENDING"),
@@ -564,6 +553,7 @@ export function useShipmentsDomain({
       setShipmentForm((form) => ({
         ...form,
         id,
+        second_package: shipment?.second_package ? createShipmentPackage(shipment.second_package) : null,
         client: String((shipment && shipment.client) || ""),
         carrier: String((shipment && shipment.carrier) || "").trim(),
         status: normalizeShipmentStatusValue((shipment && shipment.status) || "PENDING"),
@@ -763,6 +753,7 @@ export function useShipmentsDomain({
           method: shipmentForm.id ? "PATCH" : "POST",
           body: JSON.stringify({
             client: client.id,
+            second_package: shipmentPackagePayload(shipmentForm.second_package),
             carrier,
             status: normalizeShipmentStatusValue(shipmentForm.status || "PENDING"),
             tracking_number: String(shipmentForm.tracking_number || "").trim(),

@@ -101,6 +101,16 @@ As of 2026-11-16, the user works directly in the Mac Mini repo at `/Users/homese
 - Both CSV and workbook shipping sections filter and display payment date, falling back to creation date for historical shipments without payment date. Reports fetch all shipments instead of using only the current list page. Amount calculations remain unchanged.
 - This feature includes migration `0053_shipment_payment_date`; validate it in Dev. Production promotion requires a separate explicit request and the documented production schema-maintenance procedure.
 
+### Optional second shipment box (Dev, 2026-11-17)
+
+- Rare two-box shipments keep one parent, client, product list, status and payment date. Existing root package fields remain Box 1; nullable `Shipment.second_package` stores validated independent carrier/tracking, purchase/sale costs, insurance, dimensions and weight for Box 2. Migration `0054_shipment_second_package` only adds this optional field; no historical values are rewritten.
+- The expanded card has a small add button beside its bottom actions. Box 1/Box 2 tabs reuse the existing fields, with a small two-box marker on the collapsed card. The edit modal also switches between existing boxes. Removing Box 2 applies on Save and can be undone using Reset before saving.
+- Public client/shipment detail shows each box's sale price and tracking link; compact client history shows both prices and tracking numbers. Shipping summary displays the sum of base shipping prices, retaining the existing single-box fallback and insurance presentation. Client balances and product/shopping calculations are unchanged.
+- CSV and workbook ENVIOS export one row per box, with the shared payment-date filter and independent shipping/insurance purchase/sale values. Envio/Caja/Guia columns identify the rows. No duplicated products or parent shipment records.
+- User explicitly authorized copying PS DB and media into Dev. Pre-copy Dev backup and source snapshot are under `/Users/homeserver/backups/personal-shopper-dev/before-two-boxes-sync-20261117-10ba4b9d/`. DB counts matched after restore (95 clients, 127 shipments, 2305 products). Real media are bind mounts on `/Volumes/Seagate20TB/personal_shopper_media/{ps,dev}`; old named-volume sync defaults are obsolete. Copy only PS to Dev, excluding AppleDouble metadata; never restore Dev into PS.
+- Backend tests cover exact decimal round trips, preservation of first-box/shared data, partial updates/removal, invalid input and second-guide search. Frontend tests cover two independent report rows and shared month, unchanged single-box semantics and optional package payloads. Validate visual layout/interactions in Dev before handoff. Browser/IAB is unavailable in this session, so use local Playwright Chromium.
+- This feature is Dev-only pending review; PS remains at its prior release. Do not promote until explicitly requested. Leave the real example's original prices intact and do not invent second-box costs or send WAHA messages.
+
 ### Required commit parity when promoting Dev to PS
 
 - Commit the approved changes before building Dev. Never deploy tracked changes that are absent from the stamped commit.

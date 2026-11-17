@@ -1,3 +1,4 @@
+import ShipmentPackagesSummary from './components/ShipmentPackagesSummary.jsx';
 import {
   V, c, scheduleIdleTask,
   getStoredNumber, getStoredPercent, clampNumber,
@@ -6135,6 +6136,9 @@ function nh() {
                         c.jsxs("div", {
                           className: "space-y-1",
                           children: [
+                            publicSelectedShipment.second_package
+                              ? c.jsx(ShipmentPackagesSummary, { shipment: publicSelectedShipment })
+                              : c.jsxs(V.Fragment, { children: [
                             c.jsxs("p", {
                               className: "text-xs text-text-main dark:text-white",
                               children: [
@@ -6171,6 +6175,7 @@ function nh() {
                                 publicSelectedShipment,
                               ),
                             }),
+                              ] }),
                             publicCanModifySelectedShipment &&
                             c.jsxs("button", {
                               type: "button",
@@ -6550,7 +6555,8 @@ function nh() {
                                                   o.carrier ||
                                                   `Envio #${o.id}`,
                                               }),
-                                              getPublicShipmentSalePriceSummary(o) &&
+                                              o.second_package && c.jsx(ShipmentPackagesSummary, { shipment: o, compact: true }),
+                                              !o.second_package && getPublicShipmentSalePriceSummary(o) &&
                                               c.jsx("p", {
                                                 className:
                                                   "mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300",

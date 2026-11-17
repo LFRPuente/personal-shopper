@@ -2571,6 +2571,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
                 Q(client__name__icontains=search)
                 | Q(carrier__icontains=search)
                 | Q(tracking_number__icontains=search)
+                | Q(second_package__tracking_number__icontains=search)
                 | Q(mission__name__icontains=search)
                 | Q(products__name__icontains=search)
             ).distinct()

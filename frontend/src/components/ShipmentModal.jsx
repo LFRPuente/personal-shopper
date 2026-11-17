@@ -1,7 +1,8 @@
+import { createShipmentPackage, SHIPMENT_PACKAGE_FIELDS } from '../shipmentPackages.js';
 import { V, c, DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE, SHIPMENT_CARRIER_OPTIONS, resolveMediaUrl, useDialogFocus } from "../utils.js";
 
 const ShipmentModal = V.memo(function ShipmentModal({
-  shipmentForm,
+  shipmentForm: rootForm,
   shipmentSaving,
   shipmentModalClient,
   clientBalances = {},
@@ -20,9 +21,17 @@ const ShipmentModal = V.memo(function ShipmentModal({
   setShipmentProductPickerOpen,
   selectShipmentClient,
   toggleShipmentProductSelection,
-  updateShipmentForm,
+  updateShipmentForm: updateRootForm,
   saveShipmentEditor,
 }) {
+  const [activeBox, setActiveBox] = V.useState(1);
+  const selectedBox = activeBox === 2 && rootForm.second_package ? 2 : 1;
+  const shipmentForm = selectedBox === 2 ? { ...rootForm, ...createShipmentPackage(rootForm.second_package) } : rootForm;
+  const updateShipmentForm = (field, value) => {
+    if (selectedBox === 2 && SHIPMENT_PACKAGE_FIELDS.includes(field)) {
+      updateRootForm('second_package', { ...rootForm.second_package, [field]: value });
+    } else updateRootForm(field, value);
+  };
   const dialogRef = V.useRef(null);
   useDialogFocus(dialogRef);
   const productsSaleTotal = shipmentSelectedProducts.reduce((total, product) => total + getProductPaymentAmount(product), 0);
@@ -159,6 +168,14 @@ const ShipmentModal = V.memo(function ShipmentModal({
                   ],
                 }),
               ],
+            }),
+            rootForm.second_package && c.jsx('div', {
+              className: 'flex items-center gap-1 text-xs', role: 'group', 'aria-label': 'Caja del envío',
+              children: [1, 2].map((box) => c.jsx('button', {
+                type: 'button', onClick: () => setActiveBox(box), 'aria-pressed': selectedBox === box,
+                className: `rounded-lg border px-3 py-1.5 font-semibold ${selectedBox === box ? 'border-primary bg-primary/10 text-primary' : 'border-border-light text-text-sub dark:border-border-dark'}`,
+                children: `Caja ${box}`,
+              }, box)),
             }),
             c.jsxs("label", {
               className: "block",
