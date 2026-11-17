@@ -113,6 +113,14 @@ As of 2026-11-16, the user works directly in the Mac Mini repo at `/Users/homese
 - Recovery uses the retained previous frontend/backend images if an application rollback is needed; the nullable unused column can remain. Do not restore the database or reverse a migration over live data as a routine code rollback. Production data remain authoritative.
 - Record the actual deployment outcome, verified commit, backup location and Dev shutdown in MemPalace. This release note is committed before deployment so no later documentation-only commit invalidates the running stamps. Do not invent second-box costs or send WAHA messages.
 
+### Client address save timeout fix (2026-11-17)
+
+- User reported a timeout saving a client address from Clientes after the two-box release, and explicitly authorized fixing it, deploying the release to PS with matching commits, then stopping Dev.
+- Root cause reproduced in Dev: ClientSerializer expands full shipment details independently for every product and every receipt item. A client with 61 products/two receipts exceeded the diagnostic 8-second limit. PATCH saves first, then spends time preparing the response, so an error can appear after the address is already stored.
+- ProductItemSerializer now memoizes full shipment detail per serialization context/response and eagerly loads its product/evidence relations once per shipment. The JSON fields/values remain complete; no global cache, schema change, business calculation or address rewrite is introduced. Later requests build a new cache and read current data. Dev read-only reproduction dropped to about 0.25 seconds.
+- Regression tests cover large-client address PATCH, unchanged amounts/status/products, complete receipt/product/shipment data, one expansion per shared shipment, different shipment IDs and fresh addresses across requests. Existing shipment/payment-date tests must continue passing.
+- Promote only this response-performance fix using the usual parity procedure; never copy Dev data to PS. Capture a PS backup and previous image IDs before replacing app services. Stop all Dev services after verification; record actual release SHA and outcomes in MemPalace without a post-deployment documentation commit.
+
 ### Required commit parity when promoting Dev to PS
 
 - Commit the approved changes before building Dev. Never deploy tracked changes that are absent from the stamped commit.

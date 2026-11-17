@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from decimal import Decimal
 from .models import (
     UserProfile,
@@ -346,7 +346,20 @@ class ProductItemSerializer(serializers.ModelSerializer):
     def get_shipment(self, obj):
         shipment = get_latest_related_shipment(obj)
         if shipment:
-            return ShipmentSerializer(shipment, context=self.context).data
+            # Products and receipt items often share a shipment. Serialize its
+            # full detail once per response, with all nested relations loaded.
+            cache = self.context.setdefault('_product_shipment_details', {})
+            if shipment.pk not in cache:
+                detail = (
+                    Shipment.objects.select_related('client', 'mission')
+                    .prefetch_related(
+                        Prefetch('products', queryset=ProductItem.objects.select_related('mission', 'store', 'payer')),
+                        Prefetch('evidence', queryset=ShipmentEvidence.objects.select_related('uploaded_by')),
+                    )
+                    .get(pk=shipment.pk)
+                )
+                cache[shipment.pk] = ShipmentSerializer(detail, context=self.context).data
+            return cache[shipment.pk]
         return None
 
     class Meta:
