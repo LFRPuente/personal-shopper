@@ -4,7 +4,7 @@ import {
   normalizeShipmentStatusValue,
 } from "../utils.js";
 import { getApiErrorMessage } from "./useApiClient.js";
-import { getPackagesSalePrice, createShipmentPackage, shipmentPackagePayload } from '../shipmentPackages.js';
+import { getPackagesSalePrice, createShipmentPackage, shipmentPackagePayload, getPublicPackageSalePriceLabel } from '../shipmentPackages.js';
 
 const EMPTY_SHIPMENT_FORM = {
   id: null,
@@ -173,9 +173,10 @@ export function useShipmentsDomain({
   const getPublicShipmentSalePriceSummary = V.useCallback(
     (shipment) => {
       if (!hasShipmentTrackingReady(shipment)) return "";
-      return getShipmentSalePriceSummary(shipment);
+      const label = getPublicPackageSalePriceLabel(shipment, formatAmount);
+      return label === 'GRATIS' ? label : label ? `Costo: ${label}` : 'Costo por confirmar';
     },
-    [getShipmentSalePriceSummary, hasShipmentTrackingReady],
+    [formatAmount, hasShipmentTrackingReady],
   );
 
   const shipmentHasHydratedDetail = V.useCallback(

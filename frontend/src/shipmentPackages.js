@@ -19,6 +19,15 @@ export const getPackageSalePrice = (box) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+// Public links must never substitute an internal purchase cost for a sale price.
+export const getPublicPackageSalePriceLabel = (box, formatAmount) => {
+  const raw = box?.client_price;
+  if (raw === null || raw === undefined || String(raw).trim() === '') return '';
+  const price = Number(raw);
+  if (!Number.isFinite(price)) return '';
+  return price === 0 ? 'GRATIS' : `$${formatAmount(price)}`;
+};
+
 export const getPackagesSalePrice = (shipment) => getShipmentPackages(shipment).reduce((sum, box) => sum + getPackageSalePrice(box), 0);
 
 export const shipmentPackagePayload = (box) => box ? Object.fromEntries(

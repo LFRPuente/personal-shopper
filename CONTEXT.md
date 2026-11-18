@@ -1,6 +1,28 @@
 # Project Context
 
-This file is the current project context and the working agreement for this repo as of 2026-04-04.
+This file is the current project context and working agreement. Recent dated notes override older operational references.
+
+## Continuidad obligatoria entre chats (acuerdo del 2026-11-17)
+
+- Al terminar cada tarea o bloque de trabajo, y antes de la respuesta final, actualizar este archivo y guardar un resumen fechado en MemPalace (`docker/personal_shopper`), sin esperar otro recordatorio del usuario. Verificar ambas escrituras; informar cualquier fallo.
+- El cierre debe incluir decisiones, cambios, verificaciones, commit/versiones realmente comprobadas, estado de PS y Dev, pendientes y siguiente paso. No registrar secretos ni datos personales de clientes.
+- Al abrir otro chat, leer `AGENTS.md`, este contexto y las guías del proyecto; consultar el último cierre y los pendientes en MemPalace y contrastarlos con el estado real antes de actuar. No suponer que se transfirió todo el historial automáticamente.
+- La continuidad se mantiene mediante escrituras explícitas del agente, no mediante una sincronización automática de todo el chat. Estas notas no requieren desplegar ni crear un commit posterior al release que rompa la igualdad de versiones; incorporarlas al próximo commit de trabajo cuando corresponda.
+
+### Último cierre operativo verificado: 2026-11-17
+
+- Release `dfa078c`: corrección del timeout al guardar direcciones de clientes. Local HEAD, `origin/main`, PS y Dev quedaron en esa revisión; archivos frontend y código Python de ambos entornos coincidieron.
+- PS permanece funcionando; sus cuatro servicios están encendidos. Los cuatro servicios de Dev quedaron detenidos y sus datos conservados. No se copiaron datos de Dev a PS.
+- Pasaron 18 pruebas Django y una prueba de guardar/reabrir desde Clientes en Dev (~651 ms). Preparar la respuesta del cliente afectado en PS tomó ~0.28 s, conservando su dirección. No se cambiaron cálculos ni montos ni se añadieron migraciones para esa corrección.
+- Respaldo y evidencia del release: `/Users/homeserver/backups/personal-shopper-prod/client-address-20261117T232207Z/`. El cierre completo también está guardado en MemPalace.
+- Pendientes de implementación: ninguno de los trabajos solicitados hasta este cierre. Para el siguiente cambio, revisar el estado actual y encender Dev si se necesita probar; promover a PS solo con autorización correspondiente. Las notas locales de continuidad se actualizaron después del release por petición expresa del usuario, sin cambiar HEAD ni reconstruir servicios.
+
+## Corrección de precio en enlace del cliente (Dev, 2026-11-17)
+
+- El usuario pide mostrar siempre venta en cualquier caja y escribir `GRATIS` para venta 0. Se confirmó que una segunda caja en PS tenía compra capturada y venta vacía; el fallback de la vista pública mostraba indebidamente compra.
+- La etiqueta pública ahora usa exclusivamente `client_price`, sin recurrir a `guide_price`. Venta 0 muestra `GRATIS`; venta vacía muestra `Por confirmar` (o `Costo por confirmar` en el resumen de una caja). Se conserva la condición existente de guía/paquetería para el resumen de una sola caja.
+- Cambio únicamente de presentación en historial/detalle públicos, compartido por ambas cajas. No modifica base, precios guardados, reportes, saldos ni cálculo administrativo existente. Regresiones prueban venta distinta a compra, venta faltante y cero numérico/cadena en las dos cajas.
+- Validar y desplegar primero en Dev. PS permanece en `dfa078c` hasta una autorización de promoción para este ajuste; no copiar datos de Dev a PS. Registrar pruebas y versión de Dev verificadas en el cierre/MemPalace.
 
 ## Current product state
 
