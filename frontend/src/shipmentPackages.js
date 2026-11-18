@@ -22,8 +22,7 @@ export const getPackageSalePrice = (box) => {
 // Public links must never substitute an internal purchase cost for a sale price.
 export const getPublicPackageSalePriceLabel = (box, formatAmount) => {
   const raw = box?.client_price;
-  if (raw === null || raw === undefined || String(raw).trim() === '') return '';
-  const price = Number(raw);
+  const price = Number(raw === null || raw === undefined || String(raw).trim() === '' ? 0 : raw);
   if (!Number.isFinite(price)) return '';
   return price === 0 ? 'GRATIS' : `$${formatAmount(price)}`;
 };
@@ -33,5 +32,5 @@ export const getPackagesSalePrice = (shipment) => getShipmentPackages(shipment).
 export const shipmentPackagePayload = (box) => box ? Object.fromEntries(
   SHIPMENT_PACKAGE_FIELDS.map((key) => [key, key === 'includes_insurance' ? !!box[key]
     : ['carrier', 'tracking_number'].includes(key) ? String(box[key] || '').trim()
-      : String(box[key] ?? '').trim() || null]),
+      : String(box[key] ?? '').trim() || (['guide_price', 'client_price', 'insurance_price', 'insurance_sale_price'].includes(key) ? '0' : null)]),
 ) : null;

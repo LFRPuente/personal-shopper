@@ -16,7 +16,10 @@ test('optional package payload retains exact decimal input and excludes shared p
   assert.equal(payload.tracking_number, 'SECOND');
   assert.equal(payload.client_price, '150.25');
   assert.equal(payload.package_weight, '2.75');
-  assert.equal(payload.guide_price, null);
+  assert.equal(payload.guide_price, '0');
+  assert.equal(payload.insurance_price, '0');
+  assert.equal(payload.insurance_sale_price, '0');
+  assert.equal(payload.package_width, null);
   assert.equal(shipmentPackagePayload(null), null);
 });
 
@@ -26,16 +29,22 @@ test('public prices use sale values for either box without revealing purchase co
     second_package: { guide_price: '332.00', client_price: '450.25' } })) {
     assert.equal(getPublicPackageSalePriceLabel(box, formatAmount), `$${Number(box.client_price).toFixed(2)}`);
   }
-  for (const missing of [null, undefined, '', ' ', 'invalid']) {
-    assert.equal(getPublicPackageSalePriceLabel({ guide_price: '332.00', client_price: missing }, formatAmount), '');
+  for (const missing of [null, undefined, '', ' ']) {
+    assert.equal(getPublicPackageSalePriceLabel({ guide_price: '332.00', client_price: missing }, formatAmount), 'GRATIS');
   }
 });
 
 test('public zero sale prices say GRATIS for both boxes even with nonzero purchase costs', () => {
-  for (const zero of [0, '0', '0.00', '0.0']) {
+  for (const zero of [0, '0', '0.00', '0.0', null, undefined, '', ' ']) {
     for (const box of getShipmentPackages({ guide_price: '332.00', client_price: zero,
       second_package: { guide_price: '450.00', client_price: zero } })) {
       assert.equal(getPublicPackageSalePriceLabel(box, (value) => value.toFixed(2)), 'GRATIS');
     }
   }
+});
+
+test('blank second-box money fields are saved as zero while dimensions stay optional', () => {
+  const payload = shipmentPackagePayload(createShipmentPackage());
+  for (const field of ['guide_price', 'client_price', 'insurance_price', 'insurance_sale_price']) assert.equal(payload[field], '0');
+  for (const field of ['package_length', 'package_width', 'package_height', 'package_weight']) assert.equal(payload[field], null);
 });

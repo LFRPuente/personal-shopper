@@ -20,8 +20,8 @@ This file is the current project context and working agreement. Recent dated not
 ## Corrección de precio en enlace del cliente (Dev, 2026-11-17)
 
 - El usuario pide mostrar siempre venta en cualquier caja y escribir `GRATIS` para venta 0. Se confirmó que una segunda caja en PS tenía compra capturada y venta vacía; el fallback de la vista pública mostraba indebidamente compra.
-- La etiqueta pública ahora usa exclusivamente `client_price`, sin recurrir a `guide_price`. Venta 0 muestra `GRATIS`; venta vacía muestra `Por confirmar` (o `Costo por confirmar` en el resumen de una caja). Se conserva la condición existente de guía/paquetería para el resumen de una sola caja.
-- Cambio únicamente de presentación en historial/detalle públicos, compartido por ambas cajas. No modifica base, precios guardados, reportes, saldos ni cálculo administrativo existente. Regresiones prueban venta distinta a compra, venta faltante y cero numérico/cadena en las dos cajas.
+- La etiqueta pública ahora usa exclusivamente `client_price`, sin recurrir a `guide_price`. Por aclaración explícita del usuario, venta vacía también equivale a 0: tanto vacía como 0 muestran `GRATIS`. Al guardar la segunda caja, importes vacíos (compra/venta/seguro) se envían como cero, igual que la regla existente de la primera; dimensiones/peso vacíos permanecen opcionales. Se conserva la condición existente de guía/paquetería para el resumen de una sola caja.
+- Cambio únicamente de presentación en historial/detalle públicos, compartido por ambas cajas. No reescribe registros existentes ni modifica reportes, saldos o cálculo administrativo; solo normaliza importes vacíos de la segunda caja al guardarla. Regresiones prueban venta distinta a compra, venta faltante y cero numérico/cadena en las dos cajas.
 - Validar y desplegar primero en Dev. PS permanece en `dfa078c` hasta una autorización de promoción para este ajuste; no copiar datos de Dev a PS. Registrar pruebas y versión de Dev verificadas en el cierre/MemPalace.
 
 ## Current product state

@@ -174,7 +174,7 @@ export function useShipmentsDomain({
     (shipment) => {
       if (!hasShipmentTrackingReady(shipment)) return "";
       const label = getPublicPackageSalePriceLabel(shipment, formatAmount);
-      return label === 'GRATIS' ? label : label ? `Costo: ${label}` : 'Costo por confirmar';
+      return label === 'GRATIS' ? label : label ? `Costo: ${label}` : "";
     },
     [formatAmount, hasShipmentTrackingReady],
   );
