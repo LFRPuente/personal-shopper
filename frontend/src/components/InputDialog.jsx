@@ -1,3 +1,4 @@
+import WhatsAppMessageEditor from './WhatsAppMessageEditor.jsx';
 import { V, c, useDialogFocus } from '../utils.js';
 
 const InputDialog = V.memo(function InputDialog({
@@ -45,7 +46,14 @@ const InputDialog = V.memo(function InputDialog({
             c.jsx("div", {
               className: "mt-4 space-y-3",
               children: inputDialog.fields.map((field) =>
-                c.jsxs(
+                field.type === 'whatsapp'
+                  ? c.jsx(WhatsAppMessageEditor, {
+                      label: field.label,
+                      value: field.value,
+                      rows: field.rows,
+                      onChange: (value) => updateInputDialogField(field.name, value),
+                    }, field.name)
+                  : c.jsxs(
                   "label",
                   {
                     className: "block",

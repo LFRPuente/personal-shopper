@@ -70,7 +70,7 @@ export function useShipmentWhatsApp({ user, apiFetch, generateClientHistoryShare
         title: shipment ? 'Cierre de cajita por WhatsApp' : 'Recordatorio de bodega por WhatsApp',
         message: `Para: ${recipient.name} · ${chatId.split('@')[0]}`,
         confirmLabel: 'Enviar por WhatsApp',
-        fields: [{ name: 'text', type: 'textarea', label: 'Mensaje', value: text, required: true, rows: 10 }],
+        fields: [{ name: 'text', type: 'whatsapp', label: 'Mensaje', value: text, required: true, rows: 10 }],
       });
       if (!draft) return;
       await apiFetch('/whatsapp/send-text/', {

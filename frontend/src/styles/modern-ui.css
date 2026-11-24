@@ -292,6 +292,7 @@ main:has(.modern-ui) {
 }
 .dark .ui-sheet :is(input, select, textarea) { border-color: #4a5165; background: #171a23; color: #f5f6fc; }
 .ui-sheet :is(button, input, select, textarea, a):focus-visible { outline: 3px solid #7658d1; outline-offset: 3px; }
+.ui-sheet textarea.whatsapp-message-editor:focus { outline: none; box-shadow: none; }
 .ui-sheet button:not(.material-symbols-outlined):active { transform: scale(.98); }
 .modern-client-overlay .sticky { background: rgb(255 255 255 / 94%); border-color: #e1e3ec; }
 .dark .modern-client-overlay .sticky { background: rgb(32 35 46 / 94%); border-color: #3b4051; }
