@@ -864,7 +864,7 @@ function ShipmentExpandedPanel(props) {
                 disabled: shipmentSaving,
                 'aria-label': shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
                 title: shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
-                className: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]! border border-slate-200 bg-white text-primary hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800',
+                className: 'shipment-save-button flex shrink-0 items-center justify-center border border-slate-200 bg-white text-primary hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800',
                 children: c.jsx('span', {
                   className: `material-symbols-outlined text-[17px] ${shipmentSaving ? 'animate-spin' : ''}`,
                   'aria-hidden': true,
