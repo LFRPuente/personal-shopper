@@ -178,6 +178,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
                 children: `Caja ${box}`,
               }, box)),
             }),
+            c.jsx(ShipmentInternalComment, { value: shipmentForm.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
             c.jsxs("label", {
               className: "block",
               children: [
@@ -455,7 +456,6 @@ const ShipmentModal = V.memo(function ShipmentModal({
                 }),
               ],
             }),
-            c.jsx(ShipmentInternalComment, { value: shipmentForm.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
             c.jsxs("div", {
               className:
                 "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3",

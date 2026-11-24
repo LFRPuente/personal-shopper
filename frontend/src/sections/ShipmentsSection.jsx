@@ -662,6 +662,7 @@ function ShipmentExpandedPanel(props) {
           }),
         ],
       }),
+      c.jsx(ShipmentInternalComment, { value: formState.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
       c.jsxs('div', {
         className: 'grid grid-cols-1 sm:grid-cols-2 gap-2',
         children: [
@@ -863,7 +864,7 @@ function ShipmentExpandedPanel(props) {
                 disabled: shipmentSaving,
                 'aria-label': shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
                 title: shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
-                className: 'grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-white hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60',
+                className: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]! border border-slate-200 bg-white text-primary hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800',
                 children: c.jsx('span', {
                   className: `material-symbols-outlined text-[17px] ${shipmentSaving ? 'animate-spin' : ''}`,
                   'aria-hidden': true,
@@ -1034,7 +1035,6 @@ function ShipmentExpandedPanel(props) {
           }),
         ],
       }),
-      c.jsx(ShipmentInternalComment, { value: formState.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
       c.jsx(ShipmentProductsGrid, props),
       c.jsx('div', {
         className: 'flex justify-end',
