@@ -13,7 +13,7 @@ const lineFormats = [
   { label: 'Cita', prefix: () => '> ', glyph: 'format_quote' },
 ];
 
-const buttonClass = 'grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-sm text-text-main hover:bg-slate-200 dark:hover:bg-slate-700';
+const buttonClass = 'grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-sm text-text-main hover:bg-slate-200 dark:text-slate-100 dark:hover:bg-slate-700';
 
 export default function WhatsAppMessageEditor({ label, value, rows, onChange }) {
   const textareaRef = useRef(null);
