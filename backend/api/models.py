@@ -607,6 +607,7 @@ class Shipment(models.Model):
     )
     payment_date = models.DateField(null=True, blank=True)
     second_package = models.JSONField(null=True, blank=True)
+    internal_comment = models.TextField(blank=True, default='', max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

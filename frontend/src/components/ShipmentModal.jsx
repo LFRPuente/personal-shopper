@@ -1,3 +1,4 @@
+import ShipmentInternalComment from './ShipmentInternalComment.jsx';
 import { createShipmentPackage, SHIPMENT_PACKAGE_FIELDS } from '../shipmentPackages.js';
 import { V, c, DARK_NATIVE_SELECT_STYLE, NATIVE_DROPDOWN_OPTION_STYLE, SHIPMENT_CARRIER_OPTIONS, resolveMediaUrl, useDialogFocus } from "../utils.js";
 
@@ -454,6 +455,7 @@ const ShipmentModal = V.memo(function ShipmentModal({
                 }),
               ],
             }),
+            c.jsx(ShipmentInternalComment, { value: shipmentForm.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
             c.jsxs("div", {
               className:
                 "rounded-2xl border border-border-light dark:border-border-dark bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3",

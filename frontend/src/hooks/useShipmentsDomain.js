@@ -22,6 +22,7 @@ const EMPTY_SHIPMENT_FORM = {
   package_height: "",
   package_weight: "",
   shipping_address: "",
+  internal_comment: "",
   product_ids: [],
   initial_product_ids: [],
   second_package: null,
@@ -453,6 +454,7 @@ export function useShipmentsDomain({
           typeof shipment.package_weight !== "undefined"
             ? String(shipment.package_weight)
             : "",
+        internal_comment: shipment?.internal_comment || "",
         shipping_address:
           (shipment && shipment.shipping_address) ||
           getClientShipmentAddressOptions(clientId)[0] ||
@@ -606,6 +608,7 @@ export function useShipmentsDomain({
           typeof shipment.package_weight !== "undefined"
             ? String(shipment.package_weight)
             : "",
+        internal_comment: shipment?.internal_comment || "",
         shipping_address: (shipment && shipment.shipping_address) || "",
         product_ids: [],
         initial_product_ids: [],
@@ -768,6 +771,7 @@ export function useShipmentsDomain({
             package_height: packageHeight,
             package_weight: packageWeight,
             shipping_address: String(shipmentForm.shipping_address || "").trim(),
+            internal_comment: String(shipmentForm.internal_comment || "").trim(),
           }),
         },
       );

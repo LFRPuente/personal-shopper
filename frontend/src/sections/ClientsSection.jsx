@@ -152,6 +152,8 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
     getHomeClientTotals,
     getClientShoppingHistoryEntries,
     copyClientMissionShareLink,
+    sendWarehouseReminder,
+    sendingWarehouseReminderId,
     copyMissionBreakdown,
     copiedMissionClients,
     openClientShoppingGallery,
@@ -418,6 +420,18 @@ const ClientsSection = V.memo(function ClientsSection(props = {}) {
                           c.jsxs('div', {
                             className: 'flex items-center justify-end gap-0.5 shrink-0',
                             children: [
+                              pendingShipment.count > 0 && sendWarehouseReminder && c.jsx('button', {
+                                type: 'button',
+                                onClick: () => sendWarehouseReminder(client),
+                                disabled: sendingWarehouseReminderId != null,
+                                'aria-label': `Recordatorio de bodega por WhatsApp para ${client.name}`,
+                                title: 'Recordatorio de bodega por WhatsApp',
+                                className: 'flex h-7 w-7 items-center justify-center rounded-full text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 dark:text-emerald-300 dark:hover:bg-emerald-950/40',
+                                children: c.jsx('span', {
+                                  className: `material-symbols-outlined text-[15px] ${sendingWarehouseReminderId === client.id ? 'animate-spin' : ''}`,
+                                  children: sendingWarehouseReminderId === client.id ? 'progress_activity' : 'send',
+                                }),
+                              }),
                               c.jsx('button', {
                                 onClick: () => copyClientMissionShareLink(null, client),
                                 type: 'button',

@@ -36,7 +36,7 @@ export const isShipmentInReportRange = (shipment, startDate, endDate) => {
 };
 
 
-const SHIPMENT_REPORT_COLUMNS = ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro', 'Envio', 'Caja', 'Guia'];
+const SHIPMENT_REPORT_COLUMNS = ['Fecha', 'Cliente', 'Paqueteria', 'Costo de compra', 'Costo de venta', 'Costo del seguro', 'Costo de venta del seguro', 'Envio', 'Caja', 'Guia', 'Comentario interno'];
 
 export const getShipmentReportRows = (shipments = [], startDate, endDate) => shipments
   .filter((shipment) => isShipmentInReportRange(shipment, startDate, endDate))
@@ -51,6 +51,7 @@ export const getShipmentReportRows = (shipments = [], startDate, endDate) => shi
     Envio: shipment.id,
     Caja: index + 1,
     Guia: box.tracking_number || '',
+    'Comentario interno': shipment.internal_comment || '',
   })));
 
 const cell = (value) => {
@@ -177,7 +178,12 @@ export const downloadGeneralCsv = ({ missions = [], shipments = [], expenses = [
       };
     }),
   ));
-  pushSection('ENVIOS', SHIPMENT_REPORT_COLUMNS, getShipmentReportRows(shipments, startDate, endDate));
+  pushSection('ENVIOS', SHIPMENT_REPORT_COLUMNS, getShipmentReportRows(shipments, startDate, endDate).map((row) => {
+    const comment = row['Comentario interno'];
+    return /^[\s\uFEFF]*[=+@-]|^[\t\r\n]/.test(comment)
+      ? { ...row, 'Comentario interno': "'" + comment }
+      : row;
+  }));
   pushSection('GASTOS', ['Fecha', 'Tipo de gasto', 'Descripcion', 'Monto'], (expenses || []).filter((expense) => inRange(expense.expense_date)).map((expense) => ({
     Fecha: dateOnly(expense.expense_date),
     'Tipo de gasto': expense.expense_type || '',

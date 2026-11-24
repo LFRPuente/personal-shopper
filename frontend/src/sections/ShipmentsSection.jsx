@@ -1,3 +1,4 @@
+import ShipmentInternalComment from '../components/ShipmentInternalComment.jsx';
 import {
   V,
   c,
@@ -1017,6 +1018,7 @@ function ShipmentExpandedPanel(props) {
           }),
         ],
       }),
+      c.jsx(ShipmentInternalComment, { value: formState.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
       c.jsx(ShipmentProductsGrid, props),
       c.jsxs('div', {
         className: 'flex items-center gap-2',

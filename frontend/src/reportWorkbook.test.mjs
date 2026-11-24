@@ -32,13 +32,16 @@ test('CSV and workbook export the payment date with identical shipping amounts',
   URL.revokeObjectURL = () => {};
   const initial = JSON.stringify(shipment);
   try {
-    const args = { shipments: [shipment], startDate: '2026-11-01', endDate: '2026-11-30' };
+    const args = { shipments: [{ ...shipment, internal_comment: '=1+1' }], startDate: '2026-11-01', endDate: '2026-11-30' };
     downloadGeneralCsv(args);
     downloadGeneralWorkbook(args);
     const csv = await blobs[0].text();
     const workbook = await blobs[1].text();
     assert.ok(csv.includes('"2026-11-01","Paid in November","DHL","80","120","10","15"'));
     assert.ok(workbook.includes('2026-11-01'));
+    assert.ok(csv.includes('"Comentario interno"'));
+    assert.ok(csv.includes(`"'=1+1"`));
+    assert.ok(workbook.includes('<Data ss:Type="String">=1+1</Data>'));
     for (const value of [80, 120, 10, 15]) assert.ok(workbook.includes(`<Data ss:Type="Number">${value}</Data>`));
     assert.equal(JSON.stringify(shipment), initial);
     downloadGeneralCsv({ ...args, startDate: '2026-10-01', endDate: '2026-10-31' });

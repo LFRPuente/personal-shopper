@@ -1,4 +1,4 @@
-import { V, c } from '../utils.js';
+import { V, c, useDialogFocus } from '../utils.js';
 
 const InputDialog = V.memo(function InputDialog({
   inputDialog,
@@ -8,6 +8,8 @@ const InputDialog = V.memo(function InputDialog({
   updateInputDialogField,
   submitInputDialog,
 }) {
+  const dialogRef = V.useRef(null);
+  useDialogFocus(dialogRef);
   if (!inputDialog) return null;
 
   return c.jsx("div", {
@@ -17,6 +19,11 @@ const InputDialog = V.memo(function InputDialog({
     ),
     onClick: () => dismissActiveOverlayRef.current(),
     children: c.jsxs("div", {
+      ref: dialogRef,
+      tabIndex: -1,
+      role: "dialog",
+      "aria-modal": true,
+      "aria-label": inputDialog.title,
       className: overlaySheetClass(
         "bg-surface-light dark:bg-surface-dark w-full sm:max-w-md max-h-[88vh] rounded-t-3xl sm:rounded-3xl border border-border-light dark:border-border-dark shadow-2xl p-5 ui-sheet flex flex-col",
         "input",
@@ -49,7 +56,7 @@ const InputDialog = V.memo(function InputDialog({
                       }),
                       field.type === "textarea"
                         ? c.jsx("textarea", {
-                            rows: 4,
+                            rows: field.rows || 4,
                             value: field.value,
                             onChange: (event) =>
                               updateInputDialogField(field.name, event.target.value),

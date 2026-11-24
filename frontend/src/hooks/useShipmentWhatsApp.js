@@ -1,63 +1,103 @@
-import { V, c, getClientWahaChatId } from '../utils.js';
+import { V, getClientWahaChatId } from '../utils.js';
+import { getPendingShipmentAge } from '../pendingShipmentAge.js';
 import { getApiErrorMessage } from './useApiClient.js';
 
-export function buildShipmentClosingMessage(clientName, shareUrl) {
+function greeting(clientName) {
   const name = String(clientName || '')
     .replace(/\d+/g, '')
     .replace(/^[\s#.:_\-–—()]+|[\s#.:_\-–—()]+$/g, '')
     .replace(/\s+/g, ' ')
-    .trim() || 'cliente';
-  return `Hola ${name}, te envio el link con los productos que iran en el cierre de tu cajita, please confirmame que todo esta correcto.\n\n${shareUrl}`;
+    .trim();
+  return name ? `¡Hola, ${name}! ✨` : '¡Hola! ✨';
 }
 
-export function useShipmentWhatsApp({ user, apiFetch, generateClientHistoryShareLink, confirmAction, notifyInfo, notifyError, notifySuccess }) {
-  const [sendingShipmentWhatsAppId, setSendingShipmentWhatsAppId] = V.useState(null);
+export function buildShipmentClosingMessage(clientName, shareUrl) {
+  return [
+    greeting(clientName),
+    '📦 Ya estamos preparando el cierre de tu cajita. ¿Nos confirmas que todo está correcto?',
+    `🔗 *Revisa los productos de tu envío aquí:*\n${shareUrl}`,
+    '¡Gracias! 💛',
+  ].join('\n\n');
+}
+
+export function buildWarehouseReminder(clientName, { count, oldestDays, items }, shareUrl) {
+  const youngestDays = items[items.length - 1].days;
+  const days = youngestDays === oldestDays ? `${oldestDays} días` : `entre ${youngestDays} y ${oldestDays} días`;
+  const products = count === 1 ? '*1 producto* pendiente de envío que lleva' : `*${count} productos* pendientes de envío que llevan`;
+  return [
+    greeting(clientName),
+    `📦 Te escribimos con un recordatorio: tienes ${products} ${days} en nuestra bodega. Cuando puedas, escríbenos para agendar el envío y con gusto te ayudamos.`,
+    'Nuestro plazo de resguardo es de 30 días. Pasado ese tiempo, los productos pueden llegar a descartarse si el envío sigue pendiente. Queremos ayudarte a que los recibas 💛',
+    `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,
+  ].join('\n\n');
+}
+
+export function useShipmentWhatsApp({ user, apiFetch, generateClientHistoryShareLink, openInputDialog, notifyInfo, notifyError, notifySuccess }) {
+  const [activeMessage, setActiveMessage] = V.useState(null);
   const busyRef = V.useRef(false);
 
-  const sendShipmentWhatsApp = V.useCallback(async (shipment) => {
-    if (!shipment?.id || !shipment.client || busyRef.current) return;
+  const compose = V.useCallback(async ({ client, shipment }) => {
+    if (busyRef.current) return;
     const profile = user?.profile || {};
     if (!String(profile.waha_api_url || '').trim() || !String(profile.waha_session || '').trim()) {
-      notifyInfo('Configura WAHA API URL y session en Perfil antes de enviar.');
+      notifyInfo('Configura la URL de WAHA y la sesión en Perfil.');
       return;
     }
+
     busyRef.current = true;
-    setSendingShipmentWhatsAppId(shipment.id);
+    setActiveMessage(shipment ? { shipmentId: shipment.id } : { clientId: client.id });
     try {
-      const client = await apiFetch(`/clients/${shipment.client}/`);
-      const chatId = getClientWahaChatId(client, profile);
+      const recipient = client || await apiFetch(`/clients/${shipment.client}/`);
+      const chatId = getClientWahaChatId(recipient, profile);
       if (!chatId) {
-        notifyError('El cliente no tiene telefono configurado.');
+        notifyError('El cliente no tiene teléfono configurado.');
         return;
       }
-      const result = await generateClientHistoryShareLink(client);
+      const aged = shipment ? null : getPendingShipmentAge(recipient);
+      if (aged && !aged.count) {
+        notifyInfo('El cliente ya no tiene productos de más de 30 días pendientes de envío.');
+        return;
+      }
+
+      const result = await generateClientHistoryShareLink(recipient);
       const url = new URL(result.share_url, window.location.origin);
-      url.searchParams.set('focus_shipment_id', String(shipment.id));
-      const text = buildShipmentClosingMessage(client.name, url.toString());
-      const confirmed = await confirmAction({
-        title: 'Enviar cierre de cajita por WhatsApp',
-        message: c.jsxs('span', { className: 'block space-y-3', children: [
-          c.jsx('span', { className: 'block', children: `Para: ${client.name} (${chatId})` }),
-          c.jsx('span', { className: 'block whitespace-pre-wrap break-words', children: text }),
-        ] }),
-        confirmLabel: 'Enviar',
-        cancelLabel: 'Cancelar',
-        tone: 'info',
+      if (shipment) url.searchParams.set('focus_shipment_id', String(shipment.id));
+      const text = shipment
+        ? buildShipmentClosingMessage(recipient.name, url.toString())
+        : buildWarehouseReminder(recipient.name, aged, url.toString());
+
+      const draft = await openInputDialog({
+        title: shipment ? 'Cierre de cajita por WhatsApp' : 'Recordatorio de bodega por WhatsApp',
+        message: `Para: ${recipient.name} · ${chatId.split('@')[0]}`,
+        confirmLabel: 'Enviar por WhatsApp',
+        fields: [{ name: 'text', type: 'textarea', label: 'Mensaje', value: text, required: true, rows: 10 }],
       });
-      if (!confirmed) return;
+      if (!draft) return;
       await apiFetch('/whatsapp/send-text/', {
         method: 'POST',
-        body: JSON.stringify({ chat_id: chatId, text }),
+        body: JSON.stringify({ chat_id: chatId, text: draft.text.trim() }),
       });
-      notifySuccess('Link del envío enviado por WhatsApp.');
+      notifySuccess('Mensaje enviado por WhatsApp.');
     } catch (error) {
-      console.error('Failed sending shipment WhatsApp', error);
-      notifyError(getApiErrorMessage(error, 'No se pudo enviar el link del envío por WhatsApp.'));
+      console.error('Failed sending WhatsApp message', error);
+      notifyError(getApiErrorMessage(error, 'No se pudo enviar el mensaje por WhatsApp.'));
     } finally {
       busyRef.current = false;
-      setSendingShipmentWhatsAppId(null);
+      setActiveMessage(null);
     }
-  }, [user, apiFetch, generateClientHistoryShareLink, confirmAction, notifyInfo, notifyError, notifySuccess]);
+  }, [user, apiFetch, generateClientHistoryShareLink, openInputDialog, notifyInfo, notifyError, notifySuccess]);
 
-  return { sendShipmentWhatsApp, sendingShipmentWhatsAppId };
+  const sendShipmentWhatsApp = V.useCallback((shipment) => {
+    if (shipment?.id && shipment.client) return compose({ shipment });
+  }, [compose]);
+  const sendWarehouseReminder = V.useCallback((client) => {
+    if (client?.id) return compose({ client });
+  }, [compose]);
+
+  return {
+    sendShipmentWhatsApp,
+    sendingShipmentWhatsAppId: activeMessage?.shipmentId ?? null,
+    sendWarehouseReminder,
+    sendingWarehouseReminderId: activeMessage?.clientId ?? null,
+  };
 }

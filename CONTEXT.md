@@ -9,7 +9,21 @@ This file is the current project context and working agreement. Recent dated not
 - Al abrir otro chat, leer `AGENTS.md`, este contexto y las guías del proyecto; consultar el último cierre y los pendientes en MemPalace y contrastarlos con el estado real antes de actuar. No suponer que se transfirió todo el historial automáticamente.
 - La continuidad se mantiene mediante escrituras explícitas del agente, no mediante una sincronización automática de todo el chat. Estas notas no requieren desplegar ni crear un commit posterior al release que rompa la igualdad de versiones; incorporarlas al próximo commit de trabajo cuando corresponda.
 
-### Último cierre operativo verificado: 2026-11-17
+### Cambios para revisar en Dev (2026-11-24)
+
+- En Envíos, comentario interno opcional por envío, compartido entre sus cajas, editable al crear o guardar cambios. Columna Comentario interno en ENVIOS del reporte general (Excel y CSV). El campo solo se incluye en la API autenticada de Envíos; el enlace del cliente, el del envío y los mensajes no contienen la nota. La migración Dev 0055 agrega el campo.
+- El botón de WhatsApp de Envíos abre un editor con saludo, enlace enfocado en ese envío y formato WhatsApp. Clientes con productos sin asignar a un envío de más de 30 días tienen un botón individual para un recordatorio editable con número de productos, días en bodega e historial. Enviar usa el texto editado tras confirmarlo. Las pruebas interceptan WAHA y no envían mensajes reales.
+- Dev es el entorno de revisión. PS y GitHub permanecen en la versión de producción hasta aprobación de estos cambios.
+
+### Último cierre operativo verificado: 2026-11-17 (precios públicos)
+
+- Release `94035f6`: local HEAD, `origin/main`, frontend PS y frontend Dev verificados iguales; todos los assets frontend idénticos antes de detener Dev. Enlace del cliente usa solo precio de venta en cualquier caja, y venta vacía o 0 muestra `GRATIS`. Importes vacíos de la segunda caja se envían como cero al guardar.
+- Desplegado únicamente frontend de PS. Backend, PostgreSQL y Redis de PS conservaron exactamente sus contenedores y fechas de inicio. No se reescribieron datos existentes, copiaron datos de Dev ni cambiaron cálculos/reportes. La base conserva sus valores originales; la visualización interpreta venta vacía como cero.
+- Pasaron 9 pruebas Node y 7 escenarios públicos de navegador con datos interceptados (sin escrituras): una/dos cajas, venta distinta de compra, venta vacía/cero GRATIS, historial/detalle, rastreo y móvil/escritorio. Revisión visual con frontend-app-builder y Playwright. PS web/API/NPM 200; otros dominios como antes (home 307, n8n/chat 200).
+- Los cuatro servicios de Dev quedaron apagados, con datos conservados. Evidencia y anterior imagen frontend para recuperación: `/Users/homeserver/backups/personal-shopper-prod/public-sale-price-94035f6/release.json`.
+- No quedan pendientes de este ajuste. MemPalace registra el cierre. Estas notas de cierre se guardan localmente sin crear un commit posterior al release; incorporarlas al siguiente commit de trabajo.
+
+### Cierre anterior: 2026-11-17 (direcciones)
 
 - Release `dfa078c`: corrección del timeout al guardar direcciones de clientes. Local HEAD, `origin/main`, PS y Dev quedaron en esa revisión; archivos frontend y código Python de ambos entornos coincidieron.
 - PS permanece funcionando; sus cuatro servicios están encendidos. Los cuatro servicios de Dev quedaron detenidos y sus datos conservados. No se copiaron datos de Dev a PS.

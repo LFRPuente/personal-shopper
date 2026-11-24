@@ -71,6 +71,7 @@ from .serializers import (
     UserManageSerializer,
     ShoppingPaymentSerializer,
     ShipmentSerializer,
+    InternalShipmentSerializer,
     ShipmentListSerializer,
     ShipmentEvidenceSerializer,
     ShipmentShareLinkSerializer,
@@ -2503,14 +2504,14 @@ class ShipmentPagination(PageNumberPagination):
 
 
 class ShipmentViewSet(viewsets.ModelViewSet):
-    serializer_class = ShipmentSerializer
+    serializer_class = InternalShipmentSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_class(self):
         if self.action == 'list':
             return ShipmentListSerializer
-        return ShipmentSerializer
+        return InternalShipmentSerializer
 
     def get_queryset(self):
         if self.action == 'list':

@@ -1125,7 +1125,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shipment
-        fields = '__all__'
+        exclude = ('internal_comment',)
         read_only_fields = ['created_by']
         validators = []
         extra_kwargs = {
@@ -1146,6 +1146,12 @@ class ShipmentSerializer(serializers.ModelSerializer):
             'shipping_address': {'required': False, 'allow_null': True, 'allow_blank': True},
             'products': {'required': False},
         }
+
+
+class InternalShipmentSerializer(ShipmentSerializer):
+    class Meta(ShipmentSerializer.Meta):
+        exclude = None
+        fields = '__all__'
 
 
 class ShipmentListSerializer(serializers.ModelSerializer):
@@ -1203,6 +1209,7 @@ class ShipmentListSerializer(serializers.ModelSerializer):
             'product_count',
             'evidence_count',
             'payment_date',
+            'internal_comment',
             'created_at',
             'updated_at',
         ]
