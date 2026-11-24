@@ -842,17 +842,33 @@ function ShipmentExpandedPanel(props) {
             ],
           }),
           c.jsxs('div', {
-            className: 'rounded-lg bg-sky-50 dark:bg-sky-950/20 px-2.5 py-2',
+            className: 'flex min-w-0 items-center justify-between gap-1 rounded-lg bg-sky-50 px-2.5 py-2 dark:bg-sky-950/20',
             children: [
-              c.jsx('p', {
-                className:
-                  'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
-                children: 'Items',
+              c.jsxs('div', {
+                className: 'min-w-0',
+                children: [
+                  c.jsx('p', {
+                    className: 'text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300',
+                    children: 'Items',
+                  }),
+                  c.jsxs('p', {
+                    className: 'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
+                    children: [selectedProducts.length || 0, ' producto(s)'],
+                  }),
+                ],
               }),
-              c.jsxs('p', {
-                className:
-                  'mt-1 text-xs font-semibold text-sky-800 dark:text-sky-100',
-                children: [selectedProducts.length || 0, ' producto(s)'],
+              c.jsx('button', {
+                type: 'button',
+                onClick: saveShipmentEditor,
+                disabled: shipmentSaving,
+                'aria-label': shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
+                title: shipmentSaving ? 'Guardando cambios' : 'Guardar cambios',
+                className: 'grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-white hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60',
+                children: c.jsx('span', {
+                  className: `material-symbols-outlined text-[17px] ${shipmentSaving ? 'animate-spin' : ''}`,
+                  'aria-hidden': true,
+                  children: shipmentSaving ? 'progress_activity' : 'save',
+                }),
               }),
             ],
           }),
@@ -1020,26 +1036,15 @@ function ShipmentExpandedPanel(props) {
       }),
       c.jsx(ShipmentInternalComment, { value: formState.internal_comment, onChange: (value) => updateShipmentForm('internal_comment', value) }),
       c.jsx(ShipmentProductsGrid, props),
-      c.jsxs('div', {
-        className: 'flex items-center gap-2',
-        children: [
-          c.jsx('button', {
-            type: 'button',
-            onClick: () => resetExpandedShipmentForm(shipment),
-            disabled: shipmentSaving,
-            className:
-              'flex-1 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-60',
-            children: 'Restablecer',
-          }),
-          c.jsx('button', {
-            type: 'button',
-            onClick: saveShipmentEditor,
-            disabled: shipmentSaving,
-            className:
-              'flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-xs font-semibold disabled:opacity-60',
-            children: shipmentSaving ? 'Guardando...' : 'Guardar cambios',
-          }),
-        ],
+      c.jsx('div', {
+        className: 'flex justify-end',
+        children: c.jsx('button', {
+          type: 'button',
+          onClick: () => resetExpandedShipmentForm(shipment),
+          disabled: shipmentSaving,
+          className: 'rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold hover:bg-slate-200 disabled:opacity-60 dark:bg-slate-800 dark:hover:bg-slate-700',
+          children: 'Restablecer',
+        }),
       }),
       c.jsx(ShipmentEvidenceGrid, props),
     ],

@@ -13,9 +13,12 @@ This file is the current project context and working agreement. Recent dated not
 
 - En Envíos, comentario interno opcional por envío, compartido entre sus cajas, editable al crear o guardar cambios. Columna Comentario interno en ENVIOS del reporte general (Excel y CSV). El campo solo se incluye en la API autenticada de Envíos; el enlace del cliente, el del envío y los mensajes no contienen la nota. La migración Dev 0055 agrega el campo.
 - El botón de WhatsApp de Envíos abre un editor con saludo, enlace enfocado en ese envío y formato WhatsApp. Clientes con productos sin asignar a un envío de más de 30 días tienen un botón individual para un recordatorio editable con número de productos, días en bodega e historial. Enviar usa el texto editado tras confirmarlo. Las pruebas interceptan WAHA y no envían mensajes reales.
+- En la tarjeta expandida de Envíos, Guardar cambios se mueve junto a Items como botón de disquete. Conserva la acción de guardado y su indicador de progreso. Restablecer permanece abajo.
 - Dev es el entorno de revisión. PS y GitHub permanecen en la versión de producción hasta aprobación de estos cambios.
 
-### Último cierre operativo verificado: 2026-11-17 (precios públicos)
+- Cierre del 2026-11-24: Dev en `341674f`, cuatro servicios encendidos para revisión, migración 0055 aplicada. PS y origin/main en `94035f6`. Pasaron 19 pruebas Django y 9 pruebas Node, compilación y verificación de migraciones. Playwright verificó guardar la nota desde Envíos, abrir el borrador con enlace enfocado, cancelar sin envío y usar el texto editado del recordatorio con 2 productos de 35–42 días. Capturas revisadas en escritorio/móvil; WAHA interceptado y datos de prueba retirados. Pendiente: revisión del usuario en Dev y autorización separada si se promueve a PS.
+
+### Cierre operativo anterior: 2026-11-17 (precios públicos)
 
 - Release `94035f6`: local HEAD, `origin/main`, frontend PS y frontend Dev verificados iguales; todos los assets frontend idénticos antes de detener Dev. Enlace del cliente usa solo precio de venta en cualquier caja, y venta vacía o 0 muestra `GRATIS`. Importes vacíos de la segunda caja se envían como cero al guardar.
 - Desplegado únicamente frontend de PS. Backend, PostgreSQL y Redis de PS conservaron exactamente sus contenedores y fechas de inicio. No se reescribieron datos existentes, copiaron datos de Dev ni cambiaron cálculos/reportes. La base conserva sus valores originales; la visualización interpreta venta vacía como cero.
