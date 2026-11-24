@@ -26,8 +26,8 @@ export function buildWarehouseReminder(clientName, { count, oldestDays, items },
   const products = count === 1 ? '*1 producto* pendiente de envío que lleva' : `*${count} productos* pendientes de envío que llevan`;
   return [
     greeting(clientName),
-    `📦 Te escribimos con un recordatorio: tienes ${products} ${days} en nuestra bodega. Cuando puedas, escríbenos para agendar el envío y con gusto te ayudamos.`,
-    'Nuestro plazo de resguardo es de 30 días. Pasado ese tiempo, los productos pueden llegar a descartarse si el envío sigue pendiente. Queremos ayudarte a que los recibas 💛',
+    '📦 Según nuestras políticas, el plazo de resguardo es de *30 días*. Después de ese plazo, ya no nos hacemos responsables de los productos que sigan en bodega y podrían descartarse.',
+    `Tienes ${products} ${days} en nuestra bodega. Si quieres agendar tu envío, escríbenos y con gusto te ayudamos 💛`,
     `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,
   ].join('\n\n');
 }

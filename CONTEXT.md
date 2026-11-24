@@ -17,6 +17,7 @@ This file is the current project context and working agreement. Recent dated not
 - Ajuste de revisión: disquete cuadrado con esquinas redondeadas junto a Items, con el mismo tamaño que las acciones superiores (40 px en escritorio y 34 px en móvil). Comentario interno plegable antes de Paquetería y Guía en las dos presentaciones del formulario. En el reporte Excel/CSV, columna Comentario interno al lado de Guía en la fila del envío, repetido en ambas filas si el envío tiene dos cajas.
 - Ambos borradores de WhatsApp tienen una barra de formato nativo de WhatsApp: negrita, cursiva, tachado, monoespaciado, viñetas, números y cita. Al escribir, el editor usa un borde discreto sin el halo del cuadro genérico.
 - La barra de formato compartida por los dos editores de WhatsApp usa iconos claros en modo noche para que contrasten con la barra oscura.
+- Recordatorio de resguardo: justo después del saludo, se aclara que, según las políticas del negocio, el plazo es de 30 días y después el equipo ya no se hace responsable de los productos, que podrían descartarse. Le siguen conteo, antigüedad, invitación a agendar e historial.
 - Dev es el entorno de revisión. PS y GitHub permanecen en la versión de producción hasta aprobación de estos cambios.
 
 - Cierre del 2026-11-24: Dev en `341674f`, cuatro servicios encendidos para revisión, migración 0055 aplicada. PS y origin/main en `94035f6`. Pasaron 19 pruebas Django y 9 pruebas Node, compilación y verificación de migraciones. Playwright verificó guardar la nota desde Envíos, abrir el borrador con enlace enfocado, cancelar sin envío y usar el texto editado del recordatorio con 2 productos de 35–42 días. Capturas revisadas en escritorio/móvil; WAHA interceptado y datos de prueba retirados. Pendiente: revisión del usuario en Dev y autorización separada si se promueve a PS.
@@ -26,6 +27,8 @@ This file is the current project context and working agreement. Recent dated not
 - Revisión visual final del 2026-11-24: local y frontend Dev en `cae5972`. Chromium confirmó disquete cuadrado de 32 px con radio de 8 px y comentario plegable antes de Paquetería y Guía en escritorio y móvil. Pasaron 4 pruebas de reporte y compilación. Dev encendido para revisión; PS/origin/main en `94035f6`.
 
 - Cierre del ajuste de edición y tamaño (2026-11-24): HEAD y frontend Dev `0b6c3da`, backend Dev de `341674f`, PS/origin/main `94035f6`. Compilación y Chromium verificaron los siete formatos, ausencia de halo, cancelación sin envío y coincidencia del tamaño/radio de Guardar con las acciones superiores a 390 y 1440 px. Dev queda encendido, pendiente revisión.
+
+- Cierre de contraste nocturno (2026-11-24): HEAD y frontend Dev `ca04a10`. Compilación y Chromium confirman contraste en los siete controles de formato (1.2:1 antes y 13.3:1 ahora en noche; día sigue en 16.7:1). Ambos borradores comparten el componente. Dev activo, backend Dev de `341674f`, PS/origin/main `94035f6`. Pendiente revisión en Dev.
 
 ### Cierre operativo anterior: 2026-11-17 (precios públicos)
 
