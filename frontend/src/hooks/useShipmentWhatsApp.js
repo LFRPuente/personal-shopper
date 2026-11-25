@@ -21,6 +21,25 @@ export function buildShipmentClosingMessage(clientName, shareUrl) {
 }
 
 export function buildWarehouseReminder(clientName, { count, oldestDays, items }, shareUrl) {
+  const overdue = items.filter(({ days }) => days > 45);
+  if (overdue.length) {
+    const oldest = overdue[0].days;
+    const youngest = overdue[overdue.length - 1].days;
+    const duration = youngest === oldest ? `*${oldest} días*` : `entre *${youngest} y ${oldest} días*`;
+    const pending = overdue.length === 1
+      ? '*1 producto* pendiente de envío que lleva'
+      : `*${overdue.length} productos* pendientes de envío que llevan`;
+    const availability = overdue.length === 1 ? 'que ya no esté disponible' : 'que ya no estén disponibles';
+
+    return [
+      `📦 ${greeting(clientName)} Te escribimos para avisarte sobre tus pedidos en bodega.`,
+      'Recuerda que, por el espacio disponible y el volumen de mercancía que manejamos, nuestras políticas establecen *30 días* de resguardo sin costo. Pasado ese plazo, los paquetes pueden descartarse por falta de espacio y ya no nos es posible hacernos responsables.',
+      `Vimos que tienes ${pending} ${duration} en bodega. Cada cliente debe solicitar su envío dentro del plazo. Es posible ${availability}, pero con gusto podemos revisar su estatus por ti.`,
+      'Si deseas agendar tu envío, escríbenos por aquí y con gusto te ayudamos 💛',
+      `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,
+    ].join('\n\n');
+  }
+
   const youngestDays = items[items.length - 1].days;
   const days = youngestDays === oldestDays ? `${oldestDays} días` : `entre ${youngestDays} y ${oldestDays} días`;
   const products = count === 1 ? '*1 producto* pendiente de envío que lleva' : `*${count} productos* pendientes de envío que llevan`;
