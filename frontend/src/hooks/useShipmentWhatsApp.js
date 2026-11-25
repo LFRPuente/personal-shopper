@@ -33,7 +33,7 @@ export function buildWarehouseReminder(clientName, { count, oldestDays, items },
 
     return [
       `📦 ${greeting(clientName)} Te escribimos para avisarte sobre tus productos en bodega.`,
-      'Recuerda que, por el espacio disponible y el volumen de mercancía que manejamos, nuestras políticas establecen *30 días* de resguardo sin costo. Pasado ese plazo, los paquetes pueden descartarse por falta de espacio y ya no nos es posible hacernos responsables.',
+      'Recuerda que, por el espacio disponible y el volumen de mercancía que manejamos, nuestras políticas establecen *30 días* de resguardo sin costo. Pasado ese plazo, los productos pueden descartarse por falta de espacio y ya no nos es posible hacernos responsables.',
       `Vimos que tienes ${pending} ${duration} en bodega. Cada client@ debe solicitar su envío dentro del plazo. Es posible ${availability}, pero con gusto podemos revisar su estatus por ti.`,
       'Si deseas agendar tu envío, escríbenos por aquí y con gusto te ayudamos 💛',
       `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,

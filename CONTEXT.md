@@ -18,7 +18,7 @@ This file is the current project context and working agreement. Recent dated not
 - Ambos borradores de WhatsApp tienen una barra de formato nativo de WhatsApp: negrita, cursiva, tachado, monoespaciado, viñetas, números y cita. Al escribir, el editor usa un borde discreto sin el halo del cuadro genérico.
 - La barra de formato compartida por los dos editores de WhatsApp usa iconos claros en modo noche para que contrasten con la barra oscura.
 - Recordatorio de resguardo: justo después del saludo, se aclara que, según las políticas del negocio, el plazo es de 30 días y después el equipo ya no se hace responsable de los productos, que podrían descartarse. Le siguen conteo, antigüedad, invitación a agendar e historial.
-- Si algún producto pendiente supera 45 días, el recordatorio selecciona el aviso extendido y cuenta solo los productos de ese grupo. Usa nombre, cantidad y antigüedad con negritas de WhatsApp, política de 30 días al principio y enlace al historial. El mensaje actual para productos de 31 a 45 días queda provisional hasta recibir su texto. El texto usa «productos en bodega» y «Cada client@» a petición del usuario.
+- Si algún producto pendiente supera 45 días, el recordatorio selecciona el aviso extendido y cuenta solo los productos de ese grupo. Usa nombre, cantidad y antigüedad con negritas de WhatsApp, política de 30 días al principio y enlace al historial. El mensaje actual para productos de 31 a 45 días queda provisional hasta recibir su texto. El texto usa «productos» también en el párrafo de la política, y «Cada client@» a petición del usuario.
 - Dev es el entorno de revisión. PS y GitHub permanecen en la versión de producción hasta aprobación de estos cambios.
 
 - Cierre del 2026-11-24: Dev en `341674f`, cuatro servicios encendidos para revisión, migración 0055 aplicada. PS y origin/main en `94035f6`. Pasaron 19 pruebas Django y 9 pruebas Node, compilación y verificación de migraciones. Playwright verificó guardar la nota desde Envíos, abrir el borrador con enlace enfocado, cancelar sin envío y usar el texto editado del recordatorio con 2 productos de 35–42 días. Capturas revisadas en escritorio/móvil; WAHA interceptado y datos de prueba retirados. Pendiente: revisión del usuario en Dev y autorización separada si se promueve a PS.
@@ -34,6 +34,8 @@ This file is the current project context and working agreement. Recent dated not
 - Cierre del ajuste de resguardo (2026-11-24): frontend Dev y HEAD `b8c0a8d`, backend Dev de `341674f`, PS/origin/main `94035f6`. Compilación y verificación del orden del borrador para uno y varios productos. Dev encendido para revisión.
 
 - Cierre del borrador de más de 45 días (2026-11-24): frontend Dev y HEAD `72bf230`, backend Dev de `341674f`, PS/origin/main `94035f6`. Build y pruebas de límites, edades mixtas, singular/plural, nombre y enlace pasaron. Sigue pendiente el texto del usuario para la franja de 30 a 45 días. Dev encendido.
+
+- Cierre de redacción (2026-11-24): HEAD y frontend Dev `5317013`, con los dos cambios textuales del aviso de más de 45 días. Compilación y estampa Dev verificadas. Dev sigue activo, PS y origin/main en `94035f6`. Pendiente texto de 30 a 45 días.
 
 ### Cierre operativo anterior: 2026-11-17 (precios públicos)
 
