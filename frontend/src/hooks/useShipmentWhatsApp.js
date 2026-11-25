@@ -20,33 +20,30 @@ export function buildShipmentClosingMessage(clientName, shareUrl) {
   ].join('\n\n');
 }
 
-export function buildWarehouseReminder(clientName, { count, oldestDays, items }, shareUrl) {
+export function buildWarehouseReminder(clientName, { items }, shareUrl) {
   const overdue = items.filter(({ days }) => days > 45);
-  if (overdue.length) {
-    const oldest = overdue[0].days;
-    const youngest = overdue[overdue.length - 1].days;
-    const duration = youngest === oldest ? `*${oldest} días*` : `entre *${youngest} y ${oldest} días*`;
-    const pending = overdue.length === 1
-      ? '*1 producto* pendiente de envío que lleva'
-      : `*${overdue.length} productos* pendientes de envío que llevan`;
-    const availability = overdue.length === 1 ? 'que ya no esté disponible' : 'que ya no estén disponibles';
+  const selected = overdue.length ? overdue : items;
+  const oldest = selected[0].days;
+  const youngest = selected[selected.length - 1].days;
+  const duration = youngest === oldest ? `*${oldest} días*` : `entre *${youngest} y ${oldest} días*`;
+  const pending = selected.length === 1
+    ? '*1 producto* pendiente de envío que lleva'
+    : `*${selected.length} productos* pendientes de envío que llevan`;
+  const policy = overdue.length
+    ? 'Recuerda que, por el espacio disponible y el volumen de mercancía que manejamos, nuestras políticas establecen *30 días* de resguardo sin costo. Pasado ese plazo, los productos pueden descartarse por falta de espacio y ya no nos es posible hacernos responsables.'
+    : 'Recuerda que, por políticas de espacio y el alto volumen de mercancía que manejamos, el resguardo sin costo es de *30 días*. Pasado ese tiempo, los productos pueden descartarse por capacidad y ya no nos es posible hacernos responsables.';
+  const availability = selected.length === 1 ? 'que ya no esté disponible' : 'que ya no estén disponibles';
+  const status = overdue.length
+    ? `Cada client@ debe solicitar su envío dentro del plazo. Es posible ${availability}, pero con gusto podemos revisar su estatus por ti.`
+    : 'Solicitar la programación de envío a tiempo corresponde a cada client@, pero con mucho gusto revisamos su estatus por ti.';
 
-    return [
-      `📦 ${greeting(clientName)} Te escribimos para avisarte sobre tus productos en bodega.`,
-      'Recuerda que, por el espacio disponible y el volumen de mercancía que manejamos, nuestras políticas establecen *30 días* de resguardo sin costo. Pasado ese plazo, los productos pueden descartarse por falta de espacio y ya no nos es posible hacernos responsables.',
-      `Vimos que tienes ${pending} ${duration} en bodega. Cada client@ debe solicitar su envío dentro del plazo. Es posible ${availability}, pero con gusto podemos revisar su estatus por ti.`,
-      'Si deseas agendar tu envío, escríbenos por aquí y con gusto te ayudamos 💛',
-      `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,
-    ].join('\n\n');
-  }
-
-  const youngestDays = items[items.length - 1].days;
-  const days = youngestDays === oldestDays ? `${oldestDays} días` : `entre ${youngestDays} y ${oldestDays} días`;
-  const products = count === 1 ? '*1 producto* pendiente de envío que lleva' : `*${count} productos* pendientes de envío que llevan`;
   return [
-    greeting(clientName),
-    '📦 Según nuestras políticas, el plazo de resguardo es de *30 días*. Después de ese plazo, ya no nos hacemos responsables de los productos que sigan en bodega y podrían descartarse.',
-    `Tienes ${products} ${days} en nuestra bodega. Si quieres agendar tu envío, escríbenos y con gusto te ayudamos 💛`,
+    `📦 ${greeting(clientName)} Te escribimos para avisarte sobre tus productos en bodega.`,
+    policy,
+    `Vimos que tienes ${pending} ${duration} en bodega. ${status}`,
+    overdue.length
+      ? 'Si deseas agendar tu envío, escríbenos por aquí y con gusto te ayudamos 💛'
+      : 'Si deseas agendar tu envío, escríbenos por aquí y te apoyamos encantados 💛',
     `🔗 *Puedes revisar tus productos en tu historial:*\n${shareUrl}`,
   ].join('\n\n');
 }
