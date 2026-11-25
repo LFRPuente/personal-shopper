@@ -19,7 +19,7 @@ This file is the current project context and working agreement. Recent dated not
 - La barra de formato compartida por los dos editores de WhatsApp usa iconos claros en modo noche para que contrasten con la barra oscura.
 - Recordatorio de resguardo: justo después del saludo, se aclara que, según las políticas del negocio, el plazo es de 30 días y después el equipo ya no se hace responsable de los productos, que podrían descartarse. Le siguen conteo, antigüedad, invitación a agendar e historial.
 - Si algún producto pendiente supera 45 días, el recordatorio selecciona el aviso extendido y cuenta solo los productos de ese grupo. Usa nombre, cantidad y antigüedad con negritas de WhatsApp, política de 30 días al principio y enlace al historial. El aviso de 30 a 45 días usa la redacción aportada por el usuario, con nombre, cantidad y antigüedad reales, énfasis WhatsApp y enlace al historial. El filtro existente empieza al superar 30 días; el día 45 usa este aviso. El texto usa «productos» también en el párrafo de la política, y «Cada client@» a petición del usuario.
-- Dev es el entorno de revisión. PS y GitHub permanecen en la versión de producción hasta aprobación de estos cambios.
+- El 2026-11-24 el usuario autorizó guardar en GitHub y promover a PS la versión revisada en Dev. Guardar respaldo verificado de PS y referencias de las imágenes anteriores antes de aplicar 0055. La migración agrega el comentario interno con valor inicial vacío. Verificar salud y paridad de local, GitHub y los dos frontends. Dev queda disponible para trabajo posterior.
 
 - Cierre del 2026-11-24: Dev en `341674f`, cuatro servicios encendidos para revisión, migración 0055 aplicada. PS y origin/main en `94035f6`. Pasaron 19 pruebas Django y 9 pruebas Node, compilación y verificación de migraciones. Playwright verificó guardar la nota desde Envíos, abrir el borrador con enlace enfocado, cancelar sin envío y usar el texto editado del recordatorio con 2 productos de 35–42 días. Capturas revisadas en escritorio/móvil; WAHA interceptado y datos de prueba retirados. Pendiente: revisión del usuario en Dev y autorización separada si se promueve a PS.
 
@@ -38,6 +38,8 @@ This file is the current project context and working agreement. Recent dated not
 - Cierre de redacción (2026-11-24): HEAD y frontend Dev `5317013`, con los dos cambios textuales del aviso de más de 45 días. Compilación y estampa Dev verificadas. Dev sigue activo, PS y origin/main en `94035f6`. Pendiente texto de 30 a 45 días.
 
 - Ajuste final de vocabulario (2026-11-24): frontend Dev y HEAD `166dc97`. En el aviso de más de 45 días se usa «productos» en la política de descarte. Build y estampa Dev verificados. Dev activo, PS/origin/main `94035f6`. Pendiente texto de 30 a 45 días.
+
+- Cierre de ambos avisos (2026-11-24): frontend Dev y HEAD `f4d6144`. Texto entregado por el usuario de 30–45 días integrado, con saludo, cuenta y rango variables, negritas, client@, invitación e historial. Pruebas directas de ambas variantes, límites 45/46, edades mixtas y singular/plural, compilación y estampa verificadas. Dev activo, PS/origin/main `94035f6`. Pendiente revisión en Dev.
 
 ### Cierre operativo anterior: 2026-11-17 (precios públicos)
 
