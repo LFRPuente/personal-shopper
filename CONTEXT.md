@@ -9,7 +9,18 @@ This file is the current project context and working agreement. Recent dated not
 - Al abrir otro chat, leer `AGENTS.md`, este contexto y las guías del proyecto; consultar el último cierre y los pendientes en MemPalace y contrastarlos con el estado real antes de actuar. No suponer que se transfirió todo el historial automáticamente.
 - La continuidad se mantiene mediante escrituras explícitas del agente, no mediante una sincronización automática de todo el chat. Estas notas no requieren desplegar ni crear un commit posterior al release que rompa la igualdad de versiones; incorporarlas al próximo commit de trabajo cuando corresponda.
 
-### Cambios para revisar en Dev (2026-11-24)
+### Último cierre operativo verificado: 2026-11-24
+
+- Release `5507139` activo en PS y Dev. HEAD, GitHub `main` y estampas de ambos frontends coinciden; se compararon todos los assets y archivos Python instalados. Dev permanece encendido.
+- El usuario autorizó el despliegue y la columna de comentario interno con la condición de conservar los registros y funciones existentes. PostgreSQL y Redis conservaron contenedores y montajes; solo se reconstruyeron frontend y backend de PS. Se aplicó exclusivamente la migración 0055. No se importaron datos de Dev ni se enviaron mensajes.
+- Pasaron 19 pruebas Django y 9 Node; migraciones al día, validación de serializadores, web y API de PS 200. Respaldo verificado y referencias de recuperación en `/Users/homeserver/backups/personal-shopper-prod/shipment-comment-20261125T044131Z/`.
+- El cierre está en MemPalace. Este archivo queda actualizado localmente sin crear un commit posterior al despliegue.
+
+### Contraste del comentario interno (2026-11-24)
+
+- El textarea de Comentario interno tenía contraste de 1.0:1 en modo noche. Se aplican colores explícitos de título, fondo, texto y placeholder según el tema en tarjeta y modal. Ajuste de frontend autorizado por el usuario para Dev/GitHub/PS, con validación de ambos modos y paridad.
+
+### Cambios revisados en Dev y publicados en PS (2026-11-24)
 
 - En Envíos, comentario interno opcional por envío, compartido entre sus cajas, editable al crear o guardar cambios. Columna Comentario interno en ENVIOS del reporte general (Excel y CSV). El campo solo se incluye en la API autenticada de Envíos; el enlace del cliente, el del envío y los mensajes no contienen la nota. La migración Dev 0055 agrega el campo.
 - El botón de WhatsApp de Envíos abre un editor con saludo, enlace enfocado en ese envío y formato WhatsApp. Clientes con productos sin asignar a un envío de más de 30 días tienen un botón individual para un recordatorio editable con número de productos, días en bodega e historial. Enviar usa el texto editado tras confirmarlo. Las pruebas interceptan WAHA y no envían mensajes reales.
